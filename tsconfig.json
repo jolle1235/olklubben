@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    // The two globs below are what `next dev` adds for the E2E server
+    // (NEXT_DIST_DIR=.next-e2e, NODE_ENV=test, see playwright.config.ts).
+    // Listing them stops Next from rewriting this file; "exclude" keeps tsc
+    // from loading the E2E route types next to the ones in .next.
+    ".next-e2e/dev/types/**/*.ts",
+    ".next-e2e/dev/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next-e2e"]
+}

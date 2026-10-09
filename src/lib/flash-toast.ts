@@ -1,0 +1,47 @@
+/**
+ * Toasts after a redirect ("flash" messages). A Server Action that redirects
+ * cannot return a result to the client (and must work without JavaScript),
+ * so it adds `?toast=<key>` to its redirect target with withToast(). The club
+ * layout's <FlashToast /> shows the matching message once and removes the
+ * flag from the address bar (src/components/features/flash-toast.tsx).
+ *
+ * Only these known keys are shown, so a link can never put arbitrary text in
+ * a toast. Messages follow the tone of SPEC §13.5. Pure and client-safe.
+ */
+
+export const TOAST_PARAM = "toast";
+
+export const FLASH_TOASTS = {
+  "event-created": "Skål! Eventet er oprettet 🍻",
+  "event-updated": "Gemt ✓",
+  "event-deleted": "Eventet er slettet.",
+  "event-deleted-beers-kept": "Eventet er slettet. Øllene er stadig i kataloget 🍺",
+  "beer-created": "Skål! Øllen er tilføjet 🍺",
+  "beer-updated": "Gemt ✓",
+  "beer-deleted": "Øllen er slettet.",
+} as const satisfies Record<string, string>;
+
+export type FlashToastKey = keyof typeof FLASH_TOASTS;
+
+/** The message for a `?toast=` value, or null for a missing or unknown key. */
+export function flashToastMessage(key: string | null | undefined): string | null {
+  if (!key || !Object.hasOwn(FLASH_TOASTS, key)) return null;
+  return FLASH_TOASTS[key as FlashToastKey];
+}
+
+/** `href` with `?toast=<key>` (keeps an existing query and #hash). */
+export function withToast(href: string, key: FlashToastKey): string {
+  const hashIndex = href.indexOf("#");
+  const path = hashIndex === -1 ? href : href.slice(0, hashIndex);
+  const hash = hashIndex === -1 ? "" : href.slice(hashIndex);
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}${TOAST_PARAM}=${encodeURIComponent(key)}${hash}`;
+}
+
+/** `search` ("?a=1&toast=x" or "") without the toast flag, as "?a=1" or "". */
+export function searchWithoutToast(search: string): string {
+  const query = new URLSearchParams(search);
+  query.delete(TOAST_PARAM);
+  const rest = query.toString();
+  return rest ? `?${rest}` : "";
+}

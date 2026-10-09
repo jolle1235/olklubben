@@ -1,0 +1,310 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+ * Ølklubben designsystem (SPEC §13).
+ *
+ * Kun lyst tema. Mørkt tema er [SENERE]. `dark:` er bundet til en `.dark`-klasse,
+ * som aldrig sættes, så shadcn-komponenternes dark:-klasser forbliver inaktive,
+ * også når styresystemet kører mørkt tema.
+ */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tailwinds standardpalet er slået fra. Kun brandfarverne nedenfor findes som
+ * utilities (bg-olive, text-amber-ink …), så der ikke sniger sig tilfældige
+ * farver (fx lilla) ind. Brug de semantiske navne (primary, muted …), hvor de passer.
+ */
+@theme {
+  --color-*: initial;
+  --color-black: #000;
+  --color-white: #fff;
+}
+
+@theme inline {
+  /* Typografi: next/font sætter --font-zilla-slab og --font-source-sans på <html>. */
+  --font-sans: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-zilla-slab), ui-serif, Georgia, serif;
+  --font-heading: var(--font-zilla-slab), ui-serif, Georgia, serif;
+
+  /* Brandfarver (SPEC §13.2) + afledte nuancer */
+  --color-olive: var(--olive);
+  --color-olive-soft: var(--olive-soft);
+  --color-olive-deep: var(--olive-deep);
+  --color-olive-tint: var(--olive-tint);
+  --color-on-dark-muted: var(--on-dark-muted);
+  --color-harbor: var(--harbor);
+  --color-harbor-soft: var(--harbor-soft);
+  --color-harbor-tint: var(--harbor-tint);
+  --color-cream: var(--cream);
+  --color-cream-deep: var(--cream-deep);
+  --color-sand: var(--sand);
+  --color-paper: var(--paper);
+  --color-amber: var(--amber);
+  --color-amber-light: var(--amber-light);
+  --color-amber-tint: var(--amber-tint);
+  --color-amber-ink: var(--amber-ink);
+  --color-brass: var(--brass);
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-danger: var(--danger);
+  --color-danger-deep: var(--danger-deep);
+  --color-danger-tint: var(--danger-tint);
+  --color-rust: var(--rust);
+  --color-brown: var(--brown);
+
+  /* shadcn-semantik */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Palet (SPEC §13.2). Primær: oliven #414437 (Jespers farve) til app-rammen
+ * (sidebar, top bar, bundnavigation, CenteredShell) og til handlinger (knapper,
+ * links, aktive og valgte tilstande, bekræftede events). Sekundær: havneblå
+ * (harbor) som støttefarve: Overblikkets hero-kort, "Klubbens rating", "i dag"
+ * i kalenderen og info-beskeder. Messing/amber er accent, creme er papir.
+ *
+ * Kontrast (WCAG 2.x, tekst/baggrund). Brødtekst kræver 4,5:1, UI-kanter og fokus 3:1.
+ *   ink       #1A1D21 på cream #F6F0E1  14,88   på paper #FFFBF3 16,39 · på olive-tint 13,45
+ *   slate     #5E6670 på cream          5,12    på paper 5,64 · på cream-deep 4,64
+ *   olive     #414437 på cream          8,77    på paper 9,66 · på sand #E6DBC1 7,25 (overskrifter, links)
+ *   paper     på olive                  9,66    (primærknap) · på olive-deep #2D2F23 13,19 (hover)
+ *   cream     på olive                  8,77    på olive-soft #525742 6,59 (app-rammen, toasts)
+ *   on-dark-muted #CECFC4 på olive      6,34    på olive-soft 4,77 · på harbor 4,94
+ *   olive-deep på olive-tint #E3E8CE    10,83   (succes-besked, tidspunkt i event-chip)
+ *   cream     på harbor #3E5568         6,83    paper 7,52 (i dag) · cream på harbor-soft #4E6679 5,28
+ *   amber-light #F2C46A på harbor       4,76    (tema-tekst på hero'en; amber er kun 3,18)
+ *   harbor    på harbor-tint #DCE6EE    6,14    (info-badge, info-besked)
+ *   ink       på amber #D99A1E          6,92    (messingknap, "I aften!"; olive på amber er kun 4,08)
+ *   amber     på olive-deep             5,57    (klubbadgens initialer)
+ *   amber-ink #8A5A00 på cream          5,21    på paper 5,74 · ink på amber-tint #F6E3B4 13,34
+ *   white     på danger #B3261E         6,54    danger på cream 5,75 · danger-deep på danger-tint 6,95
+ *   cream     på olive/harbor/rust/brown/slate  8,77 / 6,83 / 6,73 / 6,56 / 5,12 (avatar-initialer)
+ *   Ikke-tekst (≥ 3:1): amber på olive 4,08 og på harbor 3,18 (fokusring, stjerner, ikoner) ·
+ *   brass #A06A0A på cream 4,05 og paper 4,46 (fokusring) · amber-ink på cream 5,21 (stjerner) ·
+ *   olive-deep på amber 5,57 (aktivt nav-ikon) · input-kant #8C7F66 på paper 3,81, på cream 3,46.
+ * amber (#D99A1E) på cream er kun 2,15:1 og bruges derfor aldrig til tekst på lyse flader.
+ */
+:root {
+  /* Primær: oliven + afledte nuancer (samme kulør, oklch h ≈ 118). */
+  --olive: #414437;
+  --olive-soft: #525742;
+  --olive-deep: #2d2f23;
+  --olive-tint: #e3e8ce;
+  /* Dæmpet tekst på mørke flader (olive og harbor). */
+  --on-dark-muted: #cecfc4;
+  /* Sekundær: havneblå. */
+  --harbor: #3e5568;
+  --harbor-soft: #4e6679;
+  --harbor-tint: #dce6ee;
+  --cream: #f6f0e1;
+  --cream-deep: #ede5d2;
+  --sand: #e6dbc1;
+  --paper: #fffbf3;
+  --amber: #d99a1e;
+  --amber-light: #f2c46a;
+  --amber-tint: #f6e3b4;
+  --amber-ink: #8a5a00;
+  --brass: #a06a0a;
+  --ink: #1a1d21;
+  --slate: #5e6670;
+  --danger: #b3261e;
+  --danger-deep: #8f1d17;
+  --danger-tint: #f6deda;
+  --rust: #8a3b2e;
+  --brown: #7a4a12;
+
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--olive);
+  --primary-foreground: var(--paper);
+  --secondary: var(--sand);
+  --secondary-foreground: var(--olive);
+  --muted: var(--cream-deep);
+  --muted-foreground: var(--slate);
+  --accent: var(--amber-tint);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --border: #ddd0b3;
+  --input: #8c7f66;
+  --ring: var(--brass);
+  --radius: 0.75rem;
+
+  --chart-1: var(--olive);
+  --chart-2: var(--amber);
+  --chart-3: var(--harbor);
+  --chart-4: var(--rust);
+  --chart-5: var(--brown);
+
+  --sidebar: var(--olive);
+  --sidebar-foreground: var(--cream);
+  --sidebar-primary: var(--amber);
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: var(--olive-soft);
+  --sidebar-accent-foreground: var(--cream);
+  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-ring: var(--amber);
+
+  /* Farven i spalten mellem en porthole-ring og indholdet (se .porthole). */
+  --porthole-gap: var(--paper);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  /* Synlig fokus overalt (SPEC §15.2). Komponenter må ikke fjerne den med outline-none. */
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background-color: var(--amber-tint);
+    color: var(--ink);
+  }
+}
+
+/*
+ * Mørke flader: creme tekst, amber fokusring og en spalte i porthole-ringe i
+ * fladens farve. on-olive: app-rammen (sidebar, top bar, bundnavigation,
+ * CenteredShell). on-harbor: fremhævede kort (Overblikkets hero, "Klubbens rating").
+ */
+@utility on-olive {
+  --ring: var(--amber);
+  --porthole-gap: var(--olive);
+  background-color: var(--olive);
+  color: var(--cream);
+}
+
+@utility on-harbor {
+  --ring: var(--amber);
+  --porthole-gap: var(--harbor);
+  background-color: var(--harbor);
+  color: var(--cream);
+}
+
+/*
+ * Rund "porthole"-ramme (SPEC §13.1): messingring med en smal spalte. Tegnes uden for elementet.
+ * --porthole-ring kan dæmpe ringen (fx sidebarens brugerrække, når den ikke er aktiv).
+ */
+@utility porthole {
+  border-radius: calc(infinity* 1px);
+  box-shadow:
+    0 0 0 2px var(--porthole-gap),
+    0 0 0 4px var(--porthole-ring, var(--amber)),
+    0 0 0 5px rgb(65 68 55 / 0.2);
+}
+
+/* Snoet reb som skillelinje. Ren dekoration. */
+@utility rope-line {
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='12' viewBox='0 0 7 12'%3E%3Cg stroke-linecap='round'%3E%3Cpath d='M-1.5 10.5 5 1.5M5.5 10.5 12 1.5M-8.5 10.5-2 1.5' stroke='%238f7a52' stroke-width='4.4'/%3E%3Cpath d='M-1.5 10.5 5 1.5M5.5 10.5 12 1.5M-8.5 10.5-2 1.5' stroke='%23d6c39a' stroke-width='2.4'/%3E%3Cpath d='M-.6 8.2 3.2 3M6.4 8.2 10.2 3M-7.6 8.2-3.8 3' stroke='%23efe2c2' stroke-width='.9'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 1.5rem,
+    #000 calc(100% - 1.5rem),
+    transparent
+  );
+}
+
+/* Rolig bølgelinje. Ren dekoration. */
+@utility wave-line {
+  height: 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0 5q6-5 12 0t12 0' fill='none' stroke='%23c9b48a' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 1.5rem,
+    #000 calc(100% - 1.5rem),
+    transparent
+  );
+}
+
+/* Respekter prefers-reduced-motion (SPEC §15.2). Ulaget, så det vinder over utilities. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Sonner uses its mobile offset only at ≤600 px, but the olive top bar shows
+ * below md (768 px). Unlayered like Sonner's injected CSS (a layered rule
+ * would lose to it); the extra `html` outranks its selector (0,2,0).
+ */
+@media (width < 48rem) {
+  html [data-sonner-toaster][data-y-position="top"] {
+    top: var(--mobile-offset-top);
+  }
+}
