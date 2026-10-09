@@ -2008,8 +2008,8 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Område:** Tests
 - **Symptom:** Signup blev stående på `/signup` og navigerede igen og igen, eller CSS'en manglede (begge navigationer synlige), og browseren meldte `ERR_NETWORK_IO_SUSPENDED`.
 - **Årsag:** Rutetræet var ændret af andre agenter siden sidste E2E-kørsel (som F-013).
-- **Rettelse:** `rm -rf .next-e2e/dev` inden for samme `flock` som kørslen.
-- **Læring / forebyggelse:** Ryd `.next-e2e/dev`, når rutetræet har ændret sig siden sidste kørsel.
+- **Rettelse:** Først `rm -rf .next-e2e/dev` inden for samme `flock` som kørslen. Integratorens anden fulde kørsel fejlede igen i 15 desktop-tests ved første bølge af signups på en varm cache, uden kodeændringer. Nu sletter Playwrights `webServer.command` selv `.next-e2e/dev`, hver gang den starter en ny E2E-server (`playwright.config.ts`); en kørende server genbruges stadig.
+- **Læring / forebyggelse:** En ny start af `next dev` på en gammel Turbopack-cache er ikke til at stole på. Ryd cachen ved start, ikke først når det går galt.
 
 ### F-061 · 2026-10-09 · Forkert nuværende password blev annonceret to gange
 - **Område:** Profil
