@@ -37,10 +37,21 @@ test.describe("Fokus ved fejl i formularer", () => {
     await createClub(page, clubName(testInfo, "Fokus"));
     await profileLink(page).click();
     await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
-    const profileName = page.getByLabel("Navn");
+    const profileName = page.getByLabel("Navn", { exact: true });
     await profileName.fill("");
-    await page.getByRole("button", { name: "Gem navn" }).press("Enter");
+    await page.getByRole("button", { name: "Gem profil" }).press("Enter");
     await expect(profileName).toHaveAttribute("aria-invalid", "true");
     await expect(profileName).toBeFocused();
+
+    // Skift password: a wrong current password is checked by the server, and
+    // its error moves focus to that field (D-056).
+    const currentPassword = page.getByLabel("Nuværende password");
+    await currentPassword.fill("forkert-password");
+    await page.getByLabel("Nyt password", { exact: true }).fill(`${user.password}-ny`);
+    await page.getByLabel("Gentag nyt password").fill(`${user.password}-ny`);
+    await page.getByRole("button", { name: "Skift password" }).press("Enter");
+    await expect(page.getByText("Det nuværende password er forkert.")).toBeVisible();
+    await expect(currentPassword).toHaveAttribute("aria-invalid", "true");
+    await expect(currentPassword).toBeFocused();
   });
 });

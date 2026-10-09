@@ -23,14 +23,14 @@ export function PlaceAbout({ address, description, editHref }: PlaceAboutProps) 
   return (
     <section aria-label="Om stedet" className="grid grid-cols-1 gap-4">
       {address ? (
-        <div className="grid grid-cols-1 justify-items-start gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <p className="flex items-start gap-2 text-lg text-ink">
             <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-olive" />
             <span className="sr-only">Adresse: </span>
             <span className="min-w-0 break-words hyphens-auto">{address}</span>
           </p>
           {mapsUrl ? (
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="justify-self-start">
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
                 Åbn i kort
                 <ExternalLinkIcon aria-hidden />

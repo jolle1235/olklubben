@@ -7,10 +7,12 @@ import {
   zonedDateTimeToUtc,
   type DateKey,
 } from "../../src/server/domain/events/time";
-import { expectHydrated, expectOverview, readInvitePath, signUp, type TestUser } from "./app";
+import { expectHydrated, expectOverview, signUp, type TestUser } from "./app";
+import { sql } from "./db";
 
 /**
- * Round 2 helpers (events, calendar, beers, ratings) for the E2E specs. Dates
+ * Round 2 helpers (events, calendar, beers, ratings) for the E2E specs, with
+ * round 3's place and host pickers in the event form (agent C). Dates
  * are Copenhagen calendar days relative to today, so the tests run on any
  * day; the UI steps use roles and the Danish labels.
  */
@@ -68,32 +70,83 @@ export function idFromUrl(page: Page): string {
 }
 
 /**
- * The owner reads the club's invitation link; `member` signs up through it
- * and joins (a second, ordinary member of the club).
+ * The club's join path ("/join/K7XMQ2PA"), read from the database: setup for
+ * specs about something else, so they do not depend on the club page's
+ * layout (invites.spec.ts tests the invitation UI itself).
  */
+export async function invitePath(clubId: string): Promise<string> {
+  const [row] = await sql<{ code: string }>(
+    "SELECT code FROM invites WHERE club_id = $1 AND revoked_at IS NULL",
+    [clubId],
+  );
+  if (!row) throw new Error("E2E: klubben har ingen aktiv invitation");
+  return `/join/${row.code}`;
+}
+
+/** `member` signs up through the club's invitation link and joins (an ordinary member). */
 export async function joinClub(
-  ownerPage: Page,
+  _ownerPage: Page,
   memberPage: Page,
   member: TestUser,
   clubId: string,
 ): Promise<void> {
-  await ownerPage.goto(`/c/${clubId}/club`);
-  const invitePath = await readInvitePath(ownerPage);
-  await signUp(memberPage, member, { next: invitePath });
+  await signUp(memberPage, member, { next: await invitePath(clubId) });
   await memberPage.getByRole("button", { name: "Join klub" }).click();
   await expectOverview(memberPage, clubId);
 }
+
+/**
+ * Where an event is (round 3, D-099): the name of one of the club's places
+ * (its radio card), or "＋ Nyt sted" with a name, an optional address and
+ * "Det er mit sted". A name the club has no place for is created as new.
+ */
+export type EventPlaceInput = string | { new: string; address?: string; mine?: boolean };
 
 export type EventInput = {
   title?: string;
   date: string;
   startTime?: string;
   endTime?: string;
-  locationText: string;
+  place: EventPlaceInput;
+  /** Display names of the hosts to tick (e.g. "Mads", "Kaptajnen (dig)"); none = the default. */
+  hosts?: string[];
   theme?: string;
   /** "Beskrivelse / plan". */
   description?: string;
 };
+
+/** The event form's place radio by its accessible name (exactly the place's name). */
+export function placeRadio(page: Page, name: string) {
+  return page.getByRole("radio", { name, exact: true });
+}
+
+/** The event form's host chip by its accessible name ("Mads", "Mads (dig)"). */
+export function hostCheckbox(page: Page, name: string) {
+  return page.getByRole("checkbox", { name, exact: true });
+}
+
+/**
+ * Picks the place in the event form's PlaceSelector: the place's radio card
+ * (opening "Vis alle N steder" if it is hidden there), else "＋ Nyt sted" with
+ * its fields. Waits for hydration first (F-039).
+ */
+export async function choosePlace(page: Page, place: EventPlaceInput): Promise<void> {
+  const newPlace = placeRadio(page, "＋ Nyt sted");
+  await expectHydrated(newPlace);
+  if (typeof place === "string") {
+    const radio = placeRadio(page, place);
+    if ((await radio.count()) > 0) {
+      if (!(await radio.isVisible())) await page.getByText(/^Vis alle \d+ steder$/).click();
+      await radio.check();
+      return;
+    }
+  }
+  const input = typeof place === "string" ? { new: place } : place;
+  await newPlace.check();
+  await page.getByLabel("Navn på stedet").fill(input.new);
+  if (input.address) await page.getByLabel(/^Adresse/).fill(input.address);
+  if (input.mine) await page.getByLabel("Det er mit sted").check();
+}
 
 /** "Opret event" through the form (SPEC §10.4). Returns the new event's id. */
 export async function createEventViaForm(
@@ -107,7 +160,8 @@ export async function createEventViaForm(
   await page.getByLabel("Dato").fill(input.date);
   if (input.startTime) await page.getByLabel("Starttid").fill(input.startTime);
   if (input.endTime) await page.getByLabel(/^Sluttid/).fill(input.endTime);
-  await page.getByLabel("Sted").fill(input.locationText);
+  await choosePlace(page, input.place);
+  for (const host of input.hosts ?? []) await hostCheckbox(page, host).check();
   if (input.theme) await page.getByLabel(/^Tema/).fill(input.theme);
   if (input.description) await page.getByLabel(/^Beskrivelse \/ plan/).fill(input.description);
   await page.getByRole("button", { name: "Opret event" }).click();

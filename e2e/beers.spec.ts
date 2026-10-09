@@ -292,6 +292,40 @@ test.describe("Ølkatalog", () => {
     );
     expect(row?.count).toBe(2);
   });
+
+  test("en dublet, som kun serveren kender, beholder det valgte event, og Tilføj alligevel gemmer det (F-053)", async ({
+    page,
+  }, testInfo) => {
+    const owner = newUser(testInfo, "racedublet");
+    const clubId = await signUpWithClub(page, owner, clubName(testInfo, "Race"));
+    const eventId = await insertEvent({
+      clubId,
+      createdByEmail: owner.email,
+      title: "Racesmagning",
+      startsAt: at(dayFromToday(-1), "18:30"),
+    });
+
+    await page.goto(`/c/${clubId}/beers/new`);
+    await expectHydrated(page.getByLabel("Navn"));
+    await fillBeerForm(page, { name: "Samtidig Stout", abv: "8", eventLabel: /Racesmagning/ });
+    const select = page.getByLabel("Event (valgfrit)");
+    await expect(select).toHaveValue(eventId);
+
+    // Someone else adds the same beer meanwhile: only the server knows (D-083).
+    await insertBeer({ clubId, createdByEmail: owner.email, name: "Samtidig Stout" });
+    await page.getByRole("button", { name: "Tilføj øl", exact: true }).click();
+    await expect(page.getByText("Den her har I vist smagt før 👀")).toBeVisible();
+    // React resets the form after the answer; the chosen event must still show.
+    await expect(select).toHaveValue(eventId);
+
+    await page.getByRole("button", { name: "Tilføj alligevel" }).click();
+    const beerId = await expectNewBeerPage(page, clubId, "Samtidig Stout");
+    const [row] = await sql<{ event_id: string | null }>(
+      "SELECT event_id FROM beers WHERE id = $1",
+      [beerId],
+    );
+    expect(row?.event_id).toBe(eventId);
+  });
 });
 
 test.describe("Rettigheder for øl", () => {

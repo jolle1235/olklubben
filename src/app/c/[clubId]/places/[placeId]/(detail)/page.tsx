@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarPlusIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarPlusIcon, PencilIcon, PlusIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
 import { ArchivedPlaceBanner } from "@/components/features/places/archived-place-banner";
@@ -13,7 +13,7 @@ import { LinkPendingIcon } from "@/components/ui/link-pending";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatCompactDate, toDateKey } from "@/lib/format/date";
 import { getDisplayName } from "@/lib/format/display-name";
-import { editPlaceHref, newEventHref } from "@/lib/routes";
+import { editPlaceHref, newEventHref, placesHref } from "@/lib/routes";
 import { isAdmin } from "@/server/domain/clubs/permissions";
 import {
   canEditPlace,
@@ -39,6 +39,7 @@ export async function generateMetadata({
  * the owners with the "Det er mit sted" toggle, "Ølsmagninger her", and
  * Rediger plus ONE removal button labelled by what will happen. An archived
  * place shows a banner with "Gendan sted" instead of "Opret event her".
+ * Steder has no main navigation item (§8.1), so the page links back to it.
  *
  * The guard layout has already given a real 404 for a place that is not in
  * this club (E22); requirePlacePage() returns it with its owners and
@@ -69,6 +70,13 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
         </TopBarAction>
       )}
 
+      <Link
+        href={placesHref(club.id)}
+        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
+      >
+        <ArrowLeftIcon aria-hidden className="size-4" />
+        Alle steder
+      </Link>
       <PageHeader
         title={place.name}
         action={

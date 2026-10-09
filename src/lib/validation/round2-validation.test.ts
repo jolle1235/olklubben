@@ -89,7 +89,7 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       date: ["Datoen findes ikke. Vælg en anden dato."],
       startTime: ["Skriv tiden som tt:mm, fx 18:30."],
       endTime: ["Skriv sluttiden som tt:mm, fx 23:00."],
-      newPlaceName: ["Skriv, hvor I mødes."],
+      newPlaceName: ["Giv stedet et navn."],
       theme: ["Temaet må højst være 80 tegn."],
       description: ["Planen må højst være 5000 tegn."],
     });
@@ -135,7 +135,7 @@ describe("eventFormSchema (SPEC §9.2)", () => {
     });
     expect(
       fieldErrors(eventFormSchema.safeParse({ ...valid, title: "\u0000", newPlaceName: "\u0000" })),
-    ).toEqual({ title: ["Giv eventet en titel."], newPlaceName: ["Skriv, hvor I mødes."] });
+    ).toEqual({ title: ["Giv eventet en titel."], newPlaceName: ["Giv stedet et navn."] });
     expect(eventFormSchema.parse({ ...valid, description: " \u0000 " }).description).toBeNull();
   });
 

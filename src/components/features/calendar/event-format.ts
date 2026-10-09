@@ -20,6 +20,13 @@ export type CalendarEvent = {
   endsAt: Date | null;
 };
 
+/** A past tasting in the history (PastEventSummary from src/server/events/queries.ts fits). */
+export type PastCalendarEvent = CalendarEvent & {
+  beerCount: number;
+  /** The evening's best-rated beer, null when nothing was rated. */
+  topBeer: { name: string; averageStars: number } | null;
+};
+
 /** "fredag" → "Fredag". */
 export function capitalize(text: string): string {
   return text ? text.charAt(0).toLocaleUpperCase("da") + text.slice(1) : text;

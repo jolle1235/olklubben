@@ -129,7 +129,7 @@ describe("eventFormSchema: place and hosts (SPEC §9.2, D-098, D-099)", () => {
       ),
     ).toEqual({
       title: ["Giv eventet en titel."],
-      newPlaceName: ["Skriv, hvor I mødes."],
+      newPlaceName: ["Giv stedet et navn."],
     });
   });
 

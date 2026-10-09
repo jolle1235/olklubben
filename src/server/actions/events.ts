@@ -70,8 +70,9 @@ export type EventFormValues = Partial<Record<(typeof EVENT_TEXT_FIELDS)[number],
 /** The form state for useActionState: null before the first submit. Success redirects. */
 export type EventFormState = FormFailure<EventFormValues> | null;
 
-const NOT_ALLOWED_TO_EDIT = "Kun den, der oprettede eventet, og klubbens admins kan rette det.";
-const NOT_ALLOWED_TO_DELETE = "Kun den, der oprettede eventet, og klubbens admins kan slette det.";
+// D-098 (replaces D-061): the creator, the hosts and the club's admins.
+const NOT_ALLOWED_TO_EDIT = "Kun opretteren, værterne og klubbens admins kan rette eventet.";
+const NOT_ALLOWED_TO_DELETE = "Kun opretteren, værterne og klubbens admins kan slette eventet.";
 
 const PLACE_GONE_MESSAGE = "Stedet findes ikke længere. Vælg et andet.";
 const PLACE_ARCHIVED_MESSAGE = "Stedet er arkiveret. Vælg et andet.";

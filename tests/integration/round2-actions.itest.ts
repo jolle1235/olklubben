@@ -24,9 +24,9 @@ import {
  * The round 2 Server Actions (events, beers, ratings) against the real
  * database (SPEC §15.3 "Integration"): validation, membership (non-member →
  * 404), the resource in THIS club (another club or a malformed id → 404,
- * §4.4), the creator-or-admin rule (D-061, §5.1) and the redirects with their
- * toast flags. Hidden buttons are only UX; these calls are what a forged
- * request would do.
+ * §4.4), the creator-host-or-admin rule (D-098, which replaced D-061; §5.1)
+ * and the redirects with their toast flags. Hidden buttons are only UX; these
+ * calls are what a forged request would do.
  */
 vi.mock("next/headers", async () => (await import("./helpers")).nextHeadersModule);
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -183,8 +183,8 @@ describe("createEventAction", () => {
   });
 });
 
-describe("updateEventAction and deleteEventAction (D-061)", () => {
-  it("refuses a member who did not create the event, without writing", async () => {
+describe("updateEventAction and deleteEventAction (D-098)", () => {
+  it("refuses a member who neither created nor hosts the event, without writing", async () => {
     const eventId = await insertEvent(creator, "Opretterens smagning");
     await insertBeer(creator, "Bliver-øl", eventId);
     setActor(member);
@@ -195,7 +195,7 @@ describe("updateEventAction and deleteEventAction (D-061)", () => {
     );
     expect(state?.error.code).toBe(ACTION_ERROR_CODES.FORBIDDEN);
     expect(state?.error.message).toBe(
-      "Kun den, der oprettede eventet, og klubbens admins kan rette det.",
+      "Kun opretteren, værterne og klubbens admins kan rette eventet.",
     );
     const deleted = await deleteEventAction(clubId, eventId);
     expect(deleted).toMatchObject({ ok: false, error: { code: ACTION_ERROR_CODES.FORBIDDEN } });

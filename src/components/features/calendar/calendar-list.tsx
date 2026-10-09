@@ -6,7 +6,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { groupEventsByMonth } from "@/server/domain/calendar/group";
 import { monthKeyLabel } from "@/server/domain/calendar/month";
 
-import { calendarHref } from "./calendar-params";
 import { EventCard } from "./event-card";
 import type { CalendarEvent } from "./event-format";
 
@@ -19,30 +18,17 @@ export type CalendarListProps = {
 };
 
 /**
- * The list view (SPEC §9.3, D-062): upcoming and ongoing events grouped by
- * month ("OKTOBER 2026"), each a big card. Past events live in the month view
- * until round 3 adds a history section, and the list says so.
+ * The list view's upcoming part (SPEC §9.3): upcoming and ongoing events
+ * grouped by month ("OKTOBER 2026"), each a big card. The past tastings follow
+ * in their own section (CalendarHistory, D-107).
  */
 export function CalendarList({ clubId, events, now, newEventHref }: CalendarListProps) {
-  const monthViewHref = calendarHref(clubId, { view: "month" });
-
   if (events.length === 0) {
     return (
       <EmptyState
         icon={<CalendarDaysIcon />}
         title="Ingen kommende ølsmagninger endnu 🍺"
-        description={
-          <>
-            Tidligere ølsmagninger finder du i{" "}
-            <Link
-              href={monthViewHref}
-              className="font-semibold text-primary underline decoration-2 underline-offset-4 hover:decoration-amber"
-            >
-              månedsvisningen
-            </Link>
-            .
-          </>
-        }
+        description="Sæt en dato i kalenderen, så I har noget at glæde jer til."
         actions={
           // From md the page header holds the same button (one primary action, §13.4).
           <Button asChild size="lg" className="md:hidden">
@@ -75,17 +61,6 @@ export function CalendarList({ clubId, events, now, newEventHref }: CalendarList
           </ul>
         </section>
       ))}
-
-      <p className="text-[0.95rem] text-muted-foreground">
-        Tidligere ølsmagninger finder du i{" "}
-        <Link
-          href={monthViewHref}
-          className="font-semibold text-primary underline decoration-2 underline-offset-4 hover:decoration-amber"
-        >
-          månedsvisningen
-        </Link>
-        .
-      </p>
     </div>
   );
 }

@@ -119,8 +119,15 @@ export function useActionForm<S extends ActionFormState>(
     },
     /** The browser's messages, else the server's. */
     fieldErrors: clientErrors ?? serverError?.fieldErrors ?? ({} as FieldErrors),
-    /** A server error that is not about the fields (rate limited, forbidden, unexpected …). */
-    formError: serverError?.code === ACTION_ERROR_CODES.VALIDATION ? null : serverError,
+    /**
+     * A server error that is not about the fields (rate limited, forbidden,
+     * unexpected …). An error that carries fieldErrors is shown on the fields
+     * only, whatever its code (fx a wrong current password), never twice.
+     */
+    formError:
+      serverError?.code === ACTION_ERROR_CODES.VALIDATION || serverError?.fieldErrors
+        ? null
+        : serverError,
     /** The server's error as currently shown, validation included (fx a code to branch on). */
     serverError,
     values: (failed?.values ?? {}) as ActionFormValues<Awaited<S>>,

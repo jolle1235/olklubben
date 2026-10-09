@@ -145,12 +145,13 @@ test.describe("Invitationer", () => {
     await friendPage.getByRole("button", { name: "Join klub" }).click();
     await expectOverview(friendPage, clubId);
 
-    // A plain member can see and share the link, but not replace it or make reset links.
+    // A plain member can see and share the link, but not replace it, and has no
+    // member menu (where the reset links are, D-102).
     await friendPage.goto(`/c/${clubId}/club`);
     await expect(friendPage.getByLabel("Invitationslink")).toHaveValue(new RegExp(`${newPath}$`));
     await expect(friendPage.getByRole("button", { name: "Kopiér link" })).toBeVisible();
     await expect(friendPage.getByRole("button", { name: "Generér ny kode" })).toHaveCount(0);
-    await expect(friendPage.getByRole("button", { name: /nulstillingslink/i })).toHaveCount(0);
+    await expect(friendPage.getByRole("button", { name: /^Handlinger for / })).toHaveCount(0);
     await expect(memberRows(friendPage)).toHaveCount(2);
   });
 

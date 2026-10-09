@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
+import { CalendarHistory } from "@/components/features/calendar/calendar-history";
 import { CalendarList } from "@/components/features/calendar/calendar-list";
 import { CalendarMonth } from "@/components/features/calendar/calendar-month";
 import { resolveCalendarParams } from "@/components/features/calendar/calendar-params";
@@ -13,16 +14,25 @@ import { PageHeader } from "@/components/ui/page-header";
 import { newEventHref as newEventPath } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
 import { monthGridRange, monthKeyOf } from "@/server/domain/calendar/month";
-import { listEventsInRange, listUpcomingEvents } from "@/server/events/queries";
+import { CALENDAR_HISTORY_LIMIT } from "@/server/domain/events/history";
+import {
+  countPastEvents,
+  listEventsInRange,
+  listPastEvents,
+  listUpcomingEvents,
+} from "@/server/events/queries";
 
 export const metadata: Metadata = { title: "Kalender" };
 
 /**
- * Kalender (SPEC §9.3, D-062): the club's complete overview, as a list
- * (upcoming events by month) or a month grid (every month, past ones too).
+ * Kalender (SPEC §9.3, D-107): the club's complete overview, as a list
+ * (upcoming events by month, then "Tidligere ølsmagninger" #tidligere: the
+ * newest 12, or all with ?past=all) or a month grid (every month, past ones
+ * too).
  *
- * The state is in the URL (?view=list|month, ?month=YYYY-MM, ?day=…), parsed
- * with safe fallbacks, so a refresh or a shared link shows the same thing.
+ * The state is in the URL (?view=list|month, ?month=YYYY-MM, ?day=…,
+ * ?past=all), parsed with safe fallbacks, so a refresh or a shared link shows
+ * the same thing.
  * Without ?view the default depends on the screen: list on mobile, month on
  * desktop. Both are rendered and a CSS breakpoint shows one (display: none
  * also hides the other from screen readers). That needs no JavaScript, never
@@ -37,14 +47,20 @@ export default async function CalendarPage({
   const { club } = await requireClubPage(clubId);
   // One "now" per request: queries, "today" and past/upcoming styling agree.
   const now = new Date();
-  const { view, month } = resolveCalendarParams(await searchParams, now);
+  const { view, month, past } = resolveCalendarParams(await searchParams, now);
 
   const showList = view !== "month";
   const showMonth = view !== "list";
   const grid = monthGridRange(month);
-  const [upcoming, gridEvents] = await Promise.all([
+  const [upcoming, gridEvents, pastEvents, pastCount] = await Promise.all([
     showList ? listUpcomingEvents(club.id, now) : [],
     showMonth ? listEventsInRange(club.id, grid.start, grid.end) : [],
+    showList
+      ? listPastEvents(club.id, now, {
+          limit: past === "all" ? undefined : CALENDAR_HISTORY_LIMIT,
+        })
+      : [],
+    showList && past !== "all" ? countPastEvents(club.id, now) : 0,
   ]);
 
   const newEventHref = newEventPath(club.id);
@@ -54,7 +70,15 @@ export default async function CalendarPage({
   const listView = (
     <>
       <CalendarViewToggle clubId={club.id} active="list" month={keptMonth} />
-      <CalendarList clubId={club.id} events={upcoming} now={now} newEventHref={newEventHref} />
+      <div className="flex flex-col gap-10 md:gap-12">
+        <CalendarList clubId={club.id} events={upcoming} now={now} newEventHref={newEventHref} />
+        <CalendarHistory
+          clubId={club.id}
+          events={pastEvents}
+          total={past === "all" ? pastEvents.length : pastCount}
+          now={now}
+        />
+      </div>
     </>
   );
   const monthView = (

@@ -56,7 +56,7 @@ export function PlaceForm({ clubId, placeId, defaults, cancelHref }: PlaceFormPr
       <input type="hidden" name="clubId" value={clubId} />
       {editing ? <input type="hidden" name="placeId" value={placeId} /> : null}
 
-      {formError && !nameTaken ? <FormError>{formError.message}</FormError> : null}
+      {formError ? <FormError>{formError.message}</FormError> : null}
 
       <div className="grid gap-2">
         <InputField

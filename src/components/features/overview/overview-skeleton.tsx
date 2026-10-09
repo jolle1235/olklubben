@@ -1,10 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 /**
  * Overblik while it loads (SPEC §13.4: skeletons, not spinners), shaped like
  * the page: the harbor hero card (label, badge, big date, title, lines,
- * button) and the "Kommende arrangementer" rows. Announced once as "Henter
- * Overblik …".
+ * button), the "Kommende arrangementer" rows and the quieter "Tidligere
+ * ølsmagninger" rows. Announced once as "Henter Overblik …".
  */
 export function OverviewSkeleton() {
   return (
@@ -30,19 +31,41 @@ export function OverviewSkeleton() {
         </div>
       </div>
 
-      <div>
-        <Skeleton className="mb-3 h-8 w-64 max-w-full" />
-        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-          {[0, 1, 2].map((row) => (
-            <div key={row} className="flex min-h-16 items-center gap-4 px-4 py-3 md:px-5">
-              <Skeleton className="h-6 w-12" />
-              <div className="flex flex-1 flex-col gap-2">
-                <Skeleton className="h-5 w-1/2" />
-                <Skeleton className="h-4 w-1/3" />
-              </div>
+      <RowsSkeleton rows={3} className="bg-card" />
+      <RowsSkeleton rows={2} withMeta className="bg-cream-deep/40" />
+    </div>
+  );
+}
+
+/** A heading and a bordered list of event rows (EventListItem). */
+function RowsSkeleton({
+  rows,
+  withMeta = false,
+  className,
+}: {
+  rows: number;
+  withMeta?: boolean;
+  className: string;
+}) {
+  return (
+    <div>
+      <Skeleton className="mb-3 h-8 w-64 max-w-full" />
+      <div
+        className={cn(
+          "divide-y divide-border overflow-hidden rounded-xl border border-border",
+          className,
+        )}
+      >
+        {Array.from({ length: rows }, (_, row) => (
+          <div key={row} className="flex min-h-16 items-center gap-4 px-4 py-3 md:px-5">
+            <Skeleton className="h-6 w-12" />
+            <div className="flex flex-1 flex-col gap-2">
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-4 w-1/3" />
+              {withMeta ? <Skeleton className="h-4 w-2/5" /> : null}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

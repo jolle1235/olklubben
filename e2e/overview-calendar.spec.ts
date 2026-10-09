@@ -27,7 +27,8 @@ import {
 } from "./support/round2";
 
 /**
- * Round 2: Overblik (SPEC §9.1) and Kalender (§9.3, D-062). Events are
+ * Round 2: Overblik (SPEC §9.1) and Kalender (§9.3, D-078; round 3's history
+ * section D-107 is covered in depth by history.spec.ts). Events are
  * inserted with SQL where the form is not the point (it is tested in
  * events.spec.ts); dates are Copenhagen calendar days relative to today, so
  * the tests run on any day.
@@ -63,7 +64,7 @@ test.describe("Overblik", () => {
       createdByEmail: owner.email,
       title: "Ølsmagning #14",
       startsAt: at(heroDay, "18:30"),
-      locationText: "Hos Mads",
+      placeName: "Hos Mads",
     });
     await sql("UPDATE events SET theme = $1 WHERE id = $2", ["Belgiske øl", heroId]);
     await insertEvent({
@@ -72,7 +73,7 @@ test.describe("Overblik", () => {
       title: "Juleøl warmup",
       startsAt: at(dayFromToday(10), "19:00"),
       endsAt: at(dayFromToday(10), "23:00"),
-      locationText: "Hos Anders",
+      placeName: "Hos Anders",
     });
     // Another club's event (same user) never shows up here (§4.4).
     const otherClubId = await createClub(page, clubName(testInfo, "Hemmelig"));
@@ -199,7 +200,7 @@ test.describe("Hero-tilstande og tid", () => {
       date: day,
       startTime: "18:30",
       endTime: "01:00",
-      locationText: "Hos Uret",
+      place: "Hos Uret",
     });
     // Winter time (UTC+1) from 03:00 that night: 18:30 is 17:30 UTC.
     expect(startsAt.toISOString()).toBe(`${day}T17:30:00.000Z`);
@@ -238,7 +239,7 @@ test.describe("Hero-tilstande og tid", () => {
 });
 
 test.describe("Kalender", () => {
-  test("listevisning grupperer kommende events pr. måned og viser kun klubbens egne", async ({
+  test("listevisning grupperer kommende events pr. måned, tidligere under 'Tidligere ølsmagninger', og kun klubbens egne", async ({
     page,
   }, testInfo) => {
     const owner = newUser(testInfo, "kalender");
@@ -257,7 +258,7 @@ test.describe("Kalender", () => {
       createdByEmail: owner.email,
       title: "Snart-smagning",
       startsAt: at(soon, "18:30"),
-      locationText: "Hos Jesper",
+      placeName: "Hos Jesper",
     });
     await insertEvent({
       clubId,
@@ -280,16 +281,24 @@ test.describe("Kalender", () => {
     });
 
     await page.goto(`/c/${clubId}/calendar?view=list`);
-    const soonMonth = page.getByRole("region", { name: monthKeyLabel(soon.slice(0, 7)) });
+    // Exact names: a past month is "Tidligere ølsmagninger <måned>" (D-107).
+    const soonMonth = page.getByRole("region", {
+      name: monthKeyLabel(soon.slice(0, 7)),
+      exact: true,
+    });
     await expect(soonMonth.getByRole("link", { name: /Snart-smagning/ })).toBeVisible();
     await expect(soonMonth).toContainText("Hos Jesper · 18:30");
     await expect(
-      page.getByRole("region", { name: monthKeyLabel(later.slice(0, 7)) }).getByRole("link", {
-        name: /Senere-smagning/,
-      }),
+      page
+        .getByRole("region", { name: monthKeyLabel(later.slice(0, 7)), exact: true })
+        .getByRole("link", { name: /Senere-smagning/ }),
     ).toBeVisible();
-    // Upcoming only (D-062), and never another club's events (§4.4).
-    await expect(page.getByText("Gammel smagning")).toHaveCount(0);
+    // The past event sits in the history section only (D-107), never another
+    // club's events (§4.4).
+    const history = page.getByRole("region", { name: "Tidligere ølsmagninger", exact: true });
+    await expect(history.getByRole("link", { name: /Gammel smagning/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Gammel smagning/ })).toHaveCount(1);
+    await expect(soonMonth.getByText("Gammel smagning")).toHaveCount(0);
     await expect(page.getByText("Hemmelig smagning")).toHaveCount(0);
 
     // The view is in the URL: a refresh keeps it.

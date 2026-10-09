@@ -51,3 +51,12 @@ export function pastEventMetaLabel(input: {
   if (!input.topBeer) return count;
   return `${count} · Bedst: ${input.topBeer.name} ★ ${formatRating(input.topBeer.averageStars)}`;
 }
+
+/**
+ * pastEventMetaLabel as shown on screen: no-break spaces around the star, so
+ * "★ 4,7" never wraps onto a line of its own (it moves with the beer's last
+ * word). Agent C, round 3.
+ */
+export function pastEventMetaDisplay(input: Parameters<typeof pastEventMetaLabel>[0]): string {
+  return pastEventMetaLabel(input).replace(" ★ ", " ★ ");
+}

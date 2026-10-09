@@ -1,6 +1,6 @@
 # Ølklubben – Produkt-, UX- og teknisk specifikation
 
-> **Status:** Udkast v2 · **Sidst opdateret:** 2026-10-08
+> **Status:** Udkast v2 · **Sidst opdateret:** 2026-10-09
 > **Ejer:** Jesper
 > **Formål med dokumentet:** Én samlet kilde til sandhed for produktet. Både mennesker og AI-agenter skal kunne vende tilbage hertil, før de bygger, ændrer eller retter noget.
 
@@ -143,6 +143,7 @@ src/
   components/
     ui/                     # generiske primitiver (Button, Modal, ConfirmDialog …)
     features/               # feature-komponenter (EventCard, BeerRating …)
+      forms/                # useActionForm + feltkomponenter, fælles for alle formularer (D-109)
   server/
     auth/                   # session-helpers, requireUser, requireMembership
     domain/                 # ren forretningslogik, ingen React og ingen Next-imports
@@ -152,10 +153,11 @@ src/
       places/
       clubs/
     actions/                # Server Actions: valider → autoriser → kald domain → revalidate
-    db/                     # Kun Prisma client (+ pg-config, seed-guard)
-    clubs/, users/ …        # Pr. feature: queries.ts + mutations.ts (altid scopet på clubId). app/** og actions/** må ikke importere @/server/db (ESLint, D-054)
+    db/                     # Kun Prisma client (+ pg-config, seed-guard, locks.ts: al rå SQL til låse, D-102)
+    clubs/, users/, places/ … # Pr. feature: queries.ts + mutations.ts (+ access.ts med require*-guards), altid scopet på clubId. app/** og actions/** må ikke importere @/server/db (ESLint, D-054)
   lib/
     validation/             # Zod-schemas, delt mellem client og server
+    form-data.ts            # readFormValues (listefelter, loft, exclude), bruges af formularer og actions
     format/                 # dato-, tal- og navneformattering (da-DK)
 prisma/
   schema.prisma
@@ -284,7 +286,7 @@ To roller pr. medlemskab: **Member** og **Admin** [BESLUTNING, D-018].
 
 * Den, der **opretter klubben, bliver automatisk Admin**.
 * Der kan være **flere admins**, og de er **ligestillede**. Der findes ingen særlig ejer-rolle.
-* En klub skal **altid have mindst én admin**. Det håndhæves i domænelaget inden for en transaction, fordi det ikke kan udtrykkes som en simpel database-constraint (§11).
+* En klub skal **altid have mindst én admin**. Det håndhæves i domænelaget inden for en transaction, der låser klubbens række (D-102), fordi det ikke kan udtrykkes som en simpel database-constraint (§11).
 
 ## 5.1 Rettighedsmatrix
 
@@ -294,16 +296,19 @@ To roller pr. medlemskab: **Member** og **Admin** [BESLUTNING, D-018].
 |---|:-:|:-:|
 | Se klubbens events, øl, sange og steder | ✅ | ✅ |
 | Oprette event | ✅ | ✅ |
-| Redigere/slette event | 🟡 opretter eller vært | ✅ |
+| Redigere/slette event | 🟡 opretter eller vært (D-098) | ✅ |
 | Starte afstemning | ✅ | ✅ |
 | Stemme | ✅ | ✅ |
 | Afslutte/annullere afstemning, vælge vinder ved uafgjort | 🟡 opretter | ✅ |
 | Tilføje øl | ✅ | ✅ |
 | Redigere/slette øl | 🟡 opretter | ✅ |
 | Rate øl (egen rating) | ✅ | ✅ |
-| Oprette og redigere steder (navn, adresse, beskrivelse) | ✅ | ✅ |
+| Oprette og redigere steder (navn, adresse, beskrivelse), også arkiverede | ✅ | ✅ |
 | Sætte sig selv på / fjerne sig selv som stedejer | ✅ | ✅ |
-| Arkivere sted | 🟡 stedejer | ✅ |
+| Arkivere et brugt sted | 🟡 stedejer | ✅ |
+| Slette et sted, der aldrig er brugt | 🟡 stedejer eller opretter | ✅ |
+| Gendanne et arkiveret sted | 🟡 stedejer | ✅ |
+| Fjerne andre som stedejere | ❌ | ✅ |
 | Se og dele klubbens invitationslink | ✅ | ✅ |
 | Generere ny invitationskode (ugyldiggør den gamle) | ❌ | ✅ |
 | Administrere sangbog (opret/rediger/slet sang) | ❌ | ✅ |
@@ -317,7 +322,7 @@ To roller pr. medlemskab: **Member** og **Admin** [BESLUTNING, D-018].
 
 Rettighedstjek implementeres som rene funktioner i `server/domain` (fx `canEditEvent(membership, event)`) og genbruges både til at skjule knapper og til at håndhæve på serveren.
 
-> **Note om stedejere:** "Alle kan sætte sig selv på som ejer" betyder kun sig selv. Et medlem kan ikke sætte *andre* på som ejer. Admins må gerne fjerne ejere (oprydning). Se §9.4.
+> **Note om stedejere:** "Alle kan sætte sig selv på som ejer" betyder kun sig selv. Et medlem kan ikke sætte *andre* på som ejer. Admins må gerne fjerne ejere (oprydning). Se §9.4. Fordi ejerskab er selvvalgt, er "kun stedejer" ved arkivering og gendannelse en bremse mod fejltryk, ikke en adgangskontrol: et medlem kan gøre sig selv til ejer først (D-100, §3.3).
 
 ---
 
@@ -363,9 +368,9 @@ Brugeren indtaster sin email og får et link med en engangs-token (udløber efte
 
 ## 7.1 Klub
 
-En klub har: **navn**, id, oprettelsesdato, medlemmer (med roller), invitationskode og eventuelt en kort beskrivelse.
+En klub har: **navn**, id, oprettelsesdato, medlemmer (med roller), invitationskode og eventuelt en kort beskrivelse (højst 300 tegn, D-110).
 
-Den, der opretter klubben, bliver automatisk **Admin** (§5).
+Den, der opretter klubben, bliver automatisk **Admin** (§5). Admins retter navn og beskrivelse på `/c/[clubId]/club/edit` (D-110).
 
 ## 7.2 Onboarding [MVP]
 
@@ -399,17 +404,21 @@ Når et medlemskab ophører (forladt eller fjernet):
 
 * Medlemskabet slettes.
 * **Ratings, øl, events, sange og steder bevares** (klubbens historik).
-* Brugerens **stedejerskaber i den klub fjernes** ("Hos Mads" har ikke længere Mads som ejer).
-* Brugerens **stemmer i åbne afstemninger slettes** (de skal ikke påvirke en fremtidig beslutning).
-* Event-værtskaber på tidligere events bevares som historik.
+* Brugerens **stedejerskaber i den klub fjernes** ("Hos Mads" har ikke længere Mads som ejer). Det sker i databasen: ejerskabet peger på medlemskabet (D-096).
+* Brugerens **stemmer i åbne afstemninger slettes** (de skal ikke påvirke en fremtidig beslutning). [Runde 4]
+* **Værtskaber på events, der endnu ikke er startet, fjernes.** Værtskaber på startede og tidligere events bevares som historik (D-098). Ved redigering af et event må en tidligere vært blive stående, men kan ikke vælges igen (E31).
+* `lastActiveClubId` nulstilles, hvis den pegede på klubben (E15).
 * Ratings fra tidligere medlemmer **tæller fortsat med** i gennemsnittet [BESLUTNING, se §18].
 * Historiske data viser stadig brugerens navn/kælenavn, hvis brugeren stadig har en konto. Slettede konti vises som "Tidligere medlem".
+* Rækkefølgen er fast (D-102): medlemskabet slettes først (ejerskaber følger med), derefter de kommende værtskaber og til sidst `lastActiveClubId`.
 
-**Den sidste admin** kan ikke forlade klubben, før et andet medlem er gjort til admin. Er man det eneste medlem, kan man i stedet slette klubben. UI'et forklarer det og tilbyder genvejen "Gør et medlem til admin".
+**Den sidste admin** kan ikke forlade klubben, før et andet medlem er gjort til admin. Er man det eneste medlem, kan man i stedet slette klubben. UI'et forklarer det og tilbyder genvejen "Gør et medlem til admin" (til medlemslisten). Efter man har forladt klubben, sendes man til sin forside med beskeden "Du har forladt klubben." (D-104).
+
+Admins kan fjerne medlemmer, gøre dem til admin og fjerne admin-rollen fra '⋯'-menuen på medlemslisten (D-102). Man fjerner ikke sig selv (brug "Forlad klubben"), men må fjerne sin egen admin-rolle, når der er mindst to admins. Alle ændringer afgøres under en lås på klubbens række, så to admins aldrig kan efterlade klubben uden admin (E25).
 
 ## 7.5 Slette klub [MVP]
 
-Kun admins. Kræver at man **skriver klubbens navn** som confirmation. Alt klubindhold slettes (cascade). Brugerkonti bevares.
+Kun admins. Kræver at man **skriver klubbens navn** som confirmation (store/små bogstaver og ekstra mellemrum er ligegyldige; knappen aktiveres, når navnet passer, og serveren tjekker igen under låsen, D-103). Dialogen viser, hvad der forsvinder: "Alt i klubben bliver slettet permanent: 14 events, 37 øl med 102 ratings og 5 steder. Medlemmernes konti bliver ikke slettet." Alt klubindhold slettes (cascade). Brugerkonti bevares. Bagefter sendes admin'en til sin forside med beskeden "Klubben er slettet.", og de andre medlemmer får 404 på deres næste request (E16).
 
 ---
 
@@ -434,11 +443,13 @@ Overblik  Kalender   Øl     Sangbog   Profil
 
 Top bar på mobil: **klubnavn med ▾** (klubvælger), og eventuelt en primær handling til højre (fx "+").
 
-**Desktop:** venstre sidebar med klubvælger øverst, punkterne Overblik, Kalender, Øl og Sangbog, og nederst brugerrækken (avatar, navn, email). Brugerrækken er vejen til Profil og er markeret aktiv på profilen og klubbens side (D-093).
+**Desktop:** venstre sidebar med klubvælger øverst, punkterne Overblik, Kalender, Øl og Sangbog, og nederst brugerrækken (avatar, navn, email). Brugerrækken er vejen til Profil og er markeret aktiv på profilen, klubbens side og stedernes sider (D-093, D-108). Den viser visningsnavnet (kælenavn ?? navn).
 
 Klubvælgeren vises kun som dropdown, når brugeren har mere end én klub. Med én klub er klubnavnet bare en overskrift. Dropdownen indeholder også "Opret eller join ny klub".
 
 **Klubbens side** (medlemmer, invitationslink, steder og klubindstillinger) nås via Profil → "Klubben" og via et tryk på klubnavnet.
+
+**Steder** har intet hovedpunkt. De nås via Profil → "Steder", klubbens side ("Steder · N steder") og stednavnet på et event. Fra et steds side fører "Opret event her" til eventformularen med stedet valgt. Et steds side linker tilbage til "Alle steder", og stedernes sider markerer Profil aktiv (D-108).
 
 ## 8.2 Routes
 
@@ -465,10 +476,14 @@ URL-slugs er på engelsk (kodekonsistens). Al UI-tekst er dansk.
 /c/[clubId]/songs                   → Sangbog
 /c/[clubId]/songs/[songId]
 /c/[clubId]/songs/new               (admin)
-/c/[clubId]/places                  → Steder
+/c/[clubId]/places                  → Steder (aktive + arkiverede)
+/c/[clubId]/places/new
 /c/[clubId]/places/[placeId]
-/c/[clubId]/club                    → Medlemmer, invitation, klubindstillinger
-/profile                            → Personlige indstillinger
+/c/[clubId]/places/[placeId]/edit   (alle medlemmer, også arkiverede steder)
+/c/[clubId]/club                    → Medlemmer, steder, invitation, farezone
+/c/[clubId]/club/edit               (admin; ellers 404) → klubbens navn og beskrivelse
+/c/[clubId]/profile                 → Personlige indstillinger (D-023)
+/profile                            → videre til /c/[lastActiveClubId]/profile
 /feedback                           → Liste over fejl og feature-ønsker (fælles for alle brugere)
 /feedback/new                       → Rapportér fejl / foreslå feature
 /feedback/[feedbackId]              → Detalje
@@ -517,7 +532,18 @@ Kommende arrangementer
   19/12 …
 
 [ + Opret event ]   [ 🗳 Planlæg ølsmagning ]
+
+Tidligere ølsmagninger
+  18/09 Ølsmagning #12 · Hos Mads
+        4 øl · Bedst: Grimbergen Dubbel ★ 4,7
+  04/09 Ølsmagning #11 · Hos Mads & Anders
+        3 øl · Bedst: Todd the Axe Man ★ 4,5
+  21/08 Ølsmagning #10 · Det gamle klubhus
+        Ingen øl registreret
+  Se alle tidligere →
 ```
+
+**Tidligere ølsmagninger (D-107):** de 3 nyeste afholdte events, dæmpet, med antal øl og den bedst ratede øl. "Se alle tidligere" fører til Kalenderens liste ved `#tidligere`. Sektionen står efter de kommende events (og under den tomme tilstand) og vises ikke, når klubben ingen historik har. Den har ingen primær knap.
 
 ### Hero-kortets tilstande
 
@@ -536,7 +562,7 @@ Vises som et kort direkte under hero-kortet. Har brugeren ikke stemt, fremhæves
 
 ### Empty states
 
-* **Ingen events og ingen afstemninger:** "Ingen kommende ølsmagninger endnu 🍺" med [ Opret event ] og [ Planlæg ølsmagning ].
+* **Ingen events og ingen afstemninger:** "Ingen kommende ølsmagninger endnu 🍺" med [ Opret event ] og [ Planlæg ølsmagning ]. Har klubben historik, står "Tidligere ølsmagninger" under den tomme tilstand.
 * **Ny klub med kun ét medlem:** vis først kortet "Inviter dine ølbrødre" med del-link.
 
 ---
@@ -551,12 +577,21 @@ Vises som et kort direkte under hero-kortet. Har brugeren ikke stemt, fremhæves
 | Dato | ✅ | |
 | Starttid | ✅ | Standard 18:30. |
 | Sluttid | – | Valgfri. Bruges til "I gang nu". |
-| Sted | ✅ | Vælges fra klubbens steder. "＋ Nyt sted" opretter et sted inline uden at forlade formularen. |
+| Sted | ✅ | Vælges fra klubbens aktive steder. "＋ Nyt sted" opretter et sted inline uden at forlade formularen (D-099). |
 | Tema | – | Kort tekst, fx "Belgiske øl". Vises fremhævet på Overblik. |
 | Beskrivelse / plan | – | Fritekst med linjeskift. Anbefales, men er ikke påkrævet [BESLUTNING]. |
-| Værter | – | Udfyldes automatisk med stedets ejere (eller opretteren, hvis stedet ikke har ejere). Kan justeres. |
+| Værter | – | Udfyldes automatisk med stedets ejere (eller opretteren, hvis stedet ikke har ejere). Kan justeres (D-098). |
 
-Validering: titel 1–100 tegn, dato/tid gyldig, sted tilhører klubben og er ikke arkiveret, værter er medlemmer af klubben. Et event må gerne oprettes i fortiden (til at registrere gamle smagninger).
+Rækkefølge i formularen: Titel · Dato/Starttid/Sluttid · Sted · Værter · Tema · Beskrivelse/plan.
+
+**Sted (D-099, D-111):** et radio-kort pr. aktivt sted, senest brugte først. Kortets navn er stedets navn; linjen under viser adresse og ejere ("Søndergade 12, 8381 Tilst · Ejer: Mads"). Har klubben mere end 6 steder, vises de 5 første, og resten ligger under "Vis alle N steder". Det sidste kort er "＋ Nyt sted", der folder felterne "Navn på stedet", "Adresse (valgfri)" og "Det er mit sted" ud (med CSS, så det virker før JavaScript). Stedet oprettes i samme transaction som eventet. Har klubben allerede et aktivt sted med samme navn (samme regel som §9.4), genbruges det, og formularen siger det med det samme: "«Hos Mads» findes allerede." [ Vælg det ] (E29).
+
+* Forvalg: ingen steder → "＋ Nyt sted" er valgt og åbent ("Klubben har ingen steder endnu. Skriv, hvor I mødes."). Præcis ét sted → det er valgt. `?placeId=` (fra stedets "Opret event her") → det sted er valgt, hvis det er et aktivt sted i klubben. Ellers er intet valgt: et forkert hus er værre end ét tryk.
+* Ved redigering er eventets sted valgt, også hvis det er arkiveret ("Hos Mads (arkiveret)", E30).
+
+**Værter (D-098, D-112):** et afkrydsningskort pr. medlem (avatar, visningsnavn, "(dig)"). Uberørt følger valget stedet: stedets ejere, der er medlemmer, ellers opretteren. En hjælpetekst siger, hvad der sker ("Udfyldt med stedets ejere.", "Stedet har ingen ejere, så du er vært.", "Vælg et sted, så foreslår vi værter."). Når man selv har krydset af, står valget, til man trykker "Brug stedets ejere". Krydser man ingen af, bruger serveren standarden. Ved redigering er en vært, der har forladt klubben, et afkrydset kort "(tidligere medlem)", der kan fravælges, men ikke vælges igen (E31). Højst 20 værter.
+
+Validering: titel 1–100 tegn, dato/tid gyldig, et sted er valgt ("Vælg et sted, eller opret et nyt."), stedet tilhører klubben og er aktivt (på redigering må et arkiveret nuværende sted blive), et nyt sted har et navn ("Giv stedet et navn.", 1–120 tegn) og højst 200 tegn adresse, værter er nuværende medlemmer af klubben (eksisterende værter må blive). Et sted fra en anden klub giver samme besked som et slettet sted ("Stedet findes ikke længere. Vælg et andet."). Et event må gerne oprettes i fortiden (til at registrere gamle smagninger).
 
 ### Event detail
 
@@ -587,13 +622,15 @@ Skal føles som en invitation, ikke en formular:
    [ + Tilføj øl ]
 ```
 
-* "Åbn i kort" linker til Google/Apple Maps med adressen.
+* Stedets navn linker til stedets side og har et "Arkiveret"-mærke, når stedet er arkiveret. Adressen står på linjen under.
+* "Åbn i kort" er en Google Maps-søgning på stedets **adresse** og vises kun, når stedet har en adresse. Ellers står der et lille "Tilføj adresse", der fører til stedets redigering (D-101).
+* "Vært: Mads" / "Værter: Mads og Anders" med avatarer (visningsnavne), derefter "Oprettet af …". Har alle værter forladt klubben før eventet, vises ingen værtslinje.
 * Listen "Øl smagt til dette event" er billig at lave (øl har `eventId`) og meget værdifuld under smagningen. Den er med i MVP. "+ Tilføj øl" udfylder eventet på forhånd.
 * Stammer eventet fra en afstemning, vises en lille note: "Valgt ved afstemning 🗳" med link.
 
 ### Redigering og sletning
 
-* Opretter, værter og admins kan redigere og slette.
+* Opretter, værter og admins kan redigere og slette (D-098). Andre får beskeden "Kun opretteren, værterne og klubbens admins kan rette eventet." (eller "… slette eventet."), og redigeringssiden giver dem 404.
 * Sletning kræver confirmation:
 
 ```text
@@ -614,7 +651,7 @@ Overblikket viser de næste events. Kalenderen er den **komplette** oversigt, b�
 
 ### Visninger
 
-* **Listevisning (standard på mobil):** grupperet pr. måned, kommende øverst og en sektion med tidligere events nedenunder (eller en "Vis tidligere"-knap).
+* **Listevisning (standard på mobil):** grupperet pr. måned, kommende øverst og sektionen **"Tidligere ølsmagninger"** (`#tidligere`) nedenunder (D-107): de 12 nyeste afholdte events, grupperet pr. måned med den nyeste først, dæmpede og med antal øl og den bedst ratede øl. Derefter "Vis alle N tidligere" (`?past=all`). Månedsoverskrifterne i historikken har deres egne tilgængelige navne ("Tidligere ølsmagninger Oktober 2026").
 * **Månedsvisning (standard på desktop):** klassisk månedsgitter, hvor events vises som tydelige chips med titel og tid. Ingen ulæseligt små bokse. På mobil viser månedsgitteret prikker på datoer, og et tryk på en dato viser dagens events nedenunder.
 
 ```text
@@ -649,10 +686,15 @@ Når afstemningen er afsluttet, forsvinder de stiplede muligheder, og det oprett
 
 ### Felter
 
-* **Navn** (påkrævet), fx "Hos Jesper"
-* **Adresse / lokation** (valgfri fritekst), fx "Tilst"
-* **Beskrivelse** (valgfri), fx "Ring på bagdøren"
+* **Navn** (påkrævet, 1–120 tegn), fx "Hos Jesper". Unikt blandt klubbens **aktive** steder uden hensyn til store/små bogstaver og mellemrum (samme regel som øl-dubletter, D-086). En dublet afvises med "Der findes allerede et sted, der hedder «Hos Jesper»." og et link til stedet (D-095).
+* **Adresse / lokation** (valgfri, højst 200 tegn), fx "Søndergade 12, 8381 Tilst". "Åbn i kort" søger på den (D-101).
+* **Beskrivelse** (valgfri, højst 1000 tegn, linjeskift bevares), fx "Ring på bagdøren"
 * **Ejere** (0..n medlemmer)
+
+### Sider
+
+* **Steder** (`/places`): aktive steder som kort (navn, adresse, "Ejer: Mads" / "Ejere: Mads og Anders" / "Ingen ejere", antal ølsmagninger eller "Ikke brugt endnu", mærket "Dit sted"), de arkiverede foldet ind under "Arkiverede steder (N)". Primær handling: "Nyt sted". Tom tilstand: "Ingen steder endnu 📍".
+* **Et sted** (`/places/[placeId]`): adresse med "Åbn i kort" (ellers "Tilføj adresse"), beskrivelse, ejerne, "Ølsmagninger her (N)" (nyeste først, de afholdte dæmpet) og "Opret event her" som primær handling (eventformularen med stedet valgt). Rediger og én fjern-knap nederst.
 
 ### Ejerskab
 
@@ -662,17 +704,23 @@ Når afstemningen er afsluttet, forsvinder de stiplede muligheder, og det oprett
 | 1 | "Hos Jesper" | Jesper bliver vært, hvis stedet vælges |
 | Flere | "Hos Mads & Anders" | Begge bliver værter |
 
-* Alle medlemmer kan **sætte sig selv på** som ejer og **fjerne sig selv**. Det er en enkelt toggle-knap på stedets side: [ Det er mit sted ] / [ Fjern mig som ejer ].
-* Alle medlemmer kan redigere navn, adresse og beskrivelse. Det er en bevidst demokratisk model for små klubber.
+* Alle medlemmer kan **sætte sig selv på** som ejer og **fjerne sig selv**. Det er en enkelt knap på stedets side: [ Det er mit sted ] / [ Fjern mig som ejer ]. Etiketten siger, hvad knappen gør (ingen `aria-pressed`), og en statuslinje bekræfter ændringen. Knappen opdaterer med det samme og ruller tilbage med en fejlbesked, hvis serveren afviser (D-115). Ingen confirmation.
+* "Det er mit sted" kan også krydses af, når stedet oprettes (både på "Nyt sted" og inline i eventformularen).
+* Admins kan fjerne **andre** ejere (et X ved hver ejer, med confirmation: "Fjern Mads som ejer af «Hos Mads»?" / "Mads bliver ikke længere foreslået som vært her.").
+* Ejerne bliver automatisk foreslået som værter, når stedet bruges til en smagning. Allerede oprettede events ændres ikke.
+* Alle medlemmer kan redigere navn, adresse og beskrivelse, også på arkiverede steder. Det er en bevidst demokratisk model for små klubber.
 * [SENERE] Historik over hvem der ændrede hvad, hvis der opstår behov.
 
 ### Sletning = arkivering [BESLUTNING]
 
-Steder slettes aldrig hårdt, når de er i brug. De **arkiveres**:
+Steder slettes aldrig hårdt, når de er i brug. De **arkiveres** (D-100):
 
-* Arkiverede steder vises ikke i stedvælgere.
+* Stedets side har **én** fjern-knap, der hedder det, der vil ske: "Slet sted" for et sted, der aldrig er brugt ("Stedet er ikke brugt til nogen ølsmagninger, så det bliver slettet helt."), "Arkivér sted" for et brugt sted ("Stedet er brugt til N ølsmagninger, så det bliver ikke slettet. …"). Serveren afgør det igen under en rækkelås, og beskeden bagefter følger det, der faktisk skete.
+* Arkivere: stedejere og admins. Slette et ubrugt sted: stedejere, admins og den, der oprettede det (oprydning efter en tastefejl).
+* Arkiverede steder vises ikke i stedvælgere (undtagen eventets eget sted ved redigering, E30).
 * Events, der bruger stedet, viser det stadig (historik bevares, og der er ingen døde referencer).
-* Et sted, der er valgmulighed i en **åben** afstemning, kan ikke arkiveres. Brugeren får at vide hvorfor.
+* Et arkiveret sted viser et banner "Arkiveret · vises ikke, når I vælger sted" med [ Gendan sted ] for stedejere og admins. Har et aktivt sted fået samme navn imens, afvises gendannelsen med "Der findes allerede et aktivt sted, der hedder «X»." og et link.
+* Et sted, der er valgmulighed i en **åben** afstemning, kan ikke arkiveres. Brugeren får at vide hvorfor. [Runde 4, E5]
 * Et sted, der aldrig er brugt, må gerne slettes helt.
 
 ---
@@ -965,13 +1013,15 @@ Eventet kan derefter redigeres som ethvert andet event.
 
 ## 9.8 Profil og indstillinger [MVP]
 
-### Personlige indstillinger (`/profile`)
+### Personlige indstillinger (`/c/[clubId]/profile`, D-023)
 
-* **Navn** (officielt navn, påkrævet)
-* **Kælenavn**
-* **Email** (kun ændring for email/password-konti. Kræver nuværende password.)
-* **Password** (skift: nuværende + nyt. Ikke relevant for rene Google-konti, men de kan tilføje et password.)
+* **Identitet:** avatar (Google-billede eller initialer af visningsnavnet), visningsnavnet stort, "(Jesper Thomsen)", når der er et kælenavn, og emailen.
+* **Navn** (officielt navn, påkrævet, 1–100 tegn)
+* **Kælenavn** (valgfrit, 1–40 tegn, D-105). En live-forhåndsvisning viser "Sådan ser de andre dig: Kaptajnen (Jesper Thomsen)". "Gem profil" → "Gemt ✓".
+* **Email** vises kun. Ændring er [SENERE] (D-106, TG-033, Q13): uden email-verificering og SMTP ville Better Auth skifte emailen med det samme og uden password.
+* **Password** (skift: nuværende + nyt + gentag nyt, D-106). Denne enhed forbliver logget ind, alle andre enheder logges ud, og udestående nulstillingslinks holder op med at virke. Et forkert nuværende password vises ved feltet. Kun for konti med password-login. Rene Google-konti ser "Du logger ind med Google, så du har ikke brug for et password." At tilføje et password til en Google-konto er [SENERE] (TG-034).
 * **Profilbillede** (fra Google i MVP. [SENERE] upload.)
+* Links til Klubben, Steder, Mine klubber (fra to klubber) og "Opret eller join ny klub"
 * Log ud
 * [SENERE] Slet konto (anonymiserer brugeren: historik bevares som "Tidligere medlem").
 
@@ -981,14 +1031,16 @@ Eventet kan derefter redigeres som ethvert andet event.
 * Det officielle navn findes stadig og vises fx på medlemslisten: "Kaptajnen (Jesper Thomsen)".
 * **Visningsregel:** `kælenavn ?? navn`. Implementeres ét sted (`getDisplayName()`) og bruges overalt.
 * **Ét globalt kælenavn [BESLUTNING]:** Kælenavnet gemmes på brugeren (`User.nickname`) og er det samme i alle klubber. Bliver der senere brug for kælenavne pr. klub, kan et valgfrit `Membership.nickname` tilføjes som override.
+* Visningsnavnet bruges i sidebaren, "Oprettet af", "Tilføjet af", ratings (sorteret efter visningsnavn), værter, ejere, værtsvalget, medlemsmenuen og bekræftelser. Kun medlemslisten og profilen viser også det officielle navn. Emails bruger det officielle navn (D-105).
+* Kælenavnet kan kun ændres via profilen. Better Auths `/update-user` og signup afviser feltet (D-105).
 
 ### Klubindstillinger (`/c/[clubId]/club`)
 
-* Klubnavn og beskrivelse (admin)
-* Medlemsliste med roller. Admins kan fjerne medlemmer, gøre medlemmer til admin og fjerne admin-rollen (aldrig fra den sidste admin).
+* Klubnavn, beskrivelse og "N medlemmer". Admins har [ Rediger klubinfo ] → `/club/edit` (navn + beskrivelse ≤ 300 tegn → "Gemt ✓", D-110).
+* **Medlemmer:** avatar, visningsnavn, "(Jesper Thomsen)", "(dig)", Admin-mærke og "Medlem siden …". Admins har en '⋯'-menu pr. medlem, også på deres egen række (D-102, D-116): "Gør til admin", "Fjern admin-rollen" ("Fjern min admin-rolle" på egen række; deaktiveret med begrundelsen, når det er den sidste admin), "Lav nulstillingslink" (aldrig til en selv) og "Fjern fra klubben". Hver handling har en confirmation (fjern er destruktiv), og en toast bagefter nævner medlemmet ("Mads er nu admin").
+* **Steder · N steder** (link til Steder)
 * Invitationslink + [ Del ] + [ Generér ny kode ] (admin)
-* Steder (link)
-* Forlad klub (med confirmation) og Slet klub (admin)
+* **Farezone:** "Forlad klubben" (med confirmation; for den sidste admin begrundelsen og genvejen "Gør et medlem til admin", for det eneste medlem E3-teksten) og "Slet klubben" (admin, §7.5)
 
 ---
 
@@ -1187,7 +1239,7 @@ Notation: `?` = nullable. Alle tabeller har `createdAt`, og redigerbare tabeller
 User
   id
   name                    String
-  nickname?               String (1–40)     -- globalt kælenavn
+  nickname?               String (1–40)     -- globalt kælenavn, CHECK efter trim (D-105)
   email                   String   UNIQUE (lowercase)
   emailVerified           Boolean
   image?                  String
@@ -1197,7 +1249,7 @@ User
 Club
   id
   name                    String (1–60)
-  description?            String
+  description?            String (1–300)    -- CHECK efter trim (D-110)
 
 Membership
   id
@@ -1220,17 +1272,22 @@ Invite
 Place
   id
   clubId                  → Club  (CASCADE)
-  name                    String (1–80)
-  address?                String
-  description?            String
-  createdById             → User
+  name                    String (1–120)    -- renset (NFC, samlede mellemrum, trim)
+  nameKey                 String            -- placeNameKey(name): dansk lowercase uden whitespace, aldrig tom
+  address?                String (1–200)
+  description?            String (1–1000)
+  createdById             → User  (RESTRICT)
   archivedAt?             DateTime
+  UNIQUE (id, clubId)                       -- mål for de sammensatte FK'er (D-096)
+  UNIQUE (clubId, nameKey) WHERE archivedAt IS NULL   -- ét aktivt sted pr. navn (D-095)
+  INDEX (clubId)
 
 PlaceOwner
-  placeId                 → Place (CASCADE)
+  placeId, clubId         → Place (id, clubId)              (CASCADE)
+  userId, clubId          → Membership (userId, clubId)     (CASCADE)  -- ejeren er medlem; ejerskabet ophører med medlemskabet
   userId                  → User  (CASCADE)
   PRIMARY KEY (placeId, userId)
-  -- app-regel: userId skal være medlem af place.clubId
+  INDEX (userId, clubId)
 
 Event
   id
@@ -1240,15 +1297,20 @@ Event
   description?            Text
   startsAt                timestamptz
   endsAt?                 timestamptz       CHECK (endsAt IS NULL OR endsAt > startsAt)
-  placeId?                → Place (RESTRICT; steder arkiveres i stedet for at slettes)
+  placeId, clubId         → Place (id, clubId)  (RESTRICT; steder arkiveres i stedet for at slettes)
+                                            -- påkrævet fra runde 3; stedet er i eventets klub (D-096)
+  locationText?           String            -- forældet runde 2-fritekst, læses og skrives ikke; droppes i runde 4 (TG-032)
   createdById             → User
   pollId?                 → Poll  UNIQUE    -- sat når eventet er skabt af en afstemning
   INDEX (clubId, startsAt)
+  INDEX (placeId)
 
 EventHost
   eventId                 → Event (CASCADE)
-  userId                  → User
+  userId                  → User  (RESTRICT; værtskaber er historik, D-072/D-096)
   PRIMARY KEY (eventId, userId)
+  INDEX (userId)
+  -- app-regel: nye værter er medlemmer (tjekkes under FOR SHARE på medlemskaberne)
 
 Beer
   id
@@ -1348,7 +1410,7 @@ FeedbackVote
 
 **Hvorfor `PollBallot`?** "Har stemt" bliver et simpelt opslag (der findes en stemmeseddel), "Ingen af datoerne passer" har et naturligt sted at bo, og når man gemmer sin stemme, kan alle kryds erstattes atomisk i én transaction.
 
-**Hvorfor ingen `Club.ownerId` eller `createdById` med særrettigheder?** Rettigheder ligger kun i `Membership.role`, så der aldrig er to kilder til sandhed. Reglen "mindst én admin" tjekkes i domænelaget: ved fjernelse, nedgradering og når nogen forlader klubben låses klubbens admin-medlemskaber (`SELECT … FOR UPDATE`) i samme transaction, så to admins ikke samtidig kan nedgradere hinanden til nul admins.
+**Hvorfor ingen `Club.ownerId` eller `createdById` med særrettigheder?** Rettigheder ligger kun i `Membership.role`, så der aldrig er to kilder til sandhed. Reglen "mindst én admin" tjekkes i domænelaget: hver ændring af roller og medlemskaber låser klubbens række (`SELECT id FROM clubs … FOR NO KEY UPDATE`) og læser aktørens rolle og hele medlemslisten igen under låsen, så to admins ikke samtidig kan nedgradere hinanden til nul admins (D-102, erstatter "lås admin-medlemskaberne").
 
 **Implementeringsnoter (runde 1, 2026-10-08):**
 
@@ -1358,14 +1420,22 @@ FeedbackVote
 * **Ekstra constraints (D-034):** CHECK på `users.name` (1–100 efter trim), `users.email = lower(email)`, `clubs.name` (1–60) og `invites.code` (`^[2-9A-HJKMNP-Z]{8}$`). `Membership` har også `updatedAt`.
 * **Én aktiv invitation pr. klub (D-027)** er et partielt unikt index, der er erklæret i Prisma-schemaet via preview-featuren `partialIndexes`. **Fælde:** Brug aldrig `invite.findUnique({ where: { clubId } })`, da den ignorerer `revoked_at IS NULL`. Brug `findFirst({ where: { clubId, revokedAt: null } })`.
 
+**Implementeringsnoter (runde 3, 2026-10-09):**
+
+* **Migrering (D-097):** én migrering (`20261009084837_round3_places_hosts_nickname`) laver `places`, `place_owners`, `event_hosts` og `users.nickname`, migrerer runde 2's fritekst til steder (ét pr. klub og navnenøgle) og gør `events.place_id` påkrævet. Alle eksisterende events fik opretteren som vært. Testet på en midlertidig database (`round3-migration.itest.ts`).
+* **Club isolation i databasen (D-096):** de sammensatte FK'er `events(place_id, club_id) → places(id, club_id)` og `place_owners(place_id, club_id) → places`, `place_owners(user_id, club_id) → memberships(user_id, club_id)`. Skriv kun med "unchecked" skalar-input (`clubId`, `placeId`), aldrig `connect`, og aldrig `SetNull` på en sammensat relation (D-073).
+* **CHECK-constraints:** `users_nickname_length_check`, `clubs_description_length_check`, `places_name_length_check`, `places_name_key_not_empty_check`, `places_address_length_check`, `places_description_length_check` (alle på længden efter `btrim`).
+* **Låse (D-095, D-102):** al rå SQL ligger i `src/server/db/locks.ts`. Fast rækkefølge: klub → stednavne (advisory lock pr. klub) → stedets række → eventets række → medlemskaber. Man fanger aldrig en Prisma-fejl og fortsætter i samme interaktive transaction (Postgres afbryder den), så alle invarianter tjekkes på forhånd under låse, og indexes/FK'er er kun sikkerhedsnet.
+* **Fælde (som TG-004):** Brug aldrig `place.findUnique` på `clubId_nameKey`, da den ignorerer `archived_at IS NULL`. Brug `findFirst({ where: { clubId, nameKey, archivedAt: null } })`.
+
 ---
 
 # 12. Edge cases
 
 | # | Situation | Forventet adfærd |
 |---|---|---|
-| E1 | Bruger forlader eller fjernes fra klub | Se §7.4: medlemskab, stedejerskaber og åbne stemmer fjernes. Ratings og historik bevares. |
-| E2 | Sidste admin vil forlade klub, fjernes eller nedgraderes | Blokeres: "Gør et andet medlem til admin først." |
+| E1 | Bruger forlader eller fjernes fra klub | Se §7.4: medlemskab, stedejerskaber, værtskaber på kommende events og åbne stemmer fjernes. Ratings og historik (også værtskaber på afholdte events) bevares. |
+| E2 | Sidste admin vil forlade klub, fjernes eller nedgraderes | Blokeres: "Klubben skal have mindst én admin. Gør et andet medlem til admin først." Ved "Forlad klubben" med genvejen "Gør et medlem til admin" (D-102). |
 | E3 | Admin er eneste medlem | Kan slette klubben. Forlad er blokeret (E2). |
 | E4 | Sted bruges af events og skal "slettes" | Arkiveres (§9.4). Events viser det stadig. |
 | E5 | Sted er valgmulighed i åben afstemning | Kan ikke arkiveres, før afstemningen er lukket eller annulleret. |
@@ -1387,11 +1457,15 @@ FeedbackVote
 | E21 | Dublet-øl | Advarsel med link, men oprettelse er tilladt (§9.5). |
 | E22 | ID fra en anden klub i URL'en | 404. |
 | E23 | Sidste admin i en klub vil slette sin konto | Blokeres, indtil en anden er gjort til admin, eller klubben er slettet. |
-| E25 | To admins nedgraderer/fjerner hinanden samtidig | Transaction + rækkelås sikrer, at der altid er mindst én admin tilbage. |
+| E25 | To admins nedgraderer/fjerner hinanden samtidig | Transaction + lås på klubbens række sikrer, at der altid er mindst én admin tilbage (D-102). Den ene får "Klubben skal have mindst én admin …". |
 | E26 | Fejlrapport oprettet fra en klubside | Klub-id fjernes fra den gemte sti. Klubnavn gemmes ikke (§9.9). |
 | E27 | Opretteren af en rapport sletter sin konto | Rapporten bevares og vises som "Tidligere bruger". Opretterens stemmer slettes. |
 | E28 | En rapport markeres som dublet | Status `DUPLICATE` med link til originalen. 👍 flyttes ikke automatisk. |
 | E24 | Afstemningens frist forlænges efter nogen har stemt | Tilladt (kun forlængelse). Stemmer bevares. |
+| E29 | "＋ Nyt sted" med et navn, klubben allerede har (fx " hos  MADS ") | Formularen siger "«Hos Mads» findes allerede." med [ Vælg det ]. Sendes den alligevel, genbruges det aktive sted. På "Nyt sted"-siden afvises navnet med et link til stedet (D-095, D-099). |
+| E30 | Et event på et sted, der siden er arkiveret, redigeres | Stedet står stadig som valgt ("Hos Mads (arkiveret)") og må blive. Andre arkiverede steder kan ikke vælges. |
+| E31 | En vært har forladt klubben | Værtskabet bevares på startede og afholdte events. Ved redigering står værten som "(tidligere medlem)" og må blive, men kan ikke vælges igen. Værtskaber på kommende events fjernes, når medlemskabet ophører. |
+| E32 | Et ubrugt sted fjernes, mens nogen opretter et event på det | Afgøres under en rækkelås: enten oprettes eventet først, og stedet arkiveres så i stedet for at blive slettet, eller stedet slettes først, og eventet afvises med "Stedet findes ikke længere. Vælg et andet." Aldrig en databasefejl (D-100). |
 
 ---
 
@@ -1477,18 +1551,23 @@ Genanvendelige og generiske nok til flere steder. Navne på engelsk.
 | `ClubSwitcher` | Top bar / sidebar |
 | `AppShell` (`BottomNav`, `Sidebar`) | Alle klubsider |
 | `NextEventHero` | Overblik |
-| `EventCard` / `EventListItem` | Overblik, Kalender |
+| `EventCard` / `EventListItem` (valgfri `meta`, `muted`, `showPlace`) | Overblik, Kalender, historik, steders side |
 | `CalendarMonth` / `CalendarList` | Kalender |
 | `EventForm` | Opret/rediger event |
+| `HostsPicker`, `EventHosts` | EventForm, event detail |
+| `PastEvents`, `CalendarHistory` | Overblik, Kalender ("Tidligere ølsmagninger") |
 | `PlaceSelector` (med "＋ Nyt sted") | EventForm, PollForm |
-| `PlaceCard`, `PlaceOwnerToggle` | Steder |
+| `PlaceCard`, `PlaceList`, `PlaceForm`, `PlaceOwners` (med ejer-toggle), `RemovePlaceButton`, `ArchivedPlaceBanner` | Steder |
+| `MemberList`, `MemberActionsMenu`, `LeaveClubSection`, `DeleteClubDialog`, `ClubInfoForm` | Klubbens side |
+| `ProfileIdentity`, `ProfileForm`, `ChangePasswordForm` | Profil |
+| `useActionForm` + `FieldShell`, `InputField`, `TextareaField`, `CheckboxField`, `ChoiceFieldset` (`features/forms`, D-109) | Alle formularer med Server Actions |
 | `BeerCard`, `BeerRating`, `RatingSummary` | Ølkatalog, event detail |
 | `BeerForm` (med dublet-advarsel) | Tilføj øl |
 | `SongListItem`, `SongReader` | Sangbog |
 | `PollCard` | Overblik, Kalender |
 | `PollForm` | Planlæg ølsmagning |
 | `DateVoteOption` (checkbox), `PlaceVoteOption` (radio), `VoterAvatars`, `VotingProgress`, `TieResolver` | Afstemningsside |
-| `UserName` (bruger `getDisplayName`) | Overalt |
+| `getDisplayName()` (ingen egen komponent; `formatMemberName` på medlemslisten) | Overalt |
 | `InviteShare` | Onboarding, klubside |
 | `FeedbackForm` (med lignende rapporter), `FeedbackCard`, `FeedbackStatusBadge`, `UpvoteButton` | Feedback |
 
@@ -1547,7 +1626,7 @@ Semantisk HTML, synlige focus-states, labels på alle inputs, tastaturbetjening 
 | **Ølkatalog** | Tilføj, se, søg, sortér, filtrér, rate (halve point), gennemsnit, relatér event, dublet-advarsel |
 | **Sangbog** | Se, søg (titel + tekst), læsevisning, admin-CRUD, import af eksisterende sangbog |
 | **Afstemninger** | Dato (kryds ved alle der passer) + sted (én stemme), frist, ændr stemme, åbne live-resultater, luk manuelt/ved frist/alle stemt, uafgjort-håndtering, automatisk event |
-| **Settings** | Navn, kælenavn, email, password |
+| **Settings** | Navn, kælenavn, password. Email-ændring er [SENERE] (D-106, Q13). |
 | **Feedback** | Rapportér fejl, foreslå feature, se alle rapporter, filtrér, 👍, status og svar fra app-admin |
 
 ## 16.2 Rækkefølge
@@ -1620,16 +1699,18 @@ Inden en ny runde påbegyndes: gennemgå eksisterende arkitektur, genbrug eksist
 
 **Definition of Done:** opret event → se det på Overblik → se det i Kalender. Tilføj øl → knyt til event → rate → se klubbens gennemsnit.
 
-### Runde 3 – "Det er vores klub" (identitet og historik)
+### Runde 3 – "Det er vores klub" (identitet og historik) ✅ 2026-10-09
 
 * ~~Sangbog: oversigt, søgning, detail/læsevisning, opret og redigér (admin), import af eksisterende sangbog (§9.6).~~ Udskudt (D-091), indtil sangbogsfilen ligger i `data/sangbog/`.
-* Profil: kælenavn, profilbillede, `getDisplayName()` overalt (§9.8).
-* Steder som egen datamodel: opret, redigér, slet/arkivér, se, ejere (flere), sæt/fjern sig selv som ejer (§9.4).
-* Events bruger `Place` i stedet for fritekst. Eksisterende fritekst migreres til steder (D-022). Værter udfyldes fra stedets ejere.
-* Eventhistorik: tidligere events på Overblik og i Kalender.
-* Klubbens medlemmer (se Q11).
+* Profil: kælenavn, profilbillede, `getDisplayName()` overalt, skift password (§9.8, D-105, D-106).
+* Steder som egen datamodel: opret, redigér, slet/arkivér, gendan, se, ejere (flere), sæt/fjern sig selv som ejer (§9.4, D-095, D-100).
+* Events bruger `Place` i stedet for fritekst. Eksisterende fritekst migreres til steder (D-022, D-097). Værter udfyldes fra stedets ejere (D-098, D-099).
+* Eventhistorik: tidligere events på Overblik og i Kalender, og pr. sted (D-107).
+* Klubbens medlemmer (Q11): gør til admin, fjern admin-rollen, fjern medlem, forlad klub, slet klub og redigér klubinfo (§7.4, §7.5, D-102–D-104, D-110).
 
-**Definition of Done:** appen fungerer som klubbens samlede arkiv: kommende og tidligere events, ølkatalog, sangbog, medlemmer og steder.
+**Definition of Done:** appen fungerer som klubbens samlede arkiv: kommende og tidligere events, ølkatalog, ~~sangbog~~ (D-091), medlemmer og steder.
+
+**Implementering (2026-10-09, D-094):** først TG-021 (fælles formularmotor, D-109), så ét fundament (skema, migrering, domæne, validering, datalag, interim-eventformular, alle nye ruter med endelige guards, seed), så tre parallelle agenter med eget filejerskab (A profil og medlemmer, B steder, C events med steder og historik) og til sidst en integrator. E2E for DoD: `e2e/round3-dod.spec.ts` (kælenavn → sted med ejer → events med værter → historik → arkivering → roller, forlad og slet klub).
 
 ### Runde 4 – "Vi kan planlægge sammen" (afstemninger)
 
@@ -1682,6 +1763,7 @@ Disse skal afklares med Jesper. Indtil da gælder den markerede standard.
 | ~~Q10~~ | ~~Feedback (§9.9) er MVP i §16.1, men indgår ikke i de fire runder (§16.3). Hvornår skal den bygges?~~ | ✅ Afklaret 2026-10-08: **efter runde 4** (Jesper) |
 | ~~Q11~~ | ~~Medlemsadministration (fjern medlem, gør til admin, fjern admin-rolle, forlad klub, slet klub, redigér klubinfo, §7.4–7.5) nævnes ikke i runderne. Hvornår?~~ | ✅ Afklaret 2026-10-08: **runde 3** under "Klubbens medlemmer" (Jesper) |
 | Q12 | Skal admin-nulstillingslinks være endnu strammere, fx kun når email-levering ikke er sat op? Bivirkning af D-046: uden SMTP kan et medlem af to klubber uden fælles admin slet ikke nulstilles. | D-046 som den er. Når Gmail SMTP er sat op, er "Glemt password" vejen for dem. |
+| Q13 | Skal email kunne ændres, før der er email-verificering og SMTP? Better Auth ville skifte emailen med det samme, uden password, og ignorere en email, der allerede er i brug. | Nej (D-106). Emailen vises kun. Se TG-033. |
 
 ---
 
@@ -1724,12 +1806,12 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | 2 | 2.3 | Kalender (liste + måned) | ✅ | 2026-10-09. Adversarial review gennemført (23 fund R2-01–R2-21, alle rettet). 524 unit, 64 integration, build, 98/98 E2E (49 tests × desktop/375 px) to kørsler i træk. DoD (a)+(b) og runde 1-stikprøver gennemgået manuelt ved 375 px. |
 | 2 | 2.4 | Ølkatalog | ✅ | 2026-10-09. Adversarial review gennemført (23 fund R2-01–R2-21, alle rettet). 524 unit, 64 integration, build, 98/98 E2E (49 tests × desktop/375 px) to kørsler i træk. DoD (a)+(b) og runde 1-stikprøver gennemgået manuelt ved 375 px. |
 | 2 | 2.5 | Ratings | ✅ | 2026-10-09. Adversarial review gennemført (23 fund R2-01–R2-21, alle rettet). 524 unit, 64 integration, build, 98/98 E2E (49 tests × desktop/375 px) to kørsler i træk. DoD (a)+(b) og runde 1-stikprøver gennemgået manuelt ved 375 px. |
-| 3 | 3.1 | Sangbog + import | ⬜ | Udskudt (D-091): venter på sangbogsfilen (Q5). |
-| 3 | 3.2 | Kælenavn + profilbillede + `getDisplayName` overalt | ⬜ | |
-| 3 | 3.3 | Steder + ejere + arkivering | ⬜ | |
-| 3 | 3.4 | Events bruger `Place` + værter (migrering af fritekst) | ⬜ | |
-| 3 | 3.5 | Eventhistorik | ⬜ | |
-| 3 | 3.6 | Medlemsadministration (Q11) | ⬜ | |
+| 3 | 3.1 | Sangbog + import | ⬜ | Udskudt (D-091): venter på sangbogsfilen (Q5). TG-025 er stadig åben. |
+| 3 | 3.2 | Kælenavn + profilbillede + `getDisplayName` overalt | ✅ | 2026-10-09. Kælenavn 1–40 (D-105), visningsnavn overalt, profilens identitet med officielt navn, skift password (D-106). Fælles formularmotor først (D-109, TG-021). 9 integration (`round3-profile`), 3 E2E (`profile.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
+| 3 | 3.3 | Steder + ejere + arkivering | ✅ | 2026-10-09. Liste (aktive + arkiverede), opret/rediger (navnedublet med link), stedets side med adresse og "Åbn i kort", ejere (optimistisk toggle, admin fjerner andre), "Opret event her", "Ølsmagninger her", én fjern-knap (slet ubrugt / arkivér brugt), gendan (D-095, D-100, D-115). 5 unit, 25 integration (`round3-places`), 6 E2E (`places.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
+| 3 | 3.4 | Events bruger `Place` + værter (migrering af fritekst) | ✅ | 2026-10-09. Migrering af fritekst til steder (D-097), sammensatte FK'er (D-096), stedvælger med "＋ Nyt sted" inline og værtsvalg (D-098, D-099, D-111–D-113), eventside med sted, adresse og værter (D-101). 21 unit (`event-form-state`), 75 integration (`round3-migration` 13, `round3-data` 41, `round3-events` 21), 4 E2E (`events-places.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
+| 3 | 3.5 | Eventhistorik | ✅ | 2026-10-09. "Tidligere ølsmagninger" på Overblik (3) og i Kalenderens liste (12, `?past=all`), "Ølsmagninger her" pr. sted (D-107, D-114). 3 E2E (`history.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
+| 3 | 3.6 | Medlemsadministration (Q11) | ✅ | 2026-10-09. '⋯'-menu pr. medlem (gør til admin, fjern admin-rollen, nulstillingslink, fjern), forlad klub, slet klub med skrevet navn, rediger klubinfo (D-102–D-104, D-110, D-116). 11 unit, 20 integration (`round3-members`), 5 E2E (`members.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
 | 4 | 4.1 | Afstemninger: oprettelse + stemmer | ⬜ | |
 | 4 | 4.2 | Afstemninger: lukning, uafgjort, automatisk event, cron | ⬜ | |
 | – | – | Feedback (fejl og ønsker) | ⬜ | Ikke i runderne (Q10). Kan med fordel bygges tidligere. |
@@ -1761,7 +1843,7 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-019 | 2026-10-04 | Feedback (fejl + ønsker) gemmes i appens database, er app-dækkende (ikke klub-specifik) og synlig for alle brugere. Status styres af app-admin via `APP_ADMIN_EMAILS`. | Jespers ønske. App-fejl er ikke klubdata, og én samlet backlog er nemmest. | – |
 | D-020 | 2026-10-08 | Implementering i fire runder (§16.3), én runde ad gangen, hver runde deploybar og testet | Jespers implementeringsplan. Giver værdi tidligt og mulighed for at teste, før næste lag bygges. | Rækkefølgen i §16.2 |
 | D-021 | 2026-10-08 | "Club owner" i runde-planen betyder Admin-rollen. Der indføres ingen ejer-rolle. | D-018 gælder stadig. Den, der opretter klubben, bliver Admin. | – |
-| D-022 | 2026-10-08 | Runde 2: eventets sted gemmes som fritekst (`Event.locationText`). Runde 3: `Place` indføres, fritekst migreres til steder (ét pr. unik tekst pr. klub), og nye events vælger et sted. | Runde-planen bygger events før steder. Afviger midlertidigt fra §9.2. | – |
+| D-022 | 2026-10-08 | Runde 2: eventets sted gemmes som fritekst (`Event.locationText`). Runde 3: `Place` indføres, fritekst migreres til steder (ét pr. unik tekst pr. klub), og nye events vælger et sted. **Gennemført i runde 3 (D-097).** | Runde-planen bygger events før steder. Afviger midlertidigt fra §9.2. | – |
 | D-023 | 2026-10-08 | Fanen "Profil" er klub-scopet (`/c/[clubId]/profile`) og samler basisprofil, link til Klubben og log ud. `/profile` sender videre dertil via `lastActiveClubId`. | AppShell og aktiv klub bevares på alle faner. Planens "Settings" svarer til Profil (§8.1). | – |
 | D-024 | 2026-10-08 | Uden SMTP-opsætning skriver development (ikke produktion) emails til en lokal dev-outbox, så glemt password kan testes lokalt og i E2E. I produktion uden SMTP gælder §6.4. | Gmail-kontoen er ikke sat op endnu. | – |
 | D-025 | 2026-10-08 | Next.js' `cacheComponents` (og `partialPrefetching`) er slået fra i `next.config.ts` | Med dem slået til fejler alle sider, der læser cookies/database uden `<Suspense>`, og det passer dårligt til en app, hvor alle sider kræver login. Skal genovervejes før Next 17. | – |
@@ -1775,12 +1857,12 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-033 | 2026-10-08 | Env indlæses via `@next/env` overalt (Next, Prisma CLI, scripts, Playwright). `.env.test` committes (kun testværdier). E2E kører `next dev` på port 3100 mod `olklubben_test` (`NEXT_DIST_DIR=.next-e2e`), som tømmes (TRUNCATE) før hver kørsel. | Samme indlæsningsrækkefølge alle steder. Prisma 7 nægter `migrate reset` fra AI-agenter. Dev-serveren bevarer dev-outboxen (D-024). | – |
 | D-034 | 2026-10-08 | Ekstra CHECK-constraints i databasen (navn-længder, email i lowercase, invitationskodens format) | §15.4: database-constraints beskytter invarianter. | – |
 | D-035 | 2026-10-08 | Ekstra rate limits: opslag af invitationskode, mens man er logget ind (`join:lookup:user`, 30/10 min, fordi siden viser klubnavnet), selve join (`join:user`) og oprettelse af klub (`club:create:user`, 10/time) | Forhindrer gætning af koder og misbrug. Grænserne er så høje, at almindelig brug ikke rammer dem. | – |
-| D-036 | 2026-10-08 | **Hver side under `/c/[clubId]` kalder selv `requireMembership(clubId)`**, ikke kun layoutet | Next kører ikke layoutet igen ved klientnavigation mellem sider i samme klub. Uden det ville et fjernet medlem ikke få 404 (E16). Kaldet er cachet pr. request. **Gælder alle fremtidige klubsider.** Udvidet af D-052 (`requireClubPage`). E16 = klubbens 404 med et link til forsiden. Genbesøges i 3.6 (Forlad klub). | – |
+| D-036 | 2026-10-08 | **Hver side under `/c/[clubId]` kalder selv `requireMembership(clubId)`**, ikke kun layoutet | Next kører ikke layoutet igen ved klientnavigation mellem sider i samme klub. Uden det ville et fjernet medlem ikke få 404 (E16). Kaldet er cachet pr. request. **Gælder alle fremtidige klubsider.** Udvidet af D-052 (`requireClubPage`). E16 = klubbens 404 med et link til forsiden. ~~Genbesøges i 3.6 (Forlad klub).~~ Afklaret i runde 3: forlad og slet sender til forsiden fra en ucachet klubliste (D-104), E15 og E16 er dækket af tests. | – |
 | D-037 | 2026-10-08 | Footeren "Logget ind som … · Log ud" vises på `/onboarding`, `/clubs` og logget-ind `/join`-sider | En bruger uden klubber har ellers ingen måde at logge ud på, fordi "Log ud" ligger på den klub-scopede Profil (D-023). | – |
 | D-038 | 2026-10-08 | Én generisk fejltekst overalt: "Noget gik galt – prøv igen. Vi har tørret disken af." (§13.5) | Konsistens. Ingen dublerede konstanter. | – |
 | D-039 | 2026-10-08 | Runde 1 formaterer datoer med `Intl` via `formatToParts` (`src/lib/format/date.ts`, Europe/Copenhagen). date-fns + @date-fns/tz (§4.1) indføres først, når der er brug for dem (fx kalenderberegninger i runde 2). | Node/ICU giver "18.30" og varierende ugedagsformater. Strenge bygget af dele giver ens output på server og klient. | – |
 | D-040 | 2026-10-08 | `/join/<kode>` med ugyldigt format viser E18 også for logget-ud brugere. En tilbagekaldt kode viser E18, selv for eksisterende medlemmer (ikke E17). | Formatet afslører intet om klubber. Tjekket for aktiv kode kommer før medlemskabstjekket. Logget-ud brugere ser en generisk invitation for alle velformede koder. E18 afgøres først efter login/signup, så der ikke findes et uautentificeret orakel for gyldige koder. | – |
-| D-041 | 2026-10-08 | Klubsiden viser medlemmer først og derefter invitationen. Admins har en nøgleknap pr. medlem til nulstillingslink. | Medlemslisten er sidens primære indhold. I runde 3 kan knappen blive til en "⋯"-menu (fjern/gør til admin). | – |
+| D-041 | 2026-10-08 | Klubsiden viser medlemmer først og derefter invitationen. Admins har en nøgleknap pr. medlem til nulstillingslink. **Nøgleknappen er erstattet af '⋯'-menuen (D-102).** | Medlemslisten er sidens primære indhold. I runde 3 kan knappen blive til en "⋯"-menu (fjern/gør til admin). | – |
 | D-042 | 2026-10-08 | Auth-sider: vis/skjul-knap på password, Google-knappen over email-formularen, `referrer: no-referrer` på nulstillingssiden. Formularerne virker uden JavaScript (Server Actions + `useActionState`). | Mobilbrug under dårlige forhold (§1.1). Tokenet i URL'en må ikke lække via referrer. | – |
 | D-043 | 2026-10-08 | Uden email-levering afvises `POST /request-password-reset` med 400 `EMAIL_DELIVERY_UNAVAILABLE`. `/reset-password` er stadig åben, så admin-links virker. | Undgår forældreløse tokens og fejllogs i produktion uden SMTP (§6.4). | – |
 | ~~D-044~~ | 2026-10-08 | ~~Runde 1-Overblikkets h1 er "Velkommen til Ølklubben 🍺". Tom tilstand (h2): "Ingen kommende events endnu." (§16.3-ordlyd). Ved ét medlem vises invitationskortet først. ~~ Erstattet af D-077 | Korrekt overskriftsrækkefølge. Ordlyden samordnes med §9.1 i runde 2, når der kommer rigtige events. | – |
@@ -1800,8 +1882,8 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-058 | 2026-10-08 | På Vercel bruger migrations Neons `DATABASE_URL_UNPOOLED` (pr. miljø og preview-branch). `DIRECT_URL` er kun til lokal/manuel brug og afvises på Vercel-previews. Guard i `src/lib/migration-url.ts`. Previews kræver Neon preview-branching. | En Vercel-variabel er den samme for alle previews, så et preview-build kunne ellers migrere produktion. | §4.8 (DIRECT_URL) |
 | D-059 | 2026-10-08 | Integrationstests mod en dedikeret `olklubben_itest` (`npm run test:integration`, kun `next/headers` og `next/cache` mockes). `npm run check` = typecheck + lint + format + unit. | §15.3. `npm test` forbliver uden database. | – |
 | D-060 | 2026-10-08 | Lange klubnavne ombrydes med orddeling (`lang="da"`): op til 3 linjer i klubvælgeren og 2 i klubskifteren. Ingen afkortning med "…". | Navne skal kunne læses. 375 px giver kun ~159 px tekstbredde. | – |
-| D-061 | 2026-10-08 | Runde 2: events kan redigeres og slettes af opretteren eller en admin. Værter (`EventHost`) kommer i runde 3 sammen med steder. | §16.3 knytter værter til stedets ejere, og steder kommer først i runde 3. | – |
-| D-062 | 2026-10-08 | Runde 2-kalender: listevisningen viser kommende events, og månedsvisningen kan bladres til alle måneder (også tidligere). En egentlig historiksektion ("Vis tidligere") kommer i runde 3. | §16.3 placerer "eventhistorik" i runde 3. | – |
+| ~~D-061~~ | 2026-10-08 | ~~Runde 2: events kan redigeres og slettes af opretteren eller en admin. Værter (`EventHost`) kommer i runde 3 sammen med steder.~~ Erstattet af D-098 | §16.3 knytter værter til stedets ejere, og steder kommer først i runde 3. | – |
+| ~~D-062~~ | 2026-10-08 | ~~Runde 2-kalender: listevisningen viser kommende events, og månedsvisningen kan bladres til alle måneder (også tidligere). En egentlig historiksektion ("Vis tidligere") kommer i runde 3.~~ Erstattet af D-107 | §16.3 placerer "eventhistorik" i runde 3. | – |
 | D-063 | 2026-10-08 | Runde 2 inkluderer redigering og sletning af øl (opretter eller admin, §5.1, E14), filter på event og dublet-advarsel (§9.5), selvom runde-planen kun nævner tilføj/se/søg/sortér | Kataloget skal kunne rettes (stavefejl), og §9.5 er detaljespecifikationen for kataloget. | – |
 | D-064 | 2026-10-08 | Forslaget til eventtitel er "Ølsmagning #N", hvor N = antal events i klubben + 1 | Fortolkning af §9.2 ("antal tidligere events + 1"). | – |
 | D-065 | 2026-10-08 | Rutestruktur for ægte 404 (TG-008): ingen `loading.tsx` direkte under `c/[clubId]`. Overblik ligger i `(overview)/` og kataloget i `beers/(catalog)/`. Ressourcer har guard-layouts (`events/[eventId]/layout.tsx`, `beers/[beerId]/layout.tsx` → `requireEvent`/`requireBeer`) **over** en `(detail)/loading.tsx`. Redigeringssider og `[...rest]` har ingen `loading.tsx`. | Medlemmer får ægte HTTP 404 (ukendt, ugyldigt eller anden klubs id), og detaljesider beholder skeletons. **Mønster for nye ressourcesider (fx sange og steder i runde 3).** | D-053 |
@@ -1819,7 +1901,7 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-077 | 2026-10-08 | Overblik: h1 er et skjult (sr-only) "Overblik", og hero-titlen er h2. Tom tilstand: "Ingen kommende ølsmagninger endnu 🍺" (§9.1). Op til 4 kommende events under hero'en, derefter "Se hele kalenderen". | §3.2: det første, man ser, er næste event. Klubnavnet står allerede i top-baren. | D-044 |
 | D-078 | 2026-10-08 | Kalender: URL-kontrakten `?view=list|month`, `?month=YYYY-MM`, `?day=YYYY-MM-DD` (ugyldige værdier → standard). Uden `?view` renderes begge, og et CSS-breakpoint vælger (liste på mobil, måned på desktop). Mobilens månedspanel viser hele måneden, til en dag vælges. Månedsgitteret er en semantisk `<table>`, ikke `role=grid`. Tidligere events vises dæmpet. | Ingen JS-afhængighed, intet blink af forkert visning, og links virker før hydrering. `role=grid` lover piletaster, som kræver JS. | – |
 | D-079 | 2026-10-08 | D-057 udvidet: i en klub med ét medlem og et kommende event er hero'ens knapper outline, så "Del" forbliver den eneste primære handling | §13.4.5. | – |
-| D-080 | 2026-10-08 | Eventsiden: før start er "Rediger" primær for opretter/admin. Ellers (og fra start) er "Tilføj øl" primær. Statusbadge fra `heroState`. "Åbn i kort" er altid en Google Maps-søgning på friteksten. "Oprettet af" står i kortets fod. Sletning sker kun fra detaljesiden. `/events/new?date=` udfylder datoen på forhånd. Eventsider markerer "Kalender" i navigationen. | §13.4.5 og §10.5-flowet under smagning. | – |
+| D-080 | 2026-10-08 | Eventsiden: før start er "Rediger" primær for opretter/admin. Ellers (og fra start) er "Tilføj øl" primær. Statusbadge fra `heroState`. ~~"Åbn i kort" er altid en Google Maps-søgning på friteksten.~~ (Erstattet af D-101.) "Oprettet af" står i kortets fod. Sletning sker kun fra detaljesiden. `/events/new?date=` udfylder datoen på forhånd. Eventsider markerer "Kalender" i navigationen. | §13.4.5 og §10.5-flowet under smagning. | – |
 | D-081 | 2026-10-08 | "Øl smagt til dette event" genbruger katalogets `BeerCard` (med "Din: –"), i den rækkefølge øllene blev tilføjet | Under smagningen kan man se, hvad man mangler at rate. | – |
 | D-082 | 2026-10-08 | BeerRating: begge halvdele af første stjerne giver 1. Taps gemmer med det samme, og tastatur gemmer 600 ms efter sidste tast (eller ved blur). Venstre/ned sænker og højre/op hæver (som en slider). **Halv-stjerne-trykfladerne (~29×52 px) er undtaget fra 44 px-reglen (§13.4.4).** | §9.5 kræver ti halve trykflader, og de kan ikke være 44 px brede på 375 px. WCAG 2.5.8 (24 px) er opfyldt, og piletaster er et alternativ. Én request pr. tastetryk ville give støj. | – |
 | D-083 | 2026-10-08 | Dublet-advarsel: med JS er en synlig live-advarsel bekræftelsen ("Tilføj alligevel" sender `confirmDuplicate`). Serveren tjekker altid (fx hvis en anden har tilføjet samme øl imens). Gælder også ved omdøbning ("Gem alligevel"). | §9.5, E21. | – |
@@ -1829,10 +1911,34 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-087 | 2026-10-09 | Kalender: `loading.tsx` følger `?view`, og uden `?view` vises det responsive par. "Liste \| Måned" er stadig `?view=`-links, men en klient-`ViewToggleLink` flytter fokus til det nye links efter skift. Ved grænserne (1900-01, 2999-12) er ‹/› deaktiverede knapper. | Intet layout-hop. Fokus faldt til `<body>`. | Udvider D-078 |
 | D-088 | 2026-10-09 | Overblik: mens hero-eventet er "I gang nu", er top-barens "+" "Tilføj øl" (med eventet udfyldt). Ellers er den "Opret event". | Samme primære handling som hero'en (§13.4.5). | Udvider D-080 |
 | D-089 | 2026-10-09 | Redigeringssider kalder `requireEvent`/`requireBeer` → `canEdit*` → husk aktiv klub, så en rettigheds-404 heller ikke skifter aktiv klub | Konsekvens af D-066's begrundelse. | Præciserer D-066 |
-| D-090 | 2026-10-09 | Fælles hjælpere til nye runder: `src/lib/search-params.ts` (`firstParam`), `src/server/revalidate.ts` (`revalidateClub`, server-only, bevidst ikke i en "use server"-fil), ressource-ref-schemas i `src/lib/validation/*` (fx `beerRefSchema`), `averageFromSum` som eneste gennemsnitsformel. **Alle fritekst-schemas bruger `stripNul` (`src/lib/text.ts`), og alle felter, der parses før auth, har et længdeloft før parsing.** | Fjerner kopier mellem runde 2-agenterne. Postgres `text` afviser U+0000 (F-046), og ReDoS (F-044). | – |
+| D-090 | 2026-10-09 | Fælles hjælpere til nye runder: `src/lib/search-params.ts` (`firstParam`), `src/server/revalidate.ts` (`revalidateClub`, server-only, bevidst ikke i en "use server"-fil), ressource-ref-schemas i `src/lib/validation/*` (fx `beerRefSchema`), `averageFromSum` som eneste gennemsnitsformel. **Alle fritekst-schemas bruger `stripNul` (`src/lib/text.ts`), og alle felter, der parses før auth, har et længdeloft før parsing.** Runde 3: `optionalText` sætter loftet på det rå input før rensning (`rawTextLimit`), og `cleanOptionalText` er den eneste rensning af valgfri tekster. | Fjerner kopier mellem runde 2-agenterne. Postgres `text` afviser U+0000 (F-046), og ReDoS (F-044). | – |
 | D-091 | 2026-10-09 | Sangbogen (opgave 3.1) springes over i runde 3 og bygges, når den eksisterende sangbog ligger i `data/sangbog/` (Q5). "Sangbog" forbliver en "kommer snart"-side i navigationen. | Jespers ønske: sangbogsfilen er ikke klar, og import-formatet afhænger af den. | – |
 | D-092 | 2026-10-09 | Ny palet (Jespers ønske): primærfarven er oliven `#414437` (den eneste af de tre tilbudte farver, der reelt er grøn) og bruges både til app-rammen og som handlingsfarve. Afledt: `olive-soft #525742`, `olive-deep #2D2F23`, `olive-tint #E3E8CE`, `on-dark-muted #CECFC4`. Sekundærfarven er havneblå `harbor #3E5568` (+ `harbor-soft #4E6679`, `harbor-tint #DCE6EE`) til hero-kort, "Klubbens rating", "i dag" og info. Navy, bottle, mist og steel er fjernet. `on-navy` er erstattet af `on-olive`/`on-harbor`. Tekst på messingknappen er `ink`. Dialog-baggrunden er neutral `ink/50`. Se §13.2. | Jesper ville have grøn som primær og en blå, der passer til. `#3E5568` blev valgt efter screenshots frem for `#4A6274` (fejler AA: dæmpet tekst 3,65, stjerner 2,61) og `#2F4858` (samme lyshed som olive, så hero'en ikke skiller sig ud fra top-baren). | §13.2 v1 (navy/bottle) |
 | D-093 | 2026-10-09 | Desktop-sidebaren viser ikke "Profil" i listen. Brugerrækken nederst (avatar, navn, email) ligger i hovednavigationen, har det tilgængelige navn "Profil: <navn> <email>" og er markeret aktiv (`aria-current`, olive-soft + messingring) på `/c/{id}/profile` og `/c/{id}/club`. Mobilens bundnavigation beholder alle fem punkter. Én kilde: `sidebar: "list" \| "user-row"` på punkterne i `nav-items.ts` + `getSidebarNav`. | Jespers ønske: Profil stod to gange i sidebaren. Mobil har ingen brugerrække. | Afviger fra §8.1 v1 ("de samme punkter") |
+| D-094 | 2026-10-09 | Runde 3 leveres i faser: først TG-021 (F0) bag en formular- og auth-E2E-gate, så ét fundament (skema, migrering, domæne, validering, datalag, interim-eventformular, alle nye rutefiler med endelige guards, seed), så tre parallelle agenter med eksklusivt filejerskab (A profil og medlemmer, B steder, C events med steder og historik), en integrator og til sidst et adversarial review. Hver agent har sin egen `_itest`-database og kører kun sine egne E2E-specs, serialiseret med `flock`. SPEC.md har én skribent. | Datamodellen ligger under alle tre features. En fast kontrakt fra fundamentet gør det sikkert at bygge UI'et parallelt. | – |
+| D-095 | 2026-10-09 | Steder: navn 1–120 tegn, adresse ≤ 200, beskrivelse ≤ 1000 (CHECKs). `name_key` = `placeNameKey(name)` (D-086-reglen) og er unik blandt klubbens aktive steder via et partielt unikt index (`partialIndexes` som D-027, aldrig `findUnique` på det). Skrivninger af navne serialiseres pr. klub med `pg_advisory_xact_lock` og et forhåndstjek. En dublet giver en feltfejl med link til stedet (`PLACE_NAME_TAKEN`). `createPlace` låser opretterens medlemskab (FOR SHARE), før ejerrækken skrives. | Runde 2's fritekst kunne være 120 tegn, så migreringen er tabsfri. Et forhåndstjek under lås undgår at fange P2002/P2003 i en interaktiv transaction, som Postgres afbryder. | §11 Place.name (1–80) |
+| D-096 | 2026-10-09 | Club isolation i databasen: sammensatte FK'er `events(place_id, club_id) → places(id, club_id)` RESTRICT, `place_owners(place_id, club_id) → places` CASCADE og `place_owners(user_id, club_id) → memberships(user_id, club_id)` CASCADE. `event_hosts.user_id → users` RESTRICT; medlemskab tjekkes ved skrivning under FOR SHARE. Kun "unchecked" skalar-input ved skrivning, aldrig `connect`. | §4.4 håndhæves nu af databasen for steder, ejere og events: en ejer er altid medlem, og ejerskabet ophører med medlemskabet (§7.4). Værtskaber er historik og må overleve medlemskabet. Øl har stadig ingen sådan garanti (TG-022). | – |
+| D-097 | 2026-10-09 | D-022-migreringen: ét sted pr. (klub, navnenøgle), med en SQL-whitespace-klasse, der svarer til JS `\s`. Navn = mest brugte stavemåde, så den senest brugte, så alfabetisk. Opretter og tidspunkt fra klubbens tidligste event med den nøgle. Adresse = teksten, når den indeholder et ciffer. Ingen ejere. Eksisterende events får opretteren som vært. Tom tekst → "Ukendt sted". Id'er er UUIDv4 fra `gen_random_uuid()`. `events.place_id` bliver NOT NULL i samme migrering; `location_text` bliver nullable og ubrugt og droppes i runde 4 (TG-032). Testet automatisk på en midlertidig C.UTF-8-database (`round3-migration.itest.ts`). | Der er ingen produktion endnu (TG-012), så det korte vindue under en deploy, hvor gammel kode ikke kan oprette events, accepteres (§4.8). Ejerskab er selvvalgt (§9.4): "Hos Mads" gættes ikke til at være Mads'. Verificeret på dev: 4 events → 4 steder og 4 værtskaber, ingen events uden sted, vært eller på tværs af klubber. | – |
+| D-098 | 2026-10-09 | Værter (§9.2): medlemskort i eventformularen. Et ikke-tomt valg er værterne (nye værter skal være nuværende medlemmer; eksisterende værter, der har forladt klubben, må blive). Tomt = standarden: stedets ejere, der er medlemmer (højst 20), ellers opretteren; ved redigering eventets opretter, hvis medlem, ellers den, der redigerer. Højst 20 værter. Redigere og slette et event = opretter, vært eller admin. Når et medlemskab ophører, fjernes kun værtskaber på events, der ikke er startet. `updateEvent` låser event → sted → medlemskaber og læser de eksisterende værter efter medlemskabslåsen (F-055). | §9.2 og §16.3. Uden JS sendes præcis det viste. Værtskaber på afholdte events er historik (§7.4). | D-061 |
+| D-099 | 2026-10-09 | "＋ Nyt sted" er et radio-kort i stedvælgeren med felter, der foldes ud med CSS (virker før hydrering). Stedet oprettes i eventets transaction, og et aktivt sted med samme nøgle genbruges med sin egen adresse. Felterne for nyt sted valideres kun, når "nyt" er valgt ("Giv stedet et navn.", som på Nyt sted-siden). Stedvælgeren: native radio-kort, senest brugte først (seneste `startsAt`, også planlagte events). Intet forvalg, medmindre klubben har 0 steder ("nyt" åbnes), præcis 1 eller `?placeId=` (et aktivt sted i klubben). Et arkiveret nuværende sted kan blive valgt ved redigering (E30). | §9.2 "uden at forlade formularen". Ingen dialog betyder ingen portal-fælder og ingen ekstra action. Et forkert forvalgt hus er værre end ét tryk. | – |
+| D-100 | 2026-10-09 | Fjernelse af steder er én handling: ubrugt → slettes, brugt → arkiveres, afgjort under en FOR UPDATE-rækkelås, og knappen hedder det, der vil ske. Arkivere = ejer eller admin; slette et ubrugt sted = ejer, admin eller opretter; gendanne = ejer eller admin (en navnekonflikt afvises med link). Alle medlemmer må redigere, også arkiverede steder. Ejer-toggle sender den ønskede tilstand; admins fjerner andre ejere. Runde 4 udvider `PlaceUsage` (en åben afstemning blokerer, E5). | §5.1 og §9.4. Opretteren må rydde op efter en tastefejl. Da ejerskab er selvvalgt, er "kun ejer" en bremse mod fejltryk, ikke en adgangskontrol (§3.3). | – |
+| D-101 | 2026-10-09 | "Åbn i kort" er en Google Maps-søgning på `Place.address` og vises kun, når stedet har en adresse. Ellers et lille "Tilføj adresse"-link til stedets redigering. | En kortsøgning på "Hos Mads" er meningsløs. | D-080 ("Åbn i kort" på friteksten) |
+| D-102 | 2026-10-09 | Medlemsadministration: hver ændring serialiseres af `SELECT id FROM clubs … FOR NO KEY UPDATE`, og aktørens rolle og hele medlemslisten læses igen under låsen. `endMembership` sletter medlemskabet først (ejerskaber følger med via FK), så værtskaber på kommende events, så `lastActiveClubId`. At fjerne et ikke-medlem er en no-op; en rolle til et ikke-medlem giver 404; at fjerne sig selv = "Forlad klubben"; at nedgradere sig selv er tilladt med mindst to admins. Den sidste admin, der vil gå, får beskeden og genvejen "Gør et medlem til admin". Admins har en '⋯'-menu pr. medlem med nulstillingslinket indeni (opfylder D-041). Dialogerne ligger uden for menuen (styret `ConfirmDialog`), og fokus vender tilbage til '⋯'. | E25 uden at låse rækker, som FK-inserts også skal bruge (NO KEY UPDATE blokerer ikke KEY SHARE). Med den rækkefølge kan samtidige skrivninger ikke efterlade værtsrækker for et tidligere medlem. | §11 "lås admin-medlemskaberne" |
+| D-103 | 2026-10-09 | Slet klub: det skrevne navn sammenlignes efter NFC, samlede mellemrum, trim og dansk lowercase. Knappen aktiveres live, og serveren tjekker igen under låsen. Dialogen viser indholdet ("14 events, 37 øl med 102 ratings og 5 steder"). Events slettes før klubben som forsvar i dybden (RESTRICT er verificeret at virke). Runde 4 skal slette afstemninger før steder. Bagefter → forsiden med en toast. | §7.5. Store/små bogstaver og mellemrum er ikke en meningsfuld del af en bekræftelse. | – |
+| D-104 | 2026-10-09 | `<FlashToast/>` flytter fra klublayoutet til `src/app/layout.tsx`, så "club-left" og "club-deleted" vises på /onboarding, /clubs og i andre klubber. Redirect-målet efter forlad og slet beregnes fra en ucachet klubliste (`homePathAfterLeaving`, `lastActiveClubId` ignoreres). | `getUserClubs` er cachet pr. request og ville stadig indeholde den forladte klub. | Udvider D-075 |
+| D-105 | 2026-10-09 | Kælenavn: `User.nickname` 1–40 (CHECK) er et Better Auth-`additionalField` med `input: false`, så `POST /update-user` og signup afviser det (FIELD_NOT_ALLOWED). Det skrives kun af `updateUserProfile` sammen med navnet. `getDisplayName` overalt; medlemslisten og profilen viser "Kaptajnen (Jesper Thomsen)"; lister sorteres efter visningsnavn; emails bruger det officielle navn. | D-011. Én skrivevej, så ingen kan omgå rensning og længdegrænse. | – |
+| D-106 | 2026-10-09 | Indstillinger (§9.8): skift password via `auth.api.changePassword` med `revokeOtherSessions: false`, hvorefter appen sletter brugerens andre sessions og alle udestående nulstillingslinks (udvider D-047). Rate limits: `/change-password` 10/15 min pr. IP og 10/15 min pr. bruger (talt efter validering og medlemskabstjek). Kortet vises kun for konti med password-login; rene Google-konti får en forklaring. Formularen har et skjult brugernavnsfelt (emailen) til password-managere. [SENERE]: email-ændring (TG-033, Q13) og "Google-konto tilføjer password" (TG-034). Profilbilledet er stadig kun fra Google (D-048). | Sessionen læses via `headers()`, så et cookie-skift inde i actionen ville logge brugeren ud. Better Auth skifter email med det samme uden password og ignorerer stille en email i brug, og `setPassword` har intet friskhedstjek. | §9.8 v1 (email og "tilføj password") |
+| D-107 | 2026-10-09 | Eventhistorik: Overblik viser "Tidligere ølsmagninger" (de 3 nyeste med antal øl og den bedst ratede øl) efter de kommende events og under den tomme tilstand. Kalenderlistens sektion `#tidligere` viser de 12 nyeste pr. måned (nyeste først), resten med `?past=all`. Stedets side viser "Ølsmagninger her". "Afholdt" er det præcise modstykke til "kommende eller igangværende" (§9.1). | §16.3. Udvider D-078. | D-062 |
+| D-108 | 2026-10-09 | Runde 3-ruter efter D-065: `places/(list)` og `places/new` har loading; `places/[placeId]/layout.tsx` er guard (`requirePlace`) over `(detail)/loading.tsx`; redigering har ingen loading og kalder `requirePlace` → `canEditPlace` → husk aktiv klub. Klubsiden flytter ind i `club/(members)/` (URL uændret), så dens loading ikke omslutter `club/edit`, der kun er for admins og ellers giver ægte 404. Stedernes sider markerer Profil aktiv (udvider D-093). `newEventHref` tager `{ date, placeId }`. | Ægte 404 for ukendte, ugyldige og andre klubbers steder (E22), også under `next start`. | – |
+| D-109 | 2026-10-09 | TG-021 er løst: `useActionForm`, `form-validation` og `form-fields` (`FieldShell`, `InputField`, `TextareaField`, `CheckboxField`, `ChoiceFieldset`) ligger i `src/components/features/forms/`, og `readFormValues` (listefelter, loft = max + 1, `exclude`) i `src/lib/form-data.ts`. Server-fieldErrors flytter nu også fokus i auth-formularerne (D-056). En serverfejl med fieldErrors vises kun ved felterne, uanset kode (fx et forkert nuværende password). Fokus i en gruppe: den valgte radio, ellers den første synlige kontrol. `ConfirmDialog` kan styres udefra (`open`/`onOpenChange`, valgfri `trigger`) og har `confirmDisabled`. Porteret: event → øl → opret klub → auth. JoinCodeForm (navigation, ingen action) er ikke porteret. | Én formularmotor i stedet for tre kopier, før runde 3's nye formularer (profil, password, klubinfo, sted, event v3). | – |
+| D-110 | 2026-10-09 | Klubbens beskrivelse er 1–300 tegn (CHECK). Navn og beskrivelse redigeres på `/c/[clubId]/club/edit` (kun admins, ellers 404). | Klubsiden forbliver en oversigt; redigering er en egen formular som de andre. | – |
+| D-111 | 2026-10-09 | Stedvælgerens kort: hvert sted er en usynlig native radio, der dækker hele kortet (opacity-0, øverst), og kortet tegnes med `peer-*` (prik, valgt, fokusring). Det tilgængelige navn er præcis stedets navn (+ " (arkiveret)"); meta-linjen er `aria-hidden` og koblet via `aria-describedby`. "＋ Nyt sted"-felterne vises med `group-has-[.place-radio:checked]/choice:grid`. Radioer har ingen `aria-invalid` (rollen understøtter det ikke); gruppefejlen læses via `aria-describedby`. | Virker før hydrering, tryk rammer selve radioen, skærmlæsere hører kun navnet, og Playwrights `check()` virker (F-065). | Designets "peer sr-only" |
+| D-112 | 2026-10-09 | Værtsvælgeren: uberørt følger den forslaget for det valgte sted. Ved redigering starter den uberørt, kun hvis de nuværende værter er lig forslaget. Den viste fallback er eventets opretter, mens vedkommende er medlem, ellers den, der redigerer. "Brug stedets ejere" vises kun, når stedet har ejere, og valget afviger. | Supplerer D-098 med UI-reglerne, så klient og server foreslår det samme. | – |
+| D-113 | 2026-10-09 | Kontrollerede radioer, checkbokse og selects i Server Action-formularer skal overleve React 19's automatiske `form.reset()` efter et svar: en layout-effekt pr. action-state (aldrig ved mount) sætter DOM'en tilbage (`useCheckedAfterReset` for steder og værter, det samme for ølformularens event-select). Valg, der er foretaget før hydrering, overtages ved at sammenligne `checked` med `defaultChecked`. | Retter F-053-klassen og indsnævrer TG-037. | – |
+| D-114 | 2026-10-09 | Historikkens præsentation: `pastEventMetaDisplay` holder "★ 4,7" samlet med hårde mellemrum. Historikkens månedsregioner hedder "Tidligere ølsmagninger <Måned ÅÅÅÅ>" (`aria-labelledby` på sektions- og månedsoverskriften). Links bygges med `calendarHistoryHref`. `ScrollToHash` scroller til `#tidligere`, fordi Next ikke scroller til mål, der streames ind bag `loading.tsx` (F-066). | Ratingen må ikke stå alene på en linje, og navnene må ikke kollidere med de kommende måneder (F-069). | – |
+| D-115 | 2026-10-09 | Ejer-toggle: én almindelig knap, hvis etiket siger, hvad den gør ([ Det er mit sted ] / [ Fjern mig som ejer ]), plus en høflig statuslinje ("Du er nu ejer af stedet."). Ingen `aria-pressed`. Optimistisk, ruller tilbage med en fejl-toast, ingen confirmation. | §9.4 kræver to etiketter, og WAI-ARIA APG siger, at en `aria-pressed`-knap skal beholde sit navn. | Designets "aria-pressed" |
+| D-116 | 2026-10-09 | Admin'ens egen række på medlemslisten har også '⋯'. Den indeholder kun "Fjern min admin-rolle", deaktiveret med begrundelsen, når man er den sidste admin. Nulstillingslink tilbydes aldrig til en selv. | Vejen til at nedgradere sig selv skal være den samme som for andre, og den sidste admin skal kunne se hvorfor ikke. | – |
+| D-117 | 2026-10-09 | Sømme fra integrationen: et steds side linker tilbage til "Alle steder", og dens "Ølsmagninger her" viser ugedag og tid i stedet for stedets eget navn (`EventListItem showPlace={false}`). Olivenfarvede toasts har en messingkant (løser TG-039). Tilladelsesbeskeder følger mønstret "Kun X og klubbens admins kan …" (fx "Kun stedets ejere, opretteren og klubbens admins kan slette det."). | Steder har intet hovedpunkt (§8.1). Toasts gik i ét med oliven-båndet på CenteredShell-sider. Ens sprog for ens regler. | – |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -1846,6 +1952,121 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-070 · 2026-10-09 · "Failed to execute 'measure' on 'Performance'" i dev
+- **Område:** Tooling
+- **Symptom:** Browserkonsollen (og E2E-loggen via Next' videresendelse af browserlogs) viser "Uncaught TypeError: Failed to execute 'measure' on 'Performance': '​ClubLayout' cannot have a negative time stamp." på sider, der ender i `notFound()`, fx en redigeringsside uden ret eller klubben efter "Forlad klubben".
+- **Årsag:** Reacts performance tracks i development. Ikke appens kode.
+- **Rettelse:** Ingen. Siderne og testene virker, og det sker ikke under `next start`.
+- **Læring / forebyggelse:** Jag den ikke, medmindre den dukker op i produktion.
+
+### F-069 · 2026-10-09 · Playwrights `name` matcher delstrenge
+- **Område:** Tests
+- **Symptom:** Strict mode-fejl mellem regionerne "Oktober 2026" og "Tidligere ølsmagninger Oktober 2026".
+- **Årsag:** `getByRole(…, { name })` matcher delstrenge uden hensyn til store/små bogstaver.
+- **Rettelse:** `exact: true` på regionsnavne (D-114).
+- **Læring / forebyggelse:** Brug `exact: true`, når tilgængelige navne kan indeholde hinanden.
+
+### F-068 · 2026-10-09 · React Compiler-lint afviste ref-aliaser og setState i effekter
+- **Område:** UI / Tooling
+- **Symptom:** `react-hooks/refs` og `react-hooks/set-state-in-effect` fejlede, da `formProps.ref` blev lagt i en lokal variabel og brugt i deps (og så også markerede `<form {...formProps}>`), og ved setState direkte i en effekt.
+- **Rettelse:** Refs læses kun i `useEffectEvent` eller handlers. DOM-tilstand overføres til React-state fra en callback (`requestAnimationFrame`) inde i effekten (`use-place-and-hosts.ts`).
+- **Læring / forebyggelse:** Samme mønster for nye hooks, der skal læse formularens DOM.
+
+### F-067 · 2026-10-09 · `!important` mod streamede segmenter virker ikke under Tailwind v4
+- **Område:** Tests
+- **Symptom:** `div[hidden]{display:block!important}` viste ikke de streamede segmenter i et no-JS-tjek (F-054).
+- **Årsag:** Preflights `[hidden]{display:none!important}` ligger i `@layer base`, og en lagdelt `!important` vinder over en ulagdelt.
+- **Rettelse:** Omskriv dokumentet og fjern `hidden`-attributten fra `<div hidden id="S:…">`.
+
+### F-066 · 2026-10-09 · Next scroller ikke til et `#hash`-mål bag `loading.tsx`
+- **Område:** Kalender
+- **Symptom:** "Se alle tidligere" landede øverst på Kalender i stedet for ved `#tidligere`.
+- **Årsag:** Sektionen streames ind, efter Next' scroll-håndtering har kørt.
+- **Rettelse:** Klientkomponenten `ScrollToHash`, keyed på indholdet (D-114).
+
+### F-065 · 2026-10-09 · Playwrights `check()` ramte ikke en 1 px sr-only-radio
+- **Område:** UI / Tests
+- **Symptom:** `check()` på stedvælgerens radio timede ud ("<div> intercepts pointer events").
+- **Årsag:** En sr-only-input ligger i wrapperens hjørne uden for sin label, og Playwright accepterer ikke labelen som mål.
+- **Rettelse:** En usynlig radio i fuld størrelse øverst på kortet (D-111). Tryk på mobil rammer nu også selve radioen.
+
+### F-064 · 2026-10-09 · Screenshot før hydrering gav et "1 Issue"-mærke i dev
+- **Område:** Tests
+- **Symptom:** Next' dev-overlay viste en hydreringsfejl på formularsider i screenshots.
+- **Årsag:** Playwrights screenshot (`caret: hide`) satte `caret-color: transparent` inline på inputs, før React havde hydreret.
+- **Rettelse:** Vent på hydrering (`expectHydrated` eller `__reactProps$`) før screenshots af formularer.
+
+### F-063 · 2026-10-09 · En grid med `justify-items-start` gav vandret scroll ved lange ord
+- **Område:** UI
+- **Symptom:** En adresse på 200 tegn gjorde stedets side 1489 px bred ved 375 px. Fundet af den nye E2E-test med lange navne.
+- **Årsag:** `justify-items-start` giver grid-elementer max-content-bredde, så `break-words` aldrig bryder.
+- **Rettelse:** `justify-self-start` kun på knappen (`place-about.tsx`). Eventsidens fod (værter, "Oprettet af") brugte `justify-items-center` på samme måde og har nu `grid-cols-1`.
+- **Læring / forebyggelse:** Brug aldrig `justify-items-start/center` på en grid med brugertekst (samme klasse som F-028/F-047).
+
+### F-062 · 2026-10-09 · Forældet `.next-e2e/dev` gav en genindlæsningsløkke under E2E
+- **Område:** Tests
+- **Symptom:** Signup blev stående på `/signup` og navigerede igen og igen, eller CSS'en manglede (begge navigationer synlige), og browseren meldte `ERR_NETWORK_IO_SUSPENDED`.
+- **Årsag:** Rutetræet var ændret af andre agenter siden sidste E2E-kørsel (som F-013).
+- **Rettelse:** `rm -rf .next-e2e/dev` inden for samme `flock` som kørslen.
+- **Læring / forebyggelse:** Ryd `.next-e2e/dev`, når rutetræet har ændret sig siden sidste kørsel.
+
+### F-061 · 2026-10-09 · Forkert nuværende password blev annonceret to gange
+- **Område:** Profil
+- **Symptom:** Beskeden stod både som alert og som feltfejl (E2E: strict mode-fejl).
+- **Årsag:** `useActionForm` viste enhver ikke-VALIDATION-fejl som `formError`, også en med fieldErrors. `toAuthActionError(…, "change-password")` giver INVALID_PASSWORD med `fieldErrors.currentPassword`.
+- **Rettelse:** Først en lokal omvej i `ChangePasswordForm`. Integratoren flyttede reglen ind i `useActionForm` (`formError` er null, når fejlen har fieldErrors, D-109) og fjernede omvejene i `ChangePasswordForm` og `PlaceForm`.
+
+### F-060 · 2026-10-09 · Fokus vendte ikke tilbage til '⋯' efter en styret dialog
+- **Område:** UI / Tilgængelighed
+- **Symptom:** Efter annuller, Escape eller succes lå fokus på `<body>`, og tastaturbrugeren mistede sin plads på medlemslisten.
+- **Årsag:** Radix Dialog/AlertDialog returnerer kun fokus til sin egen Trigger, og en styret `ConfirmDialog` uden trigger har ingen.
+- **Rettelse:** `MemberActionsMenu` åbner dialogen fra menuens `onCloseAutoFocus` og fokuserer '⋯' i en effekt, når dialogen lukker. Se TG-041.
+- **Læring / forebyggelse:** Alle menu → dialog-flows skal selv returnere fokus.
+
+### F-059 · 2026-10-09 · `Intl.Collator('da')` sorterer store bogstaver før små
+- **Område:** Tests
+- **Symptom:** `compareByDisplayName`/`comparePlacesByName` satte "Anders" før "anders", modsat testens forventning.
+- **Årsag:** CLDR da har `caseFirst: "upper"`.
+- **Rettelse:** Testforventningerne er rettet.
+
+### F-058 · 2026-10-09 · ESLints flat config læser ikke `.gitignore`
+- **Område:** Tooling
+- **Symptom:** `npm run check` fejlede på den git-ignorerede `.work/songbook/*.cjs`.
+- **Rettelse:** `.work/**` i `globalIgnores` i `eslint.config.mjs`.
+- **Læring / forebyggelse:** Nye git-ignorerede mapper med kode skal også ignoreres i ESLint (Prettier 3 læser `.gitignore` selv).
+
+### F-057 · 2026-10-09 · Agentens værktøj afkodede `\uXXXX` til bogstavelige tegn
+- **Område:** Tooling
+- **Symptom:** Testfiler fik usynlige NBSP-, BOM- og kombinationstegn, og migreringens whitespace-klasse består af bogstavelige tegn.
+- **Rettelse:** TS-filerne blev konverteret tilbage til escapes af et script, der byggede dem fra kodepunkter. Migreringen er ladt urørt: samme semantik, og `round3-migration.itest.ts` læser klassen fra SQL'en og beviser paritet med JS `\s` over hele BMP.
+- **Læring / forebyggelse:** Generér usynlige tegn fra kodepunkter i et script. Redigér aldrig en anvendt migrering (checksum).
+
+### F-056 · 2026-10-09 · Zod 4: `.max` på elementer plus `.refine` på listen gav dobbelte fejl
+- **Område:** Validering
+- **Symptom:** For lange `hostIds` gav "Vælg værter fra listen." to gange, den ene på stien `hostIds.0`, som formularen ikke har et felt til.
+- **Rettelse:** `idListSchema` har én `superRefine` på listen (for mange → `tooMany`, ellers ugyldig → `invalid`).
+- **Læring / forebyggelse:** Listefelter får ét tjek på selve listen.
+
+### F-055 · 2026-10-09 · `updateEvent` kunne skrive et fjernet medlems værtskab tilbage
+- **Område:** DB / Samtidighed
+- **Symptom:** Fundet ved analyse og bevist med en forskudt race-test: blev de eksisterende værter læst før `lockMemberIds`, talte et medlem, der blev fjernet imens, som "eksisterende tidligere vært" og blev sat ind igen på et kommende event.
+- **Rettelse:** `updateEvent` læser de eksisterende værter efter, at medlemskaberne er låst FOR SHARE (D-098).
+- **Læring / forebyggelse:** I et tjek af typen "medlemmer ∪ eksisterende" læses "eksisterende" efter låsen, der serialiserer mod fjernelse.
+
+### F-054 · 2026-10-09 · No-JS-tjek i dev ser ikke sider med `loading.tsx`
+- **Område:** Tests
+- **Symptom:** Med `javaScriptEnabled: false` var formularerne på `/events/new`, `/beers/new` og `/onboarding` "not visible".
+- **Årsag:** `next dev` streamer `loading.tsx`-grænser. Indholdet ligger i `<div hidden id="S:…">` og skiftes ind af et inline-script, der ikke kører uden JS (TG-019).
+- **Rettelse:** I et manuelt no-JS-tjek omskrives dokumentsvarene (`context.route`, kun læsning), så `hidden` fjernes (F-067).
+- **Læring / forebyggelse:** Overvej det, før en sides no-JS-sti loves. Omvendt: en side indlæst uden JS viser netop skeletonet, så det er sådan, man ser `loading.tsx` i dev (en klientnavigation med et tilbageholdt RSC-svar beholder den gamle side).
+
+### F-053 · 2026-10-09 · Et kontrolleret `<select>` mistede valget efter serverens svar
+- **Område:** Ølkatalog / UI
+- **Symptom:** I "Tilføj øl" med et valgt event og et dublet-svar fra serveren (DUPLICATE_BEER, fx en øl tilføjet samtidig) viste feltet "Intet event", og "Tilføj alligevel" gemte øllen uden event. Fejlen fandtes også før TG-021.
+- **Årsag:** React 19 nulstiller formularen (`form.reset()`), når en `<form action>` har svaret. Et kontrolleret `<select>` falder tilbage til sin første option, og kontrollerede checkbokse og radioer til deres oprindelige `defaultChecked`, mens React-staten beholder valget.
+- **Rettelse:** `useBeerForm` sætter selectens værdi tilbage i en layout-effekt, når action-staten ændres (aldrig ved mount). Stedvælger og værtsvalg gør det samme med `useCheckedAfterReset` (D-113). Ny E2E: "en dublet, som kun serveren kender, beholder det valgte event" (`beers.spec.ts`), der fejler uden rettelsen.
+- **Læring / forebyggelse:** Kontrollerede select-, checkbox- og radiofelter i en Server Action-formular skal synkroniseres igen efter hvert svar, eller være ukontrollerede med `defaultValue`/`defaultChecked` fra ekkoet.
 
 ### F-052 · 2026-10-09 · Screenshot fangede en CSS-transition midtvejs
 - **Område:** Tests
@@ -2185,17 +2406,28 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-018 | 2026-10-08 | Et medlems klub-404 i produktion har tom HTML-body og renderes på klienten (F-043) | Tom side uden JS | Genbesøg ved Next-opgraderinger |
 | TG-019 | 2026-10-08 | Uden JS bliver klubsider under en `loading.tsx` stående på skeletonet (D-085) | Kun hvis JS er helt slået fra | Accepteret |
 | TG-020 | 2026-10-08 | JS-kontroller (ConfirmDialog, stjerner) ignorerer input før hydrering. Katalogets selects nulstilles ved hydrering. | Kun mærkbart ved langsom første indlæsning | Overvej at deaktivere kontrollerne visuelt, indtil de er hydreret |
-| TG-021 | 2026-10-08 | `useEventForm`, `useBeerForm` og `useAuthForm` dublerer klientvalidering og fokuslogik. `FieldError` og `AuthField` viser fejl lidt forskelligt. | Vedligeholdelse | En generisk `useActionForm` Status 2026-10-09: de rene hjælpere (`formDataToValues`, `validateFormData`, `firstInvalidField`) deles allerede, men ligger i `src/components/features/auth/form-validation.ts`. Kun `useEventForm`/`useBeerForm` fokuserer server-fieldErrors (D-056). Håndkodede varianter: opret klub, join-kode, profilnavn. **Gøres i starten af runde 3**, før sang-, steds- og kælenavnsformularerne: `useActionForm` baseret på `useEventForm`, og `useAuthForm` porteres sidst sammen med auth-E2E. |
-| TG-022 | 2026-10-08 | "Øllens event er i samme klub" har ingen garanti i databasen (D-073) | En fejl i datalaget kunne knytte på tværs af klubber | Evt. en DB-trigger senere |
+| ~~TG-021~~ | 2026-10-08 | ~~`useEventForm`, `useBeerForm` og `useAuthForm` dublerer klientvalidering og fokuslogik. `FieldError` og `AuthField` viser fejl lidt forskelligt.~~ | Vedligeholdelse | En generisk `useActionForm` Status 2026-10-09: de rene hjælpere (`formDataToValues`, `validateFormData`, `firstInvalidField`) deles allerede, men ligger i `src/components/features/auth/form-validation.ts`. Kun `useEventForm`/`useBeerForm` fokuserer server-fieldErrors (D-056). Håndkodede varianter: opret klub, join-kode, profilnavn. **Gøres i starten af runde 3**, før sang-, steds- og kælenavnsformularerne: `useActionForm` baseret på `useEventForm`, og `useAuthForm` porteres sidst sammen med auth-E2E. ✅ Løst 2026-10-09 af D-109: `useActionForm` i `src/components/features/forms/` bruges af event-, øl-, opret klub-, auth-, profil-, password-, klubinfo- og stedformularerne. JoinCodeForm bevarer sin egen validering (navigation, ingen action). |
+| TG-022 | 2026-10-08 | "Øllens event er i samme klub" har ingen garanti i databasen (D-073) | En fejl i datalaget kunne knytte på tværs af klubber | Evt. en DB-trigger senere. Note 2026-10-09: steder, ejere og events har nu sammensatte FK'er (D-096); øl har det stadig ikke. |
 | ~~TG-023~~ | 2026-10-08 | ~~`RATE_LIMIT_DISABLED="1"` står midlertidigt i `.env.local` (F-020)~~ | Lokal rate limiting er slået fra | Fjernes, når runde 2 er færdig ✅ Fjernet 2026-10-08. Sat midlertidigt igen til runde 2-review og fjernet igen 2026-10-09. |
 | TG-024 | 2026-10-08 | Kalenderlisten henter alle kommende events uden paging | Fint for en klub | Paging, hvis det bliver nødvendigt |
 | TG-025 | 2026-10-08 | `songs/loading.tsx` dækker hele `songs`-mappen | Detaljesider for sange vil give en blød 404 | Runde 3: flyt listen ind i `songs/(list)/` efter D-065 |
 | TG-026 | 2026-10-08 | "I aften! 🍻" bruges også om events tidligere på dagen (§9.1 som skrevet) | Underligt ved frokostsmagninger | Genbesøg, hvis klubben holder dagsmagninger |
 | ~~TG-027~~ | 2026-10-08 | ~~Runde 2's adversarial review (5 dimensioner → verifikation → rettelser → slut-gates) blev stoppet efter Jespers ønske, før der kom fund. Hurtig kontrol bestået: check, integration, DoD-E2E for runde 1+2.~~ | Runde 2 er ikke reviewet så grundigt som runde 1 | Kør review'et, før runde 3 starter (workflow-scriptet `r2-review` kan genkøres) ✅ Løst 2026-10-09: review kørt, fund R2-01–R2-21 rettet, slut-gates grønne. |
-| TG-028 | 2026-10-09 | `src/server/actions/clubs.ts` (runde 1) kalder stadig `revalidatePath(..., "layout")` direkte i stedet for `revalidateClub` (D-090) | Kun konsistens | Én linje, når filen alligevel røres |
-| TG-029 | 2026-10-09 | `cleanUserName` i Better Auths user-update-hook fjerner ikke NUL | Ingen i dag: alle app-stier parser med `userNameSchema` først | Brug `stripNul` i `cleanUserName`, når filen røres |
+| ~~TG-028~~ | 2026-10-09 | ~~`src/server/actions/clubs.ts` (runde 1) kalder stadig `revalidatePath(..., "layout")` direkte i stedet for `revalidateClub` (D-090)~~ | Kun konsistens | Én linje, når filen alligevel røres ✅ Løst 2026-10-09 i runde 3 (`revalidateClub`/`revalidateAppShell` og det fælles `idSchema`). |
+| ~~TG-029~~ | 2026-10-09 | ~~`cleanUserName` i Better Auths user-update-hook fjerner ikke NUL~~ | Ingen i dag: alle app-stier parser med `userNameSchema` først | Brug `stripNul` i `cleanUserName`, når filen røres ✅ Løst 2026-10-09 i runde 3. |
 | TG-030 | 2026-10-09 | Ingen rate limits på runde 2-skrivninger (events, øl, ratings) | Et autentificeret medlem kunne fylde databasen via sin egen klub. Afvist som runde 2-fejl, fordi §4.7 ikke kræver det. | Overvej limits pr. bruger, hvis appen bliver offentligt kendt |
 | TG-031 | 2026-10-09 | §9.7.1's PollForm-wireframe skriver "Tema (valgfri)" | Forkert køn (et tema) | Brug "Tema (valgfrit)" i PollForm i runde 4, som i eventformularen |
+| TG-032 | 2026-10-09 | `events.location_text` og `events_location_text_length_check` findes stadig (nullable, ubrugt) efter D-097 | Død kolonne | Drop kolonnen og CHECK'en i runde 4's første migrering. Først skal `grep -rn locationText src --exclude-dir=generated` være tom (e2e-hjælperens alias og migreringstesten tæller ikke). |
+| TG-033 | 2026-10-09 | Email kan ikke ændres (D-106, Q13) | En bruger med en ny email må bede om hjælp | Byg email-ændring med verificering, når SMTP og et domæne er sat op (TG-001) |
+| TG-034 | 2026-10-09 | En ren Google-konto kan ikke tilføje et password | Kan kun logge ind med Google | Byg det med et friskhedstjek (fx nyligt Google-login), da Better Auths `setPassword` ikke har et |
+| TG-035 | 2026-10-09 | Et kælenavn kan efterligne et andet medlems navn | Forvirring i en klub | Afbødet: medlemslisten og profilen viser det officielle navn i parentes (D-105). Genbesøg, hvis det bliver et problem. |
+| TG-036 | 2026-10-09 | D-097-migreringens `lower()` følger databasens `LC_CTYPE` (C.UTF-8 på dev, test og Neon; C på `olklubben_itest`) | Engangs. I værste fald et ekstra sted, der kan arkiveres | Ingen. Migreringstesten låser C.UTF-8. |
+| TG-037 | 2026-10-09 | Stedvælger og værtsvalg før hydrering (TG-020-klassen) | Uden JS følger værtskortene og hjælpeteksten ikke et stedskift (det viste sendes) | Stort set løst af D-113 (valg før hydrering overtages, valg efter et serversvar sættes tilbage). Ejer-toggle, admins X og slet/arkivér-dialogerne virker kun med JS, som alle `ConfirmDialog` (TG-020). |
+| TG-038 | 2026-10-09 | Et muligt 40P01-deadlock mellem `deleteClub` og samtidige skrivninger i klubben | Viser den generiske fejl; intet går tabt | Fast låserækkefølge og små transactions gør det usandsynligt. Genbesøg, hvis det ses i logs. |
+| ~~TG-039~~ | 2026-10-09 | ~~Toasts på CenteredShell-sider (desktop) står på oliven-båndet, og den mørke toast skiller sig kun ud med sin kant~~ | Svag visuel adskillelse af "club-left"/"club-deleted" på /clubs og /onboarding (D-104) | ✅ Løst 2026-10-09 af D-117: messingkant på olivenfarvede toasts. |
+| TG-040 | 2026-10-09 | `e2e/club-isolation.spec.ts` bruger `/c/<id>/polls` som den ubyggede sti, der dækker catch-all'en `[...rest]` for medlemmer | Når runde 4 bygger `/polls`, mister catch-all'en sin E2E-dækning | Skift til en anden ubygget sti i runde 4 (det samme skete for `places` i runde 3) |
+| TG-041 | 2026-10-09 | En styret `ConfirmDialog` uden trigger kan ikke selv returnere fokus (F-060) | Hvert menu → dialog-flow skal huske det selv | `MemberActionsMenu` gør det med en effekt. Tilføj en `returnFocusRef`-prop (via `onCloseAutoFocus`), når et andet flow får brug for det. |
+| TG-042 | 2026-10-09 | `ProfileForm` er keyed på de gemte værdier. Gemmer man de samme værdier med ekstra mellemrum ("  Kaptajnen  "), bliver den urensede tekst stående i feltet | Kosmetisk, indtil næste besøg | Nulstil formularen efter et svar uden ændring, hvis det generer |
 
 ## 19.6 Dokumenthistorik
 
@@ -2211,6 +2443,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | v2.6 | 2026-10-08 | Implementeringsplan i fire runder (§16.3, D-020–D-024). Status (§19.2) organiseret efter runder. Q10–Q11 tilføjet. |
 | v2.7 | 2026-10-08 | Runde 1-fundament: implementeringsnoter i §11 og §4.8, D-025–D-034, F-001–F-011, TG-002–TG-007. |
 | v2.8 | 2026-10-08 | Runde 1-features: D-035–D-044, F-012–F-021. |
+| v2.13 | 2026-10-09 | Runde 3 færdig (uden sangbogen, D-091): kælenavn, skift password, steder med ejere og arkivering, events med steder og værter, eventhistorik og medlemsadministration. D-094–D-117, F-053–F-070, TG-032–TG-042; TG-021, TG-028, TG-029 og TG-039 løst; D-061 og D-062 erstattet. §5.1, §7, §8, §9.1–9.4, §9.8, §11, §12 (E29–E32), §14, §16, §18 (Q13) opdateret. 724 unit, 197 integration, build og 150/150 E2E to kørsler i træk. |
 | v2.12 | 2026-10-09 | Ny palet: oliven + havneblå (§13.2, D-092). Sidebar uden Profil-punkt (D-093). Sangbogen udskudt fra runde 3 (D-091). 527 unit, 64 integration, build og 100/100 E2E to kørsler i træk. |
 | v2.11 | 2026-10-09 | Runde 2 færdig efter adversarial review (25 fund, 23 bekræftet og rettet): D-086–D-090, F-044–F-052, TG-027 løst, TG-028–TG-031. §8.2 har ølredigerings-routen. |
 | v2.10 | 2026-10-08 | Runde 2 bygget: D-061–D-085, F-034–F-043, TG-018–TG-026. TG-008 og TG-009 løst. Q10/Q11 afklaret. |

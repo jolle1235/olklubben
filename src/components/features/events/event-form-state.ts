@@ -80,7 +80,8 @@ export function hostFallbackFor(input: {
   creator?: Pick<Person, "id" | "name" | "nickname"> | null;
   memberIds: ReadonlySet<string>;
 }): { userId: string; name: string } {
-  const person = input.creator && input.memberIds.has(input.creator.id) ? input.creator : input.user;
+  const person =
+    input.creator && input.memberIds.has(input.creator.id) ? input.creator : input.user;
   return { userId: person.id, name: getDisplayName(person) };
 }
 
@@ -144,8 +145,8 @@ export function ownersLabel(ownerNames: readonly string[]): string | null {
 
 /** A card's second line: "Søndergade 12 · Ejer: Mads", or null when there is nothing to add. */
 export function placeChoiceMeta(place: Pick<PlaceChoice, "address" | "ownerNames">): string | null {
-  const parts = [place.address, ownersLabel(place.ownerNames)].filter(
-    (part): part is string => Boolean(part),
+  const parts = [place.address, ownersLabel(place.ownerNames)].filter((part): part is string =>
+    Boolean(part),
   );
   return parts.length > 0 ? parts.join(" · ") : null;
 }

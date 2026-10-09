@@ -18,7 +18,7 @@ export type EventManageActionsProps = {
   emphasizeEdit: boolean;
 };
 
-/** "Rediger" and "Slet event" for the creator and admins (D-061). */
+/** "Rediger" and "Slet event" for the creator, the hosts and admins (D-098). */
 export function EventManageActions({
   clubId,
   eventId,

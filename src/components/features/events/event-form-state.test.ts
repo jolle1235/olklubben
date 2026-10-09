@@ -69,9 +69,7 @@ describe("initialPlaceId", () => {
     const places = [hosMads, baren];
     expect(initialPlaceId({ places, echoed: "p-bar", currentPlaceId: "p-mads" })).toBe("p-bar");
     expect(initialPlaceId({ places, echoed: "new", currentPlaceId: "p-mads" })).toBe("new");
-    expect(initialPlaceId({ places, echoed: "p-forged", currentPlaceId: "p-mads" })).toBe(
-      "p-mads",
-    );
+    expect(initialPlaceId({ places, echoed: "p-forged", currentPlaceId: "p-mads" })).toBe("p-mads");
   });
 });
 
@@ -126,15 +124,13 @@ describe("host suggestion", () => {
   const places = [hosMads, baren];
 
   it("follows the chosen place: owners, new place mine or not, nothing chosen", () => {
-    expect(ownersOfChoice({ placeId: "p-mads", places, newPlaceMine: false, userId: ME })).toEqual(
-      [MADS],
-    );
+    expect(ownersOfChoice({ placeId: "p-mads", places, newPlaceMine: false, userId: ME })).toEqual([
+      MADS,
+    ]);
     expect(ownersOfChoice({ placeId: "new", places, newPlaceMine: true, userId: ME })).toEqual([
       ME,
     ]);
-    expect(ownersOfChoice({ placeId: "new", places, newPlaceMine: false, userId: ME })).toEqual(
-      [],
-    );
+    expect(ownersOfChoice({ placeId: "new", places, newPlaceMine: false, userId: ME })).toEqual([]);
     expect(ownersOfChoice({ placeId: "", places, newPlaceMine: false, userId: ME })).toBeNull();
   });
 

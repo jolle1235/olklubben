@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { ChoiceFieldset, CheckboxField, InputField } from "@/components/features/forms/form-fields";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   type PlaceChoice,
 } from "./event-form-state";
 import { PlaceChoiceCard } from "./place-choice-card";
+import { useCheckedAfterReset } from "./use-checked-after-reset";
 
 export type PlaceSelectorProps = {
   /** The club's active places (+ the event's archived place on edit), last used first. */
@@ -65,14 +66,8 @@ export function PlaceSelector({
   // Creating in a club without places: "＋ Nyt sted" is pre-selected and open.
   const noPlaces = places.length === 0;
 
-  // React resets the form after a server answer, and a controlled radio falls
-  // back to how it was first rendered (F-053). Put the chosen one back.
-  useLayoutEffect(() => {
-    const radios = groupRef.current?.querySelectorAll<HTMLInputElement>('input[name="placeId"]');
-    radios?.forEach((radio) => {
-      radio.checked = radio.value === value;
-    });
-  }, [resetSignal, value]);
+  // React resets the form after a server answer; keep the chosen radio (F-053).
+  useCheckedAfterReset(groupRef, "placeId", [value], resetSignal);
 
   function chooseExisting(placeId: string) {
     if (more.some((place) => place.id === placeId) && moreRef.current) moreRef.current.open = true;
@@ -98,7 +93,6 @@ export function PlaceSelector({
             label={place.archived ? `${place.name} (arkiveret)` : place.name}
             meta={placeChoiceMeta(place)}
             describedBy={control["aria-describedby"]}
-            invalid={control["aria-invalid"]}
           />
         );
         return (
@@ -119,10 +113,9 @@ export function PlaceSelector({
               onSelect={onChange}
               label="＋ Nyt sted"
               describedBy={control["aria-describedby"]}
-              invalid={control["aria-invalid"]}
               className="sm:col-span-2"
             >
-              <div className="mt-3 hidden grid-cols-1 gap-5 rounded-xl border border-dashed border-border bg-cream-deep/40 px-4 py-4 peer-checked:grid">
+              <div className="mt-3 hidden grid-cols-1 gap-5 rounded-xl border border-dashed border-border bg-cream-deep/40 px-4 py-4 group-has-[.place-radio:checked]/choice:grid">
                 <div className="grid grid-cols-1 gap-2">
                   <InputField
                     name="newPlaceName"

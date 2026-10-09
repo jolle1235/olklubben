@@ -3,14 +3,24 @@ import { ChevronRightIcon } from "lucide-react";
 
 import { formatLongDate, formatShortDate, toDateKey } from "@/lib/format/date";
 import { eventHref } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 
-import { eventPlaceAndTime, type CalendarEvent } from "./event-format";
+import { eventPlaceAndTime, eventWeekdayAndTime, type CalendarEvent } from "./event-format";
 
 export type EventListItemProps = {
   clubId: string;
   event: CalendarEvent;
   /** The request's time (the spoken date leaves out the current year). */
   now: Date;
+  /** An extra line under place and time, e.g. "4 øl · Bedst: Westmalle Tripel ★ 4,7" (history). */
+  meta?: string | null;
+  /** A past tasting: quieter colours, like the calendar's past events (D-078). */
+  muted?: boolean;
+  /**
+   * false on a place's own page ("Ølsmagninger her"): the second line is
+   * "Fredag · 18:30" instead of repeating the place's name.
+   */
+  showPlace?: boolean;
 };
 
 /**
@@ -18,9 +28,17 @@ export type EventListItemProps = {
  * "Kommende arrangementer"). Render it inside a <li> of a bordered list with
  * divide-y; the row draws its focus ring inside itself, because such lists
  * clip their children (overflow-hidden, F-029). Screen readers hear the full
- * date instead of "14/11".
+ * date instead of "14/11". History rows (Overblik's "Tidligere ølsmagninger",
+ * a place's "Ølsmagninger her") pass `muted` and a `meta` line.
  */
-export function EventListItem({ clubId, event, now }: EventListItemProps) {
+export function EventListItem({
+  clubId,
+  event,
+  now,
+  meta,
+  muted = false,
+  showPlace = true,
+}: EventListItemProps) {
   return (
     <Link
       href={eventHref(clubId, event.id)}
@@ -29,18 +47,31 @@ export function EventListItem({ clubId, event, now }: EventListItemProps) {
       <time
         aria-hidden
         dateTime={toDateKey(event.startsAt)}
-        className="w-14 shrink-0 font-display text-xl font-bold text-olive"
+        className={cn(
+          "w-14 shrink-0 font-display text-xl font-bold",
+          muted ? "text-slate" : "text-olive",
+        )}
       >
         {formatShortDate(event.startsAt)}
       </time>
       <span className="min-w-0 flex-1">
-        <span className="block font-heading text-lg leading-snug font-semibold break-words hyphens-auto text-olive">
+        <span
+          className={cn(
+            "block font-heading text-lg leading-snug font-semibold break-words hyphens-auto",
+            muted ? "text-ink" : "text-olive",
+          )}
+        >
           {event.title}
         </span>
         <span className="sr-only">, {formatLongDate(event.startsAt, now)}, </span>
         <span className="block text-[0.95rem] break-words text-slate">
-          {eventPlaceAndTime(event)}
+          {showPlace ? eventPlaceAndTime(event) : eventWeekdayAndTime(event)}
         </span>
+        {meta ? (
+          <span className="mt-0.5 block text-[0.95rem] break-words hyphens-auto text-ink">
+            {meta}
+          </span>
+        ) : null}
       </span>
       <ChevronRightIcon
         aria-hidden

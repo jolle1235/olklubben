@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
 import { addGoogleAccount, countResetTokens, expireResetTokens } from "./support/db";
+import { chooseMemberAction, openMemberMenu } from "./support/members";
 import { resetPathFrom, waitForEmail } from "./support/outbox";
 import {
   clubName,
@@ -9,7 +10,6 @@ import {
   expectOverview,
   fillLogInForm,
   logIn,
-  memberRows,
   newUser,
   readInvitePath,
   signUp,
@@ -39,10 +39,10 @@ async function chooseNewPassword(page: Page, password: string) {
   await expect(page.getByText("Dit password er opdateret. Log ind med det nye.")).toBeVisible();
 }
 
-/** The admin's key button on the member list → "Lav link". Returns the dialog. */
+/** The member's '⋯' menu → "Lav nulstillingslink" → "Lav link" (D-102). Returns the dialog. */
 async function openResetDialog(page: Page, clubId: string, memberName: string) {
   if (!page.url().endsWith(`/c/${clubId}/club`)) await page.goto(`/c/${clubId}/club`);
-  await page.getByRole("button", { name: `Lav nulstillingslink til ${memberName}` }).click();
+  await chooseMemberAction(page, memberName, "Lav nulstillingslink");
   const dialog = page.getByRole("dialog", { name: `Nulstillingslink til ${memberName}` });
   await dialog.getByRole("button", { name: "Lav link" }).click();
   return dialog;
@@ -193,13 +193,12 @@ test.describe("Nulstilling af password", () => {
     const member = newUser(testInfo, "glemmer");
     await joinWithNewUser(memberPage, member, invitePath, clubId);
 
-    // The admin makes the link from the member list, not for themselves.
+    // The admin makes the link from the member's '⋯' menu, never for themselves.
     await page.goto(`/c/${clubId}/club`);
-    await expect(
-      memberRows(page)
-        .filter({ hasText: "(dig)" })
-        .getByRole("button", { name: /nulstillingslink/i }),
-    ).toHaveCount(0);
+    const ownMenu = await openMemberMenu(page, admin.name);
+    await expect(ownMenu.getByRole("menuitem", { name: "Lav nulstillingslink" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(ownMenu).toBeHidden();
     const firstLink = await makeResetLink(page, clubId, member.name);
     // "Lav link" again revokes the previous link, like a new invitation code.
     const resetPath = await makeResetLink(page, clubId, member.name);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { ChoiceFieldset } from "@/components/features/forms/form-fields";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   type HostChoice,
   type HostsState,
 } from "./event-form-state";
+import { useCheckedAfterReset } from "./use-checked-after-reset";
 
 export type HostsPickerProps = {
   /** The club's members by display name, then hosts who have left (edit only). */
@@ -53,7 +54,6 @@ export function HostsPicker({
 }: HostsPickerProps) {
   const listRef = useRef<HTMLUListElement>(null);
   const checked = new Set(checkedHostIds(state, suggestion));
-  const checkedKey = [...checked].sort().join(",");
   const hint = hostsHint({
     state,
     suggestion,
@@ -61,16 +61,8 @@ export function HostsPicker({
     fallbackName: fallback.name,
   });
 
-  // React resets the form after a server answer, and a controlled checkbox
-  // falls back to how it was first rendered (F-053). Put the ticks back.
-  useLayoutEffect(() => {
-    const ids = new Set(checkedKey.split(","));
-    listRef.current
-      ?.querySelectorAll<HTMLInputElement>('input[name="hostIds"]')
-      .forEach((box) => {
-        box.checked = ids.has(box.value);
-      });
-  }, [resetSignal, checkedKey]);
+  // React resets the form after a server answer; keep the ticks (F-053).
+  useCheckedAfterReset(listRef, "hostIds", [...checked], resetSignal);
 
   return (
     <ChoiceFieldset legend="Værter" errors={errors}>

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calendarHistoryHref,
   calendarHref,
   calendarSearch,
   parseCalendarView,
+  parsePastParam,
   parseSelectedDay,
   resolveCalendarParams,
 } from "./calendar-params";
@@ -59,14 +61,19 @@ describe("parseSelectedDay", () => {
 
 describe("resolveCalendarParams", () => {
   it("defaults to the responsive view, the current Copenhagen month and no day", () => {
-    expect(resolveCalendarParams({}, NOW)).toEqual({ view: null, month: "2026-10", day: null });
+    expect(resolveCalendarParams({}, NOW)).toEqual({
+      view: null,
+      month: "2026-10",
+      day: null,
+      past: null,
+    });
     expect(resolveCalendarParams({}, NEW_MONTH_IN_CPH).month).toBe("2026-11");
   });
 
   it("reads view, month and day", () => {
     expect(
       resolveCalendarParams({ view: "month", month: "2027-01", day: "2027-01-15" }, NOW),
-    ).toEqual({ view: "month", month: "2027-01", day: "2027-01-15" });
+    ).toEqual({ view: "month", month: "2027-01", day: "2027-01-15", past: null });
   });
 
   it("takes the month from ?day when ?month is missing or invalid", () => {
@@ -74,6 +81,7 @@ describe("resolveCalendarParams", () => {
       view: null,
       month: "2026-12",
       day: "2026-12-24",
+      past: null,
     });
     expect(resolveCalendarParams({ month: "2026-13", day: "2026-12-24" }, NOW).month).toBe(
       "2026-12",
@@ -85,13 +93,17 @@ describe("resolveCalendarParams", () => {
       view: null,
       month: "2026-11",
       day: null,
+      past: null,
     });
   });
 
   it("falls back safely for garbage (untrusted URL)", () => {
     expect(
-      resolveCalendarParams({ view: ["x"], month: "<script>", day: "1' OR 1=1" }, NOW),
-    ).toEqual({ view: null, month: "2026-10", day: null });
+      resolveCalendarParams(
+        { view: ["x"], month: "<script>", day: "1' OR 1=1", past: "<all>" },
+        NOW,
+      ),
+    ).toEqual({ view: null, month: "2026-10", day: null, past: null });
     expect(resolveCalendarParams({ month: ["2026-05", "2026-06"] }, NOW).month).toBe("2026-05");
   });
 });
@@ -112,8 +124,31 @@ describe("calendarSearch / calendarHref", () => {
   });
 
   it("round-trips through resolveCalendarParams", () => {
-    const params = { view: "month", month: "2026-12", day: "2026-12-05" } as const;
+    const params = { view: "list", month: "2026-12", day: "2026-12-05", past: "all" } as const;
     const query = new URLSearchParams(calendarSearch(params));
     expect(resolveCalendarParams(Object.fromEntries(query), NOW)).toEqual(params);
+  });
+});
+
+describe("history (?past=all, #tidligere)", () => {
+  it("accepts only 'all'; anything else is the default", () => {
+    expect(parsePastParam("all")).toBe("all");
+    expect(parsePastParam(["all", "x"])).toBe("all");
+    for (const value of [undefined, "", "ALL", " all", "12", ["x", "all"], null, 1]) {
+      expect(parsePastParam(value)).toBeNull();
+    }
+    expect(resolveCalendarParams({ view: "list", past: "all" }, NOW).past).toBe("all");
+  });
+
+  it("puts past last in the query string", () => {
+    expect(calendarSearch({ past: "all", view: "list" })).toBe("?view=list&past=all");
+    expect(calendarSearch({ past: null, view: "list" })).toBe("?view=list");
+  });
+
+  it("links to the list view's history section", () => {
+    expect(calendarHistoryHref("c1")).toBe("/c/c1/calendar?view=list#tidligere");
+    expect(calendarHistoryHref("c1", { all: true })).toBe(
+      "/c/c1/calendar?view=list&past=all#tidligere",
+    );
   });
 });

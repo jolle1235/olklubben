@@ -19,6 +19,8 @@ import { changePasswordAction } from "@/server/actions/profile";
  * account the new password belongs to.
  */
 export function ChangePasswordForm({ clubId, email }: { clubId: string; email: string }) {
+  // A wrong current password comes back as a field error with its own code
+  // (INVALID_PASSWORD); useActionForm shows it on the field only, not twice.
   const { formProps, fieldErrors, formError } = useActionForm(changePasswordAction, {
     schema: changePasswordSchema,
   });

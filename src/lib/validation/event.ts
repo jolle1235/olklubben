@@ -61,8 +61,8 @@ export const EVENT_ARRAY_FIELDS = ["hostIds"] as const;
 
 const PLACE_REQUIRED_MESSAGE = "Vælg et sted, eller opret et nyt.";
 const PLACE_INVALID_MESSAGE = "Vælg et sted fra listen.";
-/** Round 2's message, kept on purpose (the interim form and its E2E tests). */
-export const NEW_PLACE_NAME_REQUIRED_MESSAGE = "Skriv, hvor I mødes.";
+/** "＋ Nyt sted" without a name: the same words as the place form (placeFieldsSchema). */
+export const NEW_PLACE_NAME_REQUIRED_MESSAGE = "Giv stedet et navn.";
 const NEW_PLACE_NAME_TOO_LONG = `Navnet må højst være ${PLACE_NAME_MAX_LENGTH} tegn.`;
 const NEW_PLACE_ADDRESS_TOO_LONG = `Adressen må højst være ${PLACE_ADDRESS_MAX_LENGTH} tegn.`;
 /** A raw new-place name longer than this is refused before it is cleaned (D-090). */

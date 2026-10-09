@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CALENDAR_HISTORY_LIMIT,
   OVERVIEW_HISTORY_LIMIT,
+  pastEventMetaDisplay,
   pastEventMetaLabel,
   topRatedBeer,
 } from "./history";
@@ -57,5 +58,17 @@ describe("pastEventMetaLabel", () => {
 
   it("says so when no beers were registered", () => {
     expect(pastEventMetaLabel({ beerCount: 0, topBeer: null })).toBe("Ingen øl registreret");
+  });
+});
+
+describe("pastEventMetaDisplay", () => {
+  it("keeps the star with the rating and the beer's last word", () => {
+    expect(
+      pastEventMetaDisplay({
+        beerCount: 4,
+        topBeer: { name: "Westmalle Tripel", averageStars: 4.7 },
+      }),
+    ).toBe("4 øl · Bedst: Westmalle Tripel ★ 4,7");
+    expect(pastEventMetaDisplay({ beerCount: 0, topBeer: null })).toBe("Ingen øl registreret");
   });
 });

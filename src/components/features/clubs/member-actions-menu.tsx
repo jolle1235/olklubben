@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   EllipsisIcon,
   KeyRoundIcon,
@@ -20,10 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { removeMemberAction, setMemberRoleAction } from "@/server/actions/members";
-import {
-  MEMBERSHIP_MESSAGES,
-  type MemberMenu,
-} from "@/server/domain/clubs/membership-rules";
+import { MEMBERSHIP_MESSAGES, type MemberMenu } from "@/server/domain/clubs/membership-rules";
 
 import { demoteCopy, promoteCopy, removeCopy, type MemberActionCopy } from "./club-labels";
 import { MemberResetLinkDialog } from "./member-reset-link-dialog";
@@ -48,15 +45,34 @@ export type MemberActionsMenuProps = {
  *
  * The dialogs are rendered OUTSIDE the menu (modal={false}, controlled
  * dialogs): a modal menu and a modal dialog would fight over focus and
- * pointer events. A chosen item opens its dialog when the menu has closed and
- * focus is back on '⋯', so closing the dialog returns focus there too.
+ * pointer events. A chosen item opens its dialog once the menu has closed
+ * (its close-focus would otherwise pull focus out of the dialog). A dialog
+ * without its own trigger cannot return focus by itself (Radix returns it to
+ * the trigger it knows), so focus goes back to '⋯' here when it closes.
  */
-export function MemberActionsMenu({ clubId, clubName, userId, name, menu }: MemberActionsMenuProps) {
+export function MemberActionsMenu({
+  clubId,
+  clubName,
+  userId,
+  name,
+  menu,
+}: MemberActionsMenuProps) {
   const [dialog, setDialog] = useState<DialogKind | null>(null);
   const chosen = useRef<DialogKind | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const reasonId = useId();
   const showDemote = menu.canDemote || menu.demoteBlockedReason !== null;
+
+  // After the commit that closes a dialog, its focus trap is gone: back to '⋯'.
+  const hadDialog = useRef(false);
+  useEffect(() => {
+    if (dialog !== null) {
+      hadDialog.current = true;
+    } else if (hadDialog.current) {
+      hadDialog.current = false;
+      trigger.current?.focus();
+    }
+  }, [dialog]);
 
   function choose(kind: DialogKind) {
     chosen.current = kind;
@@ -67,7 +83,6 @@ export function MemberActionsMenu({ clubId, clubName, userId, name, menu }: Memb
     if (kind === null) return;
     chosen.current = null;
     event.preventDefault();
-    trigger.current?.focus();
     setDialog(kind);
   }
 

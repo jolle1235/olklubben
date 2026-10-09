@@ -117,7 +117,7 @@ test.describe("Lange ord i events", () => {
     const eventId = await createEventViaForm(page, clubId, {
       title,
       date: dayFromToday(5),
-      locationText: "Hos E2E",
+      place: "Hos E2E",
       description: `Regnearket med øllene: ${LONG_URL}`,
     });
 

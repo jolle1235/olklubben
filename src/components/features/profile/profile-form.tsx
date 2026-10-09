@@ -32,7 +32,11 @@ export type ProfileFormProps = {
  * are controlled (for the preview), which also keeps what was typed after a
  * failed server submit.
  */
-export function ProfileForm({ clubId, name: savedName, nickname: savedNickname }: ProfileFormProps) {
+export function ProfileForm({
+  clubId,
+  name: savedName,
+  nickname: savedNickname,
+}: ProfileFormProps) {
   const { formProps, fieldErrors, formError } = useActionForm(updateProfileAction, {
     schema: updateProfileSchema,
   });
@@ -79,8 +83,7 @@ export function ProfileForm({ clubId, name: savedName, nickname: savedNickname }
 
       {preview ? (
         <p className="rounded-lg bg-cream-deep px-4 py-3 text-[0.95rem] break-words hyphens-auto text-muted-foreground">
-          Sådan ser de andre dig:{" "}
-          <span className="font-semibold text-ink">{preview}</span>
+          Sådan ser de andre dig: <span className="font-semibold text-ink">{preview}</span>
         </p>
       ) : null}
 

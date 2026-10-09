@@ -38,7 +38,7 @@ test.describe("Runde 2: Definition of Done", () => {
       date,
       startTime: "19:00",
       endTime: "23:30",
-      locationText: "Hos Medlemmet",
+      place: "Hos Medlemmet",
       theme: "Tjekkiske øl",
     });
     await expect(memberPage.getByText("Skål! Eventet er oprettet 🍻")).toBeVisible();
@@ -48,7 +48,7 @@ test.describe("Runde 2: Definition of Done", () => {
       memberPage.getByRole("heading", { level: 1, name: "Ølsmagning #1" }),
     ).toBeVisible();
     await expect(memberPage.getByText("Oprettet af")).toContainText(member.name);
-    // The creator may edit their own event (D-061).
+    // The creator may edit their own event (D-098).
     await expect(memberPage.getByRole("link", { name: "Rediger", exact: true })).toBeVisible();
 
     // Overblik: the next event is the hero.
@@ -108,7 +108,7 @@ test.describe("Runde 2: Definition of Done", () => {
       title: "Belgisk aften",
       date: dayFromToday(-1),
       startTime: "18:30",
-      locationText: "Hos Admin",
+      place: "Hos Admin",
     });
 
     // The member adds a beer from the event page: the event is pre-filled (§9.2).

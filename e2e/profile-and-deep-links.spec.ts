@@ -46,19 +46,20 @@ test.describe("Dybe links og profil", () => {
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   });
 
-  test("Gem navn med en forældet session sender til login uden fejlbesked", async ({
+  test("Gem profil med en forældet session sender til login uden fejlbesked", async ({
     page,
   }, testInfo) => {
     const user = newUser(testInfo, "gemforaeldet");
     const clubId = await signUpWithClub(page, user, clubName(testInfo, "Gemforældet"));
     await page.goto(`/c/${clubId}/profile`);
-    await expect(page.getByLabel("Navn")).toHaveValue(user.name);
+    const nameField = page.getByLabel("Navn", { exact: true });
+    await expect(nameField).toHaveValue(user.name);
 
     // Logged out everywhere (e.g. a password reset) while Profil is open: the
     // Server Action redirects to /login, and the form must not swallow that.
     await deleteSessions(user.email);
-    await page.getByLabel("Navn").fill("Kaptajn Skum");
-    await page.getByRole("button", { name: "Gem navn" }).click();
+    await nameField.fill("Kaptajn Skum");
+    await page.getByRole("button", { name: "Gem profil" }).click();
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("heading", { level: 1, name: "Log ind" })).toBeVisible();
     // A swallowed redirect shows the generic error toast about when /login
@@ -122,23 +123,25 @@ test.describe("Dybe links og profil", () => {
     await profileLink(page).click();
     await expect(page).toHaveURL(new RegExp(`/c/${clubId}/profile$`));
 
-    const nameField = page.getByLabel("Navn");
+    const nameField = page.getByLabel("Navn", { exact: true });
     await expect(nameField).toHaveValue(user.name);
 
     // Empty is rejected in the form.
     await nameField.fill("   ");
-    await page.getByRole("button", { name: "Gem navn" }).click();
+    await page.getByRole("button", { name: "Gem profil" }).click();
     await expect(nameField).toHaveAttribute("aria-invalid", "true");
 
     // Whitespace is cleaned up by the server (cleanUserName).
     await nameField.fill("  Kaptajn   Skum  ");
-    await page.getByRole("button", { name: "Gem navn" }).click();
+    await page.getByRole("button", { name: "Gem profil" }).click();
     await expect(page.getByText("Gemt ✓")).toBeVisible();
     await expect(nameField).toHaveValue("Kaptajn Skum");
 
     await page.reload();
-    await expect(page.getByLabel("Navn")).toHaveValue("Kaptajn Skum");
-    await expect(page.getByRole("main").getByText("Kaptajn Skum", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Navn", { exact: true })).toHaveValue("Kaptajn Skum");
+    await expect(
+      page.getByRole("region", { name: "Din konto" }).getByText("Kaptajn Skum", { exact: true }),
+    ).toBeVisible();
 
     // The member list uses the new name too.
     await page.goto(`/c/${clubId}/club`);

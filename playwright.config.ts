@@ -39,7 +39,10 @@ export default defineConfig({
     // emails go to .dev-outbox/ (D-024). NEXT_DIST_DIR keeps it apart from a
     // normal `npm run dev` on port 3000; NODE_ENV=test makes Next.js and Prisma
     // read .env.test instead of .env.local.
-    command: `npx prisma migrate deploy && npx next dev --port ${E2E_PORT}`,
+    // A fresh start on an old .next-e2e/dev (Turbopack's dev cache) can reload
+    // in a loop for the first requests (F-013, F-062), so it is cleared each
+    // time this command starts a server. A running server is reused as is.
+    command: `node -e "require('node:fs').rmSync('.next-e2e/dev', { recursive: true, force: true })" && npx prisma migrate deploy && npx next dev --port ${E2E_PORT}`,
     // Readiness probe: Better Auth's health endpoint (200 {"ok":true}). Not "/":
     // Playwright follows redirects, and "/" redirects logged-out visitors to
     // /login (src/proxy.ts), so the probe would depend on the login page. This

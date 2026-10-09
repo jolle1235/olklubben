@@ -18,6 +18,8 @@ export type EventCardProps = {
   event: CalendarEvent;
   /** The request's time: past events are muted, today's get a badge. */
   now: Date;
+  /** An extra line, e.g. "4 øl · Bedst: Westmalle Tripel ★ 4,7" (the history section). */
+  meta?: string | null;
   className?: string;
 };
 
@@ -30,7 +32,7 @@ export type EventCardProps = {
  *
  * Server-safe and client-safe (used by the calendar's day panel too).
  */
-export function EventCard({ clubId, event, now, className }: EventCardProps) {
+export function EventCard({ clubId, event, now, meta, className }: EventCardProps) {
   const past = hasEnded(event, now);
   const state = heroState(event, now);
   const badge = !past && isHeroHighlighted(state) ? heroStateLabel(state) : null;
@@ -78,6 +80,11 @@ export function EventCard({ clubId, event, now, className }: EventCardProps) {
         {event.theme ? (
           <span className="mt-0.5 block text-[0.95rem] break-words text-ink">
             <span className="text-slate">Tema:</span> {event.theme}
+          </span>
+        ) : null}
+        {meta ? (
+          <span className="mt-0.5 block text-[0.95rem] break-words hyphens-auto text-ink">
+            {meta}
           </span>
         ) : null}
       </span>

@@ -9,7 +9,7 @@ const atStart = startsAt;
 const after = new Date("2026-11-02T12:00:00Z");
 
 describe("eventPrimaryAction (SPEC §13.4.5)", () => {
-  it("is 'Rediger' before the start for the creator or an admin", () => {
+  it("is 'Rediger' before the start for whoever may edit (creator, host, admin)", () => {
     expect(eventPrimaryAction(event, before, true)).toBe("edit");
   });
 

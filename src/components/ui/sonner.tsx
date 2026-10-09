@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 
 // Light theme only (SPEC §13.2), so no next-themes here. Toasts are olive pills
-// with cream text (8,77:1); errors use danger with white text (6,54:1).
+// with cream text (8,77:1); errors use danger with white text (6,54:1). The
+// brass border sets them off on the olive band of CenteredShell pages, where
+// "club-left"/"club-deleted" land (TG-039), as well as on cream.
 // Top-center on all screens, so toasts never hide behind the mobile bottom nav.
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
@@ -36,13 +38,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
         {
           "--normal-bg": "var(--olive)",
           "--normal-text": "var(--cream)",
-          "--normal-border": "var(--olive-soft)",
+          "--normal-border": "var(--amber)",
           "--success-bg": "var(--olive)",
           "--success-text": "var(--cream)",
-          "--success-border": "var(--olive-soft)",
+          "--success-border": "var(--amber)",
           "--info-bg": "var(--olive)",
           "--info-text": "var(--cream)",
-          "--info-border": "var(--olive-soft)",
+          "--info-border": "var(--amber)",
           "--warning-bg": "var(--amber-tint)",
           "--warning-text": "var(--ink)",
           "--warning-border": "var(--amber)",

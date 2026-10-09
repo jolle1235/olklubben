@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { InputField, TextareaField } from "@/components/features/forms/form-fields";
 import { useActionForm } from "@/components/features/forms/use-action-form";
@@ -18,18 +18,10 @@ import {
 import { createEventAction, updateEventAction } from "@/server/actions/events";
 import { MAX_EVENT_YEAR, MIN_EVENT_YEAR, normalizeTimeOfDay } from "@/server/domain/events/time";
 
-import {
-  checkedHostIds,
-  hostSuggestion,
-  initialHostsState,
-  initialPlaceId,
-  ownersOfChoice,
-  type HostChoice,
-  type HostsState,
-  type PlaceChoice,
-} from "./event-form-state";
+import type { HostChoice, PlaceChoice } from "./event-form-state";
 import { HostsPicker } from "./hosts-picker";
 import { PlaceSelector } from "./place-selector";
+import { usePlaceAndHosts } from "./use-place-and-hosts";
 
 type TextField = "title" | "date" | "startTime" | "endTime" | "theme" | "description";
 
@@ -97,50 +89,17 @@ export function EventForm({
   const initial = (field: TextField) => values[field] ?? defaults[field];
   const [times, setTimes] = useState({ start: initial("startTime"), end: initial("endTime") });
 
-  const memberIds = useMemo(
-    () => new Set(hostChoices.filter((choice) => !choice.former).map((choice) => choice.id)),
-    [hostChoices],
-  );
-  const [placeId, setPlaceId] = useState(() =>
-    initialPlaceId({
-      places,
-      echoed: values.placeId,
-      currentPlaceId: defaults.placeId,
-      prefillPlaceId,
-    }),
-  );
-  const [newPlaceName, setNewPlaceName] = useState(values.newPlaceName ?? "");
-  const [newPlaceMine, setNewPlaceMine] = useState(values.newPlaceMine === "on");
-  const suggestion = hostSuggestion({
-    ownerIds: ownersOfChoice({ placeId, places, newPlaceMine, userId: currentUserId }),
-    memberIds,
-    fallbackUserId: hostFallback.userId,
+  const choice = usePlaceAndHosts({
+    formRef: formProps.ref,
+    revalidate,
+    places,
+    hostChoices,
+    currentUserId,
+    hostFallback,
+    prefillPlaceId,
+    defaults,
+    echo: values,
   });
-  const [hosts, setHosts] = useState<HostsState>(() =>
-    initialHostsState({ echoed: values.hostIds, existing: defaults.hostIds, suggestion }),
-  );
-
-  /** Re-validates (once the browser has shown errors) with a change React has not rendered yet. */
-  function revalidateWith(update: (formData: FormData) => void) {
-    const form = formProps.ref.current;
-    if (!form) return;
-    const formData = new FormData(form);
-    update(formData);
-    revalidate(formData);
-  }
-
-  function selectPlace(id: string) {
-    setPlaceId(id);
-    revalidateWith((formData) => formData.set("placeId", id));
-  }
-
-  function changeHosts(next: HostsState) {
-    setHosts(next);
-    revalidateWith((formData) => {
-      formData.delete("hostIds");
-      for (const id of checkedHostIds(next, suggestion)) formData.append("hostIds", id);
-    });
-  }
 
   function handleChange(event: React.FormEvent<HTMLFormElement>) {
     formProps.onChange(event);
@@ -204,16 +163,16 @@ export function EventForm({
 
       <PlaceSelector
         places={places}
-        value={placeId}
-        onChange={selectPlace}
+        value={choice.placeId}
+        onChange={choice.selectPlace}
         newPlaceDefaults={{
           name: values.newPlaceName ?? "",
           address: values.newPlaceAddress ?? "",
           mine: values.newPlaceMine === "on",
         }}
-        newPlaceName={newPlaceName}
-        onNewPlaceNameChange={setNewPlaceName}
-        onNewPlaceMineChange={setNewPlaceMine}
+        newPlaceName={choice.newPlaceName}
+        onNewPlaceNameChange={choice.setNewPlaceName}
+        onNewPlaceMineChange={choice.setNewPlaceMine}
         errors={{
           placeId: fieldErrors.placeId,
           newPlaceName: fieldErrors.newPlaceName,
@@ -225,9 +184,9 @@ export function EventForm({
       <HostsPicker
         choices={hostChoices}
         currentUserId={currentUserId}
-        state={hosts}
-        onStateChange={changeHosts}
-        suggestion={suggestion}
+        state={choice.hosts}
+        onStateChange={choice.changeHosts}
+        suggestion={choice.suggestion}
         fallback={{ isSelf: hostFallback.userId === currentUserId, name: hostFallback.name }}
         errors={fieldErrors.hostIds}
         resetSignal={state}

@@ -2,9 +2,9 @@ import { monthKeyOf, parseMonthKey, type MonthKey } from "@/server/domain/calend
 import { isDateKey, type DateKey } from "@/server/domain/events/time";
 
 /**
- * The calendar's URL state (SPEC §9.3, D-062):
+ * The calendar's URL state (SPEC §9.3, D-078, D-107):
  *
- *   /c/[clubId]/calendar?view=list|month&month=YYYY-MM&day=YYYY-MM-DD
+ *   /c/[clubId]/calendar?view=list|month&month=YYYY-MM&day=YYYY-MM-DD&past=all
  *
  *   * view  – "list" or "month". Missing (or invalid) means "the default for
  *             the screen": list on mobile, month on desktop. The page renders
@@ -14,6 +14,9 @@ import { isDateKey, type DateKey } from "@/server/domain/events/time";
  *             ?day, else the current Copenhagen month.
  *   * day   – the selected date in the mobile month grid. Ignored unless it
  *             is a real date inside the shown month.
+ *   * past  – "all": the list's history section (#tidligere) shows every past
+ *             tasting instead of the newest CALENDAR_HISTORY_LIMIT. Anything
+ *             else → the default. Only the list view has the section.
  *
  * All values are untrusted (string, string[] or undefined from searchParams)
  * and never throw. Pure module: client-safe (the day panel reads ?day in the
@@ -43,11 +46,18 @@ export function parseSelectedDay(value: unknown, monthKey: MonthKey): DateKey | 
   return isDateKey(day) && day.startsWith(`${monthKey}-`) ? day : null;
 }
 
+/** "all" (every past tasting in the history section) or null (the newest few). */
+export function parsePastParam(value: unknown): "all" | null {
+  return firstValue(value) === "all" ? "all" : null;
+}
+
 export type CalendarParams = {
   /** null = no explicit choice: list below md, month from md. */
   view: CalendarView | null;
   month: MonthKey;
   day: DateKey | null;
+  /** "all": the history section lists every past tasting. */
+  past: "all" | null;
 };
 
 export function resolveCalendarParams(
@@ -61,7 +71,12 @@ export function resolveCalendarParams(
   const month =
     parseMonthKey(firstValue(searchParams.month)) ??
     (dayCandidate ? dayCandidate.slice(0, 7) : monthKeyOf(now));
-  return { view, month, day: parseSelectedDay(dayCandidate, month) };
+  return {
+    view,
+    month,
+    day: parseSelectedDay(dayCandidate, month),
+    past: parsePastParam(searchParams.past),
+  };
 }
 
 /**
@@ -73,6 +88,7 @@ export type CalendarLinkParams = {
   view?: CalendarView | null;
   month?: MonthKey | null;
   day?: DateKey | null;
+  past?: "all" | null;
 };
 
 export function calendarSearch(params: CalendarLinkParams): string {
@@ -80,6 +96,7 @@ export function calendarSearch(params: CalendarLinkParams): string {
   if (params.view) query.set("view", params.view);
   if (params.month) query.set("month", params.month);
   if (params.day) query.set("day", params.day);
+  if (params.past) query.set("past", params.past);
   const search = query.toString();
   return search ? `?${search}` : "";
 }
@@ -87,4 +104,15 @@ export function calendarSearch(params: CalendarLinkParams): string {
 /** "/c/<clubId>/calendar?…" */
 export function calendarHref(clubId: string, params: CalendarLinkParams = {}): string {
   return `/c/${clubId}/calendar${calendarSearch(params)}`;
+}
+
+/** The id of the list view's "Tidligere ølsmagninger" section (the link target). */
+export const CALENDAR_HISTORY_ID = "tidligere";
+
+/**
+ * "Se alle tidligere" / "Vis alle N tidligere": the list view, scrolled to the
+ * history section; `all` lists every past tasting (?past=all).
+ */
+export function calendarHistoryHref(clubId: string, { all = false } = {}): string {
+  return `${calendarHref(clubId, { view: "list", past: all ? "all" : null })}#${CALENDAR_HISTORY_ID}`;
 }

@@ -14,11 +14,23 @@ function Busy({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function TitleSkeleton({ withLine = true }: { withLine?: boolean }) {
+/** The PageHeader: title, maybe a line, and its action button ("always", or from md like the page). */
+function TitleSkeleton({
+  withLine = true,
+  action,
+}: {
+  withLine?: boolean;
+  action?: "always" | "desktop";
+}) {
   return (
-    <div className="mb-6 md:mb-8">
-      <Skeleton className="h-10 w-2/5 max-w-xs md:h-12" />
-      {withLine ? <Skeleton className="mt-3 h-5 w-full max-w-md" /> : null}
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-8">
+      <div className="min-w-0 flex-1 basis-64">
+        <Skeleton className="h-10 w-2/5 max-w-xs md:h-12" />
+        {withLine ? <Skeleton className="mt-3 h-5 w-full max-w-md" /> : null}
+      </div>
+      {action ? (
+        <Skeleton className={action === "always" ? "h-11 w-44" : "hidden h-11 w-32 md:block"} />
+      ) : null}
     </div>
   );
 }
@@ -40,7 +52,7 @@ function CardSkeleton() {
 export function PlacesListSkeleton() {
   return (
     <Busy label="Henter stederne …">
-      <TitleSkeleton />
+      <TitleSkeleton action="desktop" />
       <div className="grid grid-cols-1 gap-3">
         {Array.from({ length: 4 }, (_, index) => (
           <CardSkeleton key={index} />
@@ -54,7 +66,11 @@ export function PlacesListSkeleton() {
 export function PlaceDetailSkeleton() {
   return (
     <Busy label="Henter stedet …">
-      <TitleSkeleton withLine={false} />
+      {/* "Alle steder" */}
+      <div className="mb-1 flex min-h-11 items-center">
+        <Skeleton className="h-5 w-28" />
+      </div>
+      <TitleSkeleton withLine={false} action="always" />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
         <div className="grid content-start gap-8">
           <div className="grid gap-3">

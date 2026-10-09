@@ -1,5 +1,20 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+function FormCardSkeleton({ fields }: { fields: number }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
+      <Skeleton className="h-7 w-44" />
+      {Array.from({ length: fields }, (_, field) => (
+        <div key={field} className="flex flex-col gap-2">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+      ))}
+      <Skeleton className="h-11 w-full sm:w-36" />
+    </div>
+  );
+}
+
 /** Loading state for Profil, shaped like the page (SPEC §13.4). */
 export default function ProfileLoading() {
   return (
@@ -14,12 +29,8 @@ export default function ProfileLoading() {
             <Skeleton className="h-5 w-64 max-w-full" />
           </div>
         </div>
-        <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
-          <Skeleton className="h-7 w-36" />
-          <Skeleton className="h-5 w-16" />
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-11 w-full sm:w-32" />
-        </div>
+        <FormCardSkeleton fields={2} />
+        <FormCardSkeleton fields={3} />
         <Skeleton className="h-16 w-full rounded-xl" />
       </div>
     </div>

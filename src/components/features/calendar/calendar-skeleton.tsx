@@ -32,15 +32,41 @@ export function CalendarSkeleton({ view }: CalendarSkeletonProps) {
   );
 }
 
-/** Upcoming events as cards (<CalendarList />). */
+/**
+ * Upcoming events as cards (<CalendarList />), then the quieter "Tidligere
+ * ølsmagninger" (<CalendarHistory />).
+ */
 function ListSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("flex flex-col gap-10 md:gap-12", className)}>
+      <CardsSkeleton cards={3} className="bg-paper" />
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-8 w-64 max-w-full" />
+        <CardsSkeleton cards={2} withMeta className="bg-cream-deep/50" />
+      </div>
+    </div>
+  );
+}
+
+function CardsSkeleton({
+  cards,
+  withMeta = false,
+  className,
+}: {
+  cards: number;
+  withMeta?: boolean;
+  className: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
       <Skeleton className="mb-1 h-5 w-36" />
-      {[0, 1, 2].map((card) => (
+      {Array.from({ length: cards }, (_, card) => (
         <div
           key={card}
-          className="flex min-h-20 items-center gap-4 rounded-xl border border-border bg-paper px-4 py-3"
+          className={cn(
+            "flex min-h-20 items-center gap-4 rounded-xl border border-border px-4 py-3",
+            className,
+          )}
         >
           <div className="flex w-11 flex-col items-center gap-2">
             <Skeleton className="h-8 w-9" />
@@ -49,6 +75,7 @@ function ListSkeleton({ className }: { className?: string }) {
           <div className="flex flex-1 flex-col gap-2">
             <Skeleton className="h-6 w-3/5" />
             <Skeleton className="h-4 w-2/5" />
+            {withMeta ? <Skeleton className="h-4 w-1/2" /> : null}
           </div>
         </div>
       ))}

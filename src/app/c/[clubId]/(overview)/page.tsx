@@ -6,6 +6,7 @@ import { TopBarAction } from "@/components/features/app-shell";
 import { InviteMembersCard } from "@/components/features/overview/invite-members-card";
 import { NextEventHero } from "@/components/features/overview/next-event-hero";
 import { NoEventsState } from "@/components/features/overview/no-events-state";
+import { PastEvents } from "@/components/features/overview/past-events";
 import { UpcomingEvents } from "@/components/features/overview/upcoming-events";
 import { Button } from "@/components/ui/button";
 import { inviteUrl } from "@/lib/app-url";
@@ -13,8 +14,9 @@ import { newBeerHref, newEventHref as newEventPath } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
 import { countClubMembers, getActiveInviteCode } from "@/server/clubs/queries";
 import { formatInviteCode } from "@/server/domain/clubs/invite-code";
+import { OVERVIEW_HISTORY_LIMIT } from "@/server/domain/events/history";
 import { heroState } from "@/server/domain/events/status";
-import { getNextEvent, listUpcomingEvents } from "@/server/events/queries";
+import { getNextEvent, listPastEvents, listUpcomingEvents } from "@/server/events/queries";
 
 export const metadata: Metadata = { title: "Overblik" };
 
@@ -24,7 +26,8 @@ const UPCOMING_LIMIT = 4;
 /**
  * Overblik (SPEC §3.2, §9.1): the next event big and clear (NextEventHero),
  * then "Kommende arrangementer" and [+ Opret event]. Without an upcoming or
- * ongoing event: "Ingen kommende ølsmagninger endnu 🍺". While the club has
+ * ongoing event: "Ingen kommende ølsmagninger endnu 🍺". Last, quietly, the
+ * newest past tastings ("Tidligere ølsmagninger", §13.4.2, D-107). While the club has
  * only one member, "Inviter dine ølbrødre" comes first and its "Del" is the
  * screen's primary action (D-057). The top bar's + follows the hero, like
  * on the event page (D-080): "Tilføj øl" to the event while it is on, else
@@ -43,9 +46,10 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
   // One "now" per request, so the hero and the list agree (and match the queries).
   const now = new Date();
 
-  const [memberCount, nextEvent] = await Promise.all([
+  const [memberCount, nextEvent, pastEvents] = await Promise.all([
     countClubMembers(club.id),
     getNextEvent(club.id, now),
+    listPastEvents(club.id, now, { limit: OVERVIEW_HISTORY_LIMIT }),
   ]);
   // The same "active invite" rule as the club page and /join (not revoked, not expired).
   const [inviteCode, upcoming] = await Promise.all([
@@ -101,6 +105,8 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
         ) : (
           <NoEventsState newEventHref={newEventHref} deemphasize={inviteFirst} />
         )}
+
+        <PastEvents clubId={club.id} events={pastEvents} now={now} />
       </div>
     </>
   );

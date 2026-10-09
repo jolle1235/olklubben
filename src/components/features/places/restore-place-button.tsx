@@ -26,13 +26,13 @@ export function RestorePlaceButton({ clubId, placeId }: RestorePlaceButtonProps)
   );
 
   return (
-    <form action={formAction} className="grid grid-cols-1 justify-items-start gap-3">
-      <SubmitButton pendingLabel="Gendanner …">
+    <form action={formAction} className="grid grid-cols-1 gap-3">
+      <SubmitButton pendingLabel="Gendanner …" className="justify-self-start">
         <ArchiveRestoreIcon aria-hidden />
         Gendan sted
       </SubmitButton>
       {state && !state.ok ? (
-        <FormError className="w-full">
+        <FormError>
           <span className="break-words hyphens-auto">{state.error.message}</span>
           {state.existing ? (
             <>

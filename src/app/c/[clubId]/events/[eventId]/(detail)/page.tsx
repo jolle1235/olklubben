@@ -27,7 +27,8 @@ export async function generateMetadata({
 
 /**
  * Event detail, "som en invitation, ikke en formular" (SPEC §9.2): the
- * invitation, Rediger/Slet for the creator and admins (D-061), the plan and
+ * invitation (place, address, "Åbn i kort" or "Tilføj adresse", hosts),
+ * Rediger/Slet for the creator, the hosts and admins (D-098), the plan and
  * the beers tasted at the event.
  *
  * The guard layout has already given a real 404 for an event that is not in
@@ -65,7 +66,17 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
       </TopBarAction>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
-        <EventInvitation event={event} creatorName={getDisplayName(event.createdBy)} now={now} />
+        <EventInvitation
+          clubId={club.id}
+          event={event}
+          hosts={event.hosts.map((host) => ({
+            id: host.id,
+            displayName: getDisplayName(host),
+            image: host.image,
+          }))}
+          creatorName={getDisplayName(event.createdBy)}
+          now={now}
+        />
 
         <EventManageActions
           clubId={club.id}

@@ -4,9 +4,9 @@ En lille, social webapp for private ølklubber: kommende ølsmagninger, events, 
 
 **[SPEC.md](SPEC.md) er kilden til sandhed** for produkt, arkitektur og beslutninger. Implementeringsstatus står i SPEC §19.2.
 
-## Hvad kan appen (runde 1 og 2)
+## Hvad kan appen (runde 1–3)
 
-Appen bygges i fire runder (SPEC §16.3). Runde 1 ("Vi har en klub") er fundamentet, runde 2 ("Vi kan faktisk bruge den") giver events, kalender, ølkatalog og ratings.
+Appen bygges i fire runder (SPEC §16.3). Runde 1 ("Vi har en klub") er fundamentet, runde 2 ("Vi kan faktisk bruge den") giver events, kalender, ølkatalog og ratings, og runde 3 ("Det er vores klub") giver kælenavne, steder med ejere, værter, historik og medlemsadministration. Sangbogen venter på sangbogsfilen (D-091).
 
 **Runde 1**
 
@@ -18,14 +18,22 @@ Appen bygges i fire runder (SPEC §16.3). Runde 1 ("Vi har en klub") er fundamen
 
 **Runde 2**
 
-- **Events:** opret, ret og slet en ølsmagning: titel (forslag "Ølsmagning #N"), dato, starttid (18:30 som standard), valgfri sluttid (gerne efter midnat), sted som fritekst, tema og plan. Eventsiden ligner en invitation med "Åbn i kort" og listen "Øl smagt til dette event" med [+ Tilføj øl]. Kun den, der oprettede eventet, og klubbens admins kan rette og slette det. Slettes et event, bliver øllene i kataloget uden kobling.
+- **Events:** opret, ret og slet en ølsmagning: titel (forslag "Ølsmagning #N"), dato, starttid (18:30 som standard), valgfri sluttid (gerne efter midnat), sted (fritekst i runde 2, et af klubbens steder fra runde 3), tema og plan. Eventsiden ligner en invitation med "Åbn i kort" og listen "Øl smagt til dette event" med [+ Tilføj øl]. Slettes et event, bliver øllene i kataloget uden kobling.
 - **Overblik:** næste ølsmagning stort (om 3 dage, I morgen!, I aften! 🍻, I gang nu med genveje til [Tilføj øl] og [Sangbog]), derefter "Kommende arrangementer". Uden events: "Ingen kommende ølsmagninger endnu 🍺". Så længe klubben kun har ét medlem, kommer "Inviter dine ølbrødre" først.
 - **Kalender:** listevisning (kommende events pr. måned, standard på mobil) og månedsvisning (standard på desktop, alle måneder kan bladres, også tidligere). På mobil viser datoerne prikker, og et tryk viser dagens events og "Opret event denne dag".
 - **Ølkatalog:** tilføj, ret og slet øl (navn, alkoholprocent som "5,2" eller "5.2", valgfrit event). Søgning (store/små bogstaver og æ/ø/å), seks sorteringer, filter på event, og advarslen "Den her har I vist smagt før 👀" ved samme navn. Kun den, der tilføjede øllen, og admins kan rette og slette den. Sletning viser, hvor mange ratings der forsvinder med.
 - **Ratings:** fem stjerner med halve point (venstre halvdel af en stjerne = halv), gemmes med det samme ("Gemt ✓"), kan ændres og fjernes, og kan styres med piletasterne. Klubbens gennemsnit og antal ratings beregnes ved læsning, og alle kan se hinandens ratings.
-- **Kommer senere:** sangbog, steder, værter, kælenavne, eventhistorik og medlemsadministration i runde 3, afstemninger i runde 4. Sangbog-fanen viser en "kommer snart"-side.
 
-Klubbens data er adskilt: en side eller handling i en klub, du ikke er medlem af, giver altid 404 (SPEC §4.4). Det samme gælder events og øl fra en anden klub.
+**Runde 3**
+
+- **Kælenavn og profil** (`/c/<id>/profile`): et kælenavn (højst 40 tegn) vises overalt i stedet for navnet: i sidebaren, "Oprettet af", "Tilføjet af", ratings, værter og ejere. Kun medlemslisten og profilen viser også det rigtige navn: "Kaptajnen (Jesper Thomsen)". "Skift password" (nuværende + nyt) holder dig logget ind her og logger alle andre enheder ud. Rene Google-konti får en forklaring i stedet. Email kan ikke ændres endnu.
+- **Steder** (Profil → Steder, eller klubbens side): opret og ret steder (navn, adresse, beskrivelse), "Det er mit sted" gør dig til ejer. Navne er unikke blandt klubbens aktive steder (store/små bogstaver og mellemrum tæller ikke). Stedets side viser adresse med "Åbn i kort", ejerne, "Ølsmagninger her" og [Opret event her]. Et ubrugt sted kan slettes, et brugt arkiveres (det står stadig på sine events) og kan gendannes. Admins kan fjerne andre ejere.
+- **Events med steder og værter:** eventformularen vælger sted blandt klubbens steder (radio-kort, senest brugte først) eller opretter et nyt med "＋ Nyt sted" uden at forlade formularen. Værterne udfyldes med stedets ejere (ellers dig) og kan ændres. Eventsiden linker til stedet, viser adressen, "Åbn i kort" kun med en adresse (ellers "Tilføj adresse") og "Værter: Mads og Anders". Opretteren, værterne og klubbens admins kan rette og slette eventet.
+- **Historik:** "Tidligere ølsmagninger" på Overblik (de 3 nyeste med antal øl og bedste øl) og i Kalenderens liste (12 pr. måned, "Vis alle N tidligere").
+- **Medlemmer** (klubbens side): admins har en '⋯'-menu pr. medlem (gør til admin, fjern admin-rollen, nulstillingslink, fjern fra klubben), retter klubbens navn og beskrivelse og kan slette klubben ved at skrive dens navn. Alle kan forlade klubben, undtagen den sidste admin. Den, der går, mister sine stedejerskaber og værtskaber på kommende events.
+- **Kommer senere:** sangbog (når sangbogsfilen ligger i `data/sangbog/`) og afstemninger i runde 4. Sangbog-fanen viser en "kommer snart"-side.
+
+Klubbens data er adskilt: en side eller handling i en klub, du ikke er medlem af, giver altid 404 (SPEC §4.4). Det samme gælder events, øl og steder fra en anden klub, også i databasen (sammensatte fremmednøgler, D-096).
 
 ## Stack
 
@@ -156,18 +164,20 @@ Next.js sender svaret med HTTP 200, så snart en `loading.tsx` (skeleton) vises.
 
 Reglerne står også i `src/app/c/[clubId]/layout.tsx`.
 
-**Runde 2's ruter og URL-parametre.** Alt valg ligger i URL'en, så refresh, tilbage-knappen og delte links viser det samme. Ugyldige værdier ignoreres (aldrig 404). Links bygges med `src/lib/routes.ts`.
+**Ruter og URL-parametre.** Alt valg ligger i URL'en, så refresh, tilbage-knappen og delte links viser det samme. Ugyldige værdier ignoreres (aldrig 404). Links bygges med `src/lib/routes.ts`.
 
-| Rute                              | Parametre                                                                                                                              |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `/c/<id>/calendar`                | `?view=list\|month` (uden: liste under `md`, måned fra `md`), `?month=YYYY-MM`, `?day=YYYY-MM-DD` (valgt dag i mobilens månedsvisning) |
-| `/c/<id>/events/new`              | `?date=YYYY-MM-DD` udfylder datoen (fx fra en dag i kalenderen)                                                                        |
-| `/c/<id>/events/<eventId>[/edit]` | –                                                                                                                                      |
-| `/c/<id>/beers`                   | `?q=` (søgning), `?sort=rating\|most-rated\|newest\|abv-desc\|abv-asc\|name`, `?event=all\|none\|<eventId>`                            |
-| `/c/<id>/beers/new`               | `?eventId=` vælger et af klubbens events på forhånd, `?name=` udfylder navnet                                                          |
-| `/c/<id>/beers/<beerId>[/edit]`   | –                                                                                                                                      |
+| Rute                                                        | Parametre                                                                                                                                                                                 |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/c/<id>/calendar`                                          | `?view=list\|month` (uden: liste under `md`, måned fra `md`), `?month=YYYY-MM`, `?day=YYYY-MM-DD` (valgt dag i mobilens månedsvisning), `?past=all` viser hele historikken (`#tidligere`) |
+| `/c/<id>/events/new`                                        | `?date=YYYY-MM-DD` udfylder datoen (fx fra en dag i kalenderen), `?placeId=` vælger et af klubbens aktive steder ("Opret event her")                                                      |
+| `/c/<id>/events/<eventId>[/edit]`                           | –                                                                                                                                                                                         |
+| `/c/<id>/beers`                                             | `?q=` (søgning), `?sort=rating\|most-rated\|newest\|abv-desc\|abv-asc\|name`, `?event=all\|none\|<eventId>`                                                                               |
+| `/c/<id>/beers/new`                                         | `?eventId=` vælger et af klubbens events på forhånd, `?name=` udfylder navnet                                                                                                             |
+| `/c/<id>/beers/<beerId>[/edit]`                             | –                                                                                                                                                                                         |
+| `/c/<id>/places`, `/places/new`, `/places/<placeId>[/edit]` | – (redigering for alle medlemmer, også arkiverede steder)                                                                                                                                 |
+| `/c/<id>/club/edit`                                         | – (kun admins, ellers 404)                                                                                                                                                                |
 
-**Toasts efter en redirect.** En Server Action, der lykkes, sender videre med `?toast=<nøgle>` (`withToast` i `src/lib/flash-toast.ts`), fx `event-created` eller `beer-deleted`. Klubbens layout viser beskeden én gang (`<FlashToast />`) og fjerner flaget fra adresselinjen. Kun kendte nøgler vises.
+**Toasts efter en redirect.** En Server Action, der lykkes, sender videre med `?toast=<nøgle>` (`withToast` i `src/lib/flash-toast.ts`), fx `event-created` eller `beer-deleted`. Rodlayoutet viser beskeden én gang (`<FlashToast />`, D-104, så den også vises på `/onboarding` og `/clubs` efter "Forlad klubben" og "Slet klubben") og fjerner flaget fra adresselinjen. Kun kendte nøgler vises.
 
 ## Tests
 
@@ -196,7 +206,7 @@ npx playwright test -g "Definition of Done"       # efter navn
 - Hver test opretter sine egne brugere (`e2e-<navn>-<projekt>-<unik>@example.test`) og klubber gennem den rigtige UI, så testene kan køre parallelt.
 - Mails fra E2E-serveren (fx nulstillingslinks) ligger som JSON i `.dev-outbox/e2e/` (`e2eOutboxDir` i `e2e/test-env.ts`). De skrives efter svaret, så testene poller efter dem (`waitForEmail` i `e2e/support/outbox.ts`).
 - Lokalt genbruges en allerede kørende server på port 3100. Er den startet med gammel kode eller miljø, så stop den først.
-- Genindlæser siderne i en løkke under testene (formularer tømmes, `HMR hash mismatch`), er Turbopacks cache forældet (SPEC F-013): stop serveren på 3100 og slet `.next-e2e/dev`.
+- Hver gang Playwright selv starter E2E-serveren, slettes `.next-e2e/dev` først, for en ny start på en gammel Turbopack-cache kan genindlæse i en løkke (SPEC F-013, F-062). Genindlæser siderne alligevel i en løkke under testene (formularer tømmes, signup bliver stående, `HMR hash mismatch`), så stop serveren på 3100 og kør igen.
 - Afviser `prisma migrate deploy` testdatabasen (fx fordi en migration er ændret), så nulstil den: `NODE_ENV=test npm run db:reset`.
 
 | Fil                                  | Dækker                                                                                                                                                                                                                                                                                                                                       |

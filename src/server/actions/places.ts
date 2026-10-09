@@ -77,8 +77,7 @@ export type RestorePlaceState = { ok: false; error: ActionError; existing?: Exis
 const MAX_ECHO_LENGTH = 5000;
 
 const FORBIDDEN_ARCHIVE = "Kun stedets ejere og klubbens admins kan arkivere det.";
-const FORBIDDEN_DELETE =
-  "Kun stedets ejere, den der oprettede det, og klubbens admins kan slette det.";
+const FORBIDDEN_DELETE = "Kun stedets ejere, opretteren og klubbens admins kan slette det.";
 const FORBIDDEN_RESTORE = "Kun stedets ejere og klubbens admins kan gendanne det.";
 const FORBIDDEN_REMOVE_OWNER = "Kun klubbens admins kan fjerne andre som ejere.";
 
