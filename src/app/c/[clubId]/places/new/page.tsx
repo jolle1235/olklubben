@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { MapPinIcon } from "lucide-react";
 
-import { ComingSoon } from "@/components/features/coming-soon";
-import { Button } from "@/components/ui/button";
+import { PlaceForm } from "@/components/features/places/place-form";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { placesHref } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
 
@@ -11,26 +10,29 @@ export const metadata: Metadata = { title: "Nyt sted" };
 
 /**
  * Nyt sted (SPEC §9.4): name, address, description and "Det er mit sted".
- * Every member may create a place (canCreatePlace).
+ * Every member may create a place (canCreatePlace; the action checks again).
  *
  * Never calls notFound() itself, so loading.tsx may sit next to it (TG-008).
- *
- * STUB (round-3 foundation): agent B replaces the body with PlaceForm.
  */
 export default async function NewPlacePage({ params }: PageProps<"/c/[clubId]/places/new">) {
   const { clubId } = await params;
   const { club } = await requireClubPage(clubId);
 
   return (
-    <ComingSoon
-      title="Nyt sted"
-      icon={<MapPinIcon />}
-      headline="Snart kan I oprette steder her 📍"
-      actions={
-        <Button asChild variant="outline">
-          <Link href={placesHref(club.id)}>Til stederne</Link>
-        </Button>
-      }
-    />
+    <>
+      <PageHeader
+        title="Nyt sted"
+        description="Hvor mødes I? Med en adresse virker 'Åbn i kort' på jeres events."
+      />
+      <Card className="max-w-2xl">
+        <CardContent>
+          <PlaceForm
+            clubId={club.id}
+            defaults={{ name: "", address: "", description: "" }}
+            cancelHref={placesHref(club.id)}
+          />
+        </CardContent>
+      </Card>
+    </>
   );
 }

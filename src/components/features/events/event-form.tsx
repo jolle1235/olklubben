@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { InputField, TextareaField } from "@/components/features/forms/form-fields";
 import { useActionForm } from "@/components/features/forms/use-action-form";
@@ -11,21 +11,35 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import {
   EVENT_ARRAY_FIELDS,
   EVENT_DESCRIPTION_MAX_LENGTH,
-  EVENT_PLACE_NEW,
   EVENT_THEME_MAX_LENGTH,
   EVENT_TITLE_MAX_LENGTH,
   eventFormSchema,
 } from "@/lib/validation/event";
 import { createEventAction, updateEventAction } from "@/server/actions/events";
 import { MAX_EVENT_YEAR, MIN_EVENT_YEAR, normalizeTimeOfDay } from "@/server/domain/events/time";
-import { PLACE_NAME_MAX_LENGTH } from "@/server/domain/places/name";
 
-/** The interim form's fields (round 3 foundation; agent C adds PlaceSelector and HostsPicker). */
-type InterimField =
-  "title" | "date" | "startTime" | "endTime" | "newPlaceName" | "theme" | "description";
+import {
+  checkedHostIds,
+  hostSuggestion,
+  initialHostsState,
+  initialPlaceId,
+  ownersOfChoice,
+  type HostChoice,
+  type HostsState,
+  type PlaceChoice,
+} from "./event-form-state";
+import { HostsPicker } from "./hosts-picker";
+import { PlaceSelector } from "./place-selector";
 
-/** The fields' starting values: "YYYY-MM-DD", "HH:mm", "" for empty. */
-export type EventFormDefaults = Record<InterimField, string>;
+type TextField = "title" | "date" | "startTime" | "endTime" | "theme" | "description";
+
+/** The fields' starting values ("YYYY-MM-DD", "HH:mm", "" for empty), plus place and hosts. */
+export type EventFormDefaults = Record<TextField, string> & {
+  /** Edit: the event's place (kept even when archived, E30). Create: null. */
+  placeId: string | null;
+  /** Edit: the event's hosts (former members included). Create: null (they follow the place). */
+  hostIds: string[] | null;
+};
 
 export type EventFormProps = {
   clubId: string;
@@ -34,6 +48,15 @@ export type EventFormProps = {
   defaults: EventFormDefaults;
   /** "Annuller": Overblik when creating, the event when editing. */
   cancelHref: string;
+  /** listPlaceOptions: active places (+ the event's archived place on edit), last used first. */
+  places: PlaceChoice[];
+  /** The club's members by display name, then hosts who have left (edit). */
+  hostChoices: HostChoice[];
+  currentUserId: string;
+  /** Host when the place has no owners: the user; on edit the event's creator while a member. */
+  hostFallback: { userId: string; name: string };
+  /** ?placeId= ("Opret event her"); only an active place of the club is pre-selected. */
+  prefillPlaceId?: string | null;
 };
 
 /** "Slutter dagen efter kl. 01:00." when the end time is before the start time. */
@@ -45,29 +68,79 @@ function endTimeHint(startTime: string, endTime: string): string {
 }
 
 /**
- * Create or edit an event (SPEC §9.2): title (suggested "Ølsmagning #N"),
- * date, start time (default 18:30), optional end time (overnight allowed),
- * place, optional theme and plan. Past dates are fine (old tastings may be
- * registered).
- *
- * INTERIM (round-3 foundation): the place is typed by name and always sent as
- * "＋ Nyt sted" (placeId "new" + newPlaceName). The server reuses an active
- * place with the same name, otherwise creates it (D-099). No host inputs, so
- * the server's default applies (the place's owners, else the creator; D-098).
- * Agent C replaces this with the PlaceSelector and the HostsPicker.
+ * Create or edit an event (SPEC §9.2): Titel (suggested "Ølsmagning #N") ·
+ * Dato/Starttid/Sluttid (overnight allowed) · Sted (PlaceSelector, with
+ * "＋ Nyt sted" inline, D-099) · Værter (HostsPicker, D-098) · Tema ·
+ * Beskrivelse/plan. Past dates are fine (old tastings may be registered).
  *
  * Validated with the shared Zod schema in the browser and again in the Server
- * Action. Works without JavaScript: the inputs are native, and the action
- * redirects on success.
+ * Action, which also decides the place and hosts under locks. Works without
+ * JavaScript: radios, checkboxes and the new place's fields are native (CSS
+ * reveals them), and the action redirects on success.
  */
-export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormProps) {
+export function EventForm({
+  clubId,
+  eventId,
+  defaults,
+  cancelHref,
+  places,
+  hostChoices,
+  currentUserId,
+  hostFallback,
+  prefillPlaceId,
+}: EventFormProps) {
   const editing = eventId !== undefined;
-  const { formProps, fieldErrors, formError, values } = useActionForm(
+  const { state, formProps, fieldErrors, formError, values, revalidate } = useActionForm(
     editing ? updateEventAction : createEventAction,
     { schema: eventFormSchema, arrayFields: EVENT_ARRAY_FIELDS },
   );
-  const initial = (field: InterimField) => values[field] ?? defaults[field];
-  const [times, setTimes] = useState({ start: defaults.startTime, end: defaults.endTime });
+  const initial = (field: TextField) => values[field] ?? defaults[field];
+  const [times, setTimes] = useState({ start: initial("startTime"), end: initial("endTime") });
+
+  const memberIds = useMemo(
+    () => new Set(hostChoices.filter((choice) => !choice.former).map((choice) => choice.id)),
+    [hostChoices],
+  );
+  const [placeId, setPlaceId] = useState(() =>
+    initialPlaceId({
+      places,
+      echoed: values.placeId,
+      currentPlaceId: defaults.placeId,
+      prefillPlaceId,
+    }),
+  );
+  const [newPlaceName, setNewPlaceName] = useState(values.newPlaceName ?? "");
+  const [newPlaceMine, setNewPlaceMine] = useState(values.newPlaceMine === "on");
+  const suggestion = hostSuggestion({
+    ownerIds: ownersOfChoice({ placeId, places, newPlaceMine, userId: currentUserId }),
+    memberIds,
+    fallbackUserId: hostFallback.userId,
+  });
+  const [hosts, setHosts] = useState<HostsState>(() =>
+    initialHostsState({ echoed: values.hostIds, existing: defaults.hostIds, suggestion }),
+  );
+
+  /** Re-validates (once the browser has shown errors) with a change React has not rendered yet. */
+  function revalidateWith(update: (formData: FormData) => void) {
+    const form = formProps.ref.current;
+    if (!form) return;
+    const formData = new FormData(form);
+    update(formData);
+    revalidate(formData);
+  }
+
+  function selectPlace(id: string) {
+    setPlaceId(id);
+    revalidateWith((formData) => formData.set("placeId", id));
+  }
+
+  function changeHosts(next: HostsState) {
+    setHosts(next);
+    revalidateWith((formData) => {
+      formData.delete("hostIds");
+      for (const id of checkedHostIds(next, suggestion)) formData.append("hostIds", id);
+    });
+  }
 
   function handleChange(event: React.FormEvent<HTMLFormElement>) {
     formProps.onChange(event);
@@ -80,10 +153,9 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
   }
 
   return (
-    <form {...formProps} onChange={handleChange} className="grid gap-6">
+    <form {...formProps} onChange={handleChange} className="grid gap-7">
       <input type="hidden" name="clubId" value={clubId} />
       {editing ? <input type="hidden" name="eventId" value={eventId} /> : null}
-      <input type="hidden" name="placeId" value={EVENT_PLACE_NEW} />
 
       {formError ? <FormError>{formError.message}</FormError> : null}
 
@@ -130,16 +202,35 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
         />
       </fieldset>
 
-      <InputField
-        name="newPlaceName"
-        label="Sted"
-        placeholder="fx Hos Mads"
-        defaultValue={initial("newPlaceName")}
-        maxLength={PLACE_NAME_MAX_LENGTH}
-        autoComplete="off"
-        required
-        errors={fieldErrors.newPlaceName ?? fieldErrors.placeId ?? fieldErrors.hostIds}
-        hint="Hvem der lægger hus til, eller stedets navn. Findes stedet allerede, bruges det."
+      <PlaceSelector
+        places={places}
+        value={placeId}
+        onChange={selectPlace}
+        newPlaceDefaults={{
+          name: values.newPlaceName ?? "",
+          address: values.newPlaceAddress ?? "",
+          mine: values.newPlaceMine === "on",
+        }}
+        newPlaceName={newPlaceName}
+        onNewPlaceNameChange={setNewPlaceName}
+        onNewPlaceMineChange={setNewPlaceMine}
+        errors={{
+          placeId: fieldErrors.placeId,
+          newPlaceName: fieldErrors.newPlaceName,
+          newPlaceAddress: fieldErrors.newPlaceAddress,
+        }}
+        resetSignal={state}
+      />
+
+      <HostsPicker
+        choices={hostChoices}
+        currentUserId={currentUserId}
+        state={hosts}
+        onStateChange={changeHosts}
+        suggestion={suggestion}
+        fallback={{ isSelf: hostFallback.userId === currentUserId, name: hostFallback.name }}
+        errors={fieldErrors.hostIds}
+        resetSignal={state}
       />
 
       <InputField

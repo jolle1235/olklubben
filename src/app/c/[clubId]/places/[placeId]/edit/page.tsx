@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PencilIcon } from "lucide-react";
 
-import { ComingSoon } from "@/components/features/coming-soon";
-import { Button } from "@/components/ui/button";
+import { PlaceForm } from "@/components/features/places/place-form";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { placeHref } from "@/lib/routes";
 import { rememberActiveClub } from "@/server/auth/session";
 import { canEditPlace } from "@/server/domain/places/permissions";
@@ -20,9 +19,6 @@ export const metadata: Metadata = { title: "Rediger sted" };
  * checked that the place is in this club; the order is requirePlace →
  * canEditPlace → rememberActiveClub (D-066, D-089), so a permission 404 never
  * changes the active club. The Server Action checks again.
- *
- * STUB (round-3 foundation): the guard is final; agent B replaces the body
- * with PlaceForm.
  */
 export default async function EditPlacePage({
   params,
@@ -33,16 +29,25 @@ export default async function EditPlacePage({
   await rememberActiveClub(user, club.id);
 
   return (
-    <ComingSoon
-      title="Rediger sted"
-      icon={<PencilIcon />}
-      headline="Stedet kan snart rettes her"
-      description={<span className="break-words hyphens-auto">{place.name}</span>}
-      actions={
-        <Button asChild variant="outline">
-          <Link href={placeHref(club.id, place.id)}>Tilbage til stedet</Link>
-        </Button>
-      }
-    />
+    <>
+      <PageHeader
+        title="Rediger sted"
+        description={<span className="break-words hyphens-auto">{place.name}</span>}
+      />
+      <Card className="max-w-2xl">
+        <CardContent>
+          <PlaceForm
+            clubId={club.id}
+            placeId={place.id}
+            defaults={{
+              name: place.name,
+              address: place.address ?? "",
+              description: place.description ?? "",
+            }}
+            cancelHref={placeHref(club.id, place.id)}
+          />
+        </CardContent>
+      </Card>
+    </>
   );
 }

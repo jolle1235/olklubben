@@ -181,3 +181,8 @@ export async function getResetLinkEligibility(
     targetHasExternalLogin: externalAccounts > 0,
   };
 }
+
+/** How many active (not archived) places the club has: the club page's "Steder" row (§9.8). */
+export async function countActivePlaces(clubId: string): Promise<number> {
+  return db.place.count({ where: { clubId, archivedAt: null } });
+}

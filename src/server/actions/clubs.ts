@@ -12,12 +12,23 @@ import {
   unexpectedError,
   validationError,
   type ActionResult,
+  type FormFailure,
 } from "@/lib/action-result";
+import { withToast } from "@/lib/flash-toast";
+import { readFormValues } from "@/lib/form-data";
 import { getDisplayName } from "@/lib/format/display-name";
-import { createClubSchema, joinClubSchema } from "@/lib/validation/club";
+import { clubHref } from "@/lib/routes";
+import {
+  CONFIRM_NAME_MISMATCH_MESSAGE,
+  createClubSchema,
+  deleteClubSchema,
+  joinClubSchema,
+  updateClubInfoSchema,
+} from "@/lib/validation/club";
 import { idSchema } from "@/lib/validation/id";
 import { createPasswordResetUrl } from "@/server/auth/reset-link";
 import { requireMembership, requireUser } from "@/server/auth/session";
+import { ClubGoneError, deleteClub, updateClubInfo } from "@/server/clubs/membership";
 import {
   createClubWithAdmin,
   joinClubWithInviteCode,
@@ -27,17 +38,22 @@ import {
 import { findClubMember, getResetLinkEligibility } from "@/server/clubs/queries";
 import { INVITE_NOT_WORKING_CODE, INVITE_NOT_WORKING_MESSAGE } from "@/server/domain/clubs/invites";
 import {
+  canDeleteClub,
+  canEditClubInfo,
   canGeneratePasswordResetLink,
   canRegenerateInvite,
   canResetMemberPassword,
 } from "@/server/domain/clubs/permissions";
 import { rateLimit } from "@/server/rate-limit";
 import { revalidateAppShell, revalidateClub } from "@/server/revalidate";
+import { homePathAfterLeaving } from "@/server/users/queries";
 
 /**
- * Server Actions for clubs, joining and invitations (SPEC §4.3, §7.1–7.3,
- * §6.4). Every action re-checks the user and, for club actions, the
- * membership and role on the server: hidden buttons are only UX (§4.4).
+ * Server Actions for clubs, joining, invitations, club info and deleting the
+ * club (SPEC §4.3, §7.1–7.3, §7.5, §6.4). Every action re-checks the user
+ * and, for club actions, the membership and role on the server: hidden
+ * buttons are only UX (§4.4). Members (roles, remove, leave) live in
+ * members.ts.
  */
 
 /** The form state for useActionState: null before the first submit. */
@@ -180,4 +196,109 @@ export async function createMemberResetLink(
     console.error("[clubs] createMemberResetLink failed", error);
     return unexpectedError();
   }
+}
+
+/** What was typed in "Rediger klubinfo", echoed back after a failed submit. */
+export type ClubInfoFormValues = { name?: string; description?: string };
+
+/** The form state for useActionState: null before the first submit. Success redirects. */
+export type ClubInfoFormState = FormFailure<ClubInfoFormValues> | null;
+
+const NOT_ALLOWED_TO_EDIT_CLUB = "Kun admins kan rette klubinfo.";
+const NOT_ALLOWED_TO_DELETE_CLUB = "Kun admins kan slette klubben.";
+
+/** An echoed value is capped, so a forged request cannot bounce megabytes back. */
+const MAX_ECHO_LENGTH = 2000;
+
+function readClubInfoValues(formData: FormData): ClubInfoFormValues {
+  const raw = readFormValues(formData);
+  const values: ClubInfoFormValues = {};
+  for (const field of ["name", "description"] as const) {
+    const value = raw[field];
+    if (typeof value === "string") values[field] = value.slice(0, MAX_ECHO_LENGTH);
+  }
+  return values;
+}
+
+/**
+ * Admin only: "Rediger klubinfo" (SPEC §7.1, D-110): the name (1–60) and the
+ * description (optional, ≤ 300, line breaks kept). The name shows in every
+ * member's ClubSwitcher, so the whole app shell is revalidated. Back to the
+ * club page with a toast. Form fields: clubId (hidden), name, description.
+ */
+export async function updateClubInfoAction(
+  _previous: ClubInfoFormState,
+  formData: FormData,
+): Promise<ClubInfoFormState> {
+  const clubId = idSchema.safeParse(formData.get("clubId"));
+  if (!clubId.success) notFound();
+
+  const values = readClubInfoValues(formData);
+  const parsed = updateClubInfoSchema.safeParse(values);
+  if (!parsed.success) return { ...validationError(parsed.error), values };
+
+  const { user, membership, club } = await requireMembership(clubId.data);
+  if (!canEditClubInfo(membership)) {
+    return { ...fail(ACTION_ERROR_CODES.FORBIDDEN, NOT_ALLOWED_TO_EDIT_CLUB), values };
+  }
+
+  let result: Awaited<ReturnType<typeof updateClubInfo>>;
+  try {
+    result = await updateClubInfo({ clubId: club.id, actorUserId: user.id, ...parsed.data });
+  } catch (error) {
+    if (error instanceof ClubGoneError) notFound();
+    console.error("[clubs] updateClubInfo failed", error);
+    return { ...unexpectedError(), values };
+  }
+  // The role is read again under the club lock: demoted meanwhile.
+  if (!result.ok) {
+    return { ...fail(ACTION_ERROR_CODES.FORBIDDEN, NOT_ALLOWED_TO_EDIT_CLUB), values };
+  }
+
+  revalidateAppShell();
+  redirect(withToast(clubHref(club.id), "club-updated"));
+}
+
+/**
+ * Admin only: "Slet klubben" (SPEC §7.5, D-103) after typing the club's name
+ * (field confirmName). The data layer compares it with the name read under
+ * the club lock; a mismatch is a field error on confirmName. Everything in
+ * the club is deleted, the members' accounts stay. Afterwards home with a
+ * toast (D-104).
+ */
+export async function deleteClubAction(clubId: string, formData: FormData): Promise<ActionResult> {
+  const parsedClubId = idSchema.safeParse(clubId);
+  if (!parsedClubId.success) notFound();
+
+  const parsed = deleteClubSchema.safeParse(readFormValues(formData));
+  if (!parsed.success) return validationError(parsed.error);
+
+  const { user, membership, club } = await requireMembership(parsedClubId.data);
+  if (!canDeleteClub(membership)) {
+    return fail(ACTION_ERROR_CODES.FORBIDDEN, NOT_ALLOWED_TO_DELETE_CLUB);
+  }
+
+  let result: Awaited<ReturnType<typeof deleteClub>>;
+  try {
+    result = await deleteClub({
+      clubId: club.id,
+      actorUserId: user.id,
+      confirmName: parsed.data.confirmName,
+    });
+  } catch (error) {
+    if (error instanceof ClubGoneError) notFound();
+    console.error("[clubs] deleteClub failed", error);
+    return unexpectedError();
+  }
+  if (!result.ok) {
+    return result.reason === "NAME_MISMATCH"
+      ? fail(ACTION_ERROR_CODES.NAME_MISMATCH, CONFIRM_NAME_MISMATCH_MESSAGE, {
+          confirmName: [CONFIRM_NAME_MISMATCH_MESSAGE],
+        })
+      : fail(ACTION_ERROR_CODES.FORBIDDEN, NOT_ALLOWED_TO_DELETE_CLUB);
+  }
+
+  // The club list in every member's ClubSwitcher changed.
+  revalidateAppShell();
+  redirect(withToast(await homePathAfterLeaving(user.id), "club-deleted"));
 }

@@ -63,3 +63,7 @@ next-env.d.ts
 
 # Orkestrators arbejdsfiler (planer, snapshots, dumps) – aldrig commit
 .work/
+
+# privat sangbogsmateriale (sangbog-design, trin 0)
+*.pdf
+*.zip

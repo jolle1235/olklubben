@@ -3,9 +3,12 @@ import {
   AnchorIcon,
   ArrowLeftRightIcon,
   ChevronRightIcon,
+  MapPinIcon,
   PlusIcon,
   type LucideIcon,
 } from "lucide-react";
+
+import { clubHref, placesHref } from "@/lib/routes";
 
 export type ProfileLinksProps = {
   clubId: string;
@@ -16,18 +19,25 @@ export type ProfileLinksProps = {
 type Row = { href: string; icon: LucideIcon; title: string; subtitle: string };
 
 /**
- * Shortcuts from Profil (SPEC §8.1, D-023): "Klubben" (members and invite
- * link), with more than one club "Mine klubber" (/clubs), and always "Opret
+ * Shortcuts from Profil (SPEC §8.1, §9.8, D-023): "Klubben" (members and
+ * invite link), "Steder" (the club's places, which have no main navigation
+ * item), with more than one club "Mine klubber" (/clubs), and always "Opret
  * eller join ny klub" (/onboarding). With one club the ClubSwitcher is just a
  * link (§8.1), so this row is that user's only way to a second club.
  */
 export function ProfileLinks({ clubId, clubCount }: ProfileLinksProps) {
   const rows: Row[] = [
     {
-      href: `/c/${clubId}/club`,
+      href: clubHref(clubId),
       icon: AnchorIcon,
       title: "Klubben",
       subtitle: "Medlemmer og invitationslink",
+    },
+    {
+      href: placesHref(clubId),
+      icon: MapPinIcon,
+      title: "Steder",
+      subtitle: "Hvor I mødes, og hvem der ejer stederne",
     },
   ];
   if (clubCount > 1) {

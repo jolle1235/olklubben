@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/server/db";
+import { homeDestinationPath, resolveHomeDestination } from "@/server/domain/routing";
 
 /**
  * Read queries for users (SPEC §9.8). Not club-scoped: a user's own data,
@@ -44,4 +45,16 @@ export async function listUserClubIds(userId: string): Promise<string[]> {
     orderBy: { clubId: "asc" },
   });
   return memberships.map((membership) => membership.clubId);
+}
+
+/**
+ * Where to send the user after leaving or deleting a club (D-104, E15):
+ * onboarding (no clubs left), the one remaining club, or the club picker.
+ * Built from a fresh club list (listUserClubIds) and WITHOUT lastActiveClubId,
+ * which may still point at the club that is gone.
+ */
+export async function homePathAfterLeaving(userId: string): Promise<string> {
+  return homeDestinationPath(
+    resolveHomeDestination({ clubIds: await listUserClubIds(userId), lastActiveClubId: null }),
+  );
 }

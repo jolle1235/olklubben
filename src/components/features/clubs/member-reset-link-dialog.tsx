@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState, useTransition } from "react";
 import { unstable_rethrow } from "next/navigation";
-import { CopyIcon, KeyRoundIcon, Loader2Icon } from "lucide-react";
+import { CopyIcon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormError } from "@/components/ui/form-message";
 import { DEFAULT_ERROR_MESSAGES } from "@/lib/action-result";
@@ -24,17 +23,24 @@ import { createMemberResetLink } from "@/server/actions/clubs";
  * Admin only: a one-time password reset link for a member (SPEC §6.4, D-017),
  * for when email is not set up. Explains first, creates the link on
  * confirmation, then shows it with a copy button.
+ *
+ * Controlled: opened from the member's '⋯' menu ("Lav nulstillingslink",
+ * D-102) and rendered outside the menu, so the menu's focus handling and the
+ * dialog's do not fight.
  */
 export function MemberResetLinkDialog({
   clubId,
   userId,
   name,
+  open,
+  onOpenChange,
 }: {
   clubId: string;
   userId: string;
   name: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -43,7 +49,7 @@ export function MemberResetLinkDialog({
 
   function handleOpenChange(next: boolean) {
     if (isPending) return;
-    setOpen(next);
+    onOpenChange(next);
     if (!next) {
       setLink(null);
       setError(null);
@@ -79,17 +85,6 @@ export function MemberResetLinkDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-label={`Lav nulstillingslink til ${name}`}
-          className="shrink-0 max-sm:size-11 max-sm:px-0"
-        >
-          <KeyRoundIcon aria-hidden />
-          <span className="max-sm:sr-only">Nulstillingslink</span>
-        </Button>
-      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nulstillingslink til {name}</DialogTitle>
