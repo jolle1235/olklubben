@@ -1,9 +1,11 @@
 /**
  * Toasts after a redirect ("flash" messages). A Server Action that redirects
  * cannot return a result to the client (and must work without JavaScript),
- * so it adds `?toast=<key>` to its redirect target with withToast(). The club
+ * so it adds `?toast=<key>` to its redirect target with withToast(). The root
  * layout's <FlashToast /> shows the matching message once and removes the
- * flag from the address bar (src/components/features/flash-toast.tsx).
+ * flag from the address bar (src/components/features/flash-toast.tsx), so it
+ * also works outside a club, e.g. on /onboarding after leaving the last club
+ * (D-104).
  *
  * Only these known keys are shown, so a link can never put arbitrary text in
  * a toast. Messages follow the tone of SPEC §13.5. Pure and client-safe.
@@ -19,6 +21,16 @@ export const FLASH_TOASTS = {
   "beer-created": "Skål! Øllen er tilføjet 🍺",
   "beer-updated": "Gemt ✓",
   "beer-deleted": "Øllen er slettet.",
+  "place-created": "Stedet er oprettet 📍",
+  "place-updated": "Gemt ✓",
+  "place-archived": "Stedet er arkiveret. De gamle events viser det stadig.",
+  "place-restored": "Stedet er gendannet.",
+  "place-deleted": "Stedet er slettet.",
+  "profile-updated": "Gemt ✓",
+  "password-changed": "Dit password er skiftet. Dine andre enheder er logget ud.",
+  "club-updated": "Gemt ✓",
+  "club-left": "Du har forladt klubben.",
+  "club-deleted": "Klubben er slettet.",
 } as const satisfies Record<string, string>;
 
 export type FlashToastKey = keyof typeof FLASH_TOASTS;

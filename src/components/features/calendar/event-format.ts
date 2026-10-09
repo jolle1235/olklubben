@@ -14,8 +14,8 @@ export type CalendarEvent = {
   id: string;
   title: string;
   theme: string | null;
-  /** Free-text place (D-022). */
-  locationText: string;
+  /** Where (EventPlace from src/server/events/queries.ts fits). */
+  place: { name: string };
   startsAt: Date;
   endsAt: Date | null;
 };
@@ -32,7 +32,7 @@ export function eventTimeText(event: Pick<CalendarEvent, "startsAt" | "endsAt">)
 
 /** "Hos Mads · 18:30" (the calendar list, SPEC §9.3). */
 export function eventPlaceAndTime(event: CalendarEvent): string {
-  return `${event.locationText} · ${eventTimeText(event)}`;
+  return `${event.place.name} · ${eventTimeText(event)}`;
 }
 
 /** "Fredag · 18:30" (the hero card, SPEC §9.1; the big date shows day and month). */

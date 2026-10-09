@@ -51,11 +51,14 @@ let outsider: TestUser;
 let clubId: string;
 let otherClubId: string;
 
+// Round 3: every event has a place ("＋ Nyt sted" reuses "Hos Itest" once it
+// exists) and hosts (none chosen = the default).
 const eventData = (title: string, startsAt: Date, endsAt: Date | null = null) => ({
   title,
   theme: null,
   description: null,
-  locationText: "Hos Itest",
+  place: { kind: "new" as const, name: "Hos Itest", address: null, ownedByCreator: false },
+  hostIds: [],
   startsAt,
   endsAt,
 });
@@ -83,9 +86,10 @@ describe("events: club scoping", () => {
     expect(event).toMatchObject({
       id,
       title: "Ølsmagning #1",
-      locationText: "Hos Itest",
+      place: { name: "Hos Itest", address: null, archived: false },
       createdById: member.id,
-      createdBy: { id: member.id, name: "Mads Itest" },
+      createdBy: { id: member.id, name: "Mads Itest", nickname: null },
+      hostIds: [member.id],
     });
     expect(await getEvent(otherClubId, id)).toBeNull();
     expect(await getEvent(clubId, "not-an-id")).toBeNull();
@@ -100,7 +104,12 @@ describe("events: club scoping", () => {
     });
 
     expect(
-      await updateEvent({ clubId, eventId: id, ...eventData("Kapret", new Date(NOW.getTime())) }),
+      await updateEvent({
+        clubId,
+        eventId: id,
+        actorUserId: member.id,
+        ...eventData("Kapret", new Date(NOW.getTime())),
+      }),
     ).toBe(false);
     expect(await deleteEvent({ clubId, eventId: id })).toEqual({
       deleted: false,
@@ -112,6 +121,7 @@ describe("events: club scoping", () => {
       await updateEvent({
         clubId: otherClubId,
         eventId: id,
+        actorUserId: outsider.id,
         ...eventData("Nabofest 2", new Date(NOW.getTime() + DAY)),
       }),
     ).toBe(true);

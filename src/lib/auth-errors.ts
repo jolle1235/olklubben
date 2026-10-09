@@ -13,7 +13,8 @@
 
 import { DEFAULT_ERROR_MESSAGES } from "./action-result";
 
-export type AuthFlow = "sign-in" | "sign-up" | "forgot-password" | "reset-password" | "generic";
+export type AuthFlow =
+  "sign-in" | "sign-up" | "forgot-password" | "reset-password" | "change-password" | "generic";
 
 /** The shape of both a Better Auth client error and a server APIError (normalized). */
 export type AuthErrorLike = {
@@ -30,6 +31,10 @@ export const AUTH_ERROR_MESSAGES = {
   invalidEmail: "Skriv en gyldig email, fx navn@example.com.",
   invalidResetToken: "Linket er udløbet eller allerede brugt. Bed om et nyt link.",
   resetUnavailable: "Kontakt en admin i din klub for at få et nulstillingslink.",
+  /** "Skift password" (§9.8, D-106): shown on the current-password field. */
+  currentPasswordWrong: "Det nuværende password er forkert.",
+  /** "Skift password" for an account without a password login (Google only). */
+  noPasswordLogin: "Du logger ind med Google og har intet password her.",
   rateLimited: DEFAULT_ERROR_MESSAGES.RATE_LIMITED,
   unexpected: DEFAULT_ERROR_MESSAGES.UNEXPECTED,
 } as const;
@@ -57,6 +62,11 @@ export function getAuthErrorMessage(
   ) {
     // Generic on purpose: never reveal whether the email exists.
     return AUTH_ERROR_MESSAGES.invalidCredentials;
+  }
+
+  if (flow === "change-password") {
+    if (code === "INVALID_PASSWORD") return AUTH_ERROR_MESSAGES.currentPasswordWrong;
+    if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") return AUTH_ERROR_MESSAGES.noPasswordLogin;
   }
 
   switch (code) {

@@ -3,26 +3,40 @@ import { describe, expect, it } from "vitest";
 import {
   beerHref,
   beersHref,
+  clubHref,
   editBeerHref,
+  editClubHref,
   editEventHref,
+  editPlaceHref,
   eventHref,
   mapsSearchUrl,
   newBeerHref,
   newEventHref,
+  newPlaceHref,
   overviewHref,
+  placeHref,
+  placesHref,
+  profileHref,
   songsHref,
 } from "./routes";
 
 const CLUB = "5eed0000-0000-7000-8000-0000000000c1";
 const EVENT = "5eed0000-0000-7000-8000-0000000000e2";
 const BEER = "5eed0000-0000-7000-8000-0000000000b1";
+const PLACE = "5eed0000-0000-7000-8000-0000000000f1";
 
 describe("club routes (SPEC §8.2)", () => {
   it("builds the event routes", () => {
     expect(overviewHref(CLUB)).toBe(`/c/${CLUB}`);
     expect(newEventHref(CLUB)).toBe(`/c/${CLUB}/events/new`);
-    expect(newEventHref(CLUB, null)).toBe(`/c/${CLUB}/events/new`);
-    expect(newEventHref(CLUB, "2026-10-23")).toBe(`/c/${CLUB}/events/new?date=2026-10-23`);
+    expect(newEventHref(CLUB, { date: null, placeId: "" })).toBe(`/c/${CLUB}/events/new`);
+    expect(newEventHref(CLUB, { date: "2026-10-23" })).toBe(
+      `/c/${CLUB}/events/new?date=2026-10-23`,
+    );
+    expect(newEventHref(CLUB, { placeId: PLACE })).toBe(`/c/${CLUB}/events/new?placeId=${PLACE}`);
+    expect(newEventHref(CLUB, { date: "2026-10-23", placeId: PLACE })).toBe(
+      `/c/${CLUB}/events/new?date=2026-10-23&placeId=${PLACE}`,
+    );
     expect(eventHref(CLUB, EVENT)).toBe(`/c/${CLUB}/events/${EVENT}`);
     expect(editEventHref(CLUB, EVENT)).toBe(`/c/${CLUB}/events/${EVENT}/edit`);
   });
@@ -32,6 +46,16 @@ describe("club routes (SPEC §8.2)", () => {
     expect(beerHref(CLUB, BEER)).toBe(`/c/${CLUB}/beers/${BEER}`);
     expect(editBeerHref(CLUB, BEER)).toBe(`/c/${CLUB}/beers/${BEER}/edit`);
     expect(songsHref(CLUB)).toBe(`/c/${CLUB}/songs`);
+  });
+
+  it("builds the place, club and profile routes (round 3, D-108)", () => {
+    expect(placesHref(CLUB)).toBe(`/c/${CLUB}/places`);
+    expect(newPlaceHref(CLUB)).toBe(`/c/${CLUB}/places/new`);
+    expect(placeHref(CLUB, PLACE)).toBe(`/c/${CLUB}/places/${PLACE}`);
+    expect(editPlaceHref(CLUB, PLACE)).toBe(`/c/${CLUB}/places/${PLACE}/edit`);
+    expect(clubHref(CLUB)).toBe(`/c/${CLUB}/club`);
+    expect(editClubHref(CLUB)).toBe(`/c/${CLUB}/club/edit`);
+    expect(profileHref(CLUB)).toBe(`/c/${CLUB}/profile`);
   });
 
   it("pre-fills the event and the name on 'Tilføj øl' (SPEC §9.2, §10.5)", () => {

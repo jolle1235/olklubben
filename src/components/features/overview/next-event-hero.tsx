@@ -80,7 +80,7 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
               <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-amber" />
               <span className="min-w-0 break-words">
                 <span className="sr-only">Sted: </span>
-                {event.locationText}
+                {event.place.name}
               </span>
             </li>
           </ul>

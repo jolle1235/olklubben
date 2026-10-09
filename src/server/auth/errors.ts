@@ -33,6 +33,10 @@ export function getAuthErrorInfo(error: unknown): (AuthErrorLike & { status: num
  * wait, like join-with-code: "For mange forsøg. Prøv igen om 3 minutter."
  * That is safe on sign-in too: the per-email limit counts any submitted email,
  * so the wait reveals nothing about which accounts exist (§6.3).
+ *
+ * "change-password": a wrong current password becomes a field error on
+ * `currentPassword` (D-056 moves focus there); a Google-only account gets a
+ * form error.
  */
 export function toAuthActionError(
   error: unknown,
@@ -41,7 +45,11 @@ export function toAuthActionError(
   const info = getAuthErrorInfo(error);
   if (!info) throw error;
   if (info.status === 429) return rateLimitedError(readRetryAfterSeconds(error));
-  return fail(info.code ?? "AUTH_ERROR", getAuthErrorMessage(info, flow));
+  const message = getAuthErrorMessage(info, flow);
+  if (flow === "change-password" && info.code === "INVALID_PASSWORD") {
+    return fail(info.code, message, { currentPassword: [message] });
+  }
+  return fail(info.code ?? "AUTH_ERROR", message);
 }
 
 /** `retryAfterSeconds` from our 429 body (auth-rate-limit.ts), when it is a number. */

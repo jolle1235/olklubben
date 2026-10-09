@@ -1,6 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Loading state for the club page (SPEC §13.4: skeletons): title, member rows, invitation. */
+/**
+ * Loading state for the club page (SPEC §13.4: skeletons): title, member rows,
+ * invitation. In the (members) group so it does not wrap club/edit, which
+ * 404s for non-admins and must stay a real 404 (TG-008, D-108).
+ */
 export default function ClubPageLoading() {
   return (
     <div aria-busy="true" aria-live="polite">

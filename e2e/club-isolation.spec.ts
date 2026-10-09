@@ -1,5 +1,11 @@
 import { expect, test } from "./fixtures";
-import { deleteMembership, insertBeer, insertEvent, lastActiveClubId } from "./support/db";
+import {
+  deleteMembership,
+  insertBeer,
+  insertEvent,
+  insertPlace,
+  lastActiveClubId,
+} from "./support/db";
 import {
   clubName,
   createClub,
@@ -35,9 +41,11 @@ test.describe("Club isolation", () => {
       `/c/${clubId}/club`,
       `/c/${clubId}/profile`,
       `/c/${clubId}/calendar`,
-      // Unknown sub-routes ([...rest]) reveal nothing either.
       `/c/${clubId}/places`,
+      // Unknown sub-routes ([...rest]) and bad resource ids reveal nothing either.
+      `/c/${clubId}/polls`,
       `/c/${clubId}/events/123`,
+      `/c/${clubId}/places/123`,
       "/c/ikke-et-id",
       "/c/ikke-et-id/club",
       "/c/ikke-et-id/places",
@@ -67,12 +75,18 @@ test.describe("Club isolation", () => {
     const otherId = await createClub(page, clubName(testInfo, "Aktivklub"));
     await expect.poll(() => lastActiveClubId(owner.email)).toBe(otherId);
 
-    // A real event and beer – in the OTHER club (E22: the id exists, but not here).
+    // A real place, event and beer – in the OTHER club (E22: the id exists, but not here).
+    const otherPlaceId = await insertPlace({
+      clubId: otherId,
+      name: "Hemmeligt sted",
+      createdByEmail: owner.email,
+    });
     const otherEventId = await insertEvent({
       clubId: otherId,
       createdByEmail: owner.email,
       title: "Hemmelig smagning",
       startsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      placeName: "Hemmeligt sted",
     });
     const otherBeerId = await insertBeer({
       clubId: otherId,
@@ -83,7 +97,11 @@ test.describe("Club isolation", () => {
     const unknownId = "0199a000-0000-7000-8000-000000000000";
 
     for (const path of [
-      "places",
+      "polls",
+      "places/123",
+      `places/${unknownId}`,
+      `places/${otherPlaceId}`,
+      `places/${otherPlaceId}/edit`,
       "events",
       "events/123",
       `events/${unknownId}`,
@@ -109,8 +127,12 @@ test.describe("Club isolation", () => {
     // An unknown URL does not make the club the active one.
     expect(await lastActiveClubId(owner.email)).toBe(otherId);
 
-    // In their own club, the same ids work (h1 = the event title / the beer name).
-    for (const path of [`events/${otherEventId}`, `beers/${otherBeerId}`]) {
+    // In their own club, the same ids work (h1 = the event title / the beer / the place name).
+    for (const path of [
+      `events/${otherEventId}`,
+      `beers/${otherBeerId}`,
+      `places/${otherPlaceId}`,
+    ]) {
       const response = await page.goto(`/c/${otherId}/${path}`);
       expect(response?.status(), path).toBe(200);
       await expect(page.getByRole("heading", { level: 1, name: /Hemmelig/ })).toBeVisible();
@@ -143,7 +165,8 @@ test.describe("Club isolation", () => {
     const otherId = await createClub(memberPage, clubName(testInfo, "Medlemsklub"));
     await expect.poll(() => lastActiveClubId(member.email)).toBe(otherId);
 
-    for (const path of [`events/${eventId}/edit`, `beers/${beerId}/edit`]) {
+    // club/edit: admins only (D-110), a real 404 for members (no loading.tsx, D-108).
+    for (const path of [`events/${eventId}/edit`, `beers/${beerId}/edit`, "club/edit"]) {
       const response = await memberPage.goto(`/c/${clubId}/${path}`);
       expect(response?.status(), path).toBe(404);
       await expect(

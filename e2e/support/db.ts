@@ -1,12 +1,13 @@
 import { Client } from "pg";
 
 import { pgConfig } from "../../src/server/db/pg-config";
+import { cleanPlaceName, placeNameKey } from "../../src/server/domain/places/name";
 import { testDatabaseUrl } from "../test-env";
 
 /**
  * Direct SQL against the E2E database (olklubben_test, guarded by test-env.ts)
- * for things the UI cannot do yet in round 1: removing a member, changing a
- * role, ageing a reset token. Each call opens and closes its own connection,
+ * for setup the UI cannot do (quickly): removing a member, changing a role,
+ * ageing a reset token, inserting events, places, beers and ratings. Each call opens and closes its own connection,
  * so tests stay independent of each other. Sessions run in UTC like the app's
  * (pgConfig, F-012).
  */
@@ -128,9 +129,69 @@ export async function ageSession(sessionId: string): Promise<void> {
 }
 
 /**
- * Inserts an event directly (round 2), e.g. to test club isolation without the
- * event form. Times are UTC instants. Returns the new id (a UUID; the app's
- * ids are UUIDv7 from Prisma, but any UUID passes isValidId).
+ * Inserts a place directly (round 3), with optional owners (who must be
+ * members: the composite FK refuses anyone else) and optionally archived.
+ * The name is cleaned and keyed like the app (placeNameKey). Returns its id.
+ */
+export async function insertPlace(input: {
+  clubId: string;
+  name: string;
+  createdByEmail: string;
+  address?: string | null;
+  ownerEmails?: string[];
+  archived?: boolean;
+}): Promise<string> {
+  const name = cleanPlaceName(input.name);
+  const [row] = await sql<{ id: string }>(
+    `INSERT INTO places (id, club_id, name, name_key, address, created_by_id, archived_at, updated_at)
+     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, (SELECT id FROM users WHERE email = $5),
+             CASE WHEN $6::boolean THEN now() END, now())
+     RETURNING id`,
+    [
+      input.clubId,
+      name,
+      placeNameKey(name),
+      input.address ?? null,
+      input.createdByEmail.toLowerCase(),
+      input.archived ?? false,
+    ],
+  );
+  if (!row) throw new Error("E2E: kunne ikke oprette sted");
+  for (const email of input.ownerEmails ?? []) await addPlaceOwner(row.id, email);
+  return row.id;
+}
+
+/** Makes a member an owner of a place ("Det er mit sted"). */
+export async function addPlaceOwner(placeId: string, email: string): Promise<void> {
+  await sql(
+    `INSERT INTO place_owners (place_id, club_id, user_id)
+     SELECT p.id, p.club_id, u.id FROM places p, users u WHERE p.id = $1 AND u.email = $2
+     ON CONFLICT DO NOTHING`,
+    [placeId, email.toLowerCase()],
+  );
+}
+
+/** The id of the club's ACTIVE place with this name (same key as the app), or null. */
+export async function placeIdByName(clubId: string, name: string): Promise<string | null> {
+  const [row] = await sql<{ id: string }>(
+    "SELECT id FROM places WHERE club_id = $1 AND name_key = $2 AND archived_at IS NULL",
+    [clubId, placeNameKey(name)],
+  );
+  return row?.id ?? null;
+}
+
+/** Sets or clears a user's global nickname (D-105). */
+export async function setNickname(email: string, nickname: string | null): Promise<void> {
+  await sql("UPDATE users SET nickname = $2 WHERE email = $1", [email.toLowerCase(), nickname]);
+}
+
+/**
+ * Inserts an event directly, e.g. to test club isolation without the event
+ * form. Times are UTC instants. The place is found by name among the club's
+ * active places (like "＋ Nyt sted") or created; `locationText` is the round-2
+ * alias of `placeName`. Hosts: `hostEmails`, else the creator (D-098).
+ * Returns the new id (a UUID; the app's ids are UUIDv7 from Prisma, but any
+ * UUID passes isValidId).
  */
 export async function insertEvent(input: {
   clubId: string;
@@ -138,10 +199,21 @@ export async function insertEvent(input: {
   title: string;
   startsAt: Date;
   endsAt?: Date | null;
+  placeName?: string;
+  /** @deprecated Round-2 name for placeName. */
   locationText?: string;
+  hostEmails?: string[];
 }): Promise<string> {
+  const placeName = input.placeName ?? input.locationText ?? "Hos E2E";
+  const placeId =
+    (await placeIdByName(input.clubId, placeName)) ??
+    (await insertPlace({
+      clubId: input.clubId,
+      name: placeName,
+      createdByEmail: input.createdByEmail,
+    }));
   const [row] = await sql<{ id: string }>(
-    `INSERT INTO events (id, club_id, title, starts_at, ends_at, location_text, created_by_id, updated_at)
+    `INSERT INTO events (id, club_id, title, starts_at, ends_at, place_id, created_by_id, updated_at)
      VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, (SELECT id FROM users WHERE email = $6), now())
      RETURNING id`,
     [
@@ -149,11 +221,18 @@ export async function insertEvent(input: {
       input.title,
       input.startsAt,
       input.endsAt ?? null,
-      input.locationText ?? "Hos E2E",
+      placeId,
       input.createdByEmail.toLowerCase(),
     ],
   );
   if (!row) throw new Error("E2E: kunne ikke oprette event");
+  const hostEmails = input.hostEmails?.length ? input.hostEmails : [input.createdByEmail];
+  await sql(
+    `INSERT INTO event_hosts (event_id, user_id)
+     SELECT $1, id FROM users WHERE email = ANY($2::text[])
+     ON CONFLICT DO NOTHING`,
+    [row.id, hostEmails.map((email) => email.toLowerCase())],
+  );
   return row.id;
 }
 

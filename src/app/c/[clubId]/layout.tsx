@@ -1,8 +1,6 @@
-import { Suspense } from "react";
-
 import { AppShell } from "@/components/features/app-shell";
 import { SessionRefresh } from "@/components/features/auth/session-refresh";
-import { FlashToast } from "@/components/features/flash-toast";
+import { getDisplayName } from "@/lib/format/display-name";
 import { getUserClubs, requireMembership } from "@/server/auth/session";
 
 /**
@@ -16,9 +14,9 @@ import { getUserClubs, requireMembership } from "@/server/auth/session";
  * the active club whenever a link to another club scrolls into view. No
  * database writes in layouts.
  *
- * <SessionRefresh /> slides the session forward once a day (D-030).
- * <FlashToast /> shows the toast a Server Action's redirect asked for with
- * `?toast=` (created, saved, deleted; src/lib/flash-toast.ts) on every page.
+ * <SessionRefresh /> slides the session forward once a day (D-030). The
+ * `?toast=` flash messages are shown by <FlashToast /> in the root layout
+ * (D-104). The sidebar shows the user's display name (nickname ?? name, D-105).
  *
  * Loading boundaries and real 404s (TG-008): a response streams (HTTP 200) as
  * soon as a loading.tsx fallback renders, so a notFound() below a loading.tsx
@@ -28,12 +26,14 @@ import { getUserClubs, requireMembership } from "@/server/auth/session";
  *   * A page that never calls notFound() itself (lists, forms for new things)
  *     may have a loading.tsx next to it. When its folder has sub-routes, put
  *     the page and its loading.tsx in a route group so the boundary does not
- *     wrap them: (overview)/, beers/(catalog)/.
- *   * A resource (events/[eventId], beers/[beerId]) has a guard layout.tsx that
- *     checks the resource (requireEvent/requireBeer → real 404) ABOVE its
- *     loading.tsx, which sits in a (detail) group next to the page.
- *   * A page that 404s on its own check (e.g. edit/: only creator or admin)
- *     has no loading.tsx above it; neither has the [...rest] catch-all.
+ *     wrap them: (overview)/, beers/(catalog)/, places/(list)/, club/(members)/.
+ *   * A resource (events/[eventId], beers/[beerId], places/[placeId]) has a
+ *     guard layout.tsx that checks the resource (requireEvent/requireBeer/
+ *     requirePlace → real 404) ABOVE its loading.tsx, which sits in a (detail)
+ *     group next to the page.
+ *   * A page that 404s on its own check (e.g. edit/: only creator, host or
+ *     admin; club/edit: only admins) has no loading.tsx above it; neither has
+ *     the [...rest] catch-all.
  */
 export default async function ClubLayout({ children, params }: LayoutProps<"/c/[clubId]">) {
   const { clubId } = await params;
@@ -45,12 +45,9 @@ export default async function ClubLayout({ children, params }: LayoutProps<"/c/[
     <AppShell
       club={{ id: club.id, name: club.name }}
       clubs={clubs.map(({ id, name }) => ({ id, name }))}
-      user={{ name: user.name, email: user.email, image: user.image }}
+      user={{ name: getDisplayName(user), email: user.email, image: user.image }}
     >
       <SessionRefresh />
-      <Suspense fallback={null}>
-        <FlashToast />
-      </Suspense>
       {children}
     </AppShell>
   );

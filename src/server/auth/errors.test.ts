@@ -38,6 +38,26 @@ describe("toAuthActionError", () => {
     });
   });
 
+  it("puts a wrong current password on the currentPassword field (change-password)", () => {
+    const error = new APIError("BAD_REQUEST", { code: "INVALID_PASSWORD" });
+    expect(toAuthActionError(error, "change-password")).toEqual({
+      ok: false,
+      error: {
+        code: "INVALID_PASSWORD",
+        message: AUTH_ERROR_MESSAGES.currentPasswordWrong,
+        fieldErrors: { currentPassword: [AUTH_ERROR_MESSAGES.currentPasswordWrong] },
+      },
+    });
+  });
+
+  it("explains a Google-only account as a form error (change-password)", () => {
+    const error = new APIError("BAD_REQUEST", { code: "CREDENTIAL_ACCOUNT_NOT_FOUND" });
+    expect(toAuthActionError(error, "change-password").error).toEqual({
+      code: "CREDENTIAL_ACCOUNT_NOT_FOUND",
+      message: AUTH_ERROR_MESSAGES.noPasswordLogin,
+    });
+  });
+
   it("rethrows anything that is not a Better Auth error", () => {
     const error = new Error("database is down");
     expect(() => toAuthActionError(error, "sign-up")).toThrow(error);

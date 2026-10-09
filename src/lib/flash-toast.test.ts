@@ -29,6 +29,25 @@ describe("flashToastMessage", () => {
     for (const message of Object.values(FLASH_TOASTS)) expect(message.length).toBeGreaterThan(0);
   });
 
+  it("knows the round-3 toasts for places, profile and club", () => {
+    for (const key of [
+      "place-created",
+      "place-updated",
+      "place-archived",
+      "place-restored",
+      "place-deleted",
+      "profile-updated",
+      "password-changed",
+      "club-updated",
+      "club-left",
+      "club-deleted",
+    ]) {
+      expect(flashToastMessage(key), key).not.toBeNull();
+    }
+    expect(flashToastMessage("profile-updated")).toBe("Gemt ✓");
+    expect(flashToastMessage("club-deleted")).toBe("Klubben er slettet.");
+  });
+
   it("ignores missing and unknown keys, also inherited ones", () => {
     expect(flashToastMessage(null)).toBeNull();
     expect(flashToastMessage(undefined)).toBeNull();

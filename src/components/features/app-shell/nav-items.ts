@@ -68,13 +68,14 @@ export function getNavItems(clubId: string): NavItem[] {
       sidebar: "list",
     },
     {
-      // The club page lives under Profil (SPEC §8.1: "Profil → Klubben").
+      // The club page and the places live under Profil (SPEC §8.1: "Profil →
+      // Klubben"; no new main navigation item for Steder, D-108).
       key: "profile",
       label: "Profil",
       href: `${base}/profile`,
       icon: CircleUserRoundIcon,
       exact: false,
-      alsoActiveOn: [`${base}/club`],
+      alsoActiveOn: [`${base}/club`, `${base}/places`],
       // On desktop the user row at the bottom of the sidebar is the way to Profil.
       sidebar: "user-row",
     },

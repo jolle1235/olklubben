@@ -14,13 +14,16 @@ function fieldErrors(result: { success: boolean; error?: unknown }) {
 
 const EVENT_ID = "0199a000-0000-7000-8000-00000000e001";
 
+// Round 3: the place is "＋ Nyt sted" (placeId "new" + newPlaceName), like the
+// interim form; places and hosts are covered in round3-validation.test.ts.
 describe("eventFormSchema (SPEC §9.2)", () => {
   const valid = {
     title: "  Ølsmagning #13 ",
     date: "2026-10-23",
     startTime: "18:30",
     endTime: "",
-    locationText: " Hos Jesper ",
+    placeId: "new",
+    newPlaceName: " Hos Jesper ",
     theme: "",
     description: "",
   };
@@ -30,9 +33,10 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       title: "Ølsmagning #13",
       theme: null,
       description: null,
-      locationText: "Hos Jesper",
       startsAt: new Date("2026-10-23T16:30:00Z"),
       endsAt: null,
+      place: { kind: "new", name: "Hos Jesper", address: null, ownedByCreator: false },
+      hostIds: [],
     });
   });
 
@@ -41,7 +45,8 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       title: valid.title,
       date: valid.date,
       startTime: valid.startTime,
-      locationText: valid.locationText,
+      placeId: valid.placeId,
+      newPlaceName: valid.newPlaceName,
     };
     expect(eventFormSchema.safeParse(required).success).toBe(true);
     expect(eventFormSchema.safeParse({ ...valid, theme: null, description: null }).success).toBe(
@@ -74,7 +79,8 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       date: "2026-02-30",
       startTime: "25:00",
       endTime: "nej",
-      locationText: "",
+      placeId: "new",
+      newPlaceName: "",
       theme: "x".repeat(81),
       description: "x".repeat(5001),
     });
@@ -83,7 +89,7 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       date: ["Datoen findes ikke. Vælg en anden dato."],
       startTime: ["Skriv tiden som tt:mm, fx 18:30."],
       endTime: ["Skriv sluttiden som tt:mm, fx 23:00."],
-      locationText: ["Skriv, hvor I mødes."],
+      newPlaceName: ["Skriv, hvor I mødes."],
       theme: ["Temaet må højst være 80 tegn."],
       description: ["Planen må højst være 5000 tegn."],
     });
@@ -98,7 +104,7 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       title: ["Giv eventet en titel."],
       date: ["Vælg en dato."],
       startTime: ["Vælg et starttidspunkt."],
-      locationText: ["Skriv, hvor I mødes."],
+      placeId: ["Vælg et sted, eller opret et nyt."],
     });
   });
 
@@ -107,8 +113,8 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       title: ["Titlen må højst være 100 tegn."],
     });
     expect(
-      fieldErrors(eventFormSchema.safeParse({ ...valid, locationText: "x".repeat(121) })),
-    ).toEqual({ locationText: ["Stedet må højst være 120 tegn."] });
+      fieldErrors(eventFormSchema.safeParse({ ...valid, newPlaceName: "x".repeat(121) })),
+    ).toEqual({ newPlaceName: ["Navnet må højst være 120 tegn."] });
     expect(eventFormSchema.safeParse({ ...valid, title: "x".repeat(100) }).success).toBe(true);
   });
 
@@ -117,19 +123,19 @@ describe("eventFormSchema (SPEC §9.2)", () => {
     const parsed = eventFormSchema.parse({
       ...valid,
       title: "Ølsmagning\u0000 #3",
-      locationText: "Hos\u0000 Jesper",
+      newPlaceName: "Hos\u0000 Jesper",
       theme: "Tyske\u0000 øl",
       description: "Først\u0000 pizza.\nSå øl.",
     });
     expect(parsed).toMatchObject({
       title: "Ølsmagning #3",
-      locationText: "Hos Jesper",
+      place: { kind: "new", name: "Hos Jesper" },
       theme: "Tyske øl",
       description: "Først pizza.\nSå øl.",
     });
     expect(
-      fieldErrors(eventFormSchema.safeParse({ ...valid, title: "\u0000", locationText: "\u0000" })),
-    ).toEqual({ title: ["Giv eventet en titel."], locationText: ["Skriv, hvor I mødes."] });
+      fieldErrors(eventFormSchema.safeParse({ ...valid, title: "\u0000", newPlaceName: "\u0000" })),
+    ).toEqual({ title: ["Giv eventet en titel."], newPlaceName: ["Skriv, hvor I mødes."] });
     expect(eventFormSchema.parse({ ...valid, description: " \u0000 " }).description).toBeNull();
   });
 

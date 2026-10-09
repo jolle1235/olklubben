@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 
+import { useActionForm } from "@/components/features/forms/use-action-form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
 import { withNext } from "@/lib/auth-links";
@@ -11,14 +12,15 @@ import { signInAction } from "@/server/actions/auth";
 import { AuthField } from "./auth-field";
 import { ActionErrorAlert } from "./form-alert";
 import { TextLink } from "./text-link";
-import { useAuthForm } from "./use-auth-form";
 
 /**
  * "Log ind" with email and password (SPEC §6.3). The error never says whether
  * the email exists. On success the action redirects to ?next= or "/".
  */
 export function SignInForm({ next }: { next: string | null }) {
-  const { formProps, fieldErrors, formError, values } = useAuthForm(signInAction, signInSchema);
+  const { formProps, fieldErrors, formError, values } = useActionForm(signInAction, {
+    schema: signInSchema,
+  });
   const alertId = useId();
   // "Forkert email eller password" concerns both fields.
   const credentialsRejected = formError?.message === AUTH_ERROR_MESSAGES.invalidCredentials;

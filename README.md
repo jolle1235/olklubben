@@ -78,26 +78,42 @@ Appen validerer miljøet med Zod i `src/env.ts`. Mangler `DATABASE_URL`, `BETTER
 
 `npm run db:seed` (`prisma/seed.ts`) lægger testdata i udviklingsdatabasen. Scriptet kan køres igen og igen: det opdaterer de samme rækker og nulstiller testbrugernes password. Det nægter at køre i produktion og mod en database, der ikke ligger på `localhost`, medmindre du sætter `SEED_ALLOW_REMOTE=1` (kun til en Neon dev-branch, aldrig produktion).
 
-| Email                | Password       | Klubber                                                 | Efter login (§10.1)                   |
-| -------------------- | -------------- | ------------------------------------------------------- | ------------------------------------- |
-| `jesper@example.com` | `olklubben123` | Drengene & Bajere (**Admin**), Torsdagsklubben (Medlem) | Drengene & Bajere (sidst aktive klub) |
-| `mads@example.com`   | `olklubben123` | Drengene & Bajere (Medlem), Torsdagsklubben (**Admin**) | Klubvælgeren (`/clubs`)               |
-| `anders@example.com` | `olklubben123` | Drengene & Bajere (Medlem)                              | Drengene & Bajere (eneste klub)       |
+| Email                | Password       | Navn (kælenavn)                | Klubber                                                 | Efter login (§10.1)                   |
+| -------------------- | -------------- | ------------------------------ | ------------------------------------------------------- | ------------------------------------- |
+| `jesper@example.com` | `olklubben123` | Jesper Thomsen (**Kaptajnen**) | Drengene & Bajere (**Admin**), Torsdagsklubben (Medlem) | Drengene & Bajere (sidst aktive klub) |
+| `mads@example.com`   | `olklubben123` | Mads                           | Drengene & Bajere (Medlem), Torsdagsklubben (**Admin**) | Klubvælgeren (`/clubs`)               |
+| `anders@example.com` | `olklubben123` | Anders                         | Drengene & Bajere (Medlem)                              | Drengene & Bajere (eneste klub)       |
+
+Jesper vises overalt som **Kaptajnen**. Kun medlemslisten og hans profil viser også det rigtige navn: "Kaptajnen (Jesper Thomsen)" (D-105). Seed nulstiller navne og kælenavne ved hver kørsel.
 
 Aktive invitationskoder: **Drengene & Bajere** `BAJE-R234` (`/join/BAJER234`) og **Torsdagsklubben** `TRSD-AG78` (`/join/TRSDAG78`).
 
 Mads lander kun i klubvælgeren, så længe han ikke har åbnet en klub (åbner han en, huskes den). Brugere, man selv opretter, starter i onboarding (`/onboarding`).
 
-**Events, øl og ratings (runde 2).** Datoerne regnes **relativt til i dag** (Europe/Copenhagen), så Overblikket altid har noget at vise. Kører du seed igen, flyttes de til den nye "i dag". Rækker, du selv har oprettet, røres ikke.
+**Steder (runde 3).** Et sted findes på sit faste id eller på sit aktive navn i klubben, for migreringen har allerede lavet runde 2's steder med tilfældige id'er (D-097). Det sted beholder sit id.
 
-| Klub              | Event                                                                    | Hvornår                          | Oprettet af |
-| ----------------- | ------------------------------------------------------------------------ | -------------------------------- | ----------- |
-| Drengene & Bajere | **Ølsmagning #12** · tema "Belgiske øl" · Hos Mads · plan med linjeskift | for 3 uger siden, 18:30–23:30    | Mads        |
-| Drengene & Bajere | **Ølsmagning #13** · tema "Tyske øl" · Hos Jesper                        | om 3 dage, 18:30 (ingen sluttid) | Jesper      |
-| Drengene & Bajere | **Juleøl warmup** · tema "Juleøl" · Hos Anders                           | om 4 uger, 19:00–23:00           | Anders      |
-| Torsdagsklubben   | **Torsdagsøl** · Bodegaen på hjørnet                                     | om 1 uge, 19:30                  | Mads        |
+| Klub              | Sted                    | Adresse                       | Ejere          | Bemærkning                                         |
+| ----------------- | ----------------------- | ----------------------------- | -------------- | -------------------------------------------------- |
+| Drengene & Bajere | **Hos Mads**            | Søndergade 12, 8381 Tilst     | Mads           | Beskrivelse "Ring på bagdøren"                     |
+| Drengene & Bajere | **Hos Jesper**          | –                             | Kaptajnen      | Uden adresse, så eventsiden viser "Tilføj adresse" |
+| Drengene & Bajere | **Hos Anders**          | –                             | Anders         |                                                    |
+| Drengene & Bajere | **Hos Mads & Anders**   | Bryggervej 7, 8381 Tilst      | Mads og Anders | To ejere, så begge bliver værter                   |
+| Drengene & Bajere | **Det gamle klubhus**   | –                             | –              | **Arkiveret**, men Ølsmagning #10 viser det stadig |
+| Drengene & Bajere | **Den lokale bar**      | Tilst Hovedgade 1, 8381 Tilst | –              | Aldrig brugt, så det kan slettes helt              |
+| Torsdagsklubben   | **Bodegaen på hjørnet** | –                             | –              |                                                    |
 
-Ølkataloget i Drengene & Bajere: fire øl fra Ølsmagning #12 (Carlsberg Hvidtøl 1,9 %, Grimbergen Dubbel 6,5 %, Westmalle Tripel 9,5 % og Duvel 8,5 %) med ratings fra Jesper, Mads og Anders (også halve stjerner), Ørbæk Fynsk Forår (5,0 %, uden event, kun Jesper har ratet) og Mikkeller Beer Geek Breakfast (7,5 %, uden event og uden ratings). Torsdagsklubben har ingen øl, så dens katalog viser den tomme tilstand. I Drengene & Bajere må Jesper (admin) rette og slette alt, mens Mads og Anders kun må rette og slette deres egne events og øl (SPEC §5.1). Næste foreslåede titel i Drengene & Bajere er "Ølsmagning #14".
+**Events, øl og ratings (runde 2 og 3).** Datoerne regnes **relativt til i dag** (Europe/Copenhagen), så Overblikket altid har noget at vise, også historik. Kører du seed igen, flyttes de til den nye "i dag". Værterne er stedets ejere, ellers den, der oprettede eventet (D-098). Rækker, du selv har oprettet, røres ikke.
+
+| Klub              | Event                                                                            | Hvornår                          | Oprettet af | Værter         |
+| ----------------- | -------------------------------------------------------------------------------- | -------------------------------- | ----------- | -------------- |
+| Drengene & Bajere | **Ølsmagning #10** · tema "Afsked med klubhuset" · Det gamle klubhus (arkiveret) | for 7 uger siden, 18:30–01:00    | Kaptajnen   | Kaptajnen      |
+| Drengene & Bajere | **Ølsmagning #11** · tema "IPA" · Hos Mads & Anders                              | for 5 uger siden, 19:00–23:30    | Anders      | Mads og Anders |
+| Drengene & Bajere | **Ølsmagning #12** · tema "Belgiske øl" · Hos Mads · plan med linjeskift         | for 3 uger siden, 18:30–23:30    | Mads        | Mads           |
+| Drengene & Bajere | **Ølsmagning #13** · tema "Tyske øl" · Hos Jesper                                | om 3 dage, 18:30 (ingen sluttid) | Kaptajnen   | Kaptajnen      |
+| Drengene & Bajere | **Juleøl warmup** · tema "Juleøl" · Hos Anders                                   | om 4 uger, 19:00–23:00           | Anders      | Anders         |
+| Torsdagsklubben   | **Torsdagsøl** · Bodegaen på hjørnet                                             | om 1 uge, 19:30                  | Mads        | Mads           |
+
+Ølkataloget i Drengene & Bajere: fire øl fra Ølsmagning #12 (Carlsberg Hvidtøl 1,9 %, Grimbergen Dubbel 6,5 %, Westmalle Tripel 9,5 % og Duvel 8,5 %) og tre fra Ølsmagning #11 (BrewDog Punk IPA 5,4 %, Sierra Nevada Pale Ale 5,6 % og Amager Bryghus Todd the Axe Man 6,5 %) med ratings fra Jesper, Mads og Anders (også halve stjerner), Ørbæk Fynsk Forår (5,0 %, uden event, kun Jesper har ratet) og Mikkeller Beer Geek Breakfast (7,5 %, uden event og uden ratings). Ølsmagning #10 har ingen øl. Torsdagsklubben har ingen øl, så dens katalog viser den tomme tilstand. I Drengene & Bajere må Jesper (admin) rette og slette alt. Mads og Anders må rette og slette de events, de har oprettet eller er vært for, og deres egne øl (SPEC §5.1, D-098). Næste foreslåede titel i Drengene & Bajere er "Ølsmagning #14".
 
 ### Email og "Glemt password" lokalt
 
@@ -134,9 +150,9 @@ Login, signup, "Glemt password", join-med-kode og opslag af invitationskoder er 
 Next.js sender svaret med HTTP 200, så snart en `loading.tsx` (skeleton) vises. Kalder siden derefter `notFound()`, bliver det en "blød" 404 (SPEC TG-008). Derfor:
 
 - Der ligger **ingen** `loading.tsx` direkte i `src/app/c/[clubId]/`.
-- Lister og "ny"-formularer har deres egen `loading.tsx`. Har mappen undersider, ligger listen i en route-gruppe: `(overview)/` (Overblik) og `beers/(catalog)/` (Ølkatalog).
-- Et event eller en øl har en **guard-layout** (`events/[eventId]/layout.tsx`, `beers/[beerId]/layout.tsx`), der giver en ægte 404 for ukendte id'er og id'er fra andre klubber, _før_ skeletonen i `(detail)/loading.tsx` vises.
-- Sider, der selv kan give 404 (fx `edit/`, kun for opretter eller admin), og catch-all-ruten `[...rest]` har ingen `loading.tsx` over sig.
+- Lister og "ny"-formularer har deres egen `loading.tsx`. Har mappen undersider, ligger listen i en route-gruppe: `(overview)/` (Overblik), `beers/(catalog)/` (Ølkatalog), `places/(list)/` (Steder) og `club/(members)/` (Klubben).
+- Et event, en øl eller et sted har en **guard-layout** (`events/[eventId]/layout.tsx`, `beers/[beerId]/layout.tsx`, `places/[placeId]/layout.tsx`), der giver en ægte 404 for ukendte id'er og id'er fra andre klubber, _før_ skeletonen i `(detail)/loading.tsx` vises.
+- Sider, der selv kan give 404 (fx `edit/`, kun for opretter, vært eller admin, og `club/edit`, kun for admins), og catch-all-ruten `[...rest]` har ingen `loading.tsx` over sig.
 
 Reglerne står også i `src/app/c/[clubId]/layout.tsx`.
 
@@ -188,7 +204,7 @@ npx playwright test -g "Definition of Done"       # efter navn
 | `e2e/round1-dod.spec.ts`             | Runde 1's Definition of Done: (a) opret konto → opret klub → Admin → Overblik → log ud/ind → tilbage i klubben. (b) ven åbner link → opret konto → join.                                                                                                                                                                                     |
 | `e2e/multi-club.spec.ts`             | Routing efter login (§10.1–10.3): senest åbnede klub, klubskift, klubvælgeren når klubben er væk (E15), 0 klubber → onboarding, log ud fra onboarding, en Link-prefetch af en anden klub skifter ikke aktiv klub, Profil → "Opret eller join ny klub" med én klub.                                                                           |
 | `e2e/invites.spec.ts`                | Ugyldige koder (E18), medlem åbner link (E17), login fra invitation, "Log ud" på invitationen kommer tilbage til den, ny kode gør den gamle ugyldig, medlemmer ser ikke admin-knapper, serveren afviser.                                                                                                                                     |
-| `e2e/club-isolation.spec.ts`         | 404 for ikke-medlemmer og ugyldige id'er (E22). Ukendte undersider og events/øl fra en anden klub giver en ægte HTTP 404 inde i AppShell, også for medlemmer, uden at skifte aktiv klub (TG-008). Et medlem, der fjernes, mens appen er åben, får 404 (E16).                                                                                 |
+| `e2e/club-isolation.spec.ts`         | 404 for ikke-medlemmer og ugyldige id'er (E22). Ukendte undersider og events, øl og steder fra en anden klub giver en ægte HTTP 404 inde i AppShell, også for medlemmer, uden at skifte aktiv klub (TG-008). Et medlem, der fjernes, mens appen er åben, får 404 (E16).                                                                      |
 | `e2e/round2-dod.spec.ts`             | Runde 2's Definition of Done som almindeligt medlem: (a) opret event → hero på Overblik → Kalender i liste- og månedsvisning på den rigtige dato. (b) [+ Tilføj øl] fra eventet (eventet udfyldt) → rate 4,5 → en anden rater 3,5 → "4,0" og "2 ratings" → øllen på eventets liste.                                                          |
 | `e2e/events.spec.ts`                 | Opret event (titelforslag, validering med fokus, natten over, sommertid → vintertid), eventsiden, rediger, slet med bekræftelse og toast (øllene bliver, E13), 404 efter sletning. Et medlem ser ingen Rediger/Slet på andres events, får 404 på rediger, og serveren afviser et forfalsket request. Admin må rette.                         |
 | `e2e/overview-calendar.spec.ts`      | Overblik: hero, kommende arrangementer, tom tilstand, "I morgen!", "I aften! 🍻" og "I gang nu" med genveje. 18:30 på dagen, hvor uret stilles tilbage, er 18:30 på eventsiden, Overblik og i kalenderen (E20). Kalender: liste pr. måned, månedsvisning (chips/prikker, valgt dag, bladring, refresh, I dag), aldrig en anden klubs events. |
@@ -200,7 +216,7 @@ npx playwright test -g "Definition of Done"       # efter navn
 | `e2e/long-names.spec.ts`             | Lange klubnavne (60 tegn, også ét langt ord) brydes på klubsiden, i klubvælgeren og i klubskifteren uden vandret scroll, og det fremhævede menupunkt beholder badgets farver.                                                                                                                                                                |
 | `e2e/form-focus.spec.ts`             | Tastatur: en fejl i join-med-kode, opret klub og profilnavn flytter fokus til feltet (§15.2).                                                                                                                                                                                                                                                |     |
 
-Hjælpere: `e2e/fixtures.ts` (`openPage()` giver en side i en ny browserkontekst, fx til en anden bruger), `e2e/support/app.ts` (signup, login, log ud, opret klub, læs invitationslink), `e2e/support/db.ts` (SQL mod testdatabasen, fx fjern medlemskab, lad et token udløbe, ældre en session, slet en brugers sessions, læs `lastActiveClubId`, giv en bruger et Google-login eller indsæt et event, en øl eller en rating direkte med `insertEvent`/`insertBeer`/`insertRating`), `e2e/support/round2.ts` (datoer relativt til i dag i København, næste nat med skift til vintertid, join via link, opret event/øl gennem formularerne, tryk på stjerner) og `e2e/support/outbox.ts`. `expectHydrated()` i `e2e/support/app.ts` venter, til React har hydreret en kontrol, der kun virker med JavaScript (dialog-knapper, stjerner, katalogets selects), før testen klikker efter en fuld sideindlæsning.
+Hjælpere: `e2e/fixtures.ts` (`openPage()` giver en side i en ny browserkontekst, fx til en anden bruger), `e2e/support/app.ts` (signup, login, log ud, opret klub, læs invitationslink), `e2e/support/db.ts` (SQL mod testdatabasen, fx fjern medlemskab, lad et token udløbe, ældre en session, slet en brugers sessions, læs `lastActiveClubId`, giv en bruger et Google-login, indsæt et event, en øl eller en rating direkte med `insertEvent`/`insertBeer`/`insertRating`, et sted med ejere med `insertPlace`/`addPlaceOwner` eller sæt et kælenavn med `setNickname`. `insertEvent` finder stedet på navnet (`placeName`) eller opretter det, og værten er opretteren, medmindre `hostEmails` er sat), `e2e/support/round2.ts` (datoer relativt til i dag i København, næste nat med skift til vintertid, join via link, opret event/øl gennem formularerne, tryk på stjerner) og `e2e/support/outbox.ts`. `expectHydrated()` i `e2e/support/app.ts` venter, til React har hydreret en kontrol, der kun virker med JavaScript (dialog-knapper, stjerner, katalogets selects), før testen klikker efter en fuld sideindlæsning.
 
 ## Google-login (OAuth)
 

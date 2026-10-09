@@ -18,7 +18,7 @@ function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     id: "e1",
     title: "Ølsmagning #14",
     theme: null,
-    locationText: "Hos Mads",
+    place: { name: "Hos Mads" },
     // Friday 23 October 2026, 18:30 Copenhagen (summer time).
     startsAt: new Date("2026-10-23T16:30:00Z"),
     endsAt: null,

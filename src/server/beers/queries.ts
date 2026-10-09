@@ -2,10 +2,12 @@ import "server-only";
 
 import { cache } from "react";
 
+import { compareByDisplayName } from "@/lib/format/display-name";
 import { isValidId } from "@/lib/ids";
 import { db } from "@/server/db";
 import { findSameNameBeers } from "@/server/domain/beers/name";
 import { averageRating } from "@/server/domain/ratings/ratings";
+import { personSelect, type PersonRef } from "@/server/users/select";
 
 import { getRatingStats, NO_RATINGS, type RatingStats } from "./rating-stats";
 
@@ -33,7 +35,8 @@ export type BeerListItem = RatingStats & {
 };
 
 export type BeerRatingEntry = {
-  user: { id: string; name: string };
+  /** Shown with getDisplayName (nickname ?? name, D-105). */
+  user: PersonRef;
   /** Stored value 2..10 (formatStars(value) → "4,5"). */
   value: number;
   updatedAt: Date;
@@ -41,16 +44,14 @@ export type BeerRatingEntry = {
 
 export type BeerDetail = BeerListItem & {
   updatedAt: Date;
-  createdBy: { id: string; name: string };
-  /** Every rating, highest first, then by name (Danish order). */
+  createdBy: PersonRef;
+  /** Every rating, highest first, then by display name (Danish order). */
   ratings: BeerRatingEntry[];
 };
 
 export type SimilarBeer = { id: string; name: string; abv: number };
 
 const eventRefSelect = { select: { id: true, title: true, startsAt: true } } as const;
-
-const nameCollator = new Intl.Collator("da");
 
 /**
  * Every beer of the club, newest first, with the club's average, the number of
@@ -99,21 +100,18 @@ export const getBeer = cache(
         createdAt: true,
         updatedAt: true,
         createdById: true,
-        createdBy: { select: { id: true, name: true } },
+        createdBy: { select: personSelect },
         eventId: true,
         event: eventRefSelect,
         ratings: {
-          select: { value: true, updatedAt: true, user: { select: { id: true, name: true } } },
+          select: { value: true, updatedAt: true, user: { select: personSelect } },
         },
       },
     });
     if (!beer) return null;
 
     const ratings = [...beer.ratings].sort(
-      (a, b) =>
-        b.value - a.value ||
-        nameCollator.compare(a.user.name, b.user.name) ||
-        (a.user.id < b.user.id ? -1 : 1),
+      (a, b) => b.value - a.value || compareByDisplayName(a.user, b.user),
     );
     return {
       ...beer,

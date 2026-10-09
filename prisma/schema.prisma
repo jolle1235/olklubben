@@ -47,13 +47,22 @@ model User {
   lastActiveClubId String? @map("last_active_club_id")
   lastActiveClub   Club?   @relation("UserLastActiveClub", fields: [lastActiveClubId], references: [id], onDelete: SetNull)
 
-  sessions       Session[]
-  accounts       Account[]
-  memberships    Membership[]
-  invitesCreated Invite[]     @relation("InviteCreatedBy")
-  eventsCreated  Event[]      @relation("EventCreatedBy")
-  beersCreated   Beer[]       @relation("BeerCreatedBy")
-  beerRatings    BeerRating[]
+  /// Global nickname (SPEC §9.8, D-011, D-105). 1–40 characters after trim
+  /// (CHECK users_nickname_length_check). Null = none; getDisplayName shows it
+  /// instead of the name. Written ONLY by src/server/users/mutations.ts. A Better
+  /// Auth additionalField with input:false, so /update-user and sign-up refuse it.
+  nickname String?
+
+  sessions        Session[]
+  accounts        Account[]
+  memberships     Membership[]
+  invitesCreated  Invite[]     @relation("InviteCreatedBy")
+  eventsCreated   Event[]      @relation("EventCreatedBy")
+  beersCreated    Beer[]       @relation("BeerCreatedBy")
+  beerRatings     BeerRating[]
+  placesCreated   Place[]      @relation("PlaceCreatedBy")
+  placeOwnerships PlaceOwner[]
+  eventHostships  EventHost[]
 
   @@map("users")
 }
@@ -148,6 +157,7 @@ model Club {
   id          String   @id @default(uuid(7))
   /// 1–60 characters, trimmed (CHECK in the migration).
   name        String
+  /// 1–300 characters after trim, or null (CHECK clubs_description_length_check, D-110).
   description String?
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -157,6 +167,7 @@ model Club {
   lastActiveUsers User[]       @relation("UserLastActiveClub")
   events          Event[]
   beers           Beer[]
+  places          Place[]
 
   @@map("clubs")
 }
@@ -173,6 +184,12 @@ model Membership {
   joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  /// Place ownerships in this club (composite FK place_owners(user_id, club_id)
+  /// → memberships(user_id, club_id) ON DELETE CASCADE): an owner is always a
+  /// member, and the ownership ends with the membership (§7.4, D-096).
+  placeOwnerships PlaceOwner[]
+
+  /// Also the target of the composite FK from place_owners.
   @@unique([userId, clubId])
   @@index([clubId])
   @@map("memberships")
@@ -207,10 +224,14 @@ model Invite {
 // is planned as anonymisation (§11 User.deletedAt), not a row delete; RESTRICT
 // makes a hard delete fail loudly instead of silently losing club history.
 
-/// A tasting (SPEC §9.2). Round 2: the place is free text (locationText,
-/// D-022); round 3 adds placeId → Place and hosts (EventHost), round 4 pollId.
-/// Lengths (title 1–100, theme ≤ 80, description ≤ 5000, locationText 1–120)
-/// and ends_at > starts_at are CHECK constraints in the migration.
+/// A tasting (SPEC §9.2). Round 3: the place is a Place of the same club and
+/// the hosts are EventHost rows (D-098); round 4 adds pollId.
+/// Lengths (title 1–100, theme ≤ 80, description ≤ 5000) and
+/// ends_at > starts_at are CHECK constraints in the migrations.
+///
+/// clubId takes part in two relations (club, and place via the composite FK).
+/// Write ONLY with unchecked scalar inputs (clubId, placeId, createdById …),
+/// never `connect` on club or place.
 model Event {
   id           String    @id @default(uuid(7))
   clubId       String    @map("club_id")
@@ -221,17 +242,100 @@ model Event {
   startsAt     DateTime  @map("starts_at") @db.Timestamptz(3)
   /// Optional. Without it the event counts as ongoing until startsAt + 6 h (§9.1).
   endsAt       DateTime? @map("ends_at") @db.Timestamptz(3)
-  /// Free-text place in round 2 (D-022), e.g. "Hos Mads".
-  locationText String    @map("location_text")
+  /// Required (§9.2). Composite FK (place_id, club_id) → places(id, club_id): the
+  /// place is in the event's club (D-096). RESTRICT: used places are archived,
+  /// never deleted (D-004, D-100).
+  placeId      String    @map("place_id")
+  place        Place     @relation(fields: [placeId, clubId], references: [id, clubId], onDelete: Restrict)
+  /// @deprecated Round-2 free text (D-022). Nullable since round 3; never read or
+  /// written by round-3 code. Dropped together with
+  /// events_location_text_length_check in round 4's first migration (TG-032).
+  locationText String?   @map("location_text")
   createdById  String    @map("created_by_id")
   createdBy    User      @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   beers Beer[]
+  hosts EventHost[]
 
   @@index([clubId, startsAt])
+  @@index([placeId])
   @@map("events")
+}
+
+// ─── Round 3: places, owners and hosts (SPEC §9.2, §9.4, §11) ───────────────
+//
+// Club isolation in the database (D-096): composite FKs prove that an event's
+// place and a place's owner belong to the same club. clubId takes part in two
+// relations on Event and PlaceOwner, so write those rows ONLY with unchecked
+// scalar inputs (createMany/updateMany or create with plain ids), never with
+// `connect`, and never use SetNull on a composite relation (D-073).
+
+/// A place where the club meets (SPEC §9.4), e.g. "Hos Mads". Used places are
+/// archived, never deleted (D-100). Lengths (name 1–120, address ≤ 200,
+/// description ≤ 1000) and a non-empty name_key are CHECK constraints.
+model Place {
+  id          String    @id @default(uuid(7))
+  clubId      String    @map("club_id")
+  club        Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  /// 1–120 (CHECK). Stored cleaned (cleanPlaceName).
+  name        String
+  /// placeNameKey(name), computed in JS (src/server/domain/places/name.ts). Never empty (CHECK).
+  nameKey     String    @map("name_key")
+  /// ≤ 200. "Åbn i kort" searches it (D-101).
+  address     String?
+  /// ≤ 1000, line breaks kept.
+  description String?
+  createdById String    @map("created_by_id")
+  createdBy   User      @relation("PlaceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  owners PlaceOwner[]
+  events Event[]
+
+  /// Target of the composite FKs (club isolation in the DB, D-096).
+  @@unique([id, clubId])
+  /// One ACTIVE place per name key and club (D-095). TRAP (like TG-004): never
+  /// findUnique on clubId_nameKey, because it ignores archived_at. Use
+  /// findFirst({ where: { clubId, nameKey, archivedAt: null } }).
+  @@unique([clubId, nameKey], map: "places_club_id_name_key_active_key", where: { archivedAt: null })
+  @@index([clubId])
+  @@map("places")
+}
+
+/// A member who owns a place (SPEC §9.4): owners become the default hosts.
+model PlaceOwner {
+  placeId    String     @map("place_id")
+  clubId     String     @map("club_id")
+  userId     String     @map("user_id")
+  place      Place      @relation(fields: [placeId, clubId], references: [id, clubId], onDelete: Cascade)
+  /// The owner is a member of the place's club (DB-enforced). The ownership
+  /// disappears with the membership (§7.4).
+  membership Membership @relation(fields: [userId, clubId], references: [userId, clubId], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([placeId, userId])
+  @@index([userId, clubId])
+  @@map("place_owners")
+}
+
+/// A host of an event (SPEC §9.2, D-098).
+model EventHost {
+  eventId   String   @map("event_id")
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// History (§7.4), so no FK to memberships. RESTRICT like D-072. Membership is
+  /// checked at write time under FOR SHARE (src/server/db/locks.ts).
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([eventId, userId])
+  @@index([userId])
+  @@map("event_hosts")
 }
 
 /// A beer in the club's catalogue (SPEC §9.5). App rule (data layer,

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canDeleteClub,
+  canEditClubInfo,
   canGeneratePasswordResetLink,
+  canManageMembers,
   canRegenerateInvite,
   canResetMemberPassword,
   canViewInvite,
@@ -65,6 +68,15 @@ describe("club permissions (SPEC §5.1)", () => {
         targetHasExternalLogin: true,
       }),
     ).toBe(false);
+  });
+
+  it("only admins may manage members, edit the club info and delete the club (round 3)", () => {
+    for (const can of [canManageMembers, canEditClubInfo, canDeleteClub]) {
+      expect(can(admin)).toBe(true);
+      expect(can(member)).toBe(false);
+      expect(can(null)).toBe(false);
+      expect(can(undefined)).toBe(false);
+    }
   });
 
   it("has a Danish label for every role", () => {

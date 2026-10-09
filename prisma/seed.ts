@@ -12,16 +12,19 @@ import {
   utcToZonedParts,
   zonedDateTimeToUtc,
 } from "../src/server/domain/events/time";
+import { placeNameKey } from "../src/server/domain/places/name";
 
 /**
  * Test data for local development (SPEC §16.3 – round 1: users, clubs,
- * memberships, invitations; round 2: events, beers, ratings). Run with
- * `npm run db:seed`.
+ * memberships, invitations; round 2: events, beers, ratings; round 3:
+ * nicknames, places with owners, hosts and past tastings for the history).
+ * Run with `npm run db:seed`.
  *
  * Idempotent: running it again leaves the same rows. Users are matched by
  * email, clubs, events and beers by fixed id, memberships by (user, club),
- * invitations by code and ratings by (beer, user). The seed users' passwords
- * are reset to the documented one on every run.
+ * invitations by code, ratings by (beer, user), places by fixed id or else by
+ * their active name (D-097), owners and hosts by (place/event, user). The seed
+ * users' names, nicknames and passwords are reset on every run.
  *
  * Event dates are RELATIVE to today (Europe/Copenhagen), so Overblik always
  * has a past tasting, one in 3 days and one in 4 weeks. Running the seed again
@@ -44,19 +47,23 @@ const SEED_USERS = [
   {
     key: "jesper",
     id: "5eed0000-0000-7000-8000-0000000000a1",
-    name: "Jesper",
+    name: "Jesper Thomsen",
+    // Shown instead of the name everywhere; the member list adds "(Jesper Thomsen)" (D-105).
+    nickname: "Kaptajnen",
     email: "jesper@example.com",
   },
   {
     key: "mads",
     id: "5eed0000-0000-7000-8000-0000000000a2",
     name: "Mads",
+    nickname: null,
     email: "mads@example.com",
   },
   {
     key: "anders",
     id: "5eed0000-0000-7000-8000-0000000000a3",
     name: "Anders",
+    nickname: null,
     email: "anders@example.com",
   },
 ] as const;
@@ -96,7 +103,165 @@ const SEED_CLUBS: {
   },
 ];
 
-// ─── Round 2: events, beers and ratings ─────────────────────────────────────
+// ─── Round 3: places ────────────────────────────────────────────────────────
+
+type SeedPlace = {
+  /** Fixed id for a fresh database. The round-3 migration may already have made the place with a random id (D-097). */
+  id: string;
+  clubId: string;
+  createdBy: SeedUserKey;
+  name: string;
+  address: string | null;
+  description: string | null;
+  /** Members of the place's club (the composite FK refuses anyone else). */
+  owners: SeedUserKey[];
+  /** Archived this many days from today (negative), or null when active. */
+  archivedInDays: number | null;
+};
+
+const HOS_MADS = "5eed0000-0000-7000-8000-0000000000f1";
+const HOS_JESPER = "5eed0000-0000-7000-8000-0000000000f2";
+const HOS_ANDERS = "5eed0000-0000-7000-8000-0000000000f3";
+const BODEGAEN = "5eed0000-0000-7000-8000-0000000000f4";
+const HOS_MADS_OG_ANDERS = "5eed0000-0000-7000-8000-0000000000f5";
+const GAMLE_KLUBHUS = "5eed0000-0000-7000-8000-0000000000f6";
+const LOKALE_BAR = "5eed0000-0000-7000-8000-0000000000f7";
+
+// Every kind of place (SPEC §9.4): one owner, two owners, no owner, archived
+// with an old tasting, and never used (so it may be deleted outright).
+const SEED_PLACES: SeedPlace[] = [
+  {
+    id: HOS_MADS,
+    clubId: DRENGENE,
+    createdBy: "mads",
+    name: "Hos Mads",
+    address: "Søndergade 12, 8381 Tilst",
+    description: "Ring på bagdøren",
+    owners: ["mads"],
+    archivedInDays: null,
+  },
+  {
+    id: HOS_JESPER,
+    clubId: DRENGENE,
+    createdBy: "jesper",
+    name: "Hos Jesper",
+    address: null,
+    description: null,
+    owners: ["jesper"],
+    archivedInDays: null,
+  },
+  {
+    id: HOS_ANDERS,
+    clubId: DRENGENE,
+    createdBy: "anders",
+    name: "Hos Anders",
+    address: null,
+    description: null,
+    owners: ["anders"],
+    archivedInDays: null,
+  },
+  {
+    id: HOS_MADS_OG_ANDERS,
+    clubId: DRENGENE,
+    createdBy: "anders",
+    name: "Hos Mads & Anders",
+    address: "Bryggervej 7, 8381 Tilst",
+    description: "Kollektivet. Begge bliver værter, når I vælger stedet.",
+    owners: ["mads", "anders"],
+    archivedInDays: null,
+  },
+  {
+    id: GAMLE_KLUBHUS,
+    clubId: DRENGENE,
+    createdBy: "jesper",
+    name: "Det gamle klubhus",
+    address: null,
+    description: "Revet ned i sommer. Vi savner det.",
+    owners: [],
+    archivedInDays: -40,
+  },
+  {
+    id: LOKALE_BAR,
+    clubId: DRENGENE,
+    createdBy: "mads",
+    name: "Den lokale bar",
+    address: "Tilst Hovedgade 1, 8381 Tilst",
+    description: null,
+    owners: [],
+    archivedInDays: null,
+  },
+  {
+    id: BODEGAEN,
+    clubId: TORSDAG,
+    createdBy: "mads",
+    name: "Bodegaen på hjørnet",
+    address: null,
+    description: null,
+    owners: [],
+    archivedInDays: null,
+  },
+];
+
+/**
+ * Upserts the seed places and returns seed id → actual id. A place is found by
+ * its fixed id, else by its ACTIVE name in the club (the migration created the
+ * round-2 places with random ids); that row is updated and keeps its id.
+ * Otherwise it is created with the fixed id. Owners are set to the seed's list.
+ */
+async function seedPlaces(
+  db: PrismaClient,
+  idOf: (key: SeedUserKey) => string,
+  today: string,
+): Promise<Map<string, string>> {
+  const ids = new Map<string, string>();
+  for (const place of SEED_PLACES) {
+    const nameKey = placeNameKey(place.name);
+    const existing =
+      (await db.place.findFirst({
+        where: { id: place.id, clubId: place.clubId },
+        select: { id: true },
+      })) ??
+      // Never findUnique on (clubId, nameKey): the unique index is partial (D-095).
+      (await db.place.findFirst({
+        where: { clubId: place.clubId, nameKey, archivedAt: null },
+        select: { id: true },
+      }));
+    const data = {
+      name: place.name,
+      nameKey,
+      address: place.address,
+      description: place.description,
+      archivedAt:
+        place.archivedInDays === null
+          ? null
+          : relativeInstant(today, place.archivedInDays, "12:00"),
+    };
+    const id = existing
+      ? (await db.place.update({ where: { id: existing.id }, data, select: { id: true } })).id
+      : (
+          await db.place.create({
+            data: {
+              id: place.id,
+              clubId: place.clubId,
+              createdById: idOf(place.createdBy),
+              ...data,
+            },
+            select: { id: true },
+          })
+        ).id;
+    ids.set(place.id, id);
+
+    const ownerIds = place.owners.map(idOf);
+    await db.placeOwner.deleteMany({ where: { placeId: id, userId: { notIn: ownerIds } } });
+    await db.placeOwner.createMany({
+      data: ownerIds.map((userId) => ({ placeId: id, clubId: place.clubId, userId })),
+      skipDuplicates: true,
+    });
+  }
+  return ids;
+}
+
+// ─── Round 2 (+ round 3 history): events, beers and ratings ─────────────────
 
 type SeedEvent = {
   id: string;
@@ -105,7 +270,8 @@ type SeedEvent = {
   title: string;
   theme: string | null;
   description: string | null;
-  locationText: string;
+  /** A SEED_PLACES id (round 3). */
+  placeId: string;
   /** Days from today (Copenhagen), and wall-clock times. */
   inDays: number;
   start: string;
@@ -121,7 +287,7 @@ const SEED_EVENTS: SeedEvent[] = [
     theme: "Belgiske øl",
     description:
       "Vi starter med en let hvidtøl som opvarmning.\n\nDerefter tre belgiere fra mild til stærk – og pizza til dem, der kan holde til det.",
-    locationText: "Hos Mads",
+    placeId: HOS_MADS,
     inDays: -21,
     start: "18:30",
     end: "23:30",
@@ -133,7 +299,7 @@ const SEED_EVENTS: SeedEvent[] = [
     title: "Ølsmagning #13",
     theme: "Tyske øl",
     description: "Medbring én tysk øl, gerne en I aldrig har smagt før.",
-    locationText: "Hos Jesper",
+    placeId: HOS_JESPER,
     inDays: 3,
     start: "18:30",
     end: null,
@@ -145,7 +311,7 @@ const SEED_EVENTS: SeedEvent[] = [
     title: "Juleøl warmup",
     theme: "Juleøl",
     description: null,
-    locationText: "Hos Anders",
+    placeId: HOS_ANDERS,
     inDays: 28,
     start: "19:00",
     end: "23:00",
@@ -157,10 +323,36 @@ const SEED_EVENTS: SeedEvent[] = [
     title: "Torsdagsøl",
     theme: null,
     description: null,
-    locationText: "Bodegaen på hjørnet",
+    placeId: BODEGAEN,
     inDays: 7,
     start: "19:30",
     end: null,
+  },
+  // Round 3: older tastings for the history (D-107). Two hosts (the place's owners) …
+  {
+    id: "5eed0000-0000-7000-8000-0000000000e5",
+    clubId: DRENGENE,
+    createdBy: "anders",
+    title: "Ølsmagning #11",
+    theme: "IPA",
+    description: "Humle, humle og mere humle.",
+    placeId: HOS_MADS_OG_ANDERS,
+    inDays: -35,
+    start: "19:00",
+    end: "23:30",
+  },
+  // … and one at a place that has since been archived, without beers.
+  {
+    id: "5eed0000-0000-7000-8000-0000000000e6",
+    clubId: DRENGENE,
+    createdBy: "jesper",
+    title: "Ølsmagning #10",
+    theme: "Afsked med klubhuset",
+    description: null,
+    placeId: GAMLE_KLUBHUS,
+    inDays: -49,
+    start: "18:30",
+    end: "01:00",
   },
 ];
 
@@ -240,6 +432,37 @@ const SEED_BEERS: SeedBeer[] = [
     addedInDays: -2,
     ratings: {},
   },
+  // Round 3: Ølsmagning #11 (IPA) for the history.
+  {
+    id: "5eed0000-0000-7000-8000-0000000000b7",
+    clubId: DRENGENE,
+    createdBy: "anders",
+    name: "BrewDog Punk IPA",
+    abv: "5.4",
+    eventId: "5eed0000-0000-7000-8000-0000000000e5",
+    addedInDays: -35,
+    ratings: { jesper: 7, mads: 6, anders: 8 },
+  },
+  {
+    id: "5eed0000-0000-7000-8000-0000000000b8",
+    clubId: DRENGENE,
+    createdBy: "mads",
+    name: "Sierra Nevada Pale Ale",
+    abv: "5.6",
+    eventId: "5eed0000-0000-7000-8000-0000000000e5",
+    addedInDays: -35,
+    ratings: { jesper: 8, mads: 9, anders: 7 },
+  },
+  {
+    id: "5eed0000-0000-7000-8000-0000000000b9",
+    clubId: DRENGENE,
+    createdBy: "jesper",
+    name: "Amager Bryghus Todd the Axe Man",
+    abv: "6.5",
+    eventId: "5eed0000-0000-7000-8000-0000000000e5",
+    addedInDays: -35,
+    ratings: { jesper: 9, anders: 9 },
+  },
 ];
 
 /** A Copenhagen date `days` from today at a wall-clock time, as a UTC instant. */
@@ -255,6 +478,7 @@ async function seedEventsAndBeers(
   idOf: (key: SeedUserKey) => string,
 ): Promise<void> {
   const today = utcToZonedParts(new Date()).date;
+  const placeIds = await seedPlaces(db, idOf, today);
 
   for (const event of SEED_EVENTS) {
     const startsAt = relativeInstant(today, event.inDays, event.start);
@@ -267,11 +491,13 @@ async function seedEventsAndBeers(
             event.end < event.start ? event.inDays + 1 : event.inDays,
             event.end,
           );
+    const placeId = placeIds.get(event.placeId);
+    if (!placeId) throw new Error(`Seed-sted mangler: ${event.placeId}`);
     const data = {
       title: event.title,
       theme: event.theme,
       description: event.description,
-      locationText: event.locationText,
+      placeId,
       startsAt,
       endsAt,
     };
@@ -279,6 +505,15 @@ async function seedEventsAndBeers(
       where: { id: event.id },
       create: { id: event.id, clubId: event.clubId, createdById: idOf(event.createdBy), ...data },
       update: data,
+    });
+
+    // Hosts (D-098): the place's owners, else the creator.
+    const owners = SEED_PLACES.find((place) => place.id === event.placeId)?.owners ?? [];
+    const hostIds = (owners.length > 0 ? owners : [event.createdBy]).map(idOf);
+    await db.eventHost.deleteMany({ where: { eventId: event.id, userId: { notIn: hostIds } } });
+    await db.eventHost.createMany({
+      data: hostIds.map((userId) => ({ eventId: event.id, userId })),
+      skipDuplicates: true,
     });
   }
 
@@ -320,10 +555,11 @@ async function main(): Promise<void> {
         create: {
           id: seedUser.id,
           name: seedUser.name,
+          nickname: seedUser.nickname,
           email: seedUser.email,
           emailVerified: false,
         },
-        update: { name: seedUser.name },
+        update: { name: seedUser.name, nickname: seedUser.nickname },
         select: { id: true },
       });
       userIds.set(seedUser.key, user.id);
@@ -396,18 +632,22 @@ async function main(): Promise<void> {
       data: { lastActiveClubId: SEED_CLUBS[0]?.id ?? null },
     });
 
-    const [users, clubs, memberships, invites, events, beers, ratings] = await Promise.all([
-      db.user.count(),
-      db.club.count(),
-      db.membership.count(),
-      db.invite.count({ where: { revokedAt: null } }),
-      db.event.count(),
-      db.beer.count(),
-      db.beerRating.count(),
-    ]);
+    const [users, clubs, memberships, invites, places, owners, events, hosts, beers, ratings] =
+      await Promise.all([
+        db.user.count(),
+        db.club.count(),
+        db.membership.count(),
+        db.invite.count({ where: { revokedAt: null } }),
+        db.place.count(),
+        db.placeOwner.count(),
+        db.event.count(),
+        db.eventHost.count(),
+        db.beer.count(),
+        db.beerRating.count(),
+      ]);
     console.info(
       `Seed færdig: ${users} brugere, ${clubs} klubber, ${memberships} medlemskaber, ${invites} aktive invitationer, ` +
-        `${events} events, ${beers} øl, ${ratings} ratings.`,
+        `${places} steder (${owners} ejerskaber), ${events} events (${hosts} værtskaber), ${beers} øl, ${ratings} ratings.`,
     );
     console.info(
       `Log ind med ${SEED_USERS.map((user) => user.email).join(", ")} og password "${SEED_PASSWORD}".`,

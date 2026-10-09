@@ -33,6 +33,22 @@ describe("getAuthErrorMessage", () => {
     );
   });
 
+  it("explains a wrong current password and a Google-only account (change-password)", () => {
+    expect(getAuthErrorMessage({ code: "INVALID_PASSWORD" }, "change-password")).toBe(
+      "Det nuværende password er forkert.",
+    );
+    expect(getAuthErrorMessage({ code: "CREDENTIAL_ACCOUNT_NOT_FOUND" }, "change-password")).toBe(
+      "Du logger ind med Google og har intet password her.",
+    );
+    expect(getAuthErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "change-password")).toBe(
+      "Password skal være mindst 8 tegn.",
+    );
+    // Other flows keep their own meaning of the same codes.
+    expect(getAuthErrorMessage({ code: "INVALID_PASSWORD" }, "sign-in")).toBe(
+      "Forkert email eller password.",
+    );
+  });
+
   it("falls back to a generic message", () => {
     expect(getAuthErrorMessage(null)).toBe(AUTH_ERROR_MESSAGES.unexpected);
     expect(getAuthErrorMessage({ code: "SOMETHING_NEW", status: 500 }, "sign-in")).toBe(

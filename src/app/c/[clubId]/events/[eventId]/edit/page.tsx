@@ -13,7 +13,7 @@ import { requireEvent } from "@/server/events/access";
 export const metadata: Metadata = { title: "Rediger event" };
 
 /**
- * Edit an event (SPEC §9.2, D-061): the creator or an admin. Anyone else gets
+ * Edit an event (SPEC §9.2, D-098): the creator, a host or an admin. Anyone else gets
  * a real 404 – there is no loading.tsx above this page (TG-008). The guard
  * layout has already checked that the event is in this club. Like the other
  * 404s (D-066), the permission 404 comes before the active club changes.
@@ -44,7 +44,7 @@ export default async function EditEventPage({
             defaults={{
               title: event.title,
               ...eventTimesToFormValues(event),
-              locationText: event.locationText,
+              newPlaceName: event.place.name,
               theme: event.theme ?? "",
               description: event.description ?? "",
             }}

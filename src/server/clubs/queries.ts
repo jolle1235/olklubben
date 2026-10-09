@@ -1,8 +1,10 @@
 import "server-only";
 
+import { compareByDisplayName } from "@/lib/format/display-name";
 import { db } from "@/server/db";
 import { isInviteActive } from "@/server/domain/clubs/invites";
 import type { ClubRole } from "@/server/domain/clubs/permissions";
+import { personSelect, type PersonRef } from "@/server/users/select";
 
 /**
  * Read queries for clubs, members and invitations (SPEC §7, §9.8).
@@ -15,7 +17,9 @@ import type { ClubRole } from "@/server/domain/clubs/permissions";
 export type ClubMember = {
   membershipId: string;
   userId: string;
+  /** The official name; the list shows formatMemberName ("Kaptajnen (Jesper Thomsen)"). */
   name: string;
+  nickname: string | null;
   image: string | null;
   role: ClubRole;
   joinedAt: Date;
@@ -29,17 +33,30 @@ export async function getClubMembers(clubId: string): Promise<ClubMember[]> {
       id: true,
       role: true,
       joinedAt: true,
-      user: { select: { id: true, name: true, image: true } },
+      user: { select: { id: true, name: true, nickname: true, image: true } },
     },
   });
   return memberships.map(({ id, role, joinedAt, user }) => ({
     membershipId: id,
     userId: user.id,
     name: user.name,
+    nickname: user.nickname,
     image: user.image,
     role,
     joinedAt,
   }));
+}
+
+/**
+ * The club's members as people for pickers (the event form's hosts, D-098),
+ * sorted by display name.
+ */
+export async function listMemberOptions(clubId: string): Promise<PersonRef[]> {
+  const memberships = await db.membership.findMany({
+    where: { clubId },
+    select: { user: { select: personSelect } },
+  });
+  return memberships.map((membership) => membership.user).sort(compareByDisplayName);
 }
 
 /** How many members the club has. */
@@ -97,13 +114,40 @@ export async function isClubMember(userId: string, clubId: string): Promise<bool
   return membership !== null;
 }
 
-/** The member's name if the user is a member of the club, else null. */
-export async function findClubMemberName(clubId: string, userId: string): Promise<string | null> {
+/**
+ * The user as a member of the club (person + role), or null when the user is
+ * not a member. Always looked up by (userId, clubId). Show getDisplayName().
+ */
+export async function findClubMember(
+  clubId: string,
+  userId: string,
+): Promise<(PersonRef & { role: ClubRole }) | null> {
   const membership = await db.membership.findUnique({
     where: { userId_clubId: { userId, clubId } },
-    select: { user: { select: { name: true } } },
+    select: { role: true, user: { select: personSelect } },
   });
-  return membership?.user.name ?? null;
+  return membership ? { ...membership.user, role: membership.role } : null;
+}
+
+/**
+ * What "Slet klubben" deletes (§7.5, D-103): "14 events, 37 øl med 102
+ * ratings og 5 steder". Members are counted, but their accounts stay.
+ */
+export async function getClubContentCounts(clubId: string): Promise<{
+  members: number;
+  events: number;
+  beers: number;
+  ratings: number;
+  places: number;
+}> {
+  const [members, events, beers, ratings, places] = await Promise.all([
+    db.membership.count({ where: { clubId } }),
+    db.event.count({ where: { clubId } }),
+    db.beer.count({ where: { clubId } }),
+    db.beerRating.count({ where: { beer: { clubId } } }),
+    db.place.count({ where: { clubId } }),
+  ]);
+  return { members, events, beers, ratings, places };
 }
 
 export type ResetLinkEligibility = {

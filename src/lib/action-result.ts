@@ -24,6 +24,13 @@ export type ActionError = {
 
 export type ActionResult<T = void> = { ok: true; data: T } | { ok: false; error: ActionError };
 
+/**
+ * The failed state of a form action (useActionState): the error plus what was
+ * typed, echoed back because React resets the uncontrolled form after a
+ * submit. Passwords are never part of `values`. Success redirects.
+ */
+export type FormFailure<V> = { ok: false; error: ActionError; values: V };
+
 /** Common error codes. Feature code may add its own (UPPER_SNAKE_CASE). */
 export const ACTION_ERROR_CODES = {
   VALIDATION: "VALIDATION_ERROR",
@@ -32,6 +39,16 @@ export const ACTION_ERROR_CODES = {
   CONFLICT: "CONFLICT",
   RATE_LIMITED: "RATE_LIMITED",
   UNEXPECTED: "UNEXPECTED_ERROR",
+  /** Another active place in the club has the same name (D-095). */
+  PLACE_NAME_TAKEN: "PLACE_NAME_TAKEN",
+  /** The club must keep at least one admin (E2, E25). */
+  LAST_ADMIN: "LAST_ADMIN",
+  /** The only member cannot leave; they can delete the club (E3). */
+  ONLY_MEMBER: "ONLY_MEMBER",
+  /** Removing yourself goes through "Forlad klubben". */
+  USE_LEAVE: "USE_LEAVE",
+  /** The typed club name does not match (§7.5). */
+  NAME_MISMATCH: "NAME_MISMATCH",
 } as const;
 
 export const DEFAULT_ERROR_MESSAGES = {

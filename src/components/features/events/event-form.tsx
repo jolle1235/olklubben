@@ -3,23 +3,29 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { InputField, TextareaField } from "@/components/features/forms/form-fields";
+import { useActionForm } from "@/components/features/forms/use-action-form";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import {
+  EVENT_ARRAY_FIELDS,
   EVENT_DESCRIPTION_MAX_LENGTH,
-  EVENT_LOCATION_MAX_LENGTH,
+  EVENT_PLACE_NEW,
   EVENT_THEME_MAX_LENGTH,
   EVENT_TITLE_MAX_LENGTH,
+  eventFormSchema,
 } from "@/lib/validation/event";
-import { createEventAction, updateEventAction, type EventFormField } from "@/server/actions/events";
+import { createEventAction, updateEventAction } from "@/server/actions/events";
 import { MAX_EVENT_YEAR, MIN_EVENT_YEAR, normalizeTimeOfDay } from "@/server/domain/events/time";
+import { PLACE_NAME_MAX_LENGTH } from "@/server/domain/places/name";
 
-import { EventInputField, EventTextareaField } from "./event-form-field";
-import { useEventForm } from "./use-event-form";
+/** The interim form's fields (round 3 foundation; agent C adds PlaceSelector and HostsPicker). */
+type InterimField =
+  "title" | "date" | "startTime" | "endTime" | "newPlaceName" | "theme" | "description";
 
 /** The fields' starting values: "YYYY-MM-DD", "HH:mm", "" for empty. */
-export type EventFormDefaults = Record<EventFormField, string>;
+export type EventFormDefaults = Record<InterimField, string>;
 
 export type EventFormProps = {
   clubId: string;
@@ -39,10 +45,16 @@ function endTimeHint(startTime: string, endTime: string): string {
 }
 
 /**
- * Create or edit an event (SPEC §9.2, D-022): title (suggested "Ølsmagning
- * #N"), date, start time (default 18:30), optional end time (overnight
- * allowed), place as free text, optional theme and plan. Past dates are fine
- * (old tastings may be registered).
+ * Create or edit an event (SPEC §9.2): title (suggested "Ølsmagning #N"),
+ * date, start time (default 18:30), optional end time (overnight allowed),
+ * place, optional theme and plan. Past dates are fine (old tastings may be
+ * registered).
+ *
+ * INTERIM (round-3 foundation): the place is typed by name and always sent as
+ * "＋ Nyt sted" (placeId "new" + newPlaceName). The server reuses an active
+ * place with the same name, otherwise creates it (D-099). No host inputs, so
+ * the server's default applies (the place's owners, else the creator; D-098).
+ * Agent C replaces this with the PlaceSelector and the HostsPicker.
  *
  * Validated with the shared Zod schema in the browser and again in the Server
  * Action. Works without JavaScript: the inputs are native, and the action
@@ -50,10 +62,11 @@ function endTimeHint(startTime: string, endTime: string): string {
  */
 export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormProps) {
   const editing = eventId !== undefined;
-  const { formProps, fieldErrors, formError, values } = useEventForm(
+  const { formProps, fieldErrors, formError, values } = useActionForm(
     editing ? updateEventAction : createEventAction,
+    { schema: eventFormSchema, arrayFields: EVENT_ARRAY_FIELDS },
   );
-  const initial = (field: EventFormField) => values[field] ?? defaults[field];
+  const initial = (field: InterimField) => values[field] ?? defaults[field];
   const [times, setTimes] = useState({ start: defaults.startTime, end: defaults.endTime });
 
   function handleChange(event: React.FormEvent<HTMLFormElement>) {
@@ -70,10 +83,11 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
     <form {...formProps} onChange={handleChange} className="grid gap-6">
       <input type="hidden" name="clubId" value={clubId} />
       {editing ? <input type="hidden" name="eventId" value={eventId} /> : null}
+      <input type="hidden" name="placeId" value={EVENT_PLACE_NEW} />
 
       {formError ? <FormError>{formError.message}</FormError> : null}
 
-      <EventInputField
+      <InputField
         name="title"
         label="Titel"
         defaultValue={initial("title")}
@@ -86,7 +100,7 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
 
       <fieldset className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <legend className="sr-only">Hvornår</legend>
-        <EventInputField
+        <InputField
           type="date"
           name="date"
           label="Dato"
@@ -97,7 +111,7 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
           required
           errors={fieldErrors.date}
         />
-        <EventInputField
+        <InputField
           type="time"
           name="startTime"
           label="Starttid"
@@ -105,7 +119,7 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
           required
           errors={fieldErrors.startTime}
         />
-        <EventInputField
+        <InputField
           type="time"
           name="endTime"
           label="Sluttid"
@@ -116,19 +130,19 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
         />
       </fieldset>
 
-      <EventInputField
-        name="locationText"
+      <InputField
+        name="newPlaceName"
         label="Sted"
         placeholder="fx Hos Mads"
-        defaultValue={initial("locationText")}
-        maxLength={EVENT_LOCATION_MAX_LENGTH}
+        defaultValue={initial("newPlaceName")}
+        maxLength={PLACE_NAME_MAX_LENGTH}
         autoComplete="off"
         required
-        errors={fieldErrors.locationText}
-        hint="En adresse, eller hvem der lægger hus til."
+        errors={fieldErrors.newPlaceName ?? fieldErrors.placeId ?? fieldErrors.hostIds}
+        hint="Hvem der lægger hus til, eller stedets navn. Findes stedet allerede, bruges det."
       />
 
-      <EventInputField
+      <InputField
         name="theme"
         label="Tema"
         optional="valgfrit"
@@ -139,7 +153,7 @@ export function EventForm({ clubId, eventId, defaults, cancelHref }: EventFormPr
         errors={fieldErrors.theme}
       />
 
-      <EventTextareaField
+      <TextareaField
         name="description"
         label="Beskrivelse / plan"
         optional="valgfri"

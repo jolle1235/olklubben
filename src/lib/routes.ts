@@ -1,8 +1,8 @@
 /**
- * Links inside a club (SPEC §8.2) for events and beers, shared by pages,
- * components and Server Actions, so a route is spelled in one place. The
- * calendar's own URL state (?view, ?month, ?day) lives in
- * src/components/features/calendar/calendar-params.ts.
+ * Links inside a club (SPEC §8.2) for events, beers, places, the club page
+ * and the profile, shared by pages, components and Server Actions, so a route
+ * is spelled in one place (D-076). The calendar's own URL state (?view,
+ * ?month, ?day, ?past) lives in src/components/features/calendar/calendar-params.ts.
  *
  * Ids are the club's UUIDs; prefill values are URL-encoded. Pure and
  * client-safe.
@@ -13,13 +13,20 @@ export function overviewHref(clubId: string): string {
   return `/c/${clubId}`;
 }
 
-/**
- * "Opret event". `date` ("YYYY-MM-DD", Copenhagen) pre-fills the date field,
- * e.g. from a day in the calendar.
- */
-export function newEventHref(clubId: string, date?: string | null): string {
-  const base = `/c/${clubId}/events/new`;
-  return date ? `${base}?date=${encodeURIComponent(date)}` : base;
+export type NewEventPrefill = {
+  /** "YYYY-MM-DD" (Copenhagen) pre-fills the date, e.g. from a day in the calendar. */
+  date?: string | null;
+  /** Pre-selects one of the club's active places ("Opret event her" on a place, D-108). */
+  placeId?: string | null;
+};
+
+/** "Opret event", optionally with the date and/or the place filled in. */
+export function newEventHref(clubId: string, prefill: NewEventPrefill = {}): string {
+  const query = new URLSearchParams();
+  if (prefill.date) query.set("date", prefill.date);
+  if (prefill.placeId) query.set("placeId", prefill.placeId);
+  const search = query.toString();
+  return `/c/${clubId}/events/new${search ? `?${search}` : ""}`;
 }
 
 export function eventHref(clubId: string, eventId: string): string {
@@ -63,10 +70,42 @@ export function songsHref(clubId: string): string {
   return `/c/${clubId}/songs`;
 }
 
+/** Steder (SPEC §9.4). */
+export function placesHref(clubId: string): string {
+  return `/c/${clubId}/places`;
+}
+
+export function newPlaceHref(clubId: string): string {
+  return `${placesHref(clubId)}/new`;
+}
+
+export function placeHref(clubId: string, placeId: string): string {
+  return `${placesHref(clubId)}/${placeId}`;
+}
+
+export function editPlaceHref(clubId: string, placeId: string): string {
+  return `${placeHref(clubId, placeId)}/edit`;
+}
+
+/** Klubbens side: members, invitation, places, Farezone (SPEC §9.8). */
+export function clubHref(clubId: string): string {
+  return `/c/${clubId}/club`;
+}
+
+/** "Rediger klubinfo" (admins, D-110). */
+export function editClubHref(clubId: string): string {
+  return `${clubHref(clubId)}/edit`;
+}
+
+/** Profil (D-023: under the club, so the app shell stays). */
+export function profileHref(clubId: string): string {
+  return `/c/${clubId}/profile`;
+}
+
 /**
- * "Åbn i kort" (SPEC §9.2): a Google Maps search for the free-text place
- * (D-022). Google's documented cross-platform URL; it opens the Maps app on
- * phones that have it. Null for an empty text.
+ * "Åbn i kort" (SPEC §9.2): a Google Maps search. Callers pass the place's
+ * address (D-101). Google's documented cross-platform URL; it opens the Maps
+ * app on phones that have it. Null for an empty text.
  */
 export function mapsSearchUrl(place: string): string | null {
   const query = place.replace(/\s+/g, " ").trim();

@@ -12,7 +12,7 @@ export type EventInvitationProps = {
   event: {
     title: string;
     theme: string | null;
-    locationText: string;
+    place: { name: string; address: string | null };
     startsAt: Date;
     endsAt: Date | null;
   };
@@ -29,7 +29,9 @@ export type EventInvitationProps = {
  */
 export function EventInvitation({ event, creatorName, now }: EventInvitationProps) {
   const state = heroState(event, now);
-  const mapsUrl = mapsSearchUrl(event.locationText);
+  // INTERIM (round-3 foundation): without an address, search for the name as
+  // round 2 did. Agent C shows "Åbn i kort" only with an address (D-101).
+  const mapsUrl = mapsSearchUrl(event.place.address ?? event.place.name);
 
   return (
     <article className="rounded-3xl border border-border bg-paper px-5 pt-8 pb-6 text-center shadow-[0_18px_40px_-30px_rgb(65_68_55/0.6)] sm:px-10 sm:pt-10">
@@ -77,7 +79,7 @@ export function EventInvitation({ event, creatorName, now }: EventInvitationProp
       <p className="flex items-start justify-center gap-2 text-xl font-semibold text-ink">
         <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-olive" />
         <span className="sr-only">Sted: </span>
-        <span className="min-w-0 break-words hyphens-auto">{event.locationText}</span>
+        <span className="min-w-0 break-words hyphens-auto">{event.place.name}</span>
       </p>
       {mapsUrl ? (
         <Button asChild variant="outline" className="mt-4">

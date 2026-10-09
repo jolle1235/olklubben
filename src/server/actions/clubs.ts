@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -14,8 +13,9 @@ import {
   validationError,
   type ActionResult,
 } from "@/lib/action-result";
-import { isValidId } from "@/lib/ids";
+import { getDisplayName } from "@/lib/format/display-name";
 import { createClubSchema, joinClubSchema } from "@/lib/validation/club";
+import { idSchema } from "@/lib/validation/id";
 import { createPasswordResetUrl } from "@/server/auth/reset-link";
 import { requireMembership, requireUser } from "@/server/auth/session";
 import {
@@ -24,7 +24,7 @@ import {
   regenerateClubInvite,
   type JoinResult,
 } from "@/server/clubs/mutations";
-import { findClubMemberName, getResetLinkEligibility } from "@/server/clubs/queries";
+import { findClubMember, getResetLinkEligibility } from "@/server/clubs/queries";
 import { INVITE_NOT_WORKING_CODE, INVITE_NOT_WORKING_MESSAGE } from "@/server/domain/clubs/invites";
 import {
   canGeneratePasswordResetLink,
@@ -32,15 +32,13 @@ import {
   canResetMemberPassword,
 } from "@/server/domain/clubs/permissions";
 import { rateLimit } from "@/server/rate-limit";
+import { revalidateAppShell, revalidateClub } from "@/server/revalidate";
 
 /**
  * Server Actions for clubs, joining and invitations (SPEC §4.3, §7.1–7.3,
  * §6.4). Every action re-checks the user and, for club actions, the
  * membership and role on the server: hidden buttons are only UX (§4.4).
  */
-
-/** Ids from the client are untrusted: malformed → 404, like a club you cannot see. */
-const idSchema = z.string().refine(isValidId);
 
 /** The form state for useActionState: null before the first submit. */
 export type ClubFormState = ActionResult | null;
@@ -73,7 +71,7 @@ export async function createClub(
   }
 
   // The club list in every club's ClubSwitcher changed.
-  revalidatePath("/", "layout");
+  revalidateAppShell();
   redirect(`/c/${clubId}`);
 }
 
@@ -106,7 +104,7 @@ export async function joinClub(
     return fail(INVITE_NOT_WORKING_CODE, INVITE_NOT_WORKING_MESSAGE);
   }
 
-  revalidatePath("/", "layout");
+  revalidateAppShell();
   redirect(`/c/${result.clubId}`);
 }
 
@@ -130,13 +128,13 @@ export async function regenerateInvite(clubId: string): Promise<ActionResult> {
     return unexpectedError();
   }
 
-  revalidatePath(`/c/${club.id}`, "layout");
+  revalidateClub(club.id);
   return ok();
 }
 
 export type MemberResetLink = {
   url: string;
-  /** The member's name, for "Del det kun med <navn>". */
+  /** The member's display name, for "Del det kun med <navn>". */
   name: string;
 };
 
@@ -162,8 +160,9 @@ export async function createMemberResetLink(
   }
 
   // The target must be a member of THIS club (§4.4): otherwise it does not exist here.
-  const name = await findClubMemberName(club.id, parsed.data.userId);
-  if (name === null) notFound();
+  const member = await findClubMember(club.id, parsed.data.userId);
+  if (member === null) notFound();
+  const name = getDisplayName(member);
 
   // The link resets the whole account: refuse members of clubs the admin does
   // not run, and Google users. One generic message for both (never mention clubs).

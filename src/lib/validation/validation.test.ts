@@ -140,12 +140,18 @@ describe("joinClubSchema", () => {
 
 describe("updateProfileSchema", () => {
   it("trims the name and allows 1–100 characters", () => {
-    expect(updateProfileSchema.parse({ name: " Anders " })).toEqual({ name: "Anders" });
+    expect(updateProfileSchema.parse({ name: " Anders " })).toEqual({
+      name: "Anders",
+      nickname: null,
+    });
     expect(updateProfileSchema.safeParse({ name: "" }).success).toBe(false);
   });
 
   it("removes NUL characters", () => {
-    expect(updateProfileSchema.parse({ name: "An\u0000ders" })).toEqual({ name: "Anders" });
+    expect(updateProfileSchema.parse({ name: "An\u0000ders" })).toEqual({
+      name: "Anders",
+      nickname: null,
+    });
     expect(updateProfileSchema.safeParse({ name: "\u0000" }).success).toBe(false);
   });
 });

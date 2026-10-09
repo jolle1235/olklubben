@@ -24,7 +24,10 @@ import { auth, type AuthSession } from "./auth";
 
 export type SessionUser = {
   id: string;
+  /** The official name. Show getDisplayName(user) (nickname ?? name) in the UI. */
   name: string;
+  /** The global nickname (D-105), null when none. */
+  nickname: string | null;
   /** Lowercase. */
   email: string;
   emailVerified: boolean;
@@ -65,6 +68,7 @@ function toSessionUser(user: AuthSession["user"]): SessionUser {
   return {
     id: user.id,
     name: user.name,
+    nickname: user.nickname ?? null,
     email: user.email,
     emailVerified: user.emailVerified,
     image: user.image ?? null,

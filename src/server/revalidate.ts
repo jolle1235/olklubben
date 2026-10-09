@@ -13,3 +13,13 @@ import { revalidatePath } from "next/cache";
 export function revalidateClub(clubId: string): void {
   revalidatePath(`/c/${clubId}`, "layout");
 }
+
+/**
+ * Revalidates every page (the root layout and everything below it). For
+ * changes the app shell shows on every page and in every club: the user's
+ * name and nickname (sidebar, D-105), a club's name in the ClubSwitcher, and
+ * the club list after leaving or deleting a club (D-104).
+ */
+export function revalidateAppShell(): void {
+  revalidatePath("/", "layout");
+}

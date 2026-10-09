@@ -110,7 +110,7 @@ export function CalendarDayPanel({
 
       {day ? (
         <Link
-          href={newEventHref(clubId, day)}
+          href={newEventHref(clubId, { date: day })}
           className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold text-primary underline decoration-2 underline-offset-4 hover:decoration-amber"
         >
           <PlusIcon aria-hidden className="size-4" />

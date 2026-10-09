@@ -24,6 +24,9 @@ export const metadata: Metadata = { title: "Klubben" };
  * Klubbens side, round 1 (SPEC §9.8, §16.3, Q11): members (view only), the
  * invitation link for everyone, a new code and reset links for admins.
  * Removing members, roles, leaving and deleting the club come in round 3.
+ *
+ * Lives in the (members) route group (URL still /c/[clubId]/club) so its
+ * loading.tsx does not wrap club/edit (D-108).
  */
 export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">) {
   const { clubId } = await params;

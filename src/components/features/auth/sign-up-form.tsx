@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 
+import { useActionForm } from "@/components/features/forms/use-action-form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { withNext } from "@/lib/auth-links";
 import { PASSWORD_MIN_LENGTH, signUpSchema } from "@/lib/validation/auth";
@@ -10,7 +11,6 @@ import { signUpAction } from "@/server/actions/auth";
 import { AuthField } from "./auth-field";
 import { ActionErrorAlert } from "./form-alert";
 import { TextLink } from "./text-link";
-import { useAuthForm } from "./use-auth-form";
 
 const EMAIL_TAKEN_CODES = new Set(["USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL"]);
 
@@ -19,7 +19,9 @@ const EMAIL_TAKEN_CODES = new Set(["USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS_U
  * The new user is logged in right away and sent to ?next= or "/" (§10.1).
  */
 export function SignUpForm({ next }: { next: string | null }) {
-  const { formProps, fieldErrors, formError, values } = useAuthForm(signUpAction, signUpSchema);
+  const { formProps, fieldErrors, formError, values } = useActionForm(signUpAction, {
+    schema: signUpSchema,
+  });
   const alertId = useId();
   const emailTaken = formError !== null && EMAIL_TAKEN_CODES.has(formError.code);
 

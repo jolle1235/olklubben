@@ -12,10 +12,11 @@ import { flashToastMessage, searchWithoutToast, TOAST_PARAM } from "@/lib/flash-
  * from the address bar, so a refresh, the back button or a shared link does
  * not toast again. Unknown keys are ignored (and left in the URL).
  *
- * Mounted once in the club layout. The layout is not re-rendered between
- * pages, but this component is: useSearchParams() follows every navigation,
- * including a redirect. The toast has a fixed id per key, so React's double
- * effects in development show it once. Renders nothing.
+ * Mounted once in the root layout (D-104), so a toast also shows outside a
+ * club (e.g. /onboarding after leaving the last club). The layout is not
+ * re-rendered between pages, but this component is: useSearchParams() follows
+ * every navigation, including a redirect. The toast has a fixed id per key, so
+ * React's double effects in development show it once. Renders nothing.
  */
 export function FlashToast() {
   const searchParams = useSearchParams();

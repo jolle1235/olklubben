@@ -42,7 +42,7 @@ export default async function NewEventPage({
               date: typeof date === "string" && isDateKey(date) ? date : "",
               startTime: DEFAULT_EVENT_START_TIME,
               endTime: "",
-              locationText: "",
+              newPlaceName: "",
               theme: "",
               description: "",
             }}

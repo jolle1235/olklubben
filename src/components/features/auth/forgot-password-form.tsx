@@ -3,6 +3,7 @@
 import { MailCheckIcon } from "lucide-react";
 import Link from "next/link";
 
+import { useActionForm } from "@/components/features/forms/use-action-form";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { withNext } from "@/lib/auth-links";
@@ -11,16 +12,15 @@ import { requestPasswordResetAction } from "@/server/actions/auth";
 
 import { AuthField } from "./auth-field";
 import { ActionErrorAlert } from "./form-alert";
-import { useAuthForm } from "./use-auth-form";
 
 /**
  * "Glemt password" (SPEC §6.4). Whatever the email, the answer is the same
  * note, so the page never reveals whether an account exists.
  */
 export function ForgotPasswordForm({ next }: { next: string | null }) {
-  const { state, formProps, fieldErrors, formError, values } = useAuthForm(
+  const { state, formProps, fieldErrors, formError, values } = useActionForm(
     requestPasswordResetAction,
-    forgotPasswordSchema,
+    { schema: forgotPasswordSchema },
   );
 
   if (state?.ok) return <ResetLinkSent email={state.data.email} next={next} />;

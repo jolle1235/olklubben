@@ -100,6 +100,14 @@ describe("authBeforeHook i Better Auth", () => {
     });
   });
 
+  it("begrænser 'Skift password' pr. IP (D-106)", async () => {
+    const { AUTH_RATE_LIMIT_RULES, AUTH_RATE_LIMITED_PATHS } = await import("./auth-rate-limit");
+    expect(AUTH_RATE_LIMIT_RULES["/change-password"]).toEqual([
+      { scope: "ip", limit: 10, windowSeconds: 15 * 60 },
+    ]);
+    expect(AUTH_RATE_LIMITED_PATHS).toContain("/change-password");
+  });
+
   describe("login-grænserne (D-028)", () => {
     const IP = "203.0.113.7";
     const ipKey = `auth:/sign-in/email:ip:${IP}`;

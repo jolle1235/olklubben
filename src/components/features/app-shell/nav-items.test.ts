@@ -41,6 +41,7 @@ describe("getSidebarNav", () => {
     expect(sidebar.userRow).toEqual(byKey.profile);
     expect(isNavItemActive("/c/club1/profile", sidebar.userRow)).toBe(true);
     expect(isNavItemActive("/c/club1/club", sidebar.userRow)).toBe(true);
+    expect(isNavItemActive("/c/club1/places", sidebar.userRow)).toBe(true);
     expect(isNavItemActive("/c/club1", sidebar.userRow)).toBe(false);
     expect(isNavItemActive("/c/club1/beers", sidebar.userRow)).toBe(false);
   });
@@ -77,6 +78,14 @@ describe("isNavItemActive", () => {
   it("treats the club page as part of Profil", () => {
     expect(activeKeys("/c/club1/profile")).toEqual(["profile"]);
     expect(activeKeys("/c/club1/club")).toEqual(["profile"]);
+    expect(activeKeys("/c/club1/club/edit")).toEqual(["profile"]);
+  });
+
+  it("treats the places as part of Profil (D-108)", () => {
+    expect(activeKeys("/c/club1/places")).toEqual(["profile"]);
+    expect(activeKeys("/c/club1/places/new")).toEqual(["profile"]);
+    expect(activeKeys("/c/club1/places/p1/edit")).toEqual(["profile"]);
+    expect(activeKeys("/c/club1/placesx")).toEqual([]);
   });
 
   it("never matches another club", () => {

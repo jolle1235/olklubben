@@ -22,8 +22,8 @@ test.describe("Fokus ved fejl i formularer", () => {
     await expect(codeField).toHaveAttribute("aria-invalid", "true");
     await expect(codeField).toBeFocused();
 
-    // Create a club: a blank name, checked by the Server Action. The same
-    // error a second time focuses the field again.
+    // Create a club: a blank name, checked in the browser with the action's
+    // schema (TG-021). The same error a second time focuses the field again.
     const nameField = page.getByLabel("Klubbens navn");
     const createButton = page.getByRole("button", { name: "Opret ølklub" });
     await nameField.fill("   ");

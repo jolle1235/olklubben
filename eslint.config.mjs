@@ -31,6 +31,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Project:
     ".next-e2e/**",
+    // The orchestrator's git-ignored working files (plans, snapshots, scratch scripts).
+    ".work/**",
     "src/generated/**",
     "playwright-report/**",
     "test-results/**",

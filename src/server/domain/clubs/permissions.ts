@@ -36,6 +36,24 @@ export function canRegenerateInvite(membership: MembershipRole | null | undefine
   return isAdmin(membership);
 }
 
+/**
+ * Only admins may promote, demote and remove members (SPEC §5.1, §9.8). The
+ * last-admin rules live in membership-rules.ts.
+ */
+export function canManageMembers(membership: MembershipRole | null | undefined): boolean {
+  return isAdmin(membership);
+}
+
+/** Only admins may change the club's name and description (SPEC §5.1, D-110). */
+export function canEditClubInfo(membership: MembershipRole | null | undefined): boolean {
+  return isAdmin(membership);
+}
+
+/** Only admins may delete the club, after typing its name (SPEC §7.5, D-103). */
+export function canDeleteClub(membership: MembershipRole | null | undefined): boolean {
+  return isAdmin(membership);
+}
+
 /** Only admins may create a one-time password reset link for a member (SPEC §6.4). */
 export function canGeneratePasswordResetLink(
   membership: MembershipRole | null | undefined,

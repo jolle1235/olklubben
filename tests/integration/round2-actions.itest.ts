@@ -11,6 +11,7 @@ import { createEvent } from "@/server/events/mutations";
 import {
   addMember,
   createClub,
+  createPlace,
   createUser,
   expectNotFound,
   expectRedirect,
@@ -43,25 +44,36 @@ let otherClubId: string;
 let otherClubEventId: string;
 let otherClubBeerId: string;
 
+// Round 3: the place is "＋ Nyt sted" by name (the interim form); no hosts
+// chosen = the default (the place's owners, else the creator).
 const eventFields = (overrides: Record<string, string> = {}) => ({
   title: "Ølsmagning #7",
   date: "2026-11-20",
   startTime: "18:30",
   endTime: "",
-  locationText: "Hos Itest",
+  placeId: "new",
+  newPlaceName: "Hos Itest",
   theme: "",
   description: "",
   ...overrides,
 });
 
-async function insertEvent(createdBy: TestUser, title = "Itest-smagning") {
+const newPlace = (name: string) => ({
+  kind: "new" as const,
+  name,
+  address: null,
+  ownedByCreator: false,
+});
+
+async function insertEvent(createdBy: TestUser, title = "Itest-smagning", hostIds: string[] = []) {
   const { id } = await createEvent({
     clubId,
     createdById: createdBy.id,
     title,
     theme: null,
     description: null,
-    locationText: "Hos Itest",
+    place: newPlace("Hos Itest"),
+    hostIds,
     startsAt: new Date(Date.now() + 10 * DAY),
     endsAt: null,
   });
@@ -88,7 +100,8 @@ beforeAll(async () => {
     title: "Nabosmagning",
     theme: null,
     description: null,
-    locationText: "Hos naboen",
+    place: newPlace("Hos naboen"),
+    hostIds: [],
     startsAt: new Date(Date.now() + 5 * DAY),
     endsAt: null,
   }));
@@ -136,7 +149,7 @@ describe("createEventAction", () => {
       date: ["Vælg en dato."],
       endTime: ["Sluttiden skal være en anden end starttiden."],
     });
-    expect(state?.values.locationText).toBe("Hos Itest");
+    expect(state?.values.newPlaceName).toBe("Hos Itest");
   });
 
   it("strips NUL characters, which Postgres text cannot store, instead of failing", async () => {
@@ -221,6 +234,27 @@ describe("updateEventAction and deleteEventAction (D-061)", () => {
     expect((await db.beer.findUniqueOrThrow({ where: { id: beerId } })).eventId).toBeNull();
   });
 
+  it("lets a host who did not create the event edit and delete it (D-098)", async () => {
+    const eventId = await insertEvent(creator, "Værtens smagning", [member.id]);
+    setActor(member);
+    await expectRedirect(
+      updateEventAction(
+        null,
+        formData({
+          clubId,
+          eventId,
+          ...eventFields({ title: "Rettet af værten" }),
+          hostIds: [member.id],
+        }),
+      ),
+      `/c/${clubId}/events/${eventId}?toast=event-updated`,
+    );
+    expect((await db.event.findUniqueOrThrow({ where: { id: eventId } })).title).toBe(
+      "Rettet af værten",
+    );
+    await expectRedirect(deleteEventAction(clubId, eventId), `/c/${clubId}?toast=event-deleted`);
+  });
+
   it("an admin may delete a member's event; without beers the toast says so", async () => {
     const eventId = await insertEvent(member);
     setActor(admin);
@@ -239,6 +273,67 @@ describe("updateEventAction and deleteEventAction (D-061)", () => {
     setActor(outsider);
     await expectNotFound(deleteEventAction(clubId, otherClubEventId));
     expect(await db.event.findUnique({ where: { id: otherClubEventId } })).not.toBeNull();
+  });
+});
+
+describe("event actions: place and hosts (round 3, D-098, D-099)", () => {
+  it("chooses an existing place, with chosen hosts as a repeated field", async () => {
+    const placeId = await createPlace(clubId, admin, "Hos Admin", { ownerIds: [admin.id] });
+    setActor(member);
+    const url = await expectRedirect(
+      createEventAction(
+        null,
+        formData({ clubId, ...eventFields({ placeId }), hostIds: [member.id, creator.id] }),
+      ),
+      new RegExp(`^/c/${clubId}/events/(${UUID})\\?toast=event-created$`),
+    );
+    const eventId = url.split("/").pop()?.split("?")[0] ?? "";
+    const event = await db.event.findUniqueOrThrow({
+      where: { id: eventId },
+      include: { hosts: { select: { userId: true } } },
+    });
+    expect(event.placeId).toBe(placeId);
+    expect(event.hosts.map((host) => host.userId).sort()).toEqual([creator.id, member.id].sort());
+  });
+
+  it("maps a gone, foreign or archived place to fieldErrors.placeId", async () => {
+    const foreign = await createPlace(otherClubId, outsider, "Naboens sted");
+    const archived = await createPlace(clubId, admin, "Arkiveret sted", { archived: true });
+    setActor(member);
+    for (const [placeId, message] of [
+      [foreign, "Stedet findes ikke længere. Vælg et andet."],
+      [UNKNOWN_ID, "Stedet findes ikke længere. Vælg et andet."],
+      [archived, "Stedet er arkiveret. Vælg et andet."],
+    ] as const) {
+      const state = await createEventAction(
+        null,
+        formData({ clubId, ...eventFields({ placeId }) }),
+      );
+      expect(state?.error).toMatchObject({
+        code: ACTION_ERROR_CODES.VALIDATION,
+        fieldErrors: { placeId: [message] },
+      });
+      expect(state?.values.placeId).toBe(placeId);
+    }
+  });
+
+  it("maps a host from outside the club to fieldErrors.hostIds and writes nothing", async () => {
+    const before = await db.event.count({ where: { clubId } });
+    setActor(member);
+    const state = await createEventAction(
+      null,
+      formData({
+        clubId,
+        ...eventFields({ newPlaceName: "Aldrig oprettet" }),
+        hostIds: [outsider.id],
+      }),
+    );
+    expect(state?.error.fieldErrors).toEqual({
+      hostIds: ["Vælg værter blandt klubbens medlemmer."],
+    });
+    expect(state?.values.hostIds).toEqual([outsider.id]);
+    expect(await db.event.count({ where: { clubId } })).toBe(before);
+    expect(await db.place.count({ where: { clubId, name: "Aldrig oprettet" } })).toBe(0);
   });
 });
 

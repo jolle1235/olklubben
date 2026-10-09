@@ -76,6 +76,10 @@ export const auth = betterAuth({
     additionalFields: {
       // Exposed on session.user; set by the app (rememberActiveClub), never by the client.
       lastActiveClubId: { type: "string", required: false, input: false },
+      // The global nickname (D-105). input:false: sign-up and POST /update-user
+      // refuse it (FIELD_NOT_ALLOWED). Written only by updateUserProfile
+      // (src/server/users/mutations.ts) together with the name.
+      nickname: { type: "string", required: false, input: false },
     },
   },
 

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 
 import { fontVariables } from "@/components/brand/fonts";
+import { FlashToast } from "@/components/features/flash-toast";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -21,12 +23,21 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * <FlashToast /> shows the toast a Server Action's redirect asked for with
+ * `?toast=` (src/lib/flash-toast.ts) on EVERY page, also outside a club, e.g.
+ * "Du har forladt klubben." on /onboarding or another club (D-104). Its
+ * Suspense boundary keeps useSearchParams() from making pages dynamic.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="da" className={`${fontVariables} h-full`}>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         <Toaster />
+        <Suspense fallback={null}>
+          <FlashToast />
+        </Suspense>
       </body>
     </html>
   );

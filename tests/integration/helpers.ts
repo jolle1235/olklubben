@@ -6,6 +6,7 @@ import type { ClubRole } from "@/generated/prisma/enums";
 import { auth } from "@/server/auth/auth";
 import { createClubWithAdmin } from "@/server/clubs/mutations";
 import { db } from "@/server/db";
+import { placeNameKey } from "@/server/domain/places/name";
 
 import { assertItestDatabaseUrl } from "./env.mjs";
 
@@ -107,10 +108,43 @@ export async function activeInvite(clubId: string) {
   return db.invite.findFirst({ where: { clubId, revokedAt: null } });
 }
 
-export function formData(fields: Record<string, string>): FormData {
+/** A submitted form. A list becomes a repeated field (fx hostIds). */
+export function formData(fields: Record<string, string | string[]>): FormData {
   const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) data.set(key, value);
+  for (const [key, value] of Object.entries(fields)) {
+    if (Array.isArray(value)) for (const item of value) data.append(key, item);
+    else data.set(key, value);
+  }
   return data;
+}
+
+/**
+ * A place in the club, written directly (round 3). Owners must be members
+ * (the composite FK refuses anyone else). Returns its id.
+ */
+export async function createPlace(
+  clubId: string,
+  creator: TestUser,
+  name: string,
+  options: { address?: string | null; ownerIds?: string[]; archived?: boolean } = {},
+): Promise<string> {
+  const place = await db.place.create({
+    data: {
+      clubId,
+      createdById: creator.id,
+      name,
+      nameKey: placeNameKey(name),
+      address: options.address ?? null,
+      archivedAt: options.archived ? new Date() : null,
+    },
+    select: { id: true },
+  });
+  if (options.ownerIds?.length) {
+    await db.placeOwner.createMany({
+      data: options.ownerIds.map((userId) => ({ placeId: place.id, clubId, userId })),
+    });
+  }
+  return place.id;
 }
 
 // ── Next.js control flow ────────────────────────────────────────────────────

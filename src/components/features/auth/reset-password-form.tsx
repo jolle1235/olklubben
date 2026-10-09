@@ -1,5 +1,6 @@
 "use client";
 
+import { useActionForm } from "@/components/features/forms/use-action-form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { withNext } from "@/lib/auth-links";
 import { PASSWORD_MIN_LENGTH, resetPasswordSchema } from "@/lib/validation/auth";
@@ -8,7 +9,6 @@ import { resetPasswordAction } from "@/server/actions/auth";
 import { AuthField } from "./auth-field";
 import { ActionErrorAlert } from "./form-alert";
 import { TextLink } from "./text-link";
-import { useAuthForm } from "./use-auth-form";
 
 const INVALID_TOKEN_CODES = new Set(["INVALID_TOKEN", "TOKEN_EXPIRED"]);
 
@@ -18,10 +18,9 @@ const INVALID_TOKEN_CODES = new Set(["INVALID_TOKEN", "TOKEN_EXPIRED"]);
  * to /login?reset=1 (with ?next= when the link had one, e.g. an invitation).
  */
 export function ResetPasswordForm({ token, next }: { token: string; next: string | null }) {
-  const { formProps, fieldErrors, formError } = useAuthForm(
-    resetPasswordAction,
-    resetPasswordSchema,
-  );
+  const { formProps, fieldErrors, formError } = useActionForm(resetPasswordAction, {
+    schema: resetPasswordSchema,
+  });
   const tokenRejected = formError !== null && INVALID_TOKEN_CODES.has(formError.code);
 
   return (

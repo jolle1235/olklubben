@@ -56,9 +56,7 @@ export async function createPasswordResetUrl(userId: string): Promise<string> {
   if (!user) throw new PasswordResetTargetNotFoundError();
 
   const context = await auth.$context;
-  // Reset rows are the only verification rows whose value is a bare user id
-  // (identifiers are hashed, so they cannot be matched by prefix).
-  await db.verification.deleteMany({ where: { value: user.id } });
+  await revokePasswordResetTokens(user.id);
   const token = generateId(TOKEN_LENGTH);
   await context.internalAdapter.createVerificationValue({
     identifier: `${RESET_IDENTIFIER_PREFIX}${token}`,
@@ -67,6 +65,17 @@ export async function createPasswordResetUrl(userId: string): Promise<string> {
   });
 
   return passwordResetUrl(token);
+}
+
+/**
+ * Deletes every outstanding reset link of the user (email or admin). Used
+ * before a new admin link, and after "Skift password" (D-047, D-106): an old
+ * link must not work once the password has changed. Reset rows are the only
+ * verification rows whose value is a bare user id (identifiers are hashed, so
+ * they cannot be matched by prefix; OAuth state rows hold JSON).
+ */
+export async function revokePasswordResetTokens(userId: string): Promise<void> {
+  await db.verification.deleteMany({ where: { value: userId } });
 }
 
 /**

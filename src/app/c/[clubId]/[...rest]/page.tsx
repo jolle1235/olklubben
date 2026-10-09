@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import { requireMembership } from "@/server/auth/session";
 
 /**
- * Any unknown path below a club (e.g. /c/<id>/places before round 3, or an old
+ * Any unknown path below a club (e.g. /c/<id>/polls before round 4, or an old
  * link). A member gets the club's own 404 inside the AppShell
  * (c/[clubId]/not-found.tsx); a non-member gets the root 404 from the layout
  * and learns nothing about the club (§4.4, D-012).
  *
- * The real pages (club, profile, calendar, beers, songs, events …) take
+ * The real pages (club, profile, calendar, beers, places, songs, events …) take
  * precedence over this catch-all. requireMembership(), not requireClubPage():
  * an unknown URL must not change the active club.
  *
