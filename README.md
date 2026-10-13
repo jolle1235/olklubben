@@ -6,7 +6,7 @@ En lille, social webapp for private ølklubber: kommende ølsmagninger, events, 
 
 ## Hvad kan appen (runde 1–3)
 
-Appen bygges i fire runder (SPEC §16.3). Runde 1 ("Vi har en klub") er fundamentet, runde 2 ("Vi kan faktisk bruge den") giver events, kalender, ølkatalog og ratings, og runde 3 ("Det er vores klub") giver kælenavne, steder med ejere, værter, historik og medlemsadministration. Sangbogen venter på sangbogsfilen (D-091).
+Appen bygges i fire runder (SPEC §16.3). Runde 1 ("Vi har en klub") er fundamentet, runde 2 ("Vi kan faktisk bruge den") giver events, kalender, ølkatalog og ratings, og runde 3 ("Det er vores klub") giver kælenavne, steder med ejere, værter, historik, medlemsadministration og sangbogen.
 
 **Runde 1**
 
@@ -31,7 +31,8 @@ Appen bygges i fire runder (SPEC §16.3). Runde 1 ("Vi har en klub") er fundamen
 - **Events med steder og værter:** eventformularen vælger sted blandt klubbens steder (radio-kort, senest brugte først) eller opretter et nyt med "＋ Nyt sted" uden at forlade formularen. Værterne udfyldes med stedets ejere (ellers dig) og kan ændres. Eventsiden linker til stedet, viser adressen, "Åbn i kort" kun med en adresse (ellers "Tilføj adresse") og "Værter: Mads og Anders". Opretteren, værterne og klubbens admins kan rette og slette eventet.
 - **Historik:** "Tidligere ølsmagninger" på Overblik (de 3 nyeste med antal øl og bedste øl) og i Kalenderens liste (12 pr. måned, "Vis alle N tidligere").
 - **Medlemmer** (klubbens side): admins har en '⋯'-menu pr. medlem (gør til admin, fjern admin-rollen, nulstillingslink, fjern fra klubben), retter klubbens navn og beskrivelse og kan slette klubben ved at skrive dens navn. Alle kan forlade klubben, undtagen den sidste admin. Den, der går, mister sine stedejerskaber og værtskaber på kommende events.
-- **Kommer senere:** sangbog (når sangbogsfilen ligger i `data/sangbog/`) og afstemninger i runde 4. Sangbog-fanen viser en "kommer snart"-side.
+- **Sangbog** (`/c/<id>/songs`): alle klubbens sange alfabetisk i dansk rækkefølge (Æ, Ø og Å sidst, "Aa" under Å, tal under #) med bogstavoverskrifter og et A–Å-hop. Søgefeltet søger med det samme i titel, kunstner, melodi og tekst og viser linjen, der matchede. Finder det intet, prøver det igen uden forskel på æ/ø/å og siger det. Søgningen står i adressen (`?q=`). Læsevisningen har Tekst og Akkorder (når sangen har akkorder), syv skriftstørrelser, der huskes på enheden, holder skærmen tændt og har Forrige/Næste gennem hele bogen. Admins opretter, retter (med forhåndsvisning og formatguide) og sletter sange. Den eksisterende sangbog importeres med et script (se "Importér sangbogen").
+- **Kommer senere:** afstemninger i runde 4.
 
 Klubbens data er adskilt: en side eller handling i en klub, du ikke er medlem af, giver altid 404 (SPEC §4.4). Det samme gælder events, øl og steder fra en anden klub, også i databasen (sammensatte fremmednøgler, D-096).
 
@@ -211,9 +212,9 @@ DATABASE_URL="<Neon unpooled URL>" npm run songbook:import -- --user <din email>
 Next.js sender svaret med HTTP 200, så snart en `loading.tsx` (skeleton) vises. Kalder siden derefter `notFound()`, bliver det en "blød" 404 (SPEC TG-008). Derfor:
 
 - Der ligger **ingen** `loading.tsx` direkte i `src/app/c/[clubId]/`.
-- Lister og "ny"-formularer har deres egen `loading.tsx`. Har mappen undersider, ligger listen i en route-gruppe: `(overview)/` (Overblik), `beers/(catalog)/` (Ølkatalog), `places/(list)/` (Steder) og `club/(members)/` (Klubben).
-- Et event, en øl eller et sted har en **guard-layout** (`events/[eventId]/layout.tsx`, `beers/[beerId]/layout.tsx`, `places/[placeId]/layout.tsx`), der giver en ægte 404 for ukendte id'er og id'er fra andre klubber, _før_ skeletonen i `(detail)/loading.tsx` vises.
-- Sider, der selv kan give 404 (fx `edit/`, kun for opretter, vært eller admin, og `club/edit`, kun for admins), og catch-all-ruten `[...rest]` har ingen `loading.tsx` over sig.
+- Lister og "ny"-formularer har deres egen `loading.tsx`. Har mappen undersider, ligger listen i en route-gruppe: `(overview)/` (Overblik), `beers/(catalog)/` (Ølkatalog), `places/(list)/` (Steder), `songs/(list)/` (Sangbog) og `club/(members)/` (Klubben).
+- Et event, en øl eller et sted har en **guard-layout** (`events/[eventId]/layout.tsx`, `beers/[beerId]/layout.tsx`, `places/[placeId]/layout.tsx`, `songs/[songId]/layout.tsx`), der giver en ægte 404 for ukendte id'er og id'er fra andre klubber, _før_ skeletonen i `(detail)/loading.tsx` vises.
+- Sider, der selv kan give 404 (fx `edit/`, kun for opretter, vært eller admin, og `club/edit`, `songs/new` og `songs/<songId>/edit`, kun for admins), og catch-all-ruten `[...rest]` har ingen `loading.tsx` over sig.
 
 Reglerne står også i `src/app/c/[clubId]/layout.tsx`.
 
@@ -228,6 +229,9 @@ Reglerne står også i `src/app/c/[clubId]/layout.tsx`.
 | `/c/<id>/beers/new`                                         | `?eventId=` vælger et af klubbens events på forhånd, `?name=` udfylder navnet                                                                                                             |
 | `/c/<id>/beers/<beerId>[/edit]`                             | –                                                                                                                                                                                         |
 | `/c/<id>/places`, `/places/new`, `/places/<placeId>[/edit]` | – (redigering for alle medlemmer, også arkiverede steder)                                                                                                                                 |
+| `/c/<id>/songs`                                             | `?q=` (søgning i titel, kunstner, melodi og tekst)                                                                                                                                        |
+| `/c/<id>/songs/new`, `/songs/<songId>/edit`                 | – (kun admins, ellers 404)                                                                                                                                                                |
+| `/c/<id>/songs/<songId>`                                    | –                                                                                                                                                                                         |
 | `/c/<id>/club/edit`                                         | – (kun admins, ellers 404)                                                                                                                                                                |
 
 **Toasts efter en redirect.** En Server Action, der lykkes, sender videre med `?toast=<nøgle>` (`withToast` i `src/lib/flash-toast.ts`), fx `event-created` eller `beer-deleted`. Rodlayoutet viser beskeden én gang (`<FlashToast />`, D-104, så den også vises på `/onboarding` og `/clubs` efter "Forlad klubben" og "Slet klubben") og fjerner flaget fra adresselinjen. Kun kendte nøgler vises.
@@ -242,6 +246,8 @@ Reglerne står også i `src/app/c/[clubId]/layout.tsx`.
 - Før hver kørsel oprettes databasen, hvis den mangler, migrations anvendes (`prisma migrate deploy`), og alle tabeller tømmes. Efter kørslen tømmes de igen (`tests/integration/global-setup.ts`). Må din Postgres-bruger ikke oprette databaser, så opret den selv én gang (som i lokal opsætning, trin 3).
 - Kun `next/headers` (der er ingen Next-request) og `next/cache` er mocket. `notFound()` og `redirect()` er de rigtige og testes via deres `digest` (`expectNotFound`/`expectRedirect` i `tests/integration/helpers.ts`). Brugere oprettes gennem Better Auth (`itest-…@example.test`).
 - Testfilerne kører én ad gangen (én database). `npm test` rører aldrig databasen.
+
+**Sangbogen** har endnu ingen automatiske tests (Jespers valg 2026-10-13, SPEC TG-043): Jesper tester den manuelt. Seedet giver Torsdagsklubben 5 opdigtede sange til det, og `insertSong` i `e2e/support/db.ts` er klar til senere E2E-tests.
 
 **E2E (Playwright):** `npm run test:e2e`. Første gang: `npx playwright install chromium`.
 

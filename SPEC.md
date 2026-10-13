@@ -152,6 +152,7 @@ src/
       polls/                # fx tally(), resolveWinner(), shouldAutoClose()
       places/
       clubs/
+      songs/                # song-text (vers, akkorder, etiketter), søgning, titler og bogstaver (D-122, D-123)
     actions/                # Server Actions: valider → autoriser → kald domain → revalidate
     db/                     # Kun Prisma client (+ pg-config, seed-guard, locks.ts: al rå SQL til låse, D-102)
     clubs/, users/, places/ … # Pr. feature: queries.ts + mutations.ts (+ access.ts med require*-guards), altid scopet på clubId. app/** og actions/** må ikke importere @/server/db (ESLint, D-054)
@@ -162,7 +163,9 @@ src/
 prisma/
   schema.prisma
   migrations/
-  seed.ts                   # testdata: 2 klubber, brugere, events, øl, sange, steder
+  seed.ts                   # testdata: 2 klubber, brugere, events, øl, opdigtede sange, steder
+scripts/
+  import-songbook.ts        # sangbogsimport (CLI, §9.6, D-126) + songbook/ (pdftohtml, parser, plan, guards)
 ```
 
 Regler:
@@ -170,6 +173,7 @@ Regler:
 * **Domænefunktioner er rene, hvor det er muligt** (fx `tallyPoll(options, votes) → result`), så de kan unit-testes uden database.
 * **Ingen forretningslogik i komponenter.** Komponenter viser data og kalder actions.
 * **Ingen duplikeret logik** mellem client og server. Delte regler bor i `lib/validation` eller `server/domain`.
+* **Seedet og testene bruger kun opdigtede sange** (5 i Torsdagsklubben, id'er `…d1`–`…d5`; Drengene & Bajere får ingen). Rigtige sangtekster og titler kommer aldrig i repoet (D-120).
 
 ## 4.3 Server Actions-mønster
 
@@ -473,9 +477,10 @@ URL-slugs er på engelsk (kodekonsistens). Al UI-tekst er dansk.
 /c/[clubId]/beers/new
 /c/[clubId]/beers/[beerId]
 /c/[clubId]/beers/[beerId]/edit     (opretter eller admin, D-063)
-/c/[clubId]/songs                   → Sangbog
-/c/[clubId]/songs/[songId]
-/c/[clubId]/songs/new               (admin)
+/c/[clubId]/songs                   → Sangbog (?q= søgning)
+/c/[clubId]/songs/new               (admin; ellers ægte 404)
+/c/[clubId]/songs/[songId]          → Læsevisning
+/c/[clubId]/songs/[songId]/edit     (admin; ellers ægte 404)
 /c/[clubId]/places                  → Steder (aktive + arkiverede)
 /c/[clubId]/places/new
 /c/[clubId]/places/[placeId]
@@ -805,42 +810,57 @@ Sorter: [ Bedste rating ▼ ]   Event: [ Alle ▼ ]
 
 ## 9.6 Sangbog [MVP]
 
-Digital udgave af klubbens eksisterende sangbog. Den primære funktion er at **finde og læse** sange, ofte på telefonen midt i en smagning.
+Digital udgave af klubbens eksisterende sangbog. Den primære funktion er at **finde og læse** sange, ofte på telefonen midt i en smagning. Sangene vises **i appen** (ikke som download), kan søges og står altid alfabetisk (Jespers krav, D-118).
 
 ### Felter
 
-* **Titel** (påkrævet)
-* **Tekst** (påkrævet, fritekst med bevarede linjeskift og vers-afsnit)
-* **Nummer** (valgfrit), så den digitale sangbog kan matche den fysiske
-* **Melodi** (valgfri), fx "Mel.: Den gamle skibsklokke"
+* **Titel** (påkrævet, 1–120 tegn, unik i klubben uden forskel på store/små bogstaver og mellemrum; en dublet giver feltfejlen med et link til sangen, der har titlen)
+* **Kunstner** (valgfri, 1–120)
+* **Melodi** (valgfri, 1–120), vises som "Mel.: …"
+* **Tekst og akkorder** (påkrævet, højst 20.000 tegn) i sangtekstformatet nedenfor
 
-[SENERE] Kategori, akkorder, forfatter og favoritter.
+Nummer er fjernet (sangbogen har ingen numre, Q5). Akkorder er med fra start (var [SENERE]). [SENERE] Kategori, forfatter og favoritter.
+
+### Sangtekstformatet (D-122)
+
+* En tom linje = nyt vers.
+* `[Omkvæd]`, `[Vers 2]` osv. på en linje for sig er etiketter. Et kendt ord alene (fx `Chorus`, `verse 2:`, `SOLO`) er også en etiket. Etiketter vises på dansk: Verse → Vers, Chorus/Refrain → Omkvæd, Bridge → Bro, Interlude → Mellemspil, Outtro → Outro, SOLO → Solo.
+* Akkorder står på en linje for sig over teksten. Enkelte mellemrum = en række (fx `G C D x2`), ekstra mellemrum placerer akkorden over et bestemt ord.
+* `capo: 2` (og `tuning:`, `stemning:`, `tempo:`, `bpm:`) på en linje for sig er en note, der kun vises med akkorder.
+* En linje, der begynder med `\`, er altid tekst (til en tekstlinje, der ellers ville ligne en akkord eller en etiket).
+* Teksten gemmes, som den er skrevet (renset for tabulatorer, usynlige tegn og dobbelte tomme linjer), og klassificeres først ved visning i `src/server/domain/songs/song-text.ts`. `body` må aldrig søges eller vises råt.
 
 ### Oversigt
 
-* Søgefelt øverst, der søger i **titel og tekst** (så man kan finde sangen ud fra en linje, man husker).
-* Har sangene numre, sorteres der efter nummer. Ellers alfabetisk med bogstav-overskrifter (A, B, C …).
+* Altid alfabetisk i dansk rækkefølge (Æ, Ø, Å sidst; "Aa" under Å; tal og tegn under #) med bogstavoverskrifter. Undertitlen er "<n> sange fra A til Å".
+* Et klæbende søgefelt under top-baren (øverst fra `md`) med et **A–Å**-gitter (6 × 5 felter, # først, Æ Ø Å sidst, tomme bogstaver dæmpet).
+* Søgningen sker med det samme i titel, kunstner, melodi og tekst. Træf i titel, kunstner eller melodi kommer først, så "Fundet i teksten" med den linje, der matchede, fremhævet. Tekst matcher kun fra starten af et ord.
+* Finder den intet, prøver den igen uden forskel på æ/ø/å og siger det: "Ingen præcise træf. Her er sange, hvis man ser bort fra æ, ø og å."
+* Søgningen står i URL'en (`?q=`), og et dybt link viser træffene allerede fra serveren. "‹ Sangbog" i læsevisningen vender tilbage til søgningen.
+* Tom sangbog: "Sangbogen er tom endnu 🎵" (admins får [Tilføj sang]). Ingen træf: "Ingen sange matcher „…“" og "Prøv et enkelt ord fra titlen eller en linje, du kan huske."
 
 ### Læsevisning
 
-* Stor, læsbar typografi og generøs linjeafstand.
-* **Skriftstørrelse +/−** (huskes pr. enhed i `localStorage`).
-* **Hold skærmen tændt** mens sangen er åben (Screen Wake Lock API, hvor browseren understøtter det). Telefonen skal ikke gå i dvale midt i et vers.
-* Pile til forrige/næste sang.
+* Stor, læsbar typografi og generøs linjeafstand. Titlen er sidens h1, med kunstner og "Mel.: …" under.
+* **Tekst | Akkorder** (Tekst er standard; knappen vises kun, når sangen har akkorder). Akkordvisningen viser "Akkorder i sangen", noter, akkordrækker og akkorder over ordene.
+* **Skriftstørrelse** i 7 trin (16–32 px, standard 20 px). Visning og størrelse huskes pr. enhed (`localStorage`) og sættes på `<html>` før første visning (D-124). På mobil sidder knapperne i top-baren, fra `md` i værktøjslinjen.
+* **Hold skærmen tændt** mens sangen er åben (Screen Wake Lock API, hvor browseren understøtter det; ingen UI).
+* **Forrige/Næste** gennem hele bogen i alfabetisk rækkefølge (ikke søgningen) uden at starte forfra, plus ← og → på desktop (D-125).
+* Admins har [Rediger sang] og [Slet sang] nederst.
 
 ### Administration
 
-Admins kan oprette, redigere og slette sange (simpel formular med tekstfelt), så sangbogen kan vedligeholdes løbende.
+Kun admins opretter, retter og sletter sange (medlemmer får ægte 404 på `/songs/new` og `/edit`). Formularen har et tekstfelt med fast bredde (monospace, ingen ombrydning), en formatguide ("Sådan skriver du vers, akkorder og omkvæd") og en forhåndsvisning med akkorder. Sletning sker fra sangens side med bekræftelse: "Slet «Titel»?", "Sangen forsvinder fra sangbogen for alle i klubben. Det kan ikke fortrydes.", [Behold den].
 
-### Import af den eksisterende sangbog [MVP]
+### Import af den eksisterende sangbog [MVP] (D-126)
 
-Sangbogen findes allerede digitalt (Word/PDF/tekst). Den importeres med et **engangs-importscript** (`scripts/import-songbook.ts`):
+Sangbogen er 59 ChordBank-udskrifter (én PDF pr. sang) i `data/sangbog/visne-viser/` (git-ignoreret, i `.vercelignore`). PDF'erne gemmes og serveres aldrig af appen; kun teksten kommer i databasen (D-120). Importen er `npm run songbook:import` (`scripts/import-songbook.ts`, kræver `pdftohtml` fra poppler):
 
-* Kildefilen lægges i `data/sangbog/` (filen committes ikke, hvis den er privat; tilføj den til `.gitignore`).
-* Scriptet konverterer til tekst, splitter i sange (titel, eventuelt nummer og melodi, tekst med vers bevaret) og indsætter dem i en angiven klub.
-* Scriptet kører først i **dry-run**, der viser de fundne sange, så opdelingen kan kontrolleres, før noget skrives til databasen.
-* Det skal kunne køres igen uden at lave dubletter (match på nummer eller titel).
-* [ÅBENT] Præcist filformat og struktur afklares, når filen ligger i mappen (se §18, Q5).
+* **Kun læsning** (uden `--user`): læser PDF'erne med `pdftohtml -xml`, kortlægger skrifttyper strengt (ukendt skrift = FEJL), laver vers, etiketter og akkordplacering, kører altid en round trip (den gemte tekst læses igen med `parseSong`) og validerer mod `songFieldsSchema`. Viser titler, flag og "Kræver en beslutning", men ingen sangtekst.
+* **Tør kørsel** (`--user <email> --club <id>`): planen med statusserne NY, NY?, UÆNDRET, OPDATERES, REDIGERET I APPEN, TITEL OPTAGET, FEJL og FORÆLDRELØS. `--user` alene viser de klubber, man er admin i.
+* **`--apply`**: skriver hele planen i én transaction. Nøglen er kildefilen (`sourceKey`), og `importHash` viser, om sangen er rettet i appen; den overskrives aldrig (kun med `--overwrite-edited --only`). En ny fil i en klub, der har importeret før, kræver `--include-new`. En ny kørsel uden ændringer giver UÆNDRET for alle.
+* Rettelser (titler, kunstnere, tekst-erstatninger) står i `data/sangbog/overrides.json` (git-ignoreret), så udvikling og produktion får samme tekst.
+* Kører lokalt. En database, der ikke er lokal, kræver `--remote`, og `--apply` mod den kræver, at klubbens navn tastes i en terminal (TTY). Produktion køres kun af Jesper (README "Importér sangbogen").
 
 ---
 
@@ -1329,15 +1349,23 @@ BeerRating
   value                   SmallInt  CHECK (value BETWEEN 2 AND 10)   -- halve point: 2 = 1,0 … 10 = 5,0
   UNIQUE (beerId, userId)
 
-Song
-  id
+Song                                        -- D-121
+  id                      UUIDv7
   clubId                  → Club  (CASCADE)
-  number?                 Int
-  title                   String
-  lyrics                  Text
-  melody?                 String
-  createdById             → User
-  UNIQUE (clubId, number) WHERE number IS NOT NULL
+  title                   String   CHECK 1–120 efter btrim
+  titleKey                String   CHECK <> ''      -- nameKey(title): NFC, samlede mellemrum, dansk lowercase
+  artist?                 String   CHECK NULL eller 1–120
+  melody?                 String   CHECK NULL eller 1–120 -- vises som "Mel.: …"
+  body                    Text     CHECK ≤ 20.000 og ikke kun blanktegn/linjeskift -- sangtekstformatet (§9.6)
+  sourceKey?              String   CHECK NULL eller 1–300 -- importens kildefil, fx 'chordbank:<fil.pdf>'
+  importHash?             String   CHECK NULL eller ^[0-9a-f]{64}$ -- sha256 af [title, artist, melody, body] ved import
+  createdById             → User  (RESTRICT)
+  createdAt, updatedAt
+  UNIQUE (clubId, titleKey)
+  UNIQUE (clubId, sourceKey)
+  CHECK (sourceKey IS NULL) = (importHash IS NULL)
+  -- app-regel: appens skrivninger rører aldrig sourceKey/importHash (kun importscriptet)
+  -- implementeringsnote: body må aldrig søges eller vises råt – brug parseSong/lyricsOnlyLines (domain/songs/song-text.ts)
 
 Poll
   id
@@ -1534,6 +1562,11 @@ Afledte nuancer (`cream-deep`, `sand`, `amber-light`, `amber-tint`, `danger-deep
 | Rating gemt | "Gemt ✓" |
 | 404 | "Den her øl er vist drukket. Siden findes ikke." |
 | Generisk fejl | "Noget gik galt – prøv igen. Vi har tørret disken af." |
+| Tom sangbog | "Sangbogen er tom endnu 🎵" |
+| Ingen sange fundet | "Ingen sange matcher „…“" / "Prøv et enkelt ord fra titlen eller en linje, du kan huske." |
+| Søgning uden æ/ø/å | "Ingen præcise træf. Her er sange, hvis man ser bort fra æ, ø og å." |
+| Sang tilføjet / slettet | "Sangen er tilføjet 🎵" / "Sangen er slettet." |
+| Slet sang | "Slet «Titel»?" / "Sangen forsvinder fra sangbogen for alle i klubben. Det kan ikke fortrydes." / [Behold den] |
 
 ---
 
@@ -1563,7 +1596,9 @@ Genanvendelige og generiske nok til flere steder. Navne på engelsk.
 | `useActionForm` + `FieldShell`, `InputField`, `TextareaField`, `CheckboxField`, `ChoiceFieldset` (`features/forms`, D-109) | Alle formularer med Server Actions |
 | `BeerCard`, `BeerRating`, `RatingSummary` | Ølkatalog, event detail |
 | `BeerForm` (med dublet-advarsel) | Tilføj øl |
-| `SongListItem`, `SongReader` | Sangbog |
+| `SongbookBrowser`, `SongFinderBar`, `SongLetterGrid`, `SongAlphabetList`, `SongListItem`, `SongSearchResults`, `SongListSkeleton` | Sangbogens oversigt |
+| `SongReader` (Wake Lock), `SongTextView`, `SongViewToggle`, `SongFontStepper`, `SongNeighboursNav`, `BackToSongbook`, `SongReaderSkeleton`, `SongbookPrefsScript` (rodlayoutet, D-124) | Læsevisning |
+| `SongForm`, `SongPreview`, `SongFormatHelp`, `DeleteSongButton` | Opret/rediger sang (admin) |
 | `PollCard` | Overblik, Kalender |
 | `PollForm` | Planlæg ølsmagning |
 | `DateVoteOption` (checkbox), `PlaceVoteOption` (radio), `VoterAvatars`, `VotingProgress`, `TieResolver` | Afstemningsside |
@@ -1624,7 +1659,7 @@ Semantisk HTML, synlige focus-states, labels på alle inputs, tastaturbetjening 
 | **Events** | Opret, rediger, slet, detail (inkl. øl smagt), Overblik, Kalender (liste + måned) |
 | **Steder** | Opret, rediger, ejer-toggle, arkivering, vælg til events |
 | **Ølkatalog** | Tilføj, se, søg, sortér, filtrér, rate (halve point), gennemsnit, relatér event, dublet-advarsel |
-| **Sangbog** | Se, søg (titel + tekst), læsevisning, admin-CRUD, import af eksisterende sangbog |
+| **Sangbog** | Se (alfabetisk), søg (titel, kunstner, melodi, tekst), læsevisning med akkorder, admin-CRUD, import af eksisterende sangbog |
 | **Afstemninger** | Dato (kryds ved alle der passer) + sted (én stemme), frist, ændr stemme, åbne live-resultater, luk manuelt/ved frist/alle stemt, uafgjort-håndtering, automatisk event |
 | **Settings** | Navn, kælenavn, password. Email-ændring er [SENERE] (D-106, Q13). |
 | **Feedback** | Rapportér fejl, foreslå feature, se alle rapporter, filtrér, 👍, status og svar fra app-admin |
@@ -1701,14 +1736,14 @@ Inden en ny runde påbegyndes: gennemgå eksisterende arkitektur, genbrug eksist
 
 ### Runde 3 – "Det er vores klub" (identitet og historik) ✅ 2026-10-09
 
-* ~~Sangbog: oversigt, søgning, detail/læsevisning, opret og redigér (admin), import af eksisterende sangbog (§9.6).~~ Udskudt (D-091), indtil sangbogsfilen ligger i `data/sangbog/`.
+* Sangbog: oversigt, søgning, detail/læsevisning, opret og redigér (admin), import af eksisterende sangbog (§9.6). Genoptaget 2026-10-13: Jesper har leveret sangbogen (D-118, erstatter D-091). ✅ 2026-10-13
 * Profil: kælenavn, profilbillede, `getDisplayName()` overalt, skift password (§9.8, D-105, D-106).
 * Steder som egen datamodel: opret, redigér, slet/arkivér, gendan, se, ejere (flere), sæt/fjern sig selv som ejer (§9.4, D-095, D-100).
 * Events bruger `Place` i stedet for fritekst. Eksisterende fritekst migreres til steder (D-022, D-097). Værter udfyldes fra stedets ejere (D-098, D-099).
 * Eventhistorik: tidligere events på Overblik og i Kalender, og pr. sted (D-107).
 * Klubbens medlemmer (Q11): gør til admin, fjern admin-rollen, fjern medlem, forlad klub, slet klub og redigér klubinfo (§7.4, §7.5, D-102–D-104, D-110).
 
-**Definition of Done:** appen fungerer som klubbens samlede arkiv: kommende og tidligere events, ølkatalog, ~~sangbog~~ (D-091), medlemmer og steder.
+**Definition of Done:** appen fungerer som klubbens samlede arkiv: kommende og tidligere events, ølkatalog, sangbog, medlemmer og steder. (Sangbogen er med igen, D-118; den testes manuelt af Jesper, D-119.)
 
 **Implementering (2026-10-09, D-094):** først TG-021 (fælles formularmotor, D-109), så ét fundament (skema, migrering, domæne, validering, datalag, interim-eventformular, alle nye ruter med endelige guards, seed), så tre parallelle agenter med eget filejerskab (A profil og medlemmer, B steder, C events med steder og historik) og til sidst en integrator. E2E for DoD: `e2e/round3-dod.spec.ts` (kælenavn → sted med ejer → events med værter → historik → arkivering → roller, forlad og slet klub).
 
@@ -1730,7 +1765,7 @@ Arkitekturen skal gøre disse mulige uden større omskrivninger:
 
 * **RSVP** pr. event: ✅ Kommer / 🤷 Måske / ❌ Kommer ikke (ny tabel `EventRsvp`).
 * **Notifikationer:** email/push ved ny afstemning, frist og nyt event.
-* **PWA:** "Føj til hjemmeskærm", app-ikon og offline-visning af sangbog.
+* **PWA:** "Føj til hjemmeskærm", app-ikon og offline-visning af sangbog (sangbogen virker i dag kun online).
 * **Kalendereksport:** .ics pr. event eller abonnementsfeed.
 * **Udvidede øldata:** bryggeri, øltype, land, billede og personlige noter.
 * **Favoritøl** og **favoritsange**.
@@ -1741,7 +1776,7 @@ Arkitekturen skal gøre disse mulige uden større omskrivninger:
 * **Smagningstilstand:** fuldskærmsvisning under et event med hurtig tilføj-og-rate af øl.
 * **Gamification:** badges (🏆 Første øl, 🍺 25 øl rated, 🍻 50 øl rated), kun hvis det passer til klubben.
 * **Flere afstemningskategorier**, fx tema (datamodellen understøtter det).
-* **Mørkt tema.**
+* **Mørkt tema**, evt. først som natlæsning (mørk læsevisning i sangbogen).
 
 ---
 
@@ -1755,7 +1790,7 @@ Disse skal afklares med Jesper. Indtil da gælder den markerede standard.
 | ~~Q2~~ | ~~Kælenavn: pr. klub eller ét globalt?~~ | ✅ Afklaret 2026-10-04: **ét globalt** (D-011) |
 | ~~Q3~~ | ~~Datoafstemning: én stemme eller kryds ved alle der passer?~~ | ✅ Afklaret 2026-10-04: **kryds ved alle der passer** (D-013) |
 | ~~Q4~~ | ~~Skal man kunne se, hvem der stemte på hvad?~~ | ✅ Afklaret 2026-10-04: **fuldt åbent** (D-014) |
-| Q5 | Sangbogen findes digitalt. **Hvilket format, og hvordan er den struktureret** (numre, melodi-angivelser)? Læg filen i `data/sangbog/`. | Importscript (§9.6). Format afklares, når filen ligger der. |
+| ~~Q5~~ | ~~Sangbogen findes digitalt. Hvilket format, og hvordan er den struktureret (numre, melodi-angivelser)? Læg filen i `data/sangbog/`.~~ | ✅ Afklaret 2026-10-09: **59 ChordBank-udskrifter (PDF), én sang pr. fil**, uden numre og melodier, med den oprindelige kunstner og akkorder. Importeret med `npm run songbook:import` (§9.6, D-126). |
 | Q6 | Tæller ratings fra tidligere medlemmer med i gennemsnittet? | Ja |
 | Q7 | Hvad hedder appen/klubben, og findes der logo eller billede af øltrøjen (til farver)? | "Ølklubben", farver fra §13.2 |
 | ~~Q8~~ | ~~Hosting og domæne?~~ | ✅ Afklaret 2026-10-04: **Vercel** (D-016), **intet eget domæne indtil videre**, appen kører på `*.vercel.app`. Email via Gmail SMTP (D-017). |
@@ -1782,6 +1817,7 @@ Disse skal afklares med Jesper. Indtil da gælder den markerede standard.
 7. **Følg Definition of Done** (§15.1). En feature uden server-side autorisation er ikke færdig.
 8. **Club isolation er ikke til forhandling** (§4.4).
 9. Skriv dato i formatet `ÅÅÅÅ-MM-DD`.
+10. **Sangbogens indhold er privat** (D-120). Rigtige sangtekster og titler kommer aldrig i repoet: ikke i kode, kommentarer, tests, fixtures, seed, README, SPEC, committede screenshots eller Artifacts. Tests og seed bruger opdigtede sange. Kør titel-grep'en (`git ls-files -co --exclude-standard | xargs grep -l -i -F -f <titelliste>`) ved hver gate. AI-agenter kører kun `songbook:import` mod lokale databaser (fjern-guarden kræver en TTY, D-126).
 
 ## 19.2 Implementeringsstatus
 
@@ -1806,7 +1842,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | 2 | 2.3 | Kalender (liste + måned) | ✅ | 2026-10-09. Adversarial review gennemført (23 fund R2-01–R2-21, alle rettet). 524 unit, 64 integration, build, 98/98 E2E (49 tests × desktop/375 px) to kørsler i træk. DoD (a)+(b) og runde 1-stikprøver gennemgået manuelt ved 375 px. |
 | 2 | 2.4 | Ølkatalog | ✅ | 2026-10-09. Adversarial review gennemført (23 fund R2-01–R2-21, alle rettet). 524 unit, 64 integration, build, 98/98 E2E (49 tests × desktop/375 px) to kørsler i træk. DoD (a)+(b) og runde 1-stikprøver gennemgået manuelt ved 375 px. |
 | 2 | 2.5 | Ratings | ✅ | 2026-10-09. Adversarial review gennemført (23 fund R2-01–R2-21, alle rettet). 524 unit, 64 integration, build, 98/98 E2E (49 tests × desktop/375 px) to kørsler i træk. DoD (a)+(b) og runde 1-stikprøver gennemgået manuelt ved 375 px. |
-| 3 | 3.1 | Sangbog + import | ⬜ | Udskudt (D-091): venter på sangbogsfilen (Q5). TG-025 er stadig åben. |
+| 3 | 3.1 | Sangbog + import | ✅ | 2026-10-13. Bygget (D-118–D-128): datamodel med importfelter og 8 CHECKs, sangtekstformat med akkorder og danske etiketter, oversigt i dansk rækkefølge med A–Å, øjeblikkelig søgning i titel/kunstner/melodi/tekst med fallback uden æ/ø/å, læsevisning (Tekst/Akkorder, 7 skriftstørrelser, Wake Lock, forrige/næste), admin-CRUD med forhåndsvisning, importscript. De 59 sange er importeret i den lokale `olklubben_dev` (Drengene & Bajere); round trip 0 uenigheder på 3.988 linjer, ny kørsel 59 × UÆNDRET. TG-025 løst. **Test af sangbogen: Jesper manuelt (2026-10-13)** – ingen automatiske sangbogstests (D-119, TG-043); kun build og render-tjek (HTTP 200, ingen konsolfejl, ingen vandret scroll ved 375 og 1280 px, rigtige data). De eksisterende suiter er grønne: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px). |
 | 3 | 3.2 | Kælenavn + profilbillede + `getDisplayName` overalt | ✅ | 2026-10-09. Kælenavn 1–40 (D-105), visningsnavn overalt, profilens identitet med officielt navn, skift password (D-106). Fælles formularmotor først (D-109, TG-021). 9 integration (`round3-profile`), 3 E2E (`profile.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
 | 3 | 3.3 | Steder + ejere + arkivering | ✅ | 2026-10-09. Liste (aktive + arkiverede), opret/rediger (navnedublet med link), stedets side med adresse og "Åbn i kort", ejere (optimistisk toggle, admin fjerner andre), "Opret event her", "Ølsmagninger her", én fjern-knap (slet ubrugt / arkivér brugt), gendan (D-095, D-100, D-115). 5 unit, 25 integration (`round3-places`), 6 E2E (`places.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
 | 3 | 3.4 | Events bruger `Place` + værter (migrering af fritekst) | ✅ | 2026-10-09. Migrering af fritekst til steder (D-097), sammensatte FK'er (D-096), stedvælger med "＋ Nyt sted" inline og værtsvalg (D-098, D-099, D-111–D-113), eventside med sted, adresse og værter (D-101). 21 unit (`event-form-state`), 75 integration (`round3-migration` 13, `round3-data` 41, `round3-events` 21), 4 E2E (`events-places.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
@@ -1912,7 +1948,7 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-088 | 2026-10-09 | Overblik: mens hero-eventet er "I gang nu", er top-barens "+" "Tilføj øl" (med eventet udfyldt). Ellers er den "Opret event". | Samme primære handling som hero'en (§13.4.5). | Udvider D-080 |
 | D-089 | 2026-10-09 | Redigeringssider kalder `requireEvent`/`requireBeer` → `canEdit*` → husk aktiv klub, så en rettigheds-404 heller ikke skifter aktiv klub | Konsekvens af D-066's begrundelse. | Præciserer D-066 |
 | D-090 | 2026-10-09 | Fælles hjælpere til nye runder: `src/lib/search-params.ts` (`firstParam`), `src/server/revalidate.ts` (`revalidateClub`, server-only, bevidst ikke i en "use server"-fil), ressource-ref-schemas i `src/lib/validation/*` (fx `beerRefSchema`), `averageFromSum` som eneste gennemsnitsformel. **Alle fritekst-schemas bruger `stripNul` (`src/lib/text.ts`), og alle felter, der parses før auth, har et længdeloft før parsing.** Runde 3: `optionalText` sætter loftet på det rå input før rensning (`rawTextLimit`), og `cleanOptionalText` er den eneste rensning af valgfri tekster. | Fjerner kopier mellem runde 2-agenterne. Postgres `text` afviser U+0000 (F-046), og ReDoS (F-044). | – |
-| D-091 | 2026-10-09 | Sangbogen (opgave 3.1) springes over i runde 3 og bygges, når den eksisterende sangbog ligger i `data/sangbog/` (Q5). "Sangbog" forbliver en "kommer snart"-side i navigationen. | Jespers ønske: sangbogsfilen er ikke klar, og import-formatet afhænger af den. | – |
+| ~~D-091~~ | 2026-10-09 | ~~Sangbogen (opgave 3.1) springes over i runde 3 og bygges, når den eksisterende sangbog ligger i `data/sangbog/` (Q5). "Sangbog" forbliver en "kommer snart"-side i navigationen.~~ | Jespers ønske: sangbogsfilen er ikke klar, og import-formatet afhænger af den. Erstattet af D-118. | – |
 | D-092 | 2026-10-09 | Ny palet (Jespers ønske): primærfarven er oliven `#414437` (den eneste af de tre tilbudte farver, der reelt er grøn) og bruges både til app-rammen og som handlingsfarve. Afledt: `olive-soft #525742`, `olive-deep #2D2F23`, `olive-tint #E3E8CE`, `on-dark-muted #CECFC4`. Sekundærfarven er havneblå `harbor #3E5568` (+ `harbor-soft #4E6679`, `harbor-tint #DCE6EE`) til hero-kort, "Klubbens rating", "i dag" og info. Navy, bottle, mist og steel er fjernet. `on-navy` er erstattet af `on-olive`/`on-harbor`. Tekst på messingknappen er `ink`. Dialog-baggrunden er neutral `ink/50`. Se §13.2. | Jesper ville have grøn som primær og en blå, der passer til. `#3E5568` blev valgt efter screenshots frem for `#4A6274` (fejler AA: dæmpet tekst 3,65, stjerner 2,61) og `#2F4858` (samme lyshed som olive, så hero'en ikke skiller sig ud fra top-baren). | §13.2 v1 (navy/bottle) |
 | D-093 | 2026-10-09 | Desktop-sidebaren viser ikke "Profil" i listen. Brugerrækken nederst (avatar, navn, email) ligger i hovednavigationen, har det tilgængelige navn "Profil: <navn> <email>" og er markeret aktiv (`aria-current`, olive-soft + messingring) på `/c/{id}/profile` og `/c/{id}/club`. Mobilens bundnavigation beholder alle fem punkter. Én kilde: `sidebar: "list" \| "user-row"` på punkterne i `nav-items.ts` + `getSidebarNav`. | Jespers ønske: Profil stod to gange i sidebaren. Mobil har ingen brugerrække. | Afviger fra §8.1 v1 ("de samme punkter") |
 | D-094 | 2026-10-09 | Runde 3 leveres i faser: først TG-021 (F0) bag en formular- og auth-E2E-gate, så ét fundament (skema, migrering, domæne, validering, datalag, interim-eventformular, alle nye rutefiler med endelige guards, seed), så tre parallelle agenter med eksklusivt filejerskab (A profil og medlemmer, B steder, C events med steder og historik), en integrator og til sidst et adversarial review. Hver agent har sin egen `_itest`-database og kører kun sine egne E2E-specs, serialiseret med `flock`. SPEC.md har én skribent. | Datamodellen ligger under alle tre features. En fast kontrakt fra fundamentet gør det sikkert at bygge UI'et parallelt. | – |
@@ -1939,6 +1975,17 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-115 | 2026-10-09 | Ejer-toggle: én almindelig knap, hvis etiket siger, hvad den gør ([ Det er mit sted ] / [ Fjern mig som ejer ]), plus en høflig statuslinje ("Du er nu ejer af stedet."). Ingen `aria-pressed`. Optimistisk, ruller tilbage med en fejl-toast, ingen confirmation. | §9.4 kræver to etiketter, og WAI-ARIA APG siger, at en `aria-pressed`-knap skal beholde sit navn. | Designets "aria-pressed" |
 | D-116 | 2026-10-09 | Admin'ens egen række på medlemslisten har også '⋯'. Den indeholder kun "Fjern min admin-rolle", deaktiveret med begrundelsen, når man er den sidste admin. Nulstillingslink tilbydes aldrig til en selv. | Vejen til at nedgradere sig selv skal være den samme som for andre, og den sidste admin skal kunne se hvorfor ikke. | – |
 | D-117 | 2026-10-09 | Sømme fra integrationen: et steds side linker tilbage til "Alle steder", og dens "Ølsmagninger her" viser ugedag og tid i stedet for stedets eget navn (`EventListItem showPlace={false}`). Olivenfarvede toasts har en messingkant (løser TG-039). Tilladelsesbeskeder følger mønstret "Kun X og klubbens admins kan …" (fx "Kun stedets ejere, opretteren og klubbens admins kan slette det."). | Steder har intet hovedpunkt (§8.1). Toasts gik i ét med oliven-båndet på CenteredShell-sider. Ens sprog for ens regler. | – |
+| D-118 | 2026-10-13 | Sangbogen (opgave 3.1) bygges i runde 3 alligevel: Jesper har leveret de 59 PDF'er i `data/sangbog/`. Hans krav: sangene vises **i appen** (ikke som download), kan søges og står alfabetisk. "Kommer snart"-siden er væk. | Q5 er besvaret, og sangbogen er en del af runde 3's "klubbens samlede arkiv". | D-091 |
+| D-119 | 2026-10-13 | Testomfang for sangbogen (Jesper: "Du behøver ikke at teste sangbogen. Kun at den bliver renderet. Jeg tester til sidst."): ingen E2E-, integrations- eller unit-suiter for sangbogen og ingen løkker over de rigtige data. Gaten er typecheck, lint, format, build og et render-tjek (HTTP 200, ingen konsolfejl, ingen vandret scroll), og alle eksisterende suiter skal være grønne. Jesper tester sangbogen manuelt. | Jespers valg. Undtagelse fra §15.1/§15.3 for netop denne feature; se TG-043. | Designets testplan (G1–G4) |
+| D-120 | 2026-10-13 | Tekst først: appen gemmer og serverer aldrig PDF'erne; originalerne bliver lokalt i `data/sangbog/` (git-ignoreret, `.vercelignore`, `*.pdf`/`*.zip` i `.gitignore`). Rigtige tekster og titler kommer aldrig i repoet (§19.1 punkt 10); seed og tests bruger opdigtede sange. Importrapporten `data/sangbog/import-report.json` indeholder tekster og ligger derfor kun under `data/`. | Sangene er klubbens private kopi af ophavsretligt beskyttede tekster. Tekst kan søges, skaleres og vises på telefonen; en PDF kan ikke. | – |
+| D-121 | 2026-10-13 | `Song`-modellen (§11): Nummer fjernet, Kunstner tilføjet, `lyrics` → `body` i sangtekstformatet, unik `titleKey` (`nameKey`) pr. klub, akkorder trukket frem fra [SENERE]. Importens herkomst i `sourceKey`/`importHash` med 8 CHECKs (inkl. "begge eller ingen"); appens skrivninger rører dem aldrig. En titeldublet (P2002) bliver `SONG_TITLE_TAKEN` med et link til sangen, der har titlen (som steder). | Sangbogen har ingen numre (Q5). Importen skal kunne køres igen uden at overskrive sange, der er rettet i appen. | §11 Song v1 |
+| D-122 | 2026-10-13 | Sangtekstformatet (§9.6) klassificeres ved visning af `src/server/domain/songs/song-text.ts` (`lineKind`: `\`-escape → tom → etiket → note → akkorder → tekst). Strammere noteregel end prototypen (`capo:`/`capo 2`, ikke "Stemning i lejren"), danske etiketter, positionerede akkordlinjer bliver ordbokse (akkord over ordets start, ingen ombrydning inde i et ord). | Ét format, som både importen, formularen, forhåndsvisningen og læsevisningen bruger. Teksten gemmes, som den er skrevet, så reglerne kan forbedres uden migrering. | – |
+| D-123 | 2026-10-13 | Søgning på klienten: listesiden sender titel, kunstner, melodi og `lyricsOnlyLines` for alle sange, og `matchSongs` kører i browseren (og på serveren for `?q=`). `searchKey` (dansk lowercase, accenter væk men æ/ø/å bevaret, apostrof og bindestreg fjernet) og `looseKey` (æ → ae, ø → o, å → a) kun som fallback, når den strenge søgning finder 0. Rang 0–5 (titel først, tekst kun fra ordstart). `?q=` skrives med `history.replaceState` (debounced). Sortering og bogstaver kun på serveren: `titleSortKey` + `Intl.Collator('da')` (base, numeric), bogstav = det største bogstav ≤ nøglen ("Aa…" → Å, tal → #). | Øjeblikkelig søgning, også på dårlig wifi i baren. 59 sange er få kB. Se TG-045 for grænsen. | §9.6 "søger i titel og tekst" |
+| D-124 | 2026-10-13 | Læsevisningens præferencer (7 skriftstørrelser 16–32 px, Tekst/Akkorder) gemmes i `localStorage` og sættes som `data-song-size`/`data-song-view` på `<html>` af et konstant inline-script i rodlayoutet (`SongbookPrefsScript`, `suppressHydrationWarning` kun på `<html>` og scriptet). Begge visninger renderes på serveren og vises/skjules af ulagdelt CSS i `globals.css`. På klienten er scriptet `type="text/plain"` (F-071). Det er sangbogens eneste `dangerouslySetInnerHTML`; teksterne renderes kun som tekst og `<mark>`. Mobilens skriftknapper sidder i top-baren. | Intet blink af forkert størrelse eller visning før hydrering, og ingen hydreringsfejl. | – |
+| D-125 | 2026-10-13 | Forrige/Næste følger hele bogen i alfabetisk rækkefølge (ikke søgningen), uden at starte forfra, med `prefetch={true}` inden for klubben (forenelig med D-052) og ← → på desktop. Sletning sker kun fra sangens side (som D-080). "‹ Sangbog" gendanner søgningen fra `sessionStorage`. | Bladring i en sangbog er bogens rækkefølge. Prefetch gør bladringen øjeblikkelig midt i en sang. | – |
+| D-126 | 2026-10-13 | Importen (`scripts/import-songbook.ts` + `scripts/songbook/`): `pdftohtml -xml -i -q -nodrm -stdout` med strenge skriftroller (ukendt skrift eller størrelse = FEJL), altid round trip og schema-tjek, statusser efter `sourceKey`/`importHash`, `overrides.json`, alt i én transaction (planen beregnes igen inde i den, `updateMany` med `updatedAt`-vagt). Strammere end designet: en ikke-lokal database kræver `--remote` for **al** adgang, `--user` skal være ADMIN også i en tør kørsel, og `--apply` mod en ikke-lokal database kræver klubbens navn tastet i en TTY. Kører aldrig på Vercel. | Importen må kunne køres igen uden dubletter eller tab af rettelser, og en AI-agent kan ikke skrive til produktion. | §9.6 import v1 ("match på nummer eller titel") |
+| D-127 | 2026-10-13 | Sangbogens ruter efter D-065: listen i `songs/(list)/` med loading, `songs/[songId]/layout.tsx` er guard (`requireSong`) over `(detail)/loading.tsx`, `new/` og `[songId]/edit/` har ingen loading og kalder `requireMembership`/`requireSong` → `canManageSongs` → `notFound` → husk aktiv klub. Actions følger steders rækkefølge: id'er (`songRefSchema`, 404) → `songFieldsSchema` → `requireSong` → `canManageSongs` → skriv. | Ægte 404 for medlemmer og andre klubbers sange (E22). Løser TG-025. | – |
+| D-128 | 2026-10-13 | Sangbogens præsentation: søgefeltets placeholder er "Titel, kunstner eller en linje…" (designets "Søg …" blev skåret af ved 375 px; label "Søg i sangbogen" er sr-only). Etiketter står med versaler i 0,72 em, gentagne vers (omkvæd) har en 3 px ravfarvet streg i venstre side. A–Å-gitteret hopper med `scrollIntoView` og fokus på overskriften uden `#hash` (før hydrering virker `#bogstav-…`-ankrene). "#" annonceres som "Tal og tegn". Brødtekstfeltet har fast bredde (`wrap=off`, monospace), så akkorder kan rykkes på plads. | Læsbarhed ved 375 px og på creme baggrund; Next håndterer `scroll-behavior: smooth` på `<html>` specielt. | – |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -1952,6 +1999,34 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-074 · 2026-10-13 · Et absolut positioneret grid krympede til sin `<summary>`
+- **Område:** UI (sangbogens A–Å-gitter)
+- **Symptom:** Gitteret med `grid-cols-6` blev 44 px bredt og bogstaverne lå oven i hinanden.
+- **Årsag:** `minmax(0,1fr)`-spor i et absolut positioneret element regnes ud fra den indholdende blok, her `<summary>`-knappen.
+- **Rettelse:** `w-max` og faste spor (`grid-cols-[repeat(6,3rem)]`) i `song-letter-grid.tsx`.
+- **Læring / forebyggelse:** Popover-grids skal have faste spor og `w-max`.
+
+### F-073 · 2026-10-13 · Rigtige sangtitler og en tekstbid i kodekommentarer
+- **Område:** Privatliv
+- **Symptom:** Titel-grep'en fandt en rigtig titel som eksempel i en kommentar i `search.ts` (fra en afbrudt kørsel) og senere rigtige titler og en tekstbid i doc-kommentarer i `scripts/songbook/title.ts` og `anomalies.ts`.
+- **Årsag:** Agenterne brugte designets eksempler (rigtige sange) i kommentarer.
+- **Rettelse:** Erstattet med opdigtede eksempler. Grep'en giver 0 træf.
+- **Læring / forebyggelse:** Også eksempler i kommentarer skal være opdigtede. Kør titel-grep'en ved hver gate (§19.1 punkt 10).
+
+### F-072 · 2026-10-13 · Bogstavelig U+2028/U+2029 i en regex gav en syntaksfejl
+- **Område:** Tooling / Domæne (sangbog)
+- **Symptom:** `song-text.ts` kunne ikke parses: "Unterminated regular expression".
+- **Årsag:** Samme klasse som F-057: værktøjet afkodede `\u2028`/`\u2029` til bogstavelige tegn, og de er linjeskift i JavaScript, også inde i en regex-literal. Det samme skete med nul-bredde-tegn i importens `clean.ts`.
+- **Rettelse:** Alle usynlige tegn skrevet som escapes i `song-text.ts` og `scripts/songbook/`.
+- **Læring / forebyggelse:** Skriv en backslash via `chr(92)` i et Python-hjælpescript, og tjek med `grep -rnP '[\x{00a0}\x{200b}-\x{200f}\x{2028}\x{2029}\x{feff}]'` efter hver redigering med escapes.
+
+### F-071 · 2026-10-13 · "Encountered a script tag while rendering React component" på 404-sider
+- **Område:** UI / Next.js (sangbogens præferencescript)
+- **Symptom:** I dev viste browserkonsollen (og E2E-loggen, 31 gange) advarslen på hver ægte 404 efter, at rodlayoutet fik sit inline-script (D-124).
+- **Årsag:** En medlems-404 renderer dokumentet på klienten (som F-043), og React advarer, når det selv opretter et `<script>`, der ikke er en datablok.
+- **Rettelse:** `SongbookPrefsScript` (klientkomponent) renderer scriptet uden `type` på serveren og med `type="text/plain"` på klienten (`suppressHydrationWarning`). Hydreringen beholder serverens script, og en klient-render laver et inaktivt element uden advarsel.
+- **Læring / forebyggelse:** Inline-scripts i rodlayoutet skal tåle en klient-render. Tjek også 404-sider for konsolfejl.
 
 ### F-070 · 2026-10-09 · "Failed to execute 'measure' on 'Performance'" i dev
 - **Område:** Tooling
@@ -2410,7 +2485,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-022 | 2026-10-08 | "Øllens event er i samme klub" har ingen garanti i databasen (D-073) | En fejl i datalaget kunne knytte på tværs af klubber | Evt. en DB-trigger senere. Note 2026-10-09: steder, ejere og events har nu sammensatte FK'er (D-096); øl har det stadig ikke. |
 | ~~TG-023~~ | 2026-10-08 | ~~`RATE_LIMIT_DISABLED="1"` står midlertidigt i `.env.local` (F-020)~~ | Lokal rate limiting er slået fra | Fjernes, når runde 2 er færdig ✅ Fjernet 2026-10-08. Sat midlertidigt igen til runde 2-review og fjernet igen 2026-10-09. |
 | TG-024 | 2026-10-08 | Kalenderlisten henter alle kommende events uden paging | Fint for en klub | Paging, hvis det bliver nødvendigt |
-| TG-025 | 2026-10-08 | `songs/loading.tsx` dækker hele `songs`-mappen | Detaljesider for sange vil give en blød 404 | Runde 3: flyt listen ind i `songs/(list)/` efter D-065 |
+| ~~TG-025~~ | 2026-10-08 | ~~`songs/loading.tsx` dækker hele `songs`-mappen~~ | Detaljesider for sange vil give en blød 404 | Runde 3: flyt listen ind i `songs/(list)/` efter D-065 ✅ Løst 2026-10-13 af D-127. |
 | TG-026 | 2026-10-08 | "I aften! 🍻" bruges også om events tidligere på dagen (§9.1 som skrevet) | Underligt ved frokostsmagninger | Genbesøg, hvis klubben holder dagsmagninger |
 | ~~TG-027~~ | 2026-10-08 | ~~Runde 2's adversarial review (5 dimensioner → verifikation → rettelser → slut-gates) blev stoppet efter Jespers ønske, før der kom fund. Hurtig kontrol bestået: check, integration, DoD-E2E for runde 1+2.~~ | Runde 2 er ikke reviewet så grundigt som runde 1 | Kør review'et, før runde 3 starter (workflow-scriptet `r2-review` kan genkøres) ✅ Løst 2026-10-09: review kørt, fund R2-01–R2-21 rettet, slut-gates grønne. |
 | ~~TG-028~~ | 2026-10-09 | ~~`src/server/actions/clubs.ts` (runde 1) kalder stadig `revalidatePath(..., "layout")` direkte i stedet for `revalidateClub` (D-090)~~ | Kun konsistens | Én linje, når filen alligevel røres ✅ Løst 2026-10-09 i runde 3 (`revalidateClub`/`revalidateAppShell` og det fælles `idSchema`). |
@@ -2428,6 +2503,13 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-040 | 2026-10-09 | `e2e/club-isolation.spec.ts` bruger `/c/<id>/polls` som den ubyggede sti, der dækker catch-all'en `[...rest]` for medlemmer | Når runde 4 bygger `/polls`, mister catch-all'en sin E2E-dækning | Skift til en anden ubygget sti i runde 4 (det samme skete for `places` i runde 3) |
 | TG-041 | 2026-10-09 | En styret `ConfirmDialog` uden trigger kan ikke selv returnere fokus (F-060) | Hvert menu → dialog-flow skal huske det selv | `MemberActionsMenu` gør det med en effekt. Tilføj en `returnFocusRef`-prop (via `onCloseAutoFocus`), når et andet flow får brug for det. |
 | TG-042 | 2026-10-09 | `ProfileForm` er keyed på de gemte værdier. Gemmer man de samme værdier med ekstra mellemrum ("  Kaptajnen  "), bliver den urensede tekst stående i feltet | Kosmetisk, indtil næste besøg | Nulstil formularen efter et svar uden ændring, hvis det generer |
+| TG-043 | 2026-10-13 | Sangbogen har ingen automatiske tests (D-119): hverken unit tests af `song-text`/`search`/`title`, integrationstests af actions og import eller E2E (søgning, læsevisning, admin, 404 for medlemmer) | Regressioner i sangbogen opdages først manuelt | Når Jesper har testet: unit tests af de rene moduler, `songs.itest.ts` og en `songbook.spec.ts` med de opdigtede seed-sange (`insertSong` findes i `e2e/support/db.ts`) |
+| TG-044 | 2026-10-13 | En tekstlinje, der kun er "A" eller "E" (eller "Kor"/"Solo"), vises som akkord eller etiket | Sjældent forkert visning | Afbødet af `\`-escape og forhåndsvisningen |
+| TG-045 | 2026-10-13 | Listesiden sender alle sanges tekstlinjer til klienten (D-123) | Over ca. 300 sange bliver siden tung | Flyt `matchSongs` til serveren, hvis sangbogen vokser så meget |
+| TG-046 | 2026-10-13 | Akkordkolonnerne i 4 importerede sange med akkorder over ordene er estimeret ud fra PDF'ens positioner (204 akkorder: 8 midt i et ord, 9 efter linjens slutning, 0 på et mellemrum) | Enkelte akkorder kan sidde lidt skævt | Jesper tjekker dem manuelt og retter i appen eller via `overrides.json` |
+| TG-047 | 2026-10-13 | Prototypens filer med sangtekster (`.work/songbook/`: `parsed.json`, `txt/`, `xml/`, preview) og `data/sangbog/import-report.json` ligger stadig lokalt (git-ignoreret) | Ingen, så længe de ikke committes | Slet `.work/songbook/` efter Jespers test |
+| TG-048 | 2026-10-13 | Én sang har pladsholderen "X" i teksten, og to titler er rettet via `overrides.json` (afventer Jespers svar) | Teksten står med "X" | Når Jesper svarer: en `replacements`-post i `overrides.json` og `--apply` igen (forventet: OPDATERES for den ene sang) |
+| TG-049 | 2026-10-13 | Importen: en række i etiket-skriften, hvis tekst i parentes kun er akkordnavne, får ingen dansk etiket (`danishLabel` er ikke eksporteret fra `song-text.ts`), så round trip'en ville melde FEJL | Rammer ingen af de 59 sange | Eksportér `danishLabel`, hvis det sker |
 
 ## 19.6 Dokumenthistorik
 
@@ -2443,6 +2525,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | v2.6 | 2026-10-08 | Implementeringsplan i fire runder (§16.3, D-020–D-024). Status (§19.2) organiseret efter runder. Q10–Q11 tilføjet. |
 | v2.7 | 2026-10-08 | Runde 1-fundament: implementeringsnoter i §11 og §4.8, D-025–D-034, F-001–F-011, TG-002–TG-007. |
 | v2.8 | 2026-10-08 | Runde 1-features: D-035–D-044, F-012–F-021. |
+| v2.14 | 2026-10-13 | Sangbogen bygget i runde 3 (D-118 erstatter D-091): datamodel, sangtekstformat med akkorder, oversigt, søgning, læsevisning, admin og importscript; 59 sange importeret lokalt. Jesper tester sangbogen manuelt (D-119). D-118–D-128, F-071–F-074, TG-043–TG-049; TG-025 løst; Q5 afklaret. §4.2, §8.2, §9.6, §11, §13.5, §14, §16, §17, §18, §19.1 opdateret. 724 unit, 197 integration, build og 150/150 E2E. |
 | v2.13 | 2026-10-09 | Runde 3 færdig (uden sangbogen, D-091): kælenavn, skift password, steder med ejere og arkivering, events med steder og værter, eventhistorik og medlemsadministration. D-094–D-117, F-053–F-070, TG-032–TG-042; TG-021, TG-028, TG-029 og TG-039 løst; D-061 og D-062 erstattet. §5.1, §7, §8, §9.1–9.4, §9.8, §11, §12 (E29–E32), §14, §16, §18 (Q13) opdateret. 724 unit, 197 integration, build og 150/150 E2E to kørsler i træk. |
 | v2.12 | 2026-10-09 | Ny palet: oliven + havneblå (§13.2, D-092). Sidebar uden Profil-punkt (D-093). Sangbogen udskudt fra runde 3 (D-091). 527 unit, 64 integration, build og 100/100 E2E to kørsler i træk. |
 | v2.11 | 2026-10-09 | Runde 2 færdig efter adversarial review (25 fund, 23 bekræftet og rettet): D-086–D-090, F-044–F-052, TG-027 løst, TG-028–TG-031. §8.2 har ølredigerings-routen. |
