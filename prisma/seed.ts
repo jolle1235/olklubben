@@ -13,18 +13,23 @@ import {
   zonedDateTimeToUtc,
 } from "../src/server/domain/events/time";
 import { placeNameKey } from "../src/server/domain/places/name";
+import { cleanSongText } from "../src/server/domain/songs/song-text";
+import { cleanSongTitle, songTitleKey } from "../src/server/domain/songs/title";
 
 /**
  * Test data for local development (SPEC §16.3 – round 1: users, clubs,
  * memberships, invitations; round 2: events, beers, ratings; round 3:
- * nicknames, places with owners, hosts and past tastings for the history).
+ * nicknames, places with owners, hosts and past tastings for the history,
+ * and five SYNTHETIC songs in Torsdagsklubben – never real lyrics).
  * Run with `npm run db:seed`.
  *
  * Idempotent: running it again leaves the same rows. Users are matched by
  * email, clubs, events and beers by fixed id, memberships by (user, club),
  * invitations by code, ratings by (beer, user), places by fixed id or else by
- * their active name (D-097), owners and hosts by (place/event, user). The seed
- * users' names, nicknames and passwords are reset on every run.
+ * their active name (D-097), owners and hosts by (place/event, user), songs by
+ * fixed id or else by their title key (only in Torsdagsklubben, so the
+ * songbook imported into Drengene & Bajere is never touched). The seed users'
+ * names, nicknames and passwords are reset on every run.
  *
  * Event dates are RELATIVE to today (Europe/Copenhagen), so Overblik always
  * has a past tasting, one in 3 days and one in 4 weeks. Running the seed again
@@ -536,6 +541,190 @@ async function seedEventsAndBeers(
   }
 }
 
+// ─── Round 3: the songbook ──────────────────────────────────────────────────
+
+type SeedSong = {
+  id: string;
+  clubId: string;
+  createdBy: SeedUserKey;
+  title: string;
+  artist: string | null;
+  melody: string | null;
+  /** The song-text format (src/server/domain/songs/song-text.ts). */
+  body: string;
+};
+
+// SYNTHETIC songs only, written for the seed: never a real song's title or
+// lyrics (the club's own songbook is imported locally by
+// scripts/import-songbook.ts, SPEC §19.1). They go in Torsdagsklubben, so
+// "Drengene & Bajere" holds exactly the imported songbook. Together they show
+// every part of the format: a capo note, an instrumental intro, a chord
+// sequence, chords positioned over words, [Omkvæd] repeated, a song without
+// chords, one filed under Æ, one under Å ("Aa…") and one with only a melody.
+const SEED_SONGS: SeedSong[] = [
+  {
+    id: "5eed0000-0000-7000-8000-0000000000d1",
+    clubId: TORSDAG,
+    createdBy: "mads",
+    title: "Skål for kaptajnen",
+    artist: "Havnens Drenge",
+    melody: null,
+    body: [
+      "capo: 2",
+      "",
+      "[Intro]",
+      "G C D x2",
+      "",
+      "G          C",
+      "Vi sejler ud ved daggry",
+      "D             G",
+      "med tønder fulde af øl",
+      "Em C D G",
+      "Kaptajnen står ved roret",
+      "og synger hele vejen hjem",
+      "",
+      "[Omkvæd]",
+      "C       G",
+      "Skål for kaptajnen,",
+      "D           G",
+      "skål for hver en mand",
+      "C       G",
+      "Skål for kaptajnen,",
+      "      D            G",
+      "til vi atter ser land",
+      "",
+      "Em C D G",
+      "Når stormen tager sejlene",
+      "og bølgen slår mod stævn",
+      "så finder vi en tønde mere",
+      "og drikker med vores navn",
+      "",
+      "[Omkvæd]",
+      "C       G",
+      "Skål for kaptajnen,",
+      "D           G",
+      "skål for hver en mand",
+      "C       G",
+      "Skål for kaptajnen,",
+      "      D            G",
+      "til vi atter ser land",
+    ].join("\n"),
+  },
+  {
+    id: "5eed0000-0000-7000-8000-0000000000d2",
+    clubId: TORSDAG,
+    createdBy: "mads",
+    title: "Sangen om den sidste tønde",
+    artist: "Bryggeriets Kor",
+    melody: null,
+    body: [
+      "[Vers 1]",
+      "Am F C G",
+      "Den sidste tønde står i hjørnet",
+      "vi gemmer den til sidst",
+      "for når den er drukket",
+      "så er det slut, helt vist",
+      "",
+      "[Omkvæd]",
+      "C G Am F",
+      "Hej, hej, den sidste tønde",
+      "den drikker vi i nat",
+      "",
+      "[Vers 2]",
+      "Am F C G",
+      "Vi tæller dråberne i glasset",
+      "og synger lidt for højt",
+      "så kommer værten ind og siger",
+      "at nu er det vist nok",
+      "",
+      "[Omkvæd]",
+      "C G Am F",
+      "Hej, hej, den sidste tønde",
+      "den drikker vi i nat",
+    ].join("\n"),
+  },
+  {
+    id: "5eed0000-0000-7000-8000-0000000000d3",
+    clubId: TORSDAG,
+    createdBy: "mads",
+    title: "Æbler i kælderen",
+    artist: "Torsdagsdrengene",
+    melody: null,
+    body: [
+      "Der ligger æbler i kælderen",
+      "og cider i en kande",
+      "vi henter dem om torsdagen",
+      "når regnen slår mod strande",
+      "",
+      "Så sidder vi ved bordet",
+      "med kinder røde af sol",
+      "og æblerne fra kælderen",
+      "smager bedre end en stol",
+    ].join("\n"),
+  },
+  {
+    id: "5eed0000-0000-7000-8000-0000000000d4",
+    clubId: TORSDAG,
+    createdBy: "mads",
+    title: "Aalborg-valsen",
+    artist: "Limfjordens Spillemænd",
+    melody: null,
+    body: [
+      "D A D",
+      "En, to, tre, og rundt vi går",
+      "G D A D",
+      "i Aalborg, hvor kroen står",
+      "",
+      "D A D",
+      "Med harmonika og et glas",
+      "G D A D",
+      "vi danser til den sidste bas",
+    ].join("\n"),
+  },
+  {
+    id: "5eed0000-0000-7000-8000-0000000000d5",
+    clubId: TORSDAG,
+    createdBy: "mads",
+    title: "Torsdagssangen",
+    artist: null,
+    melody: "Den gamle bådsmands vals",
+    body: [
+      "Nu er det torsdag igen",
+      "og alle er her, min ven",
+      "en øl og en sang",
+      "og aftenen er lang",
+    ].join("\n"),
+  },
+];
+
+/** The synthetic songs, matched by fixed id or else by title key (one song per title, §9.6). */
+async function seedSongs(db: PrismaClient, idOf: (key: SeedUserKey) => string): Promise<void> {
+  for (const song of SEED_SONGS) {
+    const title = cleanSongTitle(song.title);
+    const titleKey = songTitleKey(title);
+    const existing =
+      (await db.song.findFirst({
+        where: { id: song.id, clubId: song.clubId },
+        select: { id: true },
+      })) ??
+      (await db.song.findFirst({ where: { clubId: song.clubId, titleKey }, select: { id: true } }));
+    const data = {
+      title,
+      titleKey,
+      artist: song.artist,
+      melody: song.melody,
+      body: cleanSongText(song.body),
+    };
+    if (existing) {
+      await db.song.update({ where: { id: existing.id }, data });
+    } else {
+      await db.song.create({
+        data: { id: song.id, clubId: song.clubId, createdById: idOf(song.createdBy), ...data },
+      });
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -623,6 +812,7 @@ async function main(): Promise<void> {
     }
 
     await seedEventsAndBeers(db, idOf);
+    await seedSongs(db, idOf);
 
     // Jesper has two clubs and lands in his last active one; Mads has two and
     // gets the club picker; Anders has one and goes straight to it (SPEC §10.1).
@@ -632,22 +822,34 @@ async function main(): Promise<void> {
       data: { lastActiveClubId: SEED_CLUBS[0]?.id ?? null },
     });
 
-    const [users, clubs, memberships, invites, places, owners, events, hosts, beers, ratings] =
-      await Promise.all([
-        db.user.count(),
-        db.club.count(),
-        db.membership.count(),
-        db.invite.count({ where: { revokedAt: null } }),
-        db.place.count(),
-        db.placeOwner.count(),
-        db.event.count(),
-        db.eventHost.count(),
-        db.beer.count(),
-        db.beerRating.count(),
-      ]);
+    const [
+      users,
+      clubs,
+      memberships,
+      invites,
+      places,
+      owners,
+      events,
+      hosts,
+      beers,
+      ratings,
+      songs,
+    ] = await Promise.all([
+      db.user.count(),
+      db.club.count(),
+      db.membership.count(),
+      db.invite.count({ where: { revokedAt: null } }),
+      db.place.count(),
+      db.placeOwner.count(),
+      db.event.count(),
+      db.eventHost.count(),
+      db.beer.count(),
+      db.beerRating.count(),
+      db.song.count(),
+    ]);
     console.info(
       `Seed færdig: ${users} brugere, ${clubs} klubber, ${memberships} medlemskaber, ${invites} aktive invitationer, ` +
-        `${places} steder (${owners} ejerskaber), ${events} events (${hosts} værtskaber), ${beers} øl, ${ratings} ratings.`,
+        `${places} steder (${owners} ejerskaber), ${events} events (${hosts} værtskaber), ${beers} øl, ${ratings} ratings, ${songs} sange.`,
     );
     console.info(
       `Log ind med ${SEED_USERS.map((user) => user.email).join(", ")} og password "${SEED_PASSWORD}".`,

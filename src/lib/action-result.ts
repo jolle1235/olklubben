@@ -41,6 +41,8 @@ export const ACTION_ERROR_CODES = {
   UNEXPECTED: "UNEXPECTED_ERROR",
   /** Another active place in the club has the same name (D-095). */
   PLACE_NAME_TAKEN: "PLACE_NAME_TAKEN",
+  /** Another song in the club has the same title key (SPEC §9.6). */
+  SONG_TITLE_TAKEN: "SONG_TITLE_TAKEN",
   /** The club must keep at least one admin (E2, E25). */
   LAST_ADMIN: "LAST_ADMIN",
   /** The only member cannot leave; they can delete the club (E3). */

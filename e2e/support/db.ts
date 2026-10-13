@@ -2,12 +2,14 @@ import { Client } from "pg";
 
 import { pgConfig } from "../../src/server/db/pg-config";
 import { cleanPlaceName, placeNameKey } from "../../src/server/domain/places/name";
+import { cleanSongText } from "../../src/server/domain/songs/song-text";
+import { cleanSongTitle, songTitleKey } from "../../src/server/domain/songs/title";
 import { testDatabaseUrl } from "../test-env";
 
 /**
  * Direct SQL against the E2E database (olklubben_test, guarded by test-env.ts)
  * for setup the UI cannot do (quickly): removing a member, changing a role,
- * ageing a reset token, inserting events, places, beers and ratings. Each call opens and closes its own connection,
+ * ageing a reset token, inserting events, places, beers, ratings and songs. Each call opens and closes its own connection,
  * so tests stay independent of each other. Sessions run in UTC like the app's
  * (pgConfig, F-012).
  */
@@ -281,4 +283,37 @@ export async function countRatings(beerId: string): Promise<number> {
     [beerId],
   );
   return row?.count ?? 0;
+}
+
+/**
+ * Inserts a song directly (songbook, SPEC §9.6), as the app would store it:
+ * title cleaned with its title key, body cleaned with cleanSongText (leading
+ * spaces kept). SYNTHETIC songs only – never real lyrics. Returns the new id.
+ */
+export async function insertSong(input: {
+  clubId: string;
+  title: string;
+  /** The song-text format: lyrics, chord lines, [Afsnit], blank line = new stanza. */
+  body: string;
+  artist?: string | null;
+  melody?: string | null;
+  createdByEmail: string;
+}): Promise<string> {
+  const title = cleanSongTitle(input.title);
+  const [row] = await sql<{ id: string }>(
+    `INSERT INTO songs (id, club_id, title, title_key, artist, melody, body, created_by_id, updated_at)
+     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, (SELECT id FROM users WHERE email = $7), now())
+     RETURNING id`,
+    [
+      input.clubId,
+      title,
+      songTitleKey(title),
+      input.artist ?? null,
+      input.melody ?? null,
+      cleanSongText(input.body),
+      input.createdByEmail.toLowerCase(),
+    ],
+  );
+  if (!row) throw new Error("E2E: kunne ikke oprette sang");
+  return row.id;
 }

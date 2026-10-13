@@ -63,6 +63,7 @@ model User {
   placesCreated   Place[]      @relation("PlaceCreatedBy")
   placeOwnerships PlaceOwner[]
   eventHostships  EventHost[]
+  songsCreated    Song[]       @relation("SongCreatedBy")
 
   @@map("users")
 }
@@ -168,6 +169,7 @@ model Club {
   events          Event[]
   beers           Beer[]
   places          Place[]
+  songs           Song[]
 
   @@map("clubs")
 }
@@ -381,4 +383,45 @@ model BeerRating {
   @@unique([beerId, userId])
   @@index([userId])
   @@map("beer_ratings")
+}
+
+// ─── Round 3: the songbook (SPEC §9.6, §11) ─────────────────────────────────
+
+/// A song in the club's songbook (SPEC §9.6). `body` is plain text in the
+/// song-text format (src/server/domain/songs/song-text.ts): lyrics, chord lines,
+/// [Afsnit] labels, blank line = new stanza. NEVER search or show `body` raw
+/// (chord lines such as "Am" are mixed in): use parseSong()/lyricsOnlyLines().
+/// Admins write (§5.1), members read. CHECKs in the migration.
+model Song {
+  id          String   @id @default(uuid(7))
+  clubId      String   @map("club_id")
+  club        Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  /// 1–120 (CHECK). Stored cleaned (cleanSongTitle = cleanSingleLine).
+  title       String
+  /// songTitleKey(title) = nameKey (D-086/D-095), computed in JS. Unique per club.
+  titleKey    String   @map("title_key")
+  /// Original performer ("Kim Larsen"). ≤ 120. Null = none.
+  artist      String?
+  /// Tune it is sung to; shown as "Mel.: …". ≤ 120. Null = none.
+  melody      String?
+  /// ≤ 20 000 chars, cleanSongText (LF, NFC, leading spaces KEPT).
+  body        String
+  /// Import provenance: "chordbank:<file name NFC>". Null for songs made in the app.
+  /// Written only by scripts/import-songbook.ts; app edits never touch it.
+  sourceKey   String?  @map("source_key")
+  /// sha256 hex of JSON [title, artist, melody, body] as the importer last wrote
+  /// them. If the row no longer hashes to it, an admin edited the song and a
+  /// re-import leaves it alone. Only the importer writes it.
+  importHash  String?  @map("import_hash")
+  createdById String   @map("created_by_id")
+  createdBy   User     @relation("SongCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  /// One song per title per club; the leading club_id also serves club scans.
+  @@unique([clubId, titleKey])
+  /// Re-import match. Postgres NULLS DISTINCT: app-made songs (NULL) never collide.
+  /// Query it with findFirst({ where: { clubId, sourceKey } }).
+  @@unique([clubId, sourceKey])
+  @@map("songs")
 }

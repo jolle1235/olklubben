@@ -66,8 +66,24 @@ export function newBeerHref(clubId: string, prefill: NewBeerPrefill = {}): strin
   return `${beersHref(clubId)}/new${search ? `?${search}` : ""}`;
 }
 
+/** Sangbogen (SPEC §9.6), without a search. Song URLs never carry `?q=`. */
 export function songsHref(clubId: string): string {
   return `/c/${clubId}/songs`;
+}
+
+/** "Tilføj sang" (admins). */
+export function newSongHref(clubId: string): string {
+  return `${songsHref(clubId)}/new`;
+}
+
+/** One song in the reader. */
+export function songHref(clubId: string, songId: string): string {
+  return `${songsHref(clubId)}/${songId}`;
+}
+
+/** "Rediger sang" (admins). */
+export function editSongHref(clubId: string, songId: string): string {
+  return `${songHref(clubId, songId)}/edit`;
 }
 
 /** Steder (SPEC §9.4). */

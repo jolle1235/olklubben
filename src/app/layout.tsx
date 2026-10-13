@@ -5,6 +5,7 @@ import { fontVariables } from "@/components/brand/fonts";
 import { FlashToast } from "@/components/features/flash-toast";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SONGBOOK_PREFS_BOOTSTRAP } from "@/lib/songbook-prefs";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,7 +32,16 @@ export const viewport: Viewport = {
  */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="da" className={`${fontVariables} h-full`}>
+    // suppressHydrationWarning: the songbook bootstrap below may set
+    // data-song-size / data-song-view on <html> before React hydrates. It
+    // covers <html>'s own attributes only.
+    <html lang="da" className={`${fontVariables} h-full`} suppressHydrationWarning>
+      <head>
+        {/* The songbook reader's font size and view, before the first paint
+            (src/lib/songbook-prefs.ts). A constant string: the songbook's only
+            dangerouslySetInnerHTML. */}
+        <script dangerouslySetInnerHTML={{ __html: SONGBOOK_PREFS_BOOTSTRAP }} />
+      </head>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         <Toaster />

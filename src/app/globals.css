@@ -308,3 +308,120 @@
     top: var(--mobile-offset-top);
   }
 }
+
+/*
+ * Sangbog (SPEC §9.6 "Læsevisning"). Skriftstørrelse og visning ligger som
+ * data-attributter på <html> (src/lib/songbook-prefs.ts), sat af head-scriptet
+ * i rodlayoutet før første maling, så teksten aldrig hopper. Serveren renderer
+ * både tekst- og akkordvisningen; CSS viser den valgte. Gatingen er ulagdelt,
+ * så den vinder over utilities.
+ */
+html[data-song-size="0"] {
+  --song-font-size: 1rem;
+}
+html[data-song-size="1"] {
+  --song-font-size: 1.125rem;
+}
+html[data-song-size="2"] {
+  --song-font-size: 1.25rem;
+}
+html[data-song-size="3"] {
+  --song-font-size: 1.375rem;
+}
+html[data-song-size="4"] {
+  --song-font-size: 1.5625rem;
+}
+html[data-song-size="5"] {
+  --song-font-size: 1.75rem;
+}
+html[data-song-size="6"] {
+  --song-font-size: 2rem;
+}
+html:not([data-song-view="chords"]) .song-view-chords {
+  display: none;
+}
+html[data-song-view="chords"] .song-view-lyrics {
+  display: none;
+}
+
+@layer components {
+  .song-text {
+    font-size: var(--song-font-size, 1.25rem);
+    line-height: 1.55;
+    color: var(--ink);
+    overflow-wrap: break-word;
+    hyphens: none;
+  }
+  .song-stanza + .song-stanza {
+    margin-top: 1.1em;
+  }
+  /* Et vers, der går igen (typisk omkvædet). */
+  .song-stanza[data-repeated] {
+    border-left: 3px solid var(--amber-light);
+    padding-left: 0.75em;
+  }
+  .song-label {
+    margin-bottom: 0.15em;
+    font-family: var(--font-sans);
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1.3;
+    color: var(--amber-ink);
+    text-wrap: wrap;
+  }
+  /* Hængende indrykning: en ombrudt linje rykkes ind under sin første linje. */
+  .song-line {
+    display: block;
+    padding-left: 1.25em;
+    text-indent: -1.25em;
+  }
+  .song-note {
+    display: block;
+    font-size: 0.85em;
+    font-style: italic;
+    color: var(--slate);
+  }
+  .song-chord-row {
+    display: block;
+    margin-top: 0.25em;
+    font-size: 0.85em;
+    font-weight: 600;
+    word-spacing: 0.45em;
+    color: var(--harbor);
+  }
+  /* Akkord over stavelse: ét ubrydeligt ord pr. boks, akkorden over sit fragment. */
+  .song-pair {
+    padding-top: 0.15em;
+  }
+  .song-word {
+    display: inline-flex;
+    vertical-align: bottom;
+    white-space: nowrap;
+    text-indent: 0;
+  }
+  .song-piece {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .song-chord {
+    min-height: 1.2em;
+    padding-right: 0.35em;
+    font-size: 0.85em;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--harbor);
+  }
+  /* Akkorden hænger over teksten uden at tage plads. */
+  .song-chord-hang {
+    width: 0;
+    padding-right: 0;
+    overflow: visible;
+  }
+  .song-piece-text {
+    white-space: pre;
+  }
+}

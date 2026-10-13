@@ -149,9 +149,62 @@ Login, signup, "Glemt password", join-med-kode og opslag af invitationskoder er 
 | `npm run db:seed`                 | Fyld testdata i via `prisma/seed.ts`                                       |
 | `npm run db:reset`                | Slet og genopbyg udviklingsdatabasen (spørger først)                       |
 | `npm run db:studio`               | Prisma Studio                                                              |
+| `npm run songbook:import`         | Læs/importér sangbogens PDF'er (se "Importér sangbogen")                   |
 | `npm run format` / `format:check` | Prettier (inkl. sortering af Tailwind-klasser)                             |
 
 `npm run build` kører `prisma migrate deploy` mod databasen i `.env.local`. Stop `npm run dev` først, da begge bruger `.next/`. Slet `.next/dev`, før du starter `npm run dev` igen efter et build, ellers kan siderne genindlæse i en løkke (`HMR hash mismatch`, SPEC F-013).
+
+## Importér sangbogen
+
+Sangbogen kommer fra klubbens ChordBank-udskrifter (én PDF pr. sang). PDF'erne og teksterne er private: de ligger kun lokalt i `data/sangbog/` (git-ignoreret og i `.vercelignore`) og kommer kun ind i databasen via importscriptet `scripts/import-songbook.ts`. Appen gemmer ingen PDF'er, og tests og seed bruger kun opdigtede sange (SPEC §9.6).
+
+1. Installér poppler-utils, som giver `pdftohtml`: `sudo apt install poppler-utils` (macOS: `brew install poppler`).
+2. Læg PDF'erne i `data/sangbog/visne-viser/`.
+3. Læs dem uden database. Udskriften viser titler, kunstnere, antal linjer og flag, men ingen sangtekst:
+
+   ```bash
+   npm run songbook:import
+   ```
+
+   Forventet: alle sange læst, 0 FEJL og "Round trip: 0 uenigheder på N linjer". Blokken "Kræver en beslutning" viser det, et menneske skal tage stilling til: titler, der afviger fra filnavnet, pladsholdere i teksten, usædvanlige tegn og akkorder, sange uden versskift.
+
+4. Rettelser skrives i `data/sangbog/overrides.json` (valgfri, git-ignoreret), så udvikling og produktion får samme tekst:
+
+   ```json
+   {
+     "titles": { "<fil.pdf>": "Titel" },
+     "artists": {},
+     "replacements": [{ "file": "<fil.pdf>", "find": "eksakt tekst", "replace": "ny tekst" }]
+   }
+   ```
+
+   Filnavnene skal findes i mappen, og `find` skal stå i sangens tekst, ellers stopper importen.
+
+5. Find klubbens id, og lav en tør kørsel. Den skriver intet:
+
+   ```bash
+   npm run songbook:import -- --user <din email>
+   npm run songbook:import -- --user <din email> --club <klub-id>
+   ```
+
+6. Skriv lokalt med samme kommando plus `--apply`. Du skal være admin i klubben, og alt skrives i én transaktion. En ny kørsel uden ændringer giver UÆNDRET for alle sange.
+
+Statusser i planen:
+
+- **NY**: oprettes. **NY?**: klubben har importeret før, så sangen er enten slettet i appen eller en ny fil. Den oprettes kun med `--include-new` (evt. sammen med `--only "<fil.pdf>"`).
+- **UÆNDRET**: intet at gøre. **OPDATERES**: sangen er urørt siden importen, og PDF'en giver nu en anden tekst (fx en ny rettelse).
+- **REDIGERET I APPEN**: en admin har ændret sangen. Den springes over. `--overwrite-edited` (kun sammen med `--only`) overskriver.
+- **TITEL OPTAGET**: en anden sang i klubben har titlen. Springes over.
+- **FEJL**: skrives aldrig, og `--apply` afviser hele planen. **FORÆLDRELØS**: PDF'en findes ikke længere. Intet slettes.
+
+`--show "<fil.pdf>"` udskriver én sangs hele gemte tekst. JSON-rapporten (med tekster) skrives til `data/sangbog/import-report.json` og må kun ligge under `data/`. Exit-koder: 0 OK, 1 FEJL eller afvist import, 2 forkerte argumenter eller sikkerhedsstop.
+
+**Produktion (kun Jesper, fra en terminal).** Scriptet kører aldrig på Vercel. En database, der ikke er lokal, kræver `--remote`, og før det skriver, skal du taste klubbens navn i terminalen. Uden en terminal (fx en AI-agent) afbryder det. Brug Neons **unpooled** URL, og kør først uden `--apply`:
+
+```bash
+DATABASE_URL="<Neon unpooled URL>" npm run songbook:import -- --user <din email> --club <klub-id i produktion> --remote
+DATABASE_URL="<Neon unpooled URL>" npm run songbook:import -- --user <din email> --club <klub-id i produktion> --apply --remote
+```
 
 ## Ruter under `/c/[clubId]` og indlæsning
 

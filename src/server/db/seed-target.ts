@@ -7,6 +7,15 @@
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
+/**
+ * True for a host on this machine (as seedTargetHost returns it). Shared with
+ * the songbook importer's guard (scripts/songbook/guard.ts): only a local
+ * database may be written without a human confirming at a terminal.
+ */
+export function isLocalHost(host: string): boolean {
+  return LOCAL_HOSTS.has(host);
+}
+
 type SeedEnv = Partial<
   Record<"NODE_ENV" | "VERCEL_ENV" | "SEED_ALLOW_REMOTE" | "PGHOST", string | undefined>
 >;
@@ -42,7 +51,7 @@ export function assertSeedTarget(connectionString: string, env: SeedEnv = proces
   }
 
   const host = seedTargetHost(connectionString, env);
-  if (LOCAL_HOSTS.has(host) || env.SEED_ALLOW_REMOTE === "1") return;
+  if (isLocalHost(host) || env.SEED_ALLOW_REMOTE === "1") return;
 
   throw new Error(
     `Seed-scriptet skriver kun testdata til en lokal database, men DATABASE_URL peger på "${host}". ` +
