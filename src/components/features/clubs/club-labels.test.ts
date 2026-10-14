@@ -37,6 +37,21 @@ describe("placeCountLabel", () => {
   });
 });
 
+describe("deleteClubSummary with polls (round 4)", () => {
+  it("adds the polls last, only when there are any", () => {
+    expect(deleteClubSummary({ events: 14, beers: 0, ratings: 0, places: 5, polls: 2 })).toBe(
+      "Alt i klubben bliver slettet permanent: 14 events, 5 steder og 2 afstemninger. " +
+        "Medlemmernes konti bliver ikke slettet.",
+    );
+    expect(deleteClubSummary({ events: 0, beers: 0, ratings: 0, places: 0, polls: 1 })).toContain(
+      ": 1 afstemning.",
+    );
+    expect(
+      deleteClubSummary({ events: 1, beers: 0, ratings: 0, places: 0, polls: 0 }),
+    ).not.toContain("afstemning");
+  });
+});
+
 describe("deleteClubSummary", () => {
   it("nævner alt, der bliver slettet (D-103)", () => {
     expect(deleteClubSummary({ events: 14, beers: 37, ratings: 102, places: 5 })).toBe(

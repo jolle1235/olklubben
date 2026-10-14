@@ -747,6 +747,7 @@ describe("klubinfo og sletning af klubben", () => {
       beers: 1,
       ratings: 1,
       places: 2,
+      polls: 0,
     });
 
     expect(
@@ -894,7 +895,11 @@ describe("steder: skrivninger og forespørgsler", () => {
         actorRole: "ADMIN",
       }),
     ).toEqual({ status: "not-found" });
-    expect(await getPlaceUsage(clubId, used)).toEqual({ eventCount: 1 });
+    expect(await getPlaceUsage(clubId, used)).toEqual({
+      eventCount: 1,
+      pollOptionCount: 0,
+      activePollCount: 0,
+    });
   });
 
   it("setPlaceOwnership sætter den ønskede tilstand og afviser ikke-medlemmer og fremmede steder", async () => {

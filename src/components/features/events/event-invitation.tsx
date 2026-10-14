@@ -10,6 +10,7 @@ import { editPlaceHref, mapsSearchUrl, placeHref } from "@/lib/routes";
 import { heroState, heroStateLabel, isHeroHighlighted } from "@/server/domain/events/status";
 
 import { EventHosts, type EventHostView } from "./event-hosts";
+import { EventPollNote } from "./event-poll-note";
 
 export type EventInvitationProps = {
   clubId: string;
@@ -26,6 +27,8 @@ export type EventInvitationProps = {
   creatorName: string;
   /** The request's time, for the status badge and the year in the date. */
   now: Date;
+  /** Set when a poll created the event: "Valgt ved afstemning 🗳" links to it (D-137). */
+  pollId?: string | null;
 };
 
 /**
@@ -33,9 +36,17 @@ export type EventInvitationProps = {
  * §9.2): anchor, status, title (the page's h1), theme, the big date, time,
  * the place (a link to it, "Arkiveret" when archived, its address), "Åbn i
  * kort" – only with an address (D-101), else a small "Tilføj adresse" to the
- * place's edit page – and the hosts and who created it. Server Component.
+ * place's edit page – and the hosts and who created it, plus "Valgt ved
+ * afstemning 🗳" when a poll chose it (round 4). Server Component.
  */
-export function EventInvitation({ clubId, event, hosts, creatorName, now }: EventInvitationProps) {
+export function EventInvitation({
+  clubId,
+  event,
+  hosts,
+  creatorName,
+  now,
+  pollId = null,
+}: EventInvitationProps) {
   const state = heroState(event, now);
   const { place } = event;
   const mapsUrl = place.address ? mapsSearchUrl(place.address) : null;
@@ -122,6 +133,7 @@ export function EventInvitation({ clubId, event, hosts, creatorName, now }: Even
         <p className="text-[0.95rem] break-words text-muted-foreground">
           Oprettet af <span className="font-semibold text-ink">{creatorName}</span>
         </p>
+        {pollId ? <EventPollNote clubId={clubId} pollId={pollId} /> : null}
       </div>
     </article>
   );

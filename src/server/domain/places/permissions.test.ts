@@ -93,9 +93,9 @@ describe("place permissions (SPEC §5.1, §9.4, D-100)", () => {
 
   it("placeRemovalBlock: only a poll that is not finished blocks removal (E5)", () => {
     expect(placeRemovalBlock(IN_ACTIVE_POLL)).toBe("in-active-poll");
-    expect(placeRemovalBlock(usage({ eventCount: 2, pollOptionCount: 3, activePollCount: 2 }))).toBe(
-      "in-active-poll",
-    );
+    expect(
+      placeRemovalBlock(usage({ eventCount: 2, pollOptionCount: 3, activePollCount: 2 })),
+    ).toBe("in-active-poll");
     expect(placeRemovalBlock(POLL_ONLY)).toBeNull();
     expect(placeRemovalBlock(USED)).toBeNull();
     expect(placeRemovalBlock(UNUSED)).toBeNull();

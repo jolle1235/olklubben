@@ -25,10 +25,7 @@ import { DEFAULT_POLL_DEADLINE_TIME } from "./options";
  */
 
 export type PollTimingError =
-  | "DATE_PAST"
-  | "DEADLINE_PAST"
-  | "DEADLINE_NOT_BEFORE_FIRST_DATE"
-  | "DEADLINE_SHORTENED";
+  "DATE_PAST" | "DEADLINE_PAST" | "DEADLINE_NOT_BEFORE_FIRST_DATE" | "DEADLINE_SHORTENED";
 
 /**
  * Order: DATE_PAST (a date ≤ now) → DEADLINE_PAST (deadline ≤ now) →

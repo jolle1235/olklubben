@@ -9,8 +9,11 @@ import type { DateKey } from "@/server/domain/events/time";
 
 import { parseSelectedDay } from "./calendar-params";
 
-/** One dot per event (at most three): upcoming in olive, past in slate. */
-export type DayDot = "upcoming" | "past";
+/**
+ * One dot per item (at most three): upcoming events in olive, past ones in
+ * slate, a poll's possible date as a hollow harbor ring (D-137).
+ */
+export type DayDot = "upcoming" | "past" | "poll";
 
 export type DayLinkProps = {
   /** ?view=month&month=…&day=… for this date. */
@@ -22,7 +25,7 @@ export type DayLinkProps = {
   isToday: boolean;
   /** Day of the month, 1–31. */
   day: number;
-  /** "fredag 23. oktober, 1 event" (built on the server). */
+  /** "fredag 23. oktober, 1 event, 1 mulig dato" (built on the server). */
   label: string;
   dots: DayDot[];
 };
@@ -93,7 +96,13 @@ export function DayLink({
             key={index}
             className={cn(
               "size-1.5 rounded-full",
-              selected ? "bg-amber" : dot === "past" ? "bg-slate" : "bg-olive",
+              dot === "poll"
+                ? cn("border", selected ? "border-amber" : "border-harbor")
+                : selected
+                  ? "bg-amber"
+                  : dot === "past"
+                    ? "bg-slate"
+                    : "bg-olive",
             )}
           />
         ))}

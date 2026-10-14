@@ -8,14 +8,18 @@ import {
   editClubHref,
   editEventHref,
   editPlaceHref,
+  editPollHref,
   eventHref,
   mapsSearchUrl,
   newBeerHref,
   newEventHref,
   newPlaceHref,
+  newPollHref,
   overviewHref,
   placeHref,
   placesHref,
+  pollHref,
+  pollVoteHref,
   profileHref,
   songsHref,
 } from "./routes";
@@ -39,6 +43,14 @@ describe("club routes (SPEC §8.2)", () => {
     );
     expect(eventHref(CLUB, EVENT)).toBe(`/c/${CLUB}/events/${EVENT}`);
     expect(editEventHref(CLUB, EVENT)).toBe(`/c/${CLUB}/events/${EVENT}/edit`);
+  });
+
+  it("builds the poll routes (round 4, D-138)", () => {
+    const POLL = "5eed0000-0000-7000-8000-0000000001a1";
+    expect(newPollHref(CLUB)).toBe(`/c/${CLUB}/polls/new`);
+    expect(pollHref(CLUB, POLL)).toBe(`/c/${CLUB}/polls/${POLL}`);
+    expect(editPollHref(CLUB, POLL)).toBe(`/c/${CLUB}/polls/${POLL}/edit`);
+    expect(pollVoteHref(CLUB, POLL)).toBe(`/c/${CLUB}/polls/${POLL}#stem`);
   });
 
   it("builds the beer and songbook routes", () => {

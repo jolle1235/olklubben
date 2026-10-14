@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 /**
  * Overblik while it loads (SPEC §13.4: skeletons, not spinners), shaped like
  * the page: the harbor hero card (label, badge, big date, title, lines,
- * button), the "Kommende arrangementer" rows and the quieter "Tidligere
+ * button), a dashed poll card (round 4: polls sit right under the hero), the
+ * "Kommende arrangementer" rows and the quieter "Tidligere
  * ølsmagninger" rows. Announced once as "Henter Overblik …".
  */
 export function OverviewSkeleton() {
@@ -29,6 +30,13 @@ export function OverviewSkeleton() {
             <Skeleton className="mt-3 h-13 w-full bg-harbor-soft sm:w-40" />
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-harbor/40 bg-paper px-5 py-4 sm:px-6 sm:py-5">
+        <Skeleton className="h-4 w-56 max-w-full" />
+        <Skeleton className="h-6 w-48 max-w-full" />
+        <Skeleton className="h-4 w-64 max-w-full" />
+        <Skeleton className="h-11 w-full sm:w-32" />
       </div>
 
       <RowsSkeleton rows={3} className="bg-card" />

@@ -30,7 +30,8 @@ export type BallotChoice = {
   placeOptionId: string | null;
 };
 
-export type BallotErrorCode = "DATE_REQUIRED" | "DATE_AND_NONE" | "PLACE_REQUIRED" | "UNKNOWN_OPTION";
+export type BallotErrorCode =
+  "DATE_REQUIRED" | "DATE_AND_NONE" | "PLACE_REQUIRED" | "UNKNOWN_OPTION";
 
 export type BallotField = "dateOptionIds" | "placeOptionId";
 

@@ -268,15 +268,17 @@ SMTP_USER
 SMTP_PASSWORD           # Gmail app password, ikke kontoens rigtige password
 EMAIL_FROM
 # RESEND_API_KEY        # når der kommer et eget domæne
-CRON_SECRET             # Vercel Cron sender den som Bearer-token; route afviser kald uden den
+CRON_SECRET             # mindst 16 tegn; Vercel Cron sender den som Bearer-token. Uden den svarer ruten 503 (D-131)
 APP_ADMIN_EMAILS        # kommasepareret liste over app-admins (feedback-status, §9.9)
 ```
 
 Alle valideres med Zod ved opstart (`src/env.ts`). Hemmeligheder ligger kun i Vercels miljøvariabler og i en lokal `.env.local`, der aldrig committes.
 
-**Cron**
-* `vercel.json` definerer et dagligt kald til `/api/cron/close-polls`.
-* Route'en tjekker `Authorization: Bearer ${CRON_SECRET}` og lukker udløbne afstemninger (idempotent, §9.7.5).
+**Cron** (bygget i runde 4, D-131)
+* `vercel.json` definerer et dagligt kald til `GET /api/cron/close-polls` kl. 04:00 UTC (`"schedule": "0 4 * * *"`).
+* Route'en sammenligner `Authorization: Bearer ${CRON_SECRET}` tidskonstant (`src/server/cron/auth.ts`) og lukker for hver klub med åbne afstemninger dem, hvis frist er gået, **eller** hvor alle nuværende medlemmer har stemt (idempotent, §9.7.5). Den revaliderer de klubber, den har ændret.
+* Svar: `503 {"error":"CRON_SECRET mangler"}` (og en linje i loggen), når variablen ikke er sat; `401 {"error":"Ikke autoriseret"}` ved et manglende eller forkert token; ellers `200 { clubs, closed, awaiting, failed }`. En fejl i én afstemning stopper ikke de andre (`failed` tælles).
+* `/api` ligger uden for proxyens matcher, så ruten bruger ingen session.
 
 **Rate limiting**
 * Serverless functions deler ikke hukommelse, så in-memory rate limiting virker ikke. Brug enten auth-bibliotekets database-baserede rate limiting eller en ekstern store (fx Upstash Redis via Vercel Marketplace).
@@ -303,7 +305,8 @@ To roller pr. medlemskab: **Member** og **Admin** [BESLUTNING, D-018].
 | Redigere/slette event | 🟡 opretter eller vært (D-098) | ✅ |
 | Starte afstemning | ✅ | ✅ |
 | Stemme | ✅ | ✅ |
-| Afslutte/annullere afstemning, vælge vinder ved uafgjort | 🟡 opretter | ✅ |
+| Redigere afstemning (titel, tema, beskrivelse, forlænge frist; kun mens den er åben, D-133) | 🟡 opretter | ✅ |
+| Afslutte/annullere afstemning, vælge vinder ved uafgjort | 🟡 opretter, så længe vedkommende er medlem (E11) | ✅ |
 | Tilføje øl | ✅ | ✅ |
 | Redigere/slette øl | 🟡 opretter | ✅ |
 | Rate øl (egen rating) | ✅ | ✅ |
@@ -409,12 +412,12 @@ Når et medlemskab ophører (forladt eller fjernet):
 * Medlemskabet slettes.
 * **Ratings, øl, events, sange og steder bevares** (klubbens historik).
 * Brugerens **stedejerskaber i den klub fjernes** ("Hos Mads" har ikke længere Mads som ejer). Det sker i databasen: ejerskabet peger på medlemskabet (D-096).
-* Brugerens **stemmer i åbne afstemninger slettes** (de skal ikke påvirke en fremtidig beslutning). [Runde 4]
+* Brugerens **stemmer i åbne afstemninger slettes** (de skal ikke påvirke en fremtidig beslutning). Afgjorte, uafgjorte og annullerede afstemninger beholder stemmerne som historik (D-130).
 * **Værtskaber på events, der endnu ikke er startet, fjernes.** Værtskaber på startede og tidligere events bevares som historik (D-098). Ved redigering af et event må en tidligere vært blive stående, men kan ikke vælges igen (E31).
 * `lastActiveClubId` nulstilles, hvis den pegede på klubben (E15).
 * Ratings fra tidligere medlemmer **tæller fortsat med** i gennemsnittet [BESLUTNING, se §18].
 * Historiske data viser stadig brugerens navn/kælenavn, hvis brugeren stadig har en konto. Slettede konti vises som "Tidligere medlem".
-* Rækkefølgen er fast (D-102): medlemskabet slettes først (ejerskaber følger med), derefter de kommende værtskaber og til sidst `lastActiveClubId`.
+* Rækkefølgen er fast (D-102, D-130): først låses klubbens **åbne** afstemninger (`lockOpenPollIds`), så slettes medlemskabet (ejerskaber følger med), derefter de kommende værtskaber, brugerens stemmesedler i netop de låste afstemninger og til sidst `lastActiveClubId`. Nås "alle har stemt" derved, lukkes afstemningen ved næste visning af Overblik, Kalender eller afstemningssiden (eller af cron), ikke af selve udmeldelsen.
 
 **Den sidste admin** kan ikke forlade klubben, før et andet medlem er gjort til admin. Er man det eneste medlem, kan man i stedet slette klubben. UI'et forklarer det og tilbyder genvejen "Gør et medlem til admin" (til medlemslisten). Efter man har forladt klubben, sendes man til sin forside med beskeden "Du har forladt klubben." (D-104).
 
@@ -422,7 +425,7 @@ Admins kan fjerne medlemmer, gøre dem til admin og fjerne admin-rollen fra '⋯
 
 ## 7.5 Slette klub [MVP]
 
-Kun admins. Kræver at man **skriver klubbens navn** som confirmation (store/små bogstaver og ekstra mellemrum er ligegyldige; knappen aktiveres, når navnet passer, og serveren tjekker igen under låsen, D-103). Dialogen viser, hvad der forsvinder: "Alt i klubben bliver slettet permanent: 14 events, 37 øl med 102 ratings og 5 steder. Medlemmernes konti bliver ikke slettet." Alt klubindhold slettes (cascade). Brugerkonti bevares. Bagefter sendes admin'en til sin forside med beskeden "Klubben er slettet.", og de andre medlemmer får 404 på deres næste request (E16).
+Kun admins. Kræver at man **skriver klubbens navn** som confirmation (store/små bogstaver og ekstra mellemrum er ligegyldige; knappen aktiveres, når navnet passer, og serveren tjekker igen under låsen, D-103). Dialogen viser, hvad der forsvinder: "Alt i klubben bliver slettet permanent: 14 events, 37 øl med 102 ratings, 5 steder og 2 afstemninger. Medlemmernes konti bliver ikke slettet." (afstemningerne nævnes kun, når der er nogen). Alt klubindhold slettes: under klubbens lås låses alle klubbens afstemninger, så slettes events, så afstemninger og til sidst klubben (cascade), fordi `events.poll_id` og `poll_options.place_id` er RESTRICT (D-130). Brugerkonti bevares. Bagefter sendes admin'en til sin forside med beskeden "Klubben er slettet.", og de andre medlemmer får 404 på deres næste request (E16).
 
 ---
 
@@ -472,7 +475,9 @@ URL-slugs er på engelsk (kodekonsistens). Al UI-tekst er dansk.
 /c/[clubId]/events/[eventId]
 /c/[clubId]/events/[eventId]/edit
 /c/[clubId]/polls/new               → Planlæg ølsmagning (afstemning)
-/c/[clubId]/polls/[pollId]          → Stem og se resultater
+/c/[clubId]/polls/[pollId]          → Stem og se resultater (#stem = stemmesedlen)
+/c/[clubId]/polls/[pollId]/edit     (opretter eller admin, kun mens den er åben; ellers ægte 404, D-133)
+                                    -- ingen /polls-oversigt: /c/[clubId]/polls giver 404 (D-138)
 /c/[clubId]/beers                   → Ølkatalog
 /c/[clubId]/beers/new
 /c/[clubId]/beers/[beerId]
@@ -492,6 +497,8 @@ URL-slugs er på engelsk (kodekonsistens). Al UI-tekst er dansk.
 /feedback                           → Liste over fejl og feature-ønsker (fælles for alle brugere)
 /feedback/new                       → Rapportér fejl / foreslå feature
 /feedback/[feedbackId]              → Detalje
+
+/api/cron/close-polls               → daglig lukning af afstemninger (Vercel Cron, Bearer CRON_SECRET, §4.8)
 ```
 
 ---
@@ -563,7 +570,17 @@ Tidligere ølsmagninger
 
 ### Aktive afstemninger
 
-Vises som et kort direkte under hero-kortet. Har brugeren ikke stemt, fremhæves det ("Du mangler at stemme"). En afstemning, der venter på en afgørelse ved uafgjort, vises til opretteren og admins med "Vælg vinder".
+Vises som et kort (`PollCard`) pr. afstemning direkte under hero-kortet, stiplet i havneblå som afstemninger overalt (D-137). Er der afstemninger, men ingen kommende events, står kortene øverst og [ Opret event ] [ Planlæg ølsmagning ] under dem. Rækkefølge: dem, brugeren mangler at stemme i → uafgjorte → åbne efter frist → afgjorte.
+
+| Tilstand | Kortet |
+|---|---|
+| Åben, brugeren mangler | "Du mangler at stemme" (ravfarvet ring) · "Frist om 2 dage · 5 af 8 har stemt" · [ Stem nu ] (messing, til `#stem`) |
+| Åben, brugeren har stemt | "Du har stemt ✓" · frist og antal · "Fører lige nu: lør 21/11 · Hos Mads" (eller "Står lige lige nu") · [ Se afstemningen ] |
+| Uafgjort, opretter eller admin | "Uafgjort 🤝 – du skal vælge vinderen" · [ Vælg vinder ] (messing) |
+| Uafgjort, andre medlemmer | "Uafgjort 🤝 – Mads eller en admin vælger" |
+| Afgjort (højst 3 dage efter lukningen, og kun til eventet er slut) | "🎉 Afgjort: lørdag 21. november · Hos Mads" · værter · [ Se event ] · "Se afstemningen" |
+
+Mens et kort venter på brugeren (stemme eller vælge vinder), er hero-kortets [ Se event ] dæmpet, så skærmen kun har én primær handling (D-057). Overblik lukker afstemninger, der er klar til det, før siden læser data (lazy close, §9.7.5), så et event, der lige er blevet til, står i hero-kortet med det samme.
 
 ### Empty states
 
@@ -683,6 +700,8 @@ NOVEMBER 2026
 
 Når afstemningen er afsluttet, forsvinder de stiplede muligheder, og det oprettede event vises som et almindeligt event.
 
+**Bygget (runde 4, D-137):** åbne og uafgjorte afstemningers datoer vises. I listen er det `PollOptionCard` ("Ølsmagning #15 (afstemning)", "🗳 Mulig dato · stem inden 10/11" eller "venter på afgørelse", og "Du kan ✓", når brugeren har sat kryds ved datoen). Desktop-gitteret har `PollOptionChip` (stiplet chip med det fulde tilgængelige navn "Mulig dato: …"). Mobilens gitter viser en hul havneblå ring som prik, dagens knap læses som "…, 1 event, 1 mulig dato", og dagspanelet viser begge slags. Fra `md` har sidehovedet [ Planlæg ølsmagning ] og [ Opret event ]. Kalenderen lukker også afstemninger, der er klar (lazy close), før den læser data.
+
 [SENERE] Ugevisning og eksport til egen kalender (.ics).
 
 ---
@@ -725,7 +744,8 @@ Steder slettes aldrig hårdt, når de er i brug. De **arkiveres** (D-100):
 * Arkiverede steder vises ikke i stedvælgere (undtagen eventets eget sted ved redigering, E30).
 * Events, der bruger stedet, viser det stadig (historik bevares, og der er ingen døde referencer).
 * Et arkiveret sted viser et banner "Arkiveret · vises ikke, når I vælger sted" med [ Gendan sted ] for stedejere og admins. Har et aktivt sted fået samme navn imens, afvises gendannelsen med "Der findes allerede et aktivt sted, der hedder «X»." og et link.
-* Et sted, der er valgmulighed i en **åben** afstemning, kan ikke arkiveres. Brugeren får at vide hvorfor. [Runde 4, E5]
+* Et sted, der er valgmulighed i en **åben eller uafgjort** afstemning, kan hverken arkiveres eller slettes (E5, D-132). Stedets side siger: "Stedet er med i afstemningen «Ølsmagning #15», så det kan ikke arkiveres, før den er afsluttet eller annulleret." med [ Se afstemningen ], og fjern-knappen vises ikke. Serveren tjekker det igen under stedets lås.
+* Et sted, der har været valgmulighed i en afstemning, men aldrig er brugt til et event, **arkiveres** i stedet for at blive slettet (afstemningen viser det stadig): "Stedet har været med i en afstemning, så det bliver arkiveret i stedet for slettet. Det forsvinder fra listen, når I vælger sted, men afstemningen viser det stadig."
 * Et sted, der aldrig er brugt, må gerne slettes helt.
 
 ---
@@ -875,15 +895,16 @@ Planlæg ølsmagning
 
 Titel             [ Ølsmagning #15 ]
 Beskrivelse       [ … ]
-Tema (valgfri)    [ … ]
+Tema (valgfrit)   [ … ]
 
 Hvornår?  (mindst én)
+  [ 14.11.2026 ] Lørdag 14. november   ✕
+  [ 21.11.2026 ] Lørdag 21. november   ✕
+  [ 28.11.2026 ] Lørdag 28. november   ✕
   [ + Tilføj dato ]
-  ☑ Lør 14/11  18:30   ✕
-  ☑ Lør 21/11  18:30   ✕
-  ☑ Lør 28/11  18:30   ✕
+  Starttid for alle datoer [ 18:30 ]
 
-Hvor?  (mindst én)
+Hvor?  (mindst ét)
   ☑ Hos Jesper
   ☑ Hos Mads
   ☑ Den lokale bar
@@ -896,11 +917,14 @@ Afstemningsfrist  [ 10/11/2026  20:00 ]
 
 Regler:
 
-* Hver kategori kræver **mindst én** valgmulighed.
+* Hver kategori kræver **mindst én** valgmulighed, højst 10 datoer og 10 steder (D-134).
 * Har en kategori **kun én** valgmulighed, er den på forhånd fastlagt, og der stemmes ikke om den. Så kan man fx stemme kun om datoen ("vi er hos Mads, men hvornår?").
-* Datomuligheder er dato + starttid (starttid udfyldes med samme tid for alle, standard 18:30).
-* Fristen skal ligge i fremtiden og **før den tidligste datomulighed**.
-* Ingen dublerede datoer eller steder.
+* **Mindst én kategori skal have to eller flere valgmuligheder** (D-134). Ligger alt fast, afvises formularen med "Tilføj mindst to datoer eller to steder, så der er noget at stemme om. Ligger alt fast, så opret et event i stedet." og et link til "Opret event" med datoen og stedet udfyldt.
+* Datomuligheder er dato + starttid (én fælles starttid for alle, standard 18:30).
+* Datoerne og fristen skal ligge i fremtiden, og fristen **før den tidligste datomulighed**. Formularen tjekker formen; serveren tjekker tiderne med sit eget "nu", både før og under låsen (D-134).
+* Ingen dublerede datoer eller steder (dubletter fjernes).
+
+**Forslag (D-135):** titlen foreslås som "Ølsmagning #N" (åbne og uafgjorte afstemningers titler tæller med, D-137). Tre datoer foreslås på klubbens mest almindelige ugedag blandt de seneste 12 events (ellers lørdag), den første mindst 7 dage frem; "+ Tilføj dato" lægger en uge til den sidste. Fristen følger "2 dage før første dato kl. 20:00" (ellers dagen før kl. 20:00, ellers 3 timer før start), indtil man selv retter den. Stederne er afkrydsningskort (en checkbox-variant af stedvælgerens kort, TG-054); "Vis alle N steder" over seks steder. "＋ Nyt sted" opretter stedet sammen med afstemningen (samme dublet-regel som eventformularen, E29). Uden steder er "＋ Nyt sted" krydset af; med ét sted er det krydset af. En linje opsummerer: "Klubben stemmer om 3 datoer og 2 steder · frist …".
 
 ### 9.7.2 Afstemningsregler
 
@@ -908,10 +932,11 @@ Regler:
 * **Hvornår? – kryds ved alle datoer, der passer** (Doodle-stil, *approval voting*) [BESLUTNING]. Man kan sætte kryds ved én eller flere datoer. Kan man ingen af dem, sætter man kryds ved **"Ingen af datoerne passer mig"**. Det tæller som en afgivet stemme, men giver ingen point til nogen dato.
 * **Hvor? – én stemme.** Man vælger præcis ét sted.
 * En **stemmeseddel** (`PollBallot`) er *komplet*, når hver kategori med mere end én valgmulighed er udfyldt: mindst én dato eller "ingen passer" plus ét sted.
+* Kun **komplette** stemmesedler gemmes, så "har stemt" = der findes en stemmeseddel (D-134). Kryds i en fastlagt kategori ignoreres.
 * Man kan ændre sin stemme indtil fristen. Det gamle sæt kryds erstattes helt af det nye.
 * Resultaterne er synlige og opdateres løbende.
-* Serveren afviser stemmer, når afstemningen ikke længere er åben, uanset hvad UI'et viser.
-* Valgmuligheder kan ikke ændres, når første stemme er afgivet. Titel, beskrivelse og frist (kun forlænget) kan stadig redigeres.
+* Serveren afviser stemmer, når afstemningen ikke længere er åben, uanset hvad UI'et viser. Rammer en stemme en afstemning, hvis frist er gået, lukker serveren den og svarer "Afstemningen er lukket 🔒" (E6).
+* **Valgmuligheder ændres aldrig** efter oprettelsen (strammere end v2, D-133). Er de forkerte, annullerer man og starter en ny. Opretteren og admins kan rette titel, tema, beskrivelse og frist, mens afstemningen er åben (`/polls/[pollId]/edit`). Fristen kan kun rykkes senere og skal stadig ligge før den første dato (E24).
 
 ### 9.7.3 Stemme-UI
 
@@ -944,6 +969,8 @@ Skål! Din stemme er gemt ✓
 Du kan ændre den indtil tirsdag 10. november kl. 20:00
 ```
 
+**Bygget (D-136):** datoerne er native checkbokse, hvis tilgængelige navn er "lørdag 14. november kl. 18:30" og beskrivelse "3 kan: Mads, Anders og dig". «Ingen af datoerne passer mig» og datoerne udelukker hinanden. Stedets meta-linje er "Søndergade 12 · Mads bliver vært". Krydsene flytter tallene, søjlerne og "Fører"-mærket med det samme som en **forhåndsvisning** (egen avatar med stiplet ring, "Ikke gemt endnu"), men intet gemmes før [ Gem min stemme ] / [ Opdatér min stemme ], der sender videre med toasten "Skål! Din stemme er gemt ✓" (og "… Alle har stemt, og eventet er oprettet 🎉" eller "… Alle har stemt – men der er uafgjort 🤝", når den sidste stemme lukker afstemningen). Navnene står ved avatarerne op til fire stemmer, derover under "Se alle (N)". Under stemmesedlen: én søjle pr. medlem, "6 af 8 har stemt · Mangler: Anders, Bo og dig" (eller "Alle har stemt 🎉"). Siden opdaterer sig selv hvert 30. sekund, mens afstemningen er åben og siden er synlig, men aldrig mens stemmesedlen har ugemte kryds. Efter fristen og når den er lukket, vises de samme rækker som resultat med "🏆 Vinder" og (uafgjort) "🤝 Står lige".
+
 ### 9.7.4 Status og livscyklus
 
 ```text
@@ -961,7 +988,9 @@ Du kan ændre den indtil tirsdag 10. november kl. 20:00
 | `OPEN` | Man kan stemme |
 | `AWAITING_DECISION` | Lukket, men mindst én kategori er uafgjort. Opretter/admin skal vælge. |
 | `CLOSED` | Afsluttet. Et event er oprettet. |
-| `CANCELLED` | Annulleret af opretter/admin. Intet event oprettet. |
+| `CANCELLED` | Annulleret af opretter/admin. Intet event oprettet. Stemmerne bliver stående, og siden viser "Annulleret af Mads lørdag 7. november. Der blev ikke oprettet et event." |
+
+Hvem og hvornår gemmes (D-129): `closeReason` og `closedAt`, når afstemningen holder op med at tage imod stemmer (også ved uafgjort, og de bevares ved en senere annullering), `closedBy` kun ved manuel lukning, og `cancelledAt`/`cancelledBy` ved annullering. CHECK-constraints holder kombinationerne gyldige.
 
 ### 9.7.5 Hvornår lukkes afstemningen?
 
@@ -969,11 +998,12 @@ Du kan ændre den indtil tirsdag 10. november kl. 20:00
 2. **Alle har stemt.** Alle *nuværende* medlemmer har en komplet stemmeseddel (§9.7.2).
 3. **Manuelt.** Opretter eller admin trykker [ Afslut afstemning nu ] og bekræfter.
 
-**Teknisk udløsning [BESLUTNING]:** Der er ingen afhængighed af en præcis baggrundsjob-timing.
+**Teknisk udløsning [BESLUTNING]:** Der er ingen afhængighed af en præcis baggrundsjob-timing. Alle udløsere bruger den samme funktion (`closeLockedPollTx`, D-131).
 
-* Efter hver stemme tjekkes "alle har stemt".
-* Ved hver visning af Overblik, Kalender og afstemningssiden tjekkes udløbne afstemninger og lukkes (*lazy close*).
-* Et **dagligt** Vercel Cron-job lukker udløbne afstemninger som sikkerhedsnet, så eventet også dukker op, selvom ingen har åbnet appen. På Vercel Hobby kan cron højst køre én gang i døgnet (§4.8). Derfor er lazy close den primære mekanisme. Bliver præcis lukning uden besøg vigtig, kan Pro-planen eller en ekstern scheduler (fx Upstash QStash) bruges.
+* Efter hver stemme tjekkes "alle har stemt" i **samme transaction** som stemmen, så den sidste stemme, lukningen og eventet gemmes samlet.
+* Ved hver visning af Overblik, Kalender og afstemningssiden lukkes afstemninger, hvis frist er gået, **eller** hvor alle nuværende medlemmer har stemt (*lazy close*; det sidste kan blive sandt, når nogen forlader klubben). Det sker aldrig i et layout, og en fejl logges uden at vælte siden.
+* Manuel lukning af en åben afstemning, hvis frist allerede er gået, gemmes som `DEADLINE` (fristen var det, der lukkede den).
+* Et **dagligt** Vercel Cron-job (kl. 04:00 UTC, §4.8) lukker udløbne afstemninger og afstemninger, hvor alle har stemt, som sikkerhedsnet, så eventet også dukker op, selvom ingen har åbnet appen. På Vercel Hobby kan cron højst køre én gang i døgnet (§4.8). Derfor er lazy close den primære mekanisme. Bliver præcis lukning uden besøg vigtig, kan Pro-planen eller en ekstern scheduler (fx Upstash QStash) bruges.
 * Lukning er **idempotent**: den sker i en transaction med betinget opdatering (`UPDATE … WHERE status = 'OPEN'`), og `Event.pollId` er unik. Samtidige forsøg kan derfor aldrig oprette to events.
 
 ### 9.7.6 Optælling og vinder
@@ -994,7 +1024,7 @@ Der er uafgjort om stedet 🤝
 [ Vælg vinder ]   (kun opretter og admins)
 ```
 
-Opretteren eller en admin vælger blandt de uafgjorte muligheder. Derefter fortsætter flowet, som om der var en entydig vinder.
+Opretteren eller en admin vælger blandt de uafgjorte muligheder (`TieResolver`, virker uden JavaScript). Valget gemmes i `PollTieResolution` med hvem og hvornår, og derefter fortsætter flowet, som om der var en entydig vinder. Er den ene kategori afgjort, står den over valget ("Datoen er afgjort: tirsdag 3. november kl. 19:30 (2 kan)"). Medlemmer, der ikke kan vælge, ser stillingen og "Mads eller en admin vælger vinderen.". Nåede ingen at stemme: "Ingen nåede at stemme 🦗". Er en uafgjort dato allerede overstået, siger kortet, at eventet bliver oprettet som en tidligere smagning (E33). Vinderne gemmes aldrig; de beregnes fra stemmerne og valgene (§3.4).
 
 `tallyPoll()` og `resolveWinner()` er rene domænefunktioner med grundige unit tests (§15.3).
 
@@ -1007,8 +1037,9 @@ Når vinderne er fundet, oprettes et almindeligt event i **samme transaction**:
 | `title`, `description`, `theme` | Kopieres fra afstemningen |
 | `startsAt` | Vindende dato og tid |
 | `placeId` | Vindende sted |
-| `hosts` | **Det vindende steds ejere.** Har stedet 0 ejere, bliver afstemningens opretter vært. |
-| `createdById` | Afstemningens opretter |
+| `hosts` | **Det vindende steds ejere, der er medlemmer.** Ellers afstemningens opretter, hvis vedkommende stadig er medlem (D-009), ellers den admin, der lukkede eller valgte vinderen (E11), ellers ingen (E34, "Ingen vært endnu"). |
+| `endsAt` | Ingen |
+| `createdById` | Afstemningens opretter (også når en admin lukkede den, eller opretteren er gået) |
 | `pollId` | Afstemningens id (unik, sikrer idempotens) |
 
 Resultatet vises på afstemningssiden og på Overblik:
@@ -1023,7 +1054,7 @@ Vært: Mads
 [ Se event ]
 ```
 
-Eventet kan derefter redigeres som ethvert andet event.
+Eventet kan derefter redigeres som ethvert andet event. Eventsiden viser "Valgt ved afstemning 🗳" med et link til afstemningen. Afstemningssidens resultatkort (`PollOutcome`) viser også, hvorfor afstemningen sluttede ("Alle havde stemt.", "Fristen udløb …", "Afsluttet af Mads."), hvem der valgte efter en uafgjort ("Mads valgte stedet, da det stod lige."), og "Eventet fra afstemningen er slettet.", hvis nogen har slettet eventet.
 
 ### 9.7.8 Notifikationer
 
@@ -1319,9 +1350,10 @@ Event
   endsAt?                 timestamptz       CHECK (endsAt IS NULL OR endsAt > startsAt)
   placeId, clubId         → Place (id, clubId)  (RESTRICT; steder arkiveres i stedet for at slettes)
                                             -- påkrævet fra runde 3; stedet er i eventets klub (D-096)
-  locationText?           String            -- forældet runde 2-fritekst, læses og skrives ikke; droppes i runde 4 (TG-032)
   createdById             → User
-  pollId?                 → Poll  UNIQUE    -- sat når eventet er skabt af en afstemning
+  pollId?, clubId         → Poll (id, clubId)  (RESTRICT) UNIQUE (pollId)
+                                            -- sat når eventet er skabt af en afstemning (D-007, D-129)
+  -- locationText er droppet i runde 4 (TG-032, D-139)
   INDEX (clubId, startsAt)
   INDEX (placeId)
 
@@ -1367,51 +1399,70 @@ Song                                        -- D-121
   -- app-regel: appens skrivninger rører aldrig sourceKey/importHash (kun importscriptet)
   -- implementeringsnote: body må aldrig søges eller vises råt – brug parseSong/lyricsOnlyLines (domain/songs/song-text.ts)
 
-Poll
+Poll                                        -- D-129
   id
   clubId                  → Club  (CASCADE)
-  title                   String
-  theme?                  String
-  description?            Text
+  title                   String (1–100)    -- samme CHECKs som Event, så kopien til eventet aldrig fejler
+  theme?                  String (1–80)
+  description?            Text (1–5000)
   deadline                timestamptz
-  status                  OPEN | AWAITING_DECISION | CLOSED | CANCELLED
+  status                  OPEN | AWAITING_DECISION | CLOSED | CANCELLED  DEFAULT OPEN
   closeReason?            DEADLINE | ALL_VOTED | MANUAL
-  closedAt?               timestamptz
-  createdById             → User
+  closedAt?               timestamptz       -- sat sammen med closeReason; bevares ved en senere annullering
+  closedById?             → User  (RESTRICT)  -- kun ved closeReason = MANUAL
+  cancelledAt?            timestamptz
+  cancelledById?          → User  (RESTRICT)
+  createdById             → User  (RESTRICT)
+  createdAt, updatedAt
+  UNIQUE (id, clubId)                       -- mål for de sammensatte FK'er fra PollOption og Event
   INDEX (clubId, status)
+  INDEX (status, deadline)                  -- cron og lazy close
+  CHECK title/theme/description (længde efter btrim)
+  CHECK OPEN ⇒ ingen close*/cancelled*
+  CHECK AWAITING_DECISION/CLOSED ⇒ closeReason sat, ingen cancelled*
+  CHECK CANCELLED ⇒ cancelledAt og cancelledById sat
+  CHECK (closeReason IS NULL) = (closedAt IS NULL)
+  CHECK (closeReason = MANUAL) = (closedById IS NOT NULL)
 
 PollOption
   id
-  pollId                  → Poll  (CASCADE)
+  pollId, clubId          → Poll (id, clubId)   (CASCADE)
   category                DATE | PLACE
   startsAt?               timestamptz       -- når category = DATE
-  placeId?                → Place           -- når category = PLACE
+  placeId?, clubId        → Place (id, clubId)  (RESTRICT; et sted i en afstemning arkiveres, D-132)
   CHECK ((category='DATE'  AND startsAt IS NOT NULL AND placeId IS NULL) OR
          (category='PLACE' AND placeId  IS NOT NULL AND startsAt IS NULL))
   UNIQUE (pollId, startsAt)
   UNIQUE (pollId, placeId)
-  UNIQUE (id, category)                     -- target for composite FK fra PollVote
+  UNIQUE (id, pollId, category)             -- mål for FK'erne fra PollVote og PollTieResolution
+  INDEX (placeId)
 
-PollBallot                                  -- én stemmeseddel pr. medlem pr. afstemning
+PollBallot                                  -- én stemmeseddel pr. medlem pr. afstemning; kun komplette gemmes
   id
   pollId                  → Poll  (CASCADE)
-  userId                  → User
+  userId                  → User  (RESTRICT; stemmer er historik)
   noDateWorks             Boolean DEFAULT false   -- "Ingen af datoerne passer mig"
+  createdAt, updatedAt
   UNIQUE (pollId, userId)
+  UNIQUE (id, pollId)                       -- mål for PollVote's sammensatte FK
 
 PollVote                                    -- ét kryds på én valgmulighed
-  id
-  ballotId                → PollBallot (CASCADE)
-  optionId                → PollOption (CASCADE)
-  category                DATE | PLACE
-  FOREIGN KEY (optionId, category) → PollOption (id, category)   -- kryds matcher kategori
-  UNIQUE (ballotId, optionId)               -- intet dobbeltkryds
-  UNIQUE (ballotId) WHERE category = 'PLACE'  -- højst ét sted pr. stemmeseddel
-  -- app-regler: option.pollId = ballot.pollId
-  --             noDateWorks = true ⇒ ingen DATE-kryds på samme stemmeseddel
+  ballotId, pollId        → PollBallot (id, pollId)              (CASCADE)
+  optionId, pollId, category → PollOption (id, pollId, category) (CASCADE)
+                                            -- samme afstemning og samme kategori er DB-regler
+  PRIMARY KEY (ballotId, optionId)          -- intet dobbeltkryds
+  UNIQUE (ballotId) WHERE category = 'PLACE'  -- højst ét sted pr. stemmeseddel (partielt index)
+  INDEX (optionId)
+  -- app-regel: noDateWorks = true ⇒ ingen DATE-kryds på samme stemmeseddel (TG-052)
 
-PollTieResolution (eller felter på Poll)
-  pollId, category, chosenOptionId, chosenById, chosenAt
+PollTieResolution                           -- valget ved uafgjort
+  pollId                  → Poll  (CASCADE)
+  category                DATE | PLACE
+  chosenOptionId, pollId, category → PollOption (id, pollId, category) (CASCADE)
+  chosenById              → User  (RESTRICT)
+  chosenAt                timestamptz
+  PRIMARY KEY (pollId, category)
+  -- vinderne gemmes aldrig: de beregnes af tallyPoll + resolveWinner (§3.4)
 
 Feedback                                    -- app-dækkende, INGEN clubId (§9.9)
   id
@@ -1456,6 +1507,13 @@ FeedbackVote
 * **Låse (D-095, D-102):** al rå SQL ligger i `src/server/db/locks.ts`. Fast rækkefølge: klub → stednavne (advisory lock pr. klub) → stedets række → eventets række → medlemskaber. Man fanger aldrig en Prisma-fejl og fortsætter i samme interaktive transaction (Postgres afbryder den), så alle invarianter tjekkes på forhånd under låse, og indexes/FK'er er kun sikkerhedsnet.
 * **Fælde (som TG-004):** Brug aldrig `place.findUnique` på `clubId_nameKey`, da den ignorerer `archived_at IS NULL`. Brug `findFirst({ where: { clubId, nameKey, archivedAt: null } })`.
 
+**Implementeringsnoter (runde 4, 2026-10-14):**
+
+* **Migrering:** én migrering (`20261014054829_round4_polls`) laver `polls`, `poll_options`, `poll_ballots`, `poll_votes` og `poll_tie_resolutions`, tilføjer `events.poll_id` og dropper `events.location_text` med sin CHECK (TG-032, D-139). To håndrettelser: CHECK'en droppes eksplicit før kolonnen, og 9 CHECKs tilføjes til sidst. Drift-tjekket (`prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` mod den migrerede dev-database) skal give en tom migrering (F-075).
+* **Sammensatte FK'er (D-129, som D-096):** `poll_options(poll_id, club_id) → polls`, `poll_options(place_id, club_id) → places`, `events(poll_id, club_id) → polls` (RESTRICT), og stemmerne peger på stemmesedlen og valgmuligheden i samme afstemning og kategori. `Poll.events` er i Prisma `Event[]`, men har 0 eller 1 række (`events_poll_id_key`); læs den som `events[0]`.
+* **Låse (D-130):** `lockPoll` (`FOR NO KEY UPDATE`) tages af **alle**, der skriver til en afstemning, også den, der stemmer. Fast rækkefølge: klub → afstemninger → stednavne (advisory) → steder → event → medlemskaber. `endMembership` låser klubbens åbne afstemninger (`lockOpenPollIds`) før medlemskabet slettes, og `deleteClub` låser alle klubbens afstemninger (`lockClubPollIds`, `FOR UPDATE`). Under afstemningens lås læses den stemmendes medlemskab uden lås: det er korrekt, fordi `endMembership` er den eneste vej, der sletter et medlemskab i en klub, der findes. En ny vej, der sletter medlemskaber, skal også låse åbne afstemninger først.
+* **Fælder:** Prisma genererer en `WhereUniqueInput` på `PollVote.ballotId` ud fra det partielle index. Brug aldrig `findUnique({ where: { ballotId } })`. Skriv kun med unchecked skalarer.
+
 ---
 
 # 12. Edge cases
@@ -1466,13 +1524,13 @@ FeedbackVote
 | E2 | Sidste admin vil forlade klub, fjernes eller nedgraderes | Blokeres: "Klubben skal have mindst én admin. Gør et andet medlem til admin først." Ved "Forlad klubben" med genvejen "Gør et medlem til admin" (D-102). |
 | E3 | Admin er eneste medlem | Kan slette klubben. Forlad er blokeret (E2). |
 | E4 | Sted bruges af events og skal "slettes" | Arkiveres (§9.4). Events viser det stadig. |
-| E5 | Sted er valgmulighed i åben afstemning | Kan ikke arkiveres, før afstemningen er lukket eller annulleret. |
-| E6 | Stemme efter deadline (fx formular åben for længe) | Serveren afviser: "Afstemningen er lukket 🔒". Siden genindlæses med resultatet. |
+| E5 | Sted er valgmulighed i åben eller uafgjort afstemning | Kan hverken arkiveres eller slettes, før afstemningen er afgjort eller annulleret. Stedets side forklarer det og linker til afstemningen (D-132). |
+| E6 | Stemme efter deadline (fx formular åben for længe) | Serveren lukker afstemningen (`DEADLINE`) og afviser stemmen: "Afstemningen er lukket 🔒". Siden genindlæses med resultatet. |
 | E7 | To medlemmer udløser lukning samtidig | Betinget `UPDATE … WHERE status='OPEN'` + unik `Event.pollId`, så kun ét event oprettes. |
 | E8 | Alle har stemt | Lukker automatisk med `closeReason = ALL_VOTED`. |
 | E9 | Uafgjort (også 0 stemmer) | `AWAITING_DECISION`. Opretter/admin vælger. Ingen tilfældig vinder. |
-| E10 | Vindende sted har 0 ejere | Afstemningens opretter bliver vært. |
-| E11 | Afstemningens opretter forlader klubben | Admins kan stadig afslutte, annullere og vælge vinder. |
+| E10 | Vindende sted har 0 ejere | Afstemningens opretter bliver vært (hvis stadig medlem, ellers E11/E34). |
+| E11 | Afstemningens opretter forlader klubben | Admins kan stadig afslutte, annullere, rette og vælge vinder; den tidligere opretter får 404. Har vinderstedet ingen ejere, bliver den admin, der lukker eller vælger, vært. Eventets `createdById` er stadig opretteren. |
 | E12 | Nyt medlem joiner under åben afstemning | Kan stemme. Tæller med i "alle har stemt" fra nu af. |
 | E13 | Event med tilknyttede øl slettes | `Beer.eventId → null`. Øl og ratings bevares. |
 | E14 | Øl slettes | Ratings slettes med (cascade) efter confirmation, der viser antallet af ratings. |
@@ -1493,6 +1551,8 @@ FeedbackVote
 | E29 | "＋ Nyt sted" med et navn, klubben allerede har (fx " hos  MADS ") | Formularen siger "«Hos Mads» findes allerede." med [ Vælg det ]. Sendes den alligevel, genbruges det aktive sted. På "Nyt sted"-siden afvises navnet med et link til stedet (D-095, D-099). |
 | E30 | Et event på et sted, der siden er arkiveret, redigeres | Stedet står stadig som valgt ("Hos Mads (arkiveret)") og må blive. Andre arkiverede steder kan ikke vælges. |
 | E31 | En vært har forladt klubben | Værtskabet bevares på startede og afholdte events. Ved redigering står værten som "(tidligere medlem)" og må blive, men kan ikke vælges igen. Værtskaber på kommende events fjernes, når medlemskabet ophører. |
+| E33 | Uafgjort afgøres efter den uafgjorte dato | Tilladt: eventet oprettes som en tidligere smagning. Valget siger det på forhånd ("Datoen er overstået – eventet bliver oprettet som en tidligere smagning."). |
+| E34 | Automatisk lukning, opretteren er gået, og vinderstedet har ingen ejere | Eventet oprettes uden vært ("Ingen vært endnu"), og værter kan tilføjes ved redigering. |
 | E32 | Et ubrugt sted fjernes, mens nogen opretter et event på det | Afgøres under en rækkelås: enten oprettes eventet først, og stedet arkiveres så i stedet for at blive slettet, eller stedet slettes først, og eventet afvises med "Stedet findes ikke længere. Vælg et andet." Aldrig en databasefejl (D-100). |
 
 ---
@@ -1567,6 +1627,19 @@ Afledte nuancer (`cream-deep`, `sand`, `amber-light`, `amber-tint`, `danger-deep
 | Søgning uden æ/ø/å | "Ingen præcise træf. Her er sange, hvis man ser bort fra æ, ø og å." |
 | Sang tilføjet / slettet | "Sangen er tilføjet 🎵" / "Sangen er slettet." |
 | Slet sang | "Slet «Titel»?" / "Sangen forsvinder fra sangbogen for alle i klubben. Det kan ikke fortrydes." / [Behold den] |
+| Afstemning oprettet | "Afstemningen er klar 🗳 Del linket med klubben." |
+| Stemme gemt og afstemningen lukket | "Skål! Din stemme er gemt ✓ Alle har stemt, og eventet er oprettet 🎉" / "… Alle har stemt – men der er uafgjort 🤝" |
+| Ugemte kryds | "Ikke gemt endnu" |
+| Stemmesedlen | "Du kan stemme indtil {frist} – og ændre det bagefter." / "Du har stemt ✓ Du kan ændre din stemme indtil {frist}." |
+| Åbne stemmer | "Stemmerne er åbne: alle i klubben kan se, hvem der har stemt på hvad." |
+| Intet at stemme om | "Tilføj mindst to datoer eller to steder, så der er noget at stemme om. Ligger alt fast, så opret et event i stedet." |
+| Afstemning lukket | "Afstemningen er lukket 🔒" / "🎉 Afstemningen er afsluttet, og eventet er oprettet!" / "Afstemningen er lukket – der er uafgjort 🤝" |
+| Vinder valgt / annulleret | "🎉 Vinderen er valgt, og eventet er oprettet!" / "Afstemningen er annulleret." |
+| Afslut nu | "Afslut afstemningen nu?" / [Afslut nu] / [Fortsæt afstemningen] |
+| Annullér | "Annullér «Titel»?" / "Der bliver ikke oprettet et event. Stemmerne bliver stående, så I kan se dem." / [Behold den] |
+| Uafgjort | "Der er uafgjort om stedet 🤝" / "Ingen nåede at stemme 🦗" / "Mads valgte stedet, da det stod lige." |
+| Hvem styrer | "Mads (opretteren) og klubbens admins kan afslutte eller annullere afstemningen." / "Kun opretteren og klubbens admins kan …" (D-117) |
+| Event fra afstemning | "Valgt ved afstemning 🗳" / "Eventet fra afstemningen er slettet." |
 
 ---
 
@@ -1599,9 +1672,13 @@ Genanvendelige og generiske nok til flere steder. Navne på engelsk.
 | `SongbookBrowser`, `SongFinderBar`, `SongLetterGrid`, `SongAlphabetList`, `SongListItem`, `SongSearchResults`, `SongListSkeleton` | Sangbogens oversigt |
 | `SongReader` (Wake Lock), `SongTextView`, `SongViewToggle`, `SongFontStepper`, `SongNeighboursNav`, `BackToSongbook`, `SongReaderSkeleton`, `SongbookPrefsScript` (rodlayoutet, D-124) | Læsevisning |
 | `SongForm`, `SongPreview`, `SongFormatHelp`, `DeleteSongButton` | Opret/rediger sang (admin) |
-| `PollCard` | Overblik, Kalender |
-| `PollForm` | Planlæg ølsmagning |
-| `DateVoteOption` (checkbox), `PlaceVoteOption` (radio), `VoterAvatars`, `VotingProgress`, `TieResolver` | Afstemningsside |
+| `PollCard` | Overblik |
+| `PollOptionCard`, `PollOptionChip` (`CalendarItem` i `event-format.ts`) | Kalender (liste, dagspanel, månedsgitter) |
+| `PollForm` (`PollDateRows`, `PollPlacePicker` med `PlaceChoiceCard type="checkbox"`, `PollDeadlineField`), `PollEditForm` | Planlæg ølsmagning, rediger afstemning |
+| `PollHeader`, `PollVoteForm` (`DateVoteOption` checkbox, `PlaceVoteOption` radio, `FixedOptionRow`, `VoteBar`, `VoterAvatars`), `PollResults`, `VotingProgress`, `PollAutoRefresh` | Afstemningsside |
+| `PollStatusPanel` (`PollOutcome`, `TieResolver`, `CancelledPollBanner`), `PollManageActions` (`ClosePollButton`, `CancelPollButton`) | Afstemningsside |
+| `EventPollNote` ("Valgt ved afstemning 🗳") | Event detail |
+| `PlanActions` ([ Opret event ] [ Planlæg ølsmagning ]) | Overblik |
 | `getDisplayName()` (ingen egen komponent; `formatMemberName` på medlemslisten) | Overalt |
 | `InviteShare` | Onboarding, klubside |
 | `FeedbackForm` (med lignende rapporter), `FeedbackCard`, `FeedbackStatusBadge`, `UpvoteButton` | Feedback |
@@ -1747,9 +1824,13 @@ Inden en ny runde påbegyndes: gennemgå eksisterende arkitektur, genbrug eksist
 
 **Implementering (2026-10-09, D-094):** først TG-021 (fælles formularmotor, D-109), så ét fundament (skema, migrering, domæne, validering, datalag, interim-eventformular, alle nye ruter med endelige guards, seed), så tre parallelle agenter med eget filejerskab (A profil og medlemmer, B steder, C events med steder og historik) og til sidst en integrator. E2E for DoD: `e2e/round3-dod.spec.ts` (kælenavn → sted med ejer → events med værter → historik → arkivering → roller, forlad og slet klub).
 
-### Runde 4 – "Vi kan planlægge sammen" (afstemninger)
+### Runde 4 – "Vi kan planlægge sammen" (afstemninger) 🟨 bygget 2026-10-14, E2E ikke kørt endnu
 
 * Afstemninger efter §9.7: oprettelse (datoer, steder, frist), stemmer, ændr stemme, live-resultater, lukning ved frist / alle har stemt / manuelt, uafgjort med manuelt valg, automatisk event med værter fra stedets ejere, daglig cron som sikkerhedsnet.
+
+**Definition of Done:** opret afstemning → medlemmerne stemmer → vindende dato og sted → et almindeligt event oprettes → det vises i Kalender og på Overblik. Uafgjort → opretter eller admin vælger vinder → event.
+
+**Implementering (2026-10-14):** ét fundament (skema, migrering, låse, rene domænemoduler, validering, datalag med lukning og cron, alle ruter i endelig form, stubs med låste props, seed), så to parallelle agenter med eget filejerskab (P1 opret, ret og stem; P2 lukning, uafgjort, annullering, Overblik, Kalender og eventsiden) og til sidst en integrator (D-129–D-139). **Testomfang (Jesper, 2026-10-14: "stop før du starter end to end test"):** unit og integration er skrevet og kørt. E2E er skrevet, men ikke kørt: `e2e/round4-dod.spec.ts` (DoD), `e2e/polls.spec.ts`, `e2e/poll-lifecycle.spec.ts` og runde 4-delene af `e2e/club-isolation.spec.ts` (TG-053). Runden er ✅, når de er kørt grønt.
 
 ### Prioritet ved nedskæring
 
@@ -1848,8 +1929,8 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | 3 | 3.4 | Events bruger `Place` + værter (migrering af fritekst) | ✅ | 2026-10-09. Migrering af fritekst til steder (D-097), sammensatte FK'er (D-096), stedvælger med "＋ Nyt sted" inline og værtsvalg (D-098, D-099, D-111–D-113), eventside med sted, adresse og værter (D-101). 21 unit (`event-form-state`), 75 integration (`round3-migration` 13, `round3-data` 41, `round3-events` 21), 4 E2E (`events-places.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
 | 3 | 3.5 | Eventhistorik | ✅ | 2026-10-09. "Tidligere ølsmagninger" på Overblik (3) og i Kalenderens liste (12, `?past=all`), "Ølsmagninger her" pr. sted (D-107, D-114). 3 E2E (`history.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
 | 3 | 3.6 | Medlemsadministration (Q11) | ✅ | 2026-10-09. '⋯'-menu pr. medlem (gør til admin, fjern admin-rollen, nulstillingslink, fjern), forlad klub, slet klub med skrevet navn, rediger klubinfo (D-102–D-104, D-110, D-116). 11 unit, 20 integration (`round3-members`), 5 E2E (`members.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
-| 4 | 4.1 | Afstemninger: oprettelse + stemmer | ⬜ | |
-| 4 | 4.2 | Afstemninger: lukning, uafgjort, automatisk event, cron | ⬜ | |
+| 4 | 4.1 | Afstemninger: oprettelse + stemmer | 🟨 | 2026-10-14. Bygget (D-129–D-139); unit + integration grønne; E2E ikke kørt endnu – Jesper (TG-053). 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt: `round4-dod.spec.ts`, `polls.spec.ts`, `poll-lifecycle.spec.ts`, runde 4-delene af `club-isolation.spec.ts`. Opret med forslag (datoer, frist, titel), "＋ Nyt sted", ret (kun forlænget frist), stem med forhåndsvisning og åbne stemmer, auto-opdatering. |
+| 4 | 4.2 | Afstemninger: lukning, uafgjort, automatisk event, cron | 🟨 | 2026-10-14. Bygget (D-129–D-139); unit + integration grønne; E2E ikke kørt endnu – Jesper (TG-053). 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt: `round4-dod.spec.ts`, `polls.spec.ts`, `poll-lifecycle.spec.ts`, runde 4-delene af `club-isolation.spec.ts`. Én lukkefunktion (sidste stemme, lazy close på Overblik/Kalender/afstemningssiden, manuelt, daglig cron `0 4 * * *` med `CRON_SECRET`), uafgjort → vælg vinder, annullér, event i samme transaction, PollCard, stiplede "Mulig dato", "Valgt ved afstemning 🗳", E5. |
 | – | – | Feedback (fejl og ønsker) | ⬜ | Ikke i runderne (Q10). Kan med fordel bygges tidligere. |
 
 ## 19.3 Beslutningslog
@@ -1986,6 +2067,18 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-126 | 2026-10-13 | Importen (`scripts/import-songbook.ts` + `scripts/songbook/`): `pdftohtml -xml -i -q -nodrm -stdout` med strenge skriftroller (ukendt skrift eller størrelse = FEJL), altid round trip og schema-tjek, statusser efter `sourceKey`/`importHash`, `overrides.json`, alt i én transaction (planen beregnes igen inde i den, `updateMany` med `updatedAt`-vagt). Strammere end designet: en ikke-lokal database kræver `--remote` for **al** adgang, `--user` skal være ADMIN også i en tør kørsel, og `--apply` mod en ikke-lokal database kræver klubbens navn tastet i en TTY. Kører aldrig på Vercel. | Importen må kunne køres igen uden dubletter eller tab af rettelser, og en AI-agent kan ikke skrive til produktion. | §9.6 import v1 ("match på nummer eller titel") |
 | D-127 | 2026-10-13 | Sangbogens ruter efter D-065: listen i `songs/(list)/` med loading, `songs/[songId]/layout.tsx` er guard (`requireSong`) over `(detail)/loading.tsx`, `new/` og `[songId]/edit/` har ingen loading og kalder `requireMembership`/`requireSong` → `canManageSongs` → `notFound` → husk aktiv klub. Actions følger steders rækkefølge: id'er (`songRefSchema`, 404) → `songFieldsSchema` → `requireSong` → `canManageSongs` → skriv. | Ægte 404 for medlemmer og andre klubbers sange (E22). Løser TG-025. | – |
 | D-128 | 2026-10-13 | Sangbogens præsentation: søgefeltets placeholder er "Titel, kunstner eller en linje…" (designets "Søg …" blev skåret af ved 375 px; label "Søg i sangbogen" er sr-only). Etiketter står med versaler i 0,72 em, gentagne vers (omkvæd) har en 3 px ravfarvet streg i venstre side. A–Å-gitteret hopper med `scrollIntoView` og fokus på overskriften uden `#hash` (før hydrering virker `#bogstav-…`-ankrene). "#" annonceres som "Tal og tegn". Brødtekstfeltet har fast bredde (`wrap=off`, monospace), så akkorder kan rykkes på plads. | Læsbarhed ved 375 px og på creme baggrund; Next håndterer `scroll-behavior: smooth` på `<html>` specielt. | – |
+| D-129 | 2026-10-14 | Afstemningernes datamodel (§11): `PollOption.clubId` med sammensatte FK'er `(poll_id, club_id) → polls` (CASCADE) og `(place_id, club_id) → places` (RESTRICT). `PollVote` har PK `(ballot_id, option_id)` og FK'erne `(ballot_id, poll_id) → poll_ballots(id, poll_id)` og `(option_id, poll_id, category) → poll_options(id, poll_id, category)`, så "samme afstemning" og "samme kategori" er databaseregler; et partielt unikt index giver højst ét sted pr. stemmeseddel. `PollTieResolution` er en tabel (PK `(poll_id, category)`, FK til valgmuligheden i samme afstemning og kategori). `Event.pollId` er UNIQUE med en sammensat RESTRICT-FK til `polls(id, club_id)`. `Poll` får `closedById` (kun MANUAL), `cancelledAt` og `cancelledById`. 9 CHECKs (længder, livscyklus, kategori). Stemmesedler → users RESTRICT. Vinderne gemmes aldrig. | Club isolation i databasen som D-096 og D-073 (aldrig SetNull på en sammensat relation). UI'et viser "Afsluttet af Mads" og "Annulleret af Mads …", og en annullering fra uafgjort beholder `closedAt`. | §11 Poll* v2 |
+| D-130 | 2026-10-14 | Låse for afstemninger: `lockPoll` = `FOR NO KEY UPDATE` for **alle**, der skriver til en afstemning, også den, der stemmer. Lukningen ved "alle har stemt" sker i stemmens egen transaction. Fast rækkefølge: klub → afstemninger → stednavne (advisory) → steder → event → medlemskaber. `endMembership` låser klubbens åbne afstemninger (`lockOpenPollIds`), før medlemskabet slettes, og sletter så kun brugerens stemmesedler i netop dem (ændrer D-102's rækkefølge). `deleteClub` låser alle klubbens afstemninger `FOR UPDATE` → events → afstemninger → klub (opfylder D-103's note). Den stemmendes medlemskab læses uden lås under afstemningens lås. | Klubber har 5–20 medlemmer, så at serialisere stemmer pr. afstemning koster intet, og det fjerner både SHARE→UPDATE-deadlocket og vinduet, hvor "alle har stemt" er sandt, men afstemningen stadig er åben. NO KEY UPDATE blokerer ikke de KEY SHARE-låse, som FK-inserts tager. Uden afstemningslåsen i `deleteClub` kunne en samtidig lukning indsætte et event mellem de to sletninger. | D-102 (rækkefølgen i `endMembership`) |
+| D-131 | 2026-10-14 | Lukning: én funktion, `closeLockedPollTx` (betinget `updateMany … WHERE status = 'OPEN'`, så `createEventFromPollTx` i samme transaction), bag alle udløsere. Lazy close på Overblik, Kalender og afstemningssiden tjekker **både** frist og "alle har stemt", kører aldrig i et layout og kaster aldrig (`closeDuePolls`, `closePollIfDueSafely`). En stemme, der rammer en udløbet afstemning, lukker den og afvises (E6). Manuel lukning af en åben afstemning, hvis frist er gået, gemmes som `DEADLINE` (uden `closedBy`). Cron dagligt `0 4 * * *` UTC med Bearer `CRON_SECRET`, sammenlignet tidskonstant; uden secret 503, forkert token 401. Værter: vinderstedets ejere, der er medlemmer → opretteren, hvis stadig medlem (D-009) → den handlende admin (E11) → ingen (E34). `Event.createdById` er altid opretteren. | Idempotens med betinget opdatering og unik `Event.pollId` (D-007). "Alle har stemt" kan også blive sandt, når nogen forlader klubben, så cron tjekker begge. 503 betyder "slået fra" (en 401 ville skjule en konfigurationsfejl, en 500 ligne et nedbrud). | – |
+| D-132 | 2026-10-14 | E5 udvidet: et sted i en **åben eller uafgjort** afstemning kan hverken arkiveres eller slettes. Et sted, der har været valgmulighed i en afstemning, arkiveres, aldrig slettes. `PlaceUsage = { eventCount, pollOptionCount, activePollCount }`, `placeRemovalBlock` → `"in-active-poll"`. Stedets side forklarer det og linker til afstemningen; fjern-knappen vises ikke. | Opfylder D-100's note. `poll_options → places` er RESTRICT, og en uafgjort afstemning kan stadig vælge stedet som vinder. | – |
+| D-133 | 2026-10-14 | Redigering: valgmulighederne ændres **aldrig** efter oprettelsen (strammere end §9.7.2 v2); er de forkerte, annullerer man og starter en ny. `/c/[clubId]/polls/[pollId]/edit` (opretteren, så længe vedkommende er medlem, eller en admin, kun mens den er åben, ellers ægte 404): titel, tema, beskrivelse og frist. Fristen kan kun rykkes senere og skal stadig ligge før den første dato (E24). En rettelse, der finder en udløbet afstemning, lukker den og svarer `poll-locked`. §5.1 har rækken "Redigere afstemning". | Ingen kapløb mellem valgmuligheder og første stemme, ingen sti, der kan efterlade forældreløse stemmer, og ingen ekstra UI. | §9.7.2 v2 ("kan ikke ændres, når første stemme er afgivet") |
+| D-134 | 2026-10-14 | Regler: kun komplette stemmesedler gemmes ("har stemt" = der findes en stemmeseddel). Kryds i en fastlagt kategori ignoreres. Mindst én kategori skal have ≥ 2 valgmuligheder (ellers et link til "Opret event"). Højst 10 datoer og 10 steder. Én fælles starttid (18:30); fristens standardtid er 20:00. Datoer og frist i fremtiden og fristen før første dato: Zod-schemaet er rent (form, længder, frist før første dato), og `checkPollTiming(now)` kører på serveren før og under låsen. | En afstemning uden noget at stemme om er et event. Et schema, der afhænger af "nu", giver overraskelser ved hydrering og skæve ure; serveren er autoritativ. | – |
+| D-135 | 2026-10-14 | PollForm: felterne i §9.7.1's rækkefølge med "Tema (valgfrit)" (TG-031). Tre foreslåede datoer på klubbens mest almindelige ugedag blandt de seneste 12 events (ellers lørdag), den første ≥ 7 dage frem; "+ Tilføj dato" lægger en uge til. Fristen følger "2 dage før første dato kl. 20:00" (ellers dagen før kl. 20:00, ellers 3 timer før start), indtil den røres. "＋ Nyt sted" via `findOrCreatePlaceTx` og rulles tilbage, hvis afstemningen afvises. En checkbox-variant af `PlaceChoiceCard` (`type`, `name`); fluebenet er `::before`-indhold med tom alt-tekst, så det ikke kommer med i det tilgængelige navn (F-076). Siderne ejer `PageHeader` (h1) og `Card`; `PollForm` og `PollEditForm` renderer kun formularen. | En formular på 30 sekunder på mobilen (§1.1). Som eventformularen (D-099, D-113). | – |
+| D-136 | 2026-10-14 | Stemme-UI: en optimistisk **forhåndsvisning** (§13.4.6) af tal, søjler og "Fører" med egen avatar (stiplet ring, sidst som "dig") og "Ikke gemt endnu", plus en eksplicit [ Gem min stemme ], der sender videre med toasten "vote-saved" (C11, D-075). Stemmesedlen er keyed på `myBallot.updatedAt`. Navne vises ved avatarerne op til 4 stemmer, derover "Se alle (N)". «Ingen passer» er en række på datoernes skala og fører aldrig. Siden opdaterer sig hvert 30. sekund, mens den er synlig og åben, men ikke mens en formular har `data-dirty`. Åbenhedsnoten (D-014). `PollOptionView.isTied` vises kun, mens afstemningen er åben, når topscoren er > 0. | Virker uden JavaScript, som alle andre formularer. En frisk afstemning skal ikke vise "Står lige" overalt. | – |
+| D-137 | 2026-10-14 | Synlighed: Overblikkets `PollCard` har fem tilstande (mangler, har stemt, uafgjort for opretter/admin og for andre, afgjort i 3 dage efter lukningen, så længe eventet ikke er slut). Mens et kort venter på brugeren, er hero-kortets [ Se event ] dæmpet (én messingknap, D-057). Kalenderen viser åbne og uafgjorte afstemningers datoer stiplede som "Mulig dato" med "Du kan ✓"; de forsvinder ved lukning og annullering. Eventsiden har "Valgt ved afstemning 🗳". Titelforslag for events og afstemninger tæller åbne og uafgjorte afstemningers titler med. | §9.1 "Aktive afstemninger", §9.3 og §9.7.7 "vises … på Overblik". To planer på samme tid får ikke begge "#15". | – |
+| D-138 | 2026-10-14 | Ruter efter D-065: `polls/new` med loading; `polls/[pollId]/layout.tsx` er guard (`requirePoll`) over `(detail)/loading.tsx`; `edit/` har ingen loading. Ingen `/polls`-oversigt (catch-all 404; isolationstesten bruger nu `stats` som ubygget sti, TG-040). `/api/cron/close-polls` og `vercel.json` `crons`. Toast-nøgler: `poll-created`, `poll-updated`, `vote-saved`, `vote-saved-closed`, `vote-saved-tie`, `poll-locked`, `poll-closed`, `poll-awaiting`, `poll-decided`, `poll-cancelled`. Er afstemningen allerede afgjort eller ikke uafgjort, sender afslut/annullér/vælg vinder bare til afstemningen uden toast (et dobbelt tryk gør intet ekstra). | Ægte 404 for ukendte, ugyldige og andre klubbers afstemninger (E22). | – |
+| D-139 | 2026-10-14 | TG-032 er gjort: `events.location_text` og dens CHECK droppes i `round4_polls`. Vinduet under en deploy, hvor gammel kode kunne læse kolonnen, accepteres, fordi der ikke er nogen produktion endnu (som D-097). | Død kolonne. | – |
+| D-140 | 2026-10-14 | Sangbogens tekstspørgsmål er afgjort af Jesper: de to titler, der er rettet via `overrides.json`, og pladsholderen "X" i den ene sang **beholdes, som de er**. | Jespers valg. Løser TG-048. | – |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -1999,6 +2092,20 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-076 · 2026-10-14 · Et `::before`-flueben kom med i checkboksens tilgængelige navn
+- **Område:** UI / Tilgængelighed
+- **Symptom:** I afstemningsformularen hed et afkrydset sted "✓ Hos Mads" for skærmlæsere og Playwright (`ariaSnapshot`), så locators med det præcise navn fejlede, så snart boksen var krydset af.
+- **Årsag:** CSS-genereret indhold (`content: '✓'`) på et `<label>` indgår i beregningen af det tilgængelige navn. Desuden gjorde `before:rounded-md` (0,8 × `--radius`) den 20 px store boks næsten rund, så den lignede en radio.
+- **Rettelse:** `peer-checked:before:content-['✓'_/_'']` (CSS-indhold med tom alt-tekst) og `before:rounded-[5px]` i `src/components/features/events/place-choice-card.tsx`. Verificeret med `ariaSnapshot`: `checkbox "Hos Anders" [checked]`.
+- **Læring / forebyggelse:** Dekorativt pseudo-indhold på en label skal have tom alt-tekst (`content: 'x' / ''`) eller ligge i et `aria-hidden`-element.
+
+### F-075 · 2026-10-14 · `prisma migrate diff --from-migrations` kræver en shadow-database
+- **Område:** DB / Tooling
+- **Symptom:** Designets drift-tjek (`prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --script`) fejlede, fordi `prisma.config.ts` ikke har `datasource.shadowDatabaseUrl`.
+- **Årsag:** Prisma 7 skal afspille migrationerne i en shadow-database for at sammenligne dem med schemaet.
+- **Rettelse:** Drift-tjekket køres som `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` mod dev-databasen med alle migrationer anvendt. Det skal give en tom migrering ("This is an empty migration").
+- **Læring / forebyggelse:** Brug den kommando ved hver migrering, indtil der er sat en shadow-database op. Et partielt index (som `poll_votes_ballot_id_place_key`) giver ingen drift, når det er erklæret i schemaet (F-004).
 
 ### F-074 · 2026-10-13 · Et absolut positioneret grid krympede til sin `<summary>`
 - **Område:** UI (sangbogens A–Å-gitter)
@@ -2491,8 +2598,8 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | ~~TG-028~~ | 2026-10-09 | ~~`src/server/actions/clubs.ts` (runde 1) kalder stadig `revalidatePath(..., "layout")` direkte i stedet for `revalidateClub` (D-090)~~ | Kun konsistens | Én linje, når filen alligevel røres ✅ Løst 2026-10-09 i runde 3 (`revalidateClub`/`revalidateAppShell` og det fælles `idSchema`). |
 | ~~TG-029~~ | 2026-10-09 | ~~`cleanUserName` i Better Auths user-update-hook fjerner ikke NUL~~ | Ingen i dag: alle app-stier parser med `userNameSchema` først | Brug `stripNul` i `cleanUserName`, når filen røres ✅ Løst 2026-10-09 i runde 3. |
 | TG-030 | 2026-10-09 | Ingen rate limits på runde 2-skrivninger (events, øl, ratings) | Et autentificeret medlem kunne fylde databasen via sin egen klub. Afvist som runde 2-fejl, fordi §4.7 ikke kræver det. | Overvej limits pr. bruger, hvis appen bliver offentligt kendt |
-| TG-031 | 2026-10-09 | §9.7.1's PollForm-wireframe skriver "Tema (valgfri)" | Forkert køn (et tema) | Brug "Tema (valgfrit)" i PollForm i runde 4, som i eventformularen |
-| TG-032 | 2026-10-09 | `events.location_text` og `events_location_text_length_check` findes stadig (nullable, ubrugt) efter D-097 | Død kolonne | Drop kolonnen og CHECK'en i runde 4's første migrering. Først skal `grep -rn locationText src --exclude-dir=generated` være tom (e2e-hjælperens alias og migreringstesten tæller ikke). |
+| ~~TG-031~~ | 2026-10-09 | ~~§9.7.1's PollForm-wireframe skriver "Tema (valgfri)"~~ | Forkert køn (et tema) | Brug "Tema (valgfrit)" i PollForm i runde 4, som i eventformularen ✅ Løst 2026-10-14 (D-135, §9.7.1 rettet). |
+| ~~TG-032~~ | 2026-10-09 | ~~`events.location_text` og `events_location_text_length_check` findes stadig (nullable, ubrugt) efter D-097~~ | Død kolonne | Drop kolonnen og CHECK'en i runde 4's første migrering. Først skal `grep -rn locationText src --exclude-dir=generated` være tom (e2e-hjælperens alias og migreringstesten tæller ikke). ✅ Løst 2026-10-14 af D-139 (droppet i `round4_polls`). |
 | TG-033 | 2026-10-09 | Email kan ikke ændres (D-106, Q13) | En bruger med en ny email må bede om hjælp | Byg email-ændring med verificering, når SMTP og et domæne er sat op (TG-001) |
 | TG-034 | 2026-10-09 | En ren Google-konto kan ikke tilføje et password | Kan kun logge ind med Google | Byg det med et friskhedstjek (fx nyligt Google-login), da Better Auths `setPassword` ikke har et |
 | TG-035 | 2026-10-09 | Et kælenavn kan efterligne et andet medlems navn | Forvirring i en klub | Afbødet: medlemslisten og profilen viser det officielle navn i parentes (D-105). Genbesøg, hvis det bliver et problem. |
@@ -2500,7 +2607,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-037 | 2026-10-09 | Stedvælger og værtsvalg før hydrering (TG-020-klassen) | Uden JS følger værtskortene og hjælpeteksten ikke et stedskift (det viste sendes) | Stort set løst af D-113 (valg før hydrering overtages, valg efter et serversvar sættes tilbage). Ejer-toggle, admins X og slet/arkivér-dialogerne virker kun med JS, som alle `ConfirmDialog` (TG-020). |
 | TG-038 | 2026-10-09 | Et muligt 40P01-deadlock mellem `deleteClub` og samtidige skrivninger i klubben | Viser den generiske fejl; intet går tabt | Fast låserækkefølge og små transactions gør det usandsynligt. Genbesøg, hvis det ses i logs. |
 | ~~TG-039~~ | 2026-10-09 | ~~Toasts på CenteredShell-sider (desktop) står på oliven-båndet, og den mørke toast skiller sig kun ud med sin kant~~ | Svag visuel adskillelse af "club-left"/"club-deleted" på /clubs og /onboarding (D-104) | ✅ Løst 2026-10-09 af D-117: messingkant på olivenfarvede toasts. |
-| TG-040 | 2026-10-09 | `e2e/club-isolation.spec.ts` bruger `/c/<id>/polls` som den ubyggede sti, der dækker catch-all'en `[...rest]` for medlemmer | Når runde 4 bygger `/polls`, mister catch-all'en sin E2E-dækning | Skift til en anden ubygget sti i runde 4 (det samme skete for `places` i runde 3) |
+| ~~TG-040~~ | 2026-10-09 | ~~`e2e/club-isolation.spec.ts` bruger `/c/<id>/polls` som den ubyggede sti, der dækker catch-all'en `[...rest]` for medlemmer~~ | Når runde 4 bygger `/polls`, mister catch-all'en sin E2E-dækning | Skift til en anden ubygget sti i runde 4 (det samme skete for `places` i runde 3) ✅ Løst 2026-10-14: `stats` er den ubyggede sti; `/polls` (uden oversigt) og afstemninger fra andre klubber er tilføjet (ikke kørt endnu, TG-053). |
 | TG-041 | 2026-10-09 | En styret `ConfirmDialog` uden trigger kan ikke selv returnere fokus (F-060) | Hvert menu → dialog-flow skal huske det selv | `MemberActionsMenu` gør det med en effekt. Tilføj en `returnFocusRef`-prop (via `onCloseAutoFocus`), når et andet flow får brug for det. |
 | TG-042 | 2026-10-09 | `ProfileForm` er keyed på de gemte værdier. Gemmer man de samme værdier med ekstra mellemrum ("  Kaptajnen  "), bliver den urensede tekst stående i feltet | Kosmetisk, indtil næste besøg | Nulstil formularen efter et svar uden ændring, hvis det generer |
 | TG-043 | 2026-10-13 | Sangbogen har ingen automatiske tests (D-119): hverken unit tests af `song-text`/`search`/`title`, integrationstests af actions og import eller E2E (søgning, læsevisning, admin, 404 for medlemmer) | Regressioner i sangbogen opdages først manuelt | Når Jesper har testet: unit tests af de rene moduler, `songs.itest.ts` og en `songbook.spec.ts` med de opdigtede seed-sange (`insertSong` findes i `e2e/support/db.ts`) |
@@ -2508,8 +2615,15 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-045 | 2026-10-13 | Listesiden sender alle sanges tekstlinjer til klienten (D-123) | Over ca. 300 sange bliver siden tung | Flyt `matchSongs` til serveren, hvis sangbogen vokser så meget |
 | TG-046 | 2026-10-13 | Akkordkolonnerne i 4 importerede sange med akkorder over ordene er estimeret ud fra PDF'ens positioner (204 akkorder: 8 midt i et ord, 9 efter linjens slutning, 0 på et mellemrum) | Enkelte akkorder kan sidde lidt skævt | Jesper tjekker dem manuelt og retter i appen eller via `overrides.json` |
 | TG-047 | 2026-10-13 | Prototypens filer med sangtekster (`.work/songbook/`: `parsed.json`, `txt/`, `xml/`, preview) og `data/sangbog/import-report.json` ligger stadig lokalt (git-ignoreret) | Ingen, så længe de ikke committes | Slet `.work/songbook/` efter Jespers test |
-| TG-048 | 2026-10-13 | Én sang har pladsholderen "X" i teksten, og to titler er rettet via `overrides.json` (afventer Jespers svar) | Teksten står med "X" | Når Jesper svarer: en `replacements`-post i `overrides.json` og `--apply` igen (forventet: OPDATERES for den ene sang) |
+| ~~TG-048~~ | 2026-10-13 | ~~Én sang har pladsholderen "X" i teksten, og to titler er rettet via `overrides.json` (afventer Jespers svar)~~ | Teksten står med "X" | Når Jesper svarer: en `replacements`-post i `overrides.json` og `--apply` igen (forventet: OPDATERES for den ene sang) ✅ Løst 2026-10-14 af D-140: Jesper beholder begge, som de er. |
 | TG-049 | 2026-10-13 | Importen: en række i etiket-skriften, hvis tekst i parentes kun er akkordnavne, får ingen dansk etiket (`danishLabel` er ikke eksporteret fra `song-text.ts`), så round trip'en ville melde FEJL | Rammer ingen af de 59 sange | Eksportér `danishLabel`, hvis det sker |
+| TG-050 | 2026-10-14 | Afstemninger lukker kun dagligt via cron (Hobby, kl. 04:00 UTC) ud over lazy close | Uden besøg kan et event fra en afstemning dukke op op til ca. et døgn efter fristen | Pro-planen eller en ekstern scheduler (fx Upstash QStash), hvis præcis lukning bliver vigtig |
+| TG-051 | 2026-10-14 | Ingen notifikationer om nye afstemninger, frister eller oprettede events (§9.7.8 [SENERE]) | Overblik er den eneste påmindelse ("Du mangler at stemme") | Byg sammen med email (TG-001) eller push |
+| TG-052 | 2026-10-14 | "noDateWorks ⇒ ingen DATE-kryds" er kun en app-regel, ikke en database-constraint | En fejl i datalaget kunne gemme en selvmodsigende stemmeseddel | Evt. en trigger senere. `checkBallotChoice` og integrationstestene dækker reglen |
+| TG-053 | 2026-10-14 | Runde 4's E2E er skrevet, men ikke kørt (Jesper: "stop før du starter end to end test"): `e2e/round4-dod.spec.ts`, `e2e/polls.spec.ts`, `e2e/poll-lifecycle.spec.ts` og de nye dele af `e2e/club-isolation.spec.ts` | Locators og flows er ikke verificeret; runde 4 er ikke ✅ | Kør `npm run test:e2e`, når Jesper giver lov, ret fejl og markér 4.1/4.2 ✅. P2's mobile månedstest klikker den første dag med "1 mulig dato" (skrøbelig, hvis en afstemningsdato falder på en eventdag) |
+| TG-054 | 2026-10-14 | `PlaceChoiceCard` har fået en checkbox-variant (`type`, `name`) i stedet for en generisk `ChoiceCard` | Komponentens navn og kommentarer handler stadig mest om radioen | Udskil en generisk `ChoiceCard`, hvis en tredje formular får brug for kortene |
+| TG-055 | 2026-10-14 | Ingen rate limits på afstemningernes skrivninger (TG-030-klassen) | Et medlem kunne oprette mange afstemninger i sin egen klub | Som TG-030 |
+| TG-056 | 2026-10-14 | `PollEditForm` er en klientkomponent, der får hele `PollView` (med vælgerne) som prop; `OverviewPollItem` har hverken `closeReason` eller hvem der valgte efter en uafgjort | Lidt mere data til klienten end nødvendigt; det afgjorte Overblik-kort kan ikke sige "Alle havde stemt" | Et reduceret prop og felterne i forespørgslen, hvis det bliver nødvendigt |
 
 ## 19.6 Dokumenthistorik
 
@@ -2525,6 +2639,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | v2.6 | 2026-10-08 | Implementeringsplan i fire runder (§16.3, D-020–D-024). Status (§19.2) organiseret efter runder. Q10–Q11 tilføjet. |
 | v2.7 | 2026-10-08 | Runde 1-fundament: implementeringsnoter i §11 og §4.8, D-025–D-034, F-001–F-011, TG-002–TG-007. |
 | v2.8 | 2026-10-08 | Runde 1-features: D-035–D-044, F-012–F-021. |
+| v2.15 | 2026-10-14 | Runde 4 bygget (afstemninger): datamodel med sammensatte FK'er og 9 CHECKs, låse, én lukkefunktion bag sidste stemme, lazy close, manuel lukning og daglig cron (`CRON_SECRET`), uafgjort med valg, automatisk event, PollForm med forslag, stemme-UI med forhåndsvisning, Overblik-kort, stiplede datoer i Kalenderen, E5. D-129–D-140, F-075–F-076, TG-050–TG-056; TG-031, TG-032, TG-040 og TG-048 løst. §4.8, §5.1, §7.4, §7.5, §8.2, §9.1, §9.3, §9.4, §9.7, §11, §12 (E33, E34), §13.5, §14, §16.3 opdateret. 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt (TG-053). |
 | v2.14 | 2026-10-13 | Sangbogen bygget i runde 3 (D-118 erstatter D-091): datamodel, sangtekstformat med akkorder, oversigt, søgning, læsevisning, admin og importscript; 59 sange importeret lokalt. Jesper tester sangbogen manuelt (D-119). D-118–D-128, F-071–F-074, TG-043–TG-049; TG-025 løst; Q5 afklaret. §4.2, §8.2, §9.6, §11, §13.5, §14, §16, §17, §18, §19.1 opdateret. 724 unit, 197 integration, build og 150/150 E2E. |
 | v2.13 | 2026-10-09 | Runde 3 færdig (uden sangbogen, D-091): kælenavn, skift password, steder med ejere og arkivering, events med steder og værter, eventhistorik og medlemsadministration. D-094–D-117, F-053–F-070, TG-032–TG-042; TG-021, TG-028, TG-029 og TG-039 løst; D-061 og D-062 erstattet. §5.1, §7, §8, §9.1–9.4, §9.8, §11, §12 (E29–E32), §14, §16, §18 (Q13) opdateret. 724 unit, 197 integration, build og 150/150 E2E to kørsler i træk. |
 | v2.12 | 2026-10-09 | Ny palet: oliven + havneblå (§13.2, D-092). Sidebar uden Profil-punkt (D-093). Sangbogen udskudt fra runde 3 (D-091). 527 unit, 64 integration, build og 100/100 E2E to kørsler i træk. |

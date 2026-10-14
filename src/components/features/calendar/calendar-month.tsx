@@ -13,8 +13,16 @@ import { calendarHref, type CalendarView } from "./calendar-params";
 import { CalendarDayPanel } from "./day-panel";
 import { DayLink, type DayDot } from "./day-link";
 import { EventChip } from "./event-chip";
-import { dayButtonLabel, type CalendarEvent } from "./event-format";
+import {
+  calendarItems,
+  countItems,
+  dayButtonLabel,
+  type CalendarEvent,
+  type CalendarItem,
+  type CalendarPollDate,
+} from "./event-format";
 import { CalendarMonthNav } from "./month-nav";
+import { PollOptionChip } from "./poll-option-chip";
 
 export type CalendarMonthProps = {
   clubId: string;
@@ -23,6 +31,8 @@ export type CalendarMonthProps = {
   view: CalendarView | null;
   /** Every event that starts inside the grid (monthGridRange), any order. */
   events: CalendarEvent[];
+  /** The OPEN/AWAITING polls' possible dates inside the grid (round 4, D-137). */
+  pollDates?: CalendarPollDate[];
   now: Date;
 };
 
@@ -33,7 +43,8 @@ const HEADING_ID = "calendar-month-heading";
  * The month view (SPEC §9.3, D-062): a Monday-first grid with Danish weekday
  * headers. From md, events are chips with title and time; below md, a date
  * shows dots and is a link that selects the day, and the day panel under the
- * grid lists its events. Today is marked (aria-current="date"), days of the
+ * grid lists its events. A poll's possible dates ("Mulig dato", D-137) are
+ * dashed chips on desktop and hollow-ring dots on mobile. Today is marked (aria-current="date"), days of the
  * neighbouring months are muted, past events are muted too.
  *
  * Semantics: a native <table> (caption, column headers with the full weekday
@@ -42,9 +53,16 @@ const HEADING_ID = "calendar-month-heading";
  * the weekday column of each cell, and every link has a full label
  * ("fredag 23. oktober, 1 event"; chips: title, date and time).
  */
-export function CalendarMonth({ clubId, monthKey, view, events, now }: CalendarMonthProps) {
+export function CalendarMonth({
+  clubId,
+  monthKey,
+  view,
+  events,
+  pollDates = [],
+  now,
+}: CalendarMonthProps) {
   const weeks = monthGrid(monthKey, now);
-  const byDay = groupEventsByDayKey(events);
+  const byDay = groupEventsByDayKey(calendarItems(events, pollDates));
 
   return (
     <section aria-labelledby={HEADING_ID}>
@@ -76,7 +94,7 @@ export function CalendarMonth({ clubId, monthKey, view, events, now }: CalendarM
                     clubId={clubId}
                     day={day}
                     monthKey={monthKey}
-                    events={byDay[day.dateKey] ?? []}
+                    items={byDay[day.dateKey] ?? []}
                     now={now}
                   />
                 ))}
@@ -90,7 +108,7 @@ export function CalendarMonth({ clubId, monthKey, view, events, now }: CalendarM
         clubId={clubId}
         monthKey={monthKey}
         view={view}
-        eventsByDay={byDay}
+        itemsByDay={byDay}
         now={now}
         className="md:hidden"
       />
@@ -102,18 +120,21 @@ function DayCell({
   clubId,
   day,
   monthKey,
-  events,
+  items,
   now,
 }: {
   clubId: string;
   day: CalendarDay;
   monthKey: MonthKey;
-  events: CalendarEvent[];
+  items: CalendarItem[];
   now: Date;
 }) {
-  const dots: DayDot[] = events
+  const dots: DayDot[] = items
     .slice(0, MAX_DOTS)
-    .map((event) => (hasEnded(event, now) ? "past" : "upcoming"));
+    .map((item) =>
+      item.kind === "poll" ? "poll" : hasEnded(item.event, now) ? "past" : "upcoming",
+    );
+  const counts = countItems(items);
 
   return (
     <td
@@ -136,7 +157,7 @@ function DayCell({
           inMonth={day.inMonth}
           isToday={day.isToday}
           day={day.day}
-          label={dayButtonLabel(day.dateKey, events.length, now)}
+          label={dayButtonLabel(day.dateKey, counts.events, now, counts.polls)}
           dots={dots}
         />
       </div>
@@ -152,11 +173,15 @@ function DayCell({
         >
           {day.day}
         </span>
-        {events.length > 0 ? (
+        {items.length > 0 ? (
           <ul className="flex flex-col gap-1">
-            {events.map((event) => (
-              <li key={event.id}>
-                <EventChip clubId={clubId} event={event} now={now} />
+            {items.map((item) => (
+              <li key={item.key}>
+                {item.kind === "event" ? (
+                  <EventChip clubId={clubId} event={item.event} now={now} />
+                ) : (
+                  <PollOptionChip clubId={clubId} option={item.option} now={now} />
+                )}
               </li>
             ))}
           </ul>

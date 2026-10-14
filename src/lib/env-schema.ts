@@ -36,6 +36,10 @@ export const envSchema = z.object({
   // Development/test only: "1"/"true" switches rate limiting off (E2E creates
   // many users from one IP). Ignored when NODE_ENV=production.
   RATE_LIMIT_DISABLED: z.stringbool({ error: "skal være 1/0 eller true/false" }).optional(),
+
+  // Round 4 (§4.8, D-131): Vercel Cron sends it as "Authorization: Bearer …" to
+  // /api/cron/close-polls. Unset → the daily close is switched off (503).
+  CRON_SECRET: z.string().min(16, "skal være mindst 16 tegn (openssl rand -hex 32)").optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -103,6 +107,9 @@ export function parseEnv(source: RawEnv): ParsedEnv {
   }
 
   const isProduction = source.NODE_ENV === "production";
+  if (isProduction && !env.CRON_SECRET) {
+    warnings.push("Den daglige lukning af afstemninger er slået fra: CRON_SECRET mangler.");
+  }
   const isRateLimitDisabled = env.RATE_LIMIT_DISABLED === true && !isProduction;
   if (env.RATE_LIMIT_DISABLED === true && isProduction) {
     warnings.push("RATE_LIMIT_DISABLED ignoreres i produktion: rate limiting er slået til.");

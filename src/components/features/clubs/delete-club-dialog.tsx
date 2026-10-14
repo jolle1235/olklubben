@@ -15,7 +15,7 @@ import { deleteClubSummary, type ClubContentCounts } from "./club-labels";
 export type DeleteClubDialogProps = {
   clubId: string;
   clubName: string;
-  /** getClubContentCounts: shown in the confirmation (D-103). */
+  /** getClubContentCounts: shown in the confirmation (D-103), polls included (round 4). */
   counts: ClubContentCounts;
 };
 

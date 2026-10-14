@@ -1,18 +1,29 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
+import type { PollStatus } from "@/server/domain/polls/options";
 
 /**
- * Row and advisory locks for round 3's invariants (D-095, D-096, D-102). The
- * ONLY place with raw SQL besides the migrations. Every function runs inside
- * an interactive transaction (`db.$transaction(async (tx) => …)`) and holds
- * its lock until that transaction ends.
+ * Row and advisory locks for round 3's and round 4's invariants (D-095, D-096,
+ * D-102, D-130). The ONLY place with raw SQL besides the migrations. Every
+ * function runs inside an interactive transaction (`db.$transaction(async (tx)
+ * => …)`) and holds its lock until that transaction ends.
  *
  * Lock order, always (deadlock prevention):
- *   club → place-name advisory → place row → event row → memberships
+ *   club → polls (by id) → place-name advisory → place rows (by id) → event row
+ *   → memberships
  * (updateEvent is the one documented exception: it locks its event row before
  * the place, which is safe because nothing that locks a place row waits for an
  * event row lock; see src/server/events/mutations.ts.)
+ *
+ * Polls (round 4): EVERY writer of a poll – a vote, a close, choosing the
+ * winner, cancelling, editing – holds lockPoll (FOR NO KEY UPDATE) first, so
+ * they run one after the other per poll. Never take a weaker lock and upgrade.
+ * A voter's membership is then read PLAINLY under the poll lock: that is
+ * authoritative because the only path that deletes a membership while the club
+ * exists (endMembership, src/server/clubs/membership.ts) locks the club's OPEN
+ * polls (lockOpenPollIds) BEFORE it deletes the membership. Any future path
+ * that deletes a membership must do the same.
  *
  * Never catch a Prisma error and keep using the same transaction: Postgres
  * aborts it. Check under these locks first instead.
@@ -108,4 +119,57 @@ export async function lockMemberIds(
 export async function lockPlaceNames(tx: Tx, clubId: string): Promise<void> {
   await tx.$executeRaw`
     SELECT pg_advisory_xact_lock(hashtextextended('olk:place-names:' || ${clubId}::text, 0))`;
+}
+
+export type LockedPoll = {
+  id: string;
+  status: PollStatus;
+  deadline: Date;
+  createdById: string;
+  title: string;
+  theme: string | null;
+  description: string | null;
+  closedAt: Date | null;
+};
+
+/**
+ * One poll of the club, FOR NO KEY UPDATE: serializes EVERY poll writer (vote,
+ * close, tie, cancel, edit) without blocking the FK inserts that only need the
+ * poll as a target (KEY SHARE: a new event's poll_id, a new ballot's poll_id).
+ * Null when the poll is unknown or in another club.
+ */
+export async function lockPoll(tx: Tx, clubId: string, pollId: string): Promise<LockedPoll | null> {
+  const rows = await tx.$queryRaw<LockedPoll[]>`
+    SELECT id, status::text AS status, deadline, created_by_id AS "createdById",
+           title, theme, description, closed_at AS "closedAt"
+    FROM polls WHERE id = ${pollId} AND club_id = ${clubId}
+    FOR NO KEY UPDATE`;
+  return rows[0] ?? null;
+}
+
+/**
+ * The club's OPEN polls, locked FOR NO KEY UPDATE in id order (endMembership:
+ * before the membership is deleted). After waiting for a lock, Postgres
+ * re-checks status = 'OPEN' (READ COMMITTED), so a poll that a concurrent vote
+ * has just closed is left out, and its ballots stay as history (§7.4).
+ */
+export async function lockOpenPollIds(tx: Tx, clubId: string): Promise<string[]> {
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    SELECT id FROM polls WHERE club_id = ${clubId} AND status = 'OPEN'
+    ORDER BY id
+    FOR NO KEY UPDATE`;
+  return rows.map((row) => row.id);
+}
+
+/**
+ * All of the club's polls, FOR UPDATE in id order (deleteClub). FOR UPDATE
+ * also blocks the KEY SHARE that a new events.poll_id reference needs, so no
+ * close can add an event between deleting the events and deleting the polls.
+ */
+export async function lockClubPollIds(tx: Tx, clubId: string): Promise<string[]> {
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    SELECT id FROM polls WHERE club_id = ${clubId}
+    ORDER BY id
+    FOR UPDATE`;
+  return rows.map((row) => row.id);
 }

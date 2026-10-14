@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { ArrowRightIcon, PlusIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 
 import { calendarHref } from "@/components/features/calendar/calendar-params";
 import type { CalendarEvent } from "@/components/features/calendar/event-format";
 import { EventListItem } from "@/components/features/calendar/event-list-item";
 import { Button } from "@/components/ui/button";
+
+import { PlanActions } from "./no-events-state";
 
 export type UpcomingEventsProps = {
   clubId: string;
@@ -12,14 +14,22 @@ export type UpcomingEventsProps = {
   events: CalendarEvent[];
   now: Date;
   newEventHref: string;
+  newPollHref: string;
 };
 
 /**
  * "Kommende arrangementer" under the hero on Overblik (SPEC §9.1): the next
  * few events as compact rows, then [+ Opret event] and a way to the full
  * calendar. Secondary to the hero, so the buttons are outline/link (§13.4).
+ * [🗳 Planlæg ølsmagning] sits next to [+ Opret event] (round 4, D-137).
  */
-export function UpcomingEvents({ clubId, events, now, newEventHref }: UpcomingEventsProps) {
+export function UpcomingEvents({
+  clubId,
+  events,
+  now,
+  newEventHref,
+  newPollHref,
+}: UpcomingEventsProps) {
   return (
     <section aria-labelledby="upcoming-events-heading">
       <h2
@@ -44,12 +54,11 @@ export function UpcomingEvents({ clubId, events, now, newEventHref }: UpcomingEv
       )}
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button asChild variant="outline">
-          <Link href={newEventHref}>
-            <PlusIcon aria-hidden />
-            Opret event
-          </Link>
-        </Button>
+        <PlanActions
+          newEventHref={newEventHref}
+          newPollHref={newPollHref}
+          className="flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+        />
         <Button asChild variant="link" className="min-h-11 self-center">
           <Link href={calendarHref(clubId, { view: "list" })}>
             Se hele kalenderen

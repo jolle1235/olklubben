@@ -84,7 +84,12 @@ describe("parseEnv", () => {
     expect(parseEnv({ ...required, RATE_LIMIT_DISABLED: "0" }).isRateLimitDisabled).toBe(false);
     expect(parseEnv({ ...required, RATE_LIMIT_DISABLED: "" }).isRateLimitDisabled).toBe(false);
 
-    const production = parseEnv({ ...required, NODE_ENV: "production", RATE_LIMIT_DISABLED: "1" });
+    const production = parseEnv({
+      ...required,
+      NODE_ENV: "production",
+      RATE_LIMIT_DISABLED: "1",
+      CRON_SECRET: "x".repeat(32),
+    });
     expect(production.isRateLimitDisabled).toBe(false);
     expect(production.warnings).toEqual([expect.stringContaining("RATE_LIMIT_DISABLED")]);
 
@@ -98,5 +103,26 @@ describe("parseEnv", () => {
     expect(parseEnv({ ...required, DEV_OUTBOX_DIR: ".dev-outbox-e2e" }).env.DEV_OUTBOX_DIR).toBe(
       ".dev-outbox-e2e",
     );
+  });
+
+  it("accepts an optional CRON_SECRET of at least 16 characters (round 4)", () => {
+    expect(parseEnv(required).env.CRON_SECRET).toBeUndefined();
+    expect(parseEnv({ ...required, CRON_SECRET: "" }).env.CRON_SECRET).toBeUndefined();
+    expect(parseEnv({ ...required, CRON_SECRET: "x".repeat(16) }).env.CRON_SECRET).toBe(
+      "x".repeat(16),
+    );
+    expect(() => parseEnv({ ...required, CRON_SECRET: "kort" })).toThrowError(
+      /CRON_SECRET: skal være mindst 16 tegn/,
+    );
+  });
+
+  it("warns in production when CRON_SECRET is missing", () => {
+    expect(parseEnv({ ...required, NODE_ENV: "production" }).warnings).toContain(
+      "Den daglige lukning af afstemninger er slået fra: CRON_SECRET mangler.",
+    );
+    expect(
+      parseEnv({ ...required, NODE_ENV: "production", CRON_SECRET: "x".repeat(32) }).warnings,
+    ).toEqual([]);
+    expect(parseEnv(required).warnings).toEqual([]);
   });
 });

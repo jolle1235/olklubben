@@ -29,6 +29,24 @@ describe("flashToastMessage", () => {
     for (const message of Object.values(FLASH_TOASTS)) expect(message.length).toBeGreaterThan(0);
   });
 
+  it("knows the round-4 poll toasts (§9.7, §13.5)", () => {
+    expect(flashToastMessage("vote-saved")).toBe("Skål! Din stemme er gemt ✓");
+    expect(flashToastMessage("poll-locked")).toBe("Afstemningen er lukket 🔒");
+    for (const key of [
+      "poll-created",
+      "poll-updated",
+      "vote-saved-closed",
+      "vote-saved-tie",
+      "poll-closed",
+      "poll-awaiting",
+      "poll-decided",
+      "poll-cancelled",
+    ]) {
+      expect(flashToastMessage(key), key).toBeTruthy();
+    }
+    expect(withToast("/c/x/polls/y#stem", "vote-saved")).toBe("/c/x/polls/y?toast=vote-saved#stem");
+  });
+
   it("knows the round-3 toasts for places, profile and club", () => {
     for (const key of [
       "place-created",

@@ -1,6 +1,6 @@
 /**
- * Links inside a club (SPEC §8.2) for events, beers, places, the club page
- * and the profile, shared by pages, components and Server Actions, so a route
+ * Links inside a club (SPEC §8.2) for events, polls, beers, places, the club
+ * page and the profile, shared by pages, components and Server Actions, so a route
  * is spelled in one place (D-076). The calendar's own URL state (?view,
  * ?month, ?day, ?past) lives in src/components/features/calendar/calendar-params.ts.
  *
@@ -84,6 +84,26 @@ export function songHref(clubId: string, songId: string): string {
 /** "Rediger sang" (admins). */
 export function editSongHref(clubId: string, songId: string): string {
   return `${songHref(clubId, songId)}/edit`;
+}
+
+/** "Planlæg ølsmagning" (SPEC §9.7.1). There is no /polls index page (D-138). */
+export function newPollHref(clubId: string): string {
+  return `/c/${clubId}/polls/new`;
+}
+
+/** One poll: voting, results and the outcome. */
+export function pollHref(clubId: string, pollId: string): string {
+  return `/c/${clubId}/polls/${pollId}`;
+}
+
+/** "Rediger" (creator or admin, while OPEN, D-133). */
+export function editPollHref(clubId: string, pollId: string): string {
+  return `${pollHref(clubId, pollId)}/edit`;
+}
+
+/** "Stem nu": straight to the vote form (id="stem") on the poll page. */
+export function pollVoteHref(clubId: string, pollId: string): string {
+  return `${pollHref(clubId, pollId)}#stem`;
 }
 
 /** Steder (SPEC §9.4). */

@@ -55,7 +55,8 @@ function outcomeOf(mode: CategoryMode, options: readonly OptionTally[]): Categor
   const top = Math.max(...options.map((option) => option.count));
   const leaders = options.filter((option) => option.count === top);
   const [first] = leaders;
-  if (leaders.length === 1 && first) return { kind: "winner", optionId: first.optionId, count: top };
+  if (leaders.length === 1 && first)
+    return { kind: "winner", optionId: first.optionId, count: top };
   return { kind: "tie", optionIds: leaders.map((option) => option.optionId), count: top };
 }
 

@@ -33,6 +33,7 @@ import {
   canRestorePlace,
   canSetOwnOwnership,
   placeRemoval,
+  placeRemovalBlock,
 } from "@/server/domain/places/permissions";
 import {
   createPlace,
@@ -43,6 +44,7 @@ import {
   updatePlace,
 } from "@/server/places/mutations";
 import { requirePlace } from "@/server/places/access";
+import { placeUsageOf } from "@/server/places/queries";
 import { revalidateClub } from "@/server/revalidate";
 
 /**
@@ -80,6 +82,11 @@ const FORBIDDEN_ARCHIVE = "Kun stedets ejere og klubbens admins kan arkivere det
 const FORBIDDEN_DELETE = "Kun stedets ejere, opretteren og klubbens admins kan slette det.";
 const FORBIDDEN_RESTORE = "Kun stedets ejere og klubbens admins kan gendanne det.";
 const FORBIDDEN_REMOVE_OWNER = "Kun klubbens admins kan fjerne andre som ejere.";
+
+/** E5 (D-132): the place is an option in a poll that is not finished. */
+function placeInActivePollError(pollTitle: string): string {
+  return `Stedet er med i afstemningen «${pollTitle}», så det kan ikke fjernes, før afstemningen er afsluttet eller annulleret.`;
+}
 
 function restoreNameTakenMessage(name: string): string {
   return `Der findes allerede et aktivt sted, der hedder «${name}».`;
@@ -278,26 +285,35 @@ export async function removePlaceAction(clubId: string, placeId: string): Promis
   if (place.archivedAt !== null) {
     redirect(withToast(placeHref(club.id, place.id), "place-archived"));
   }
-  const usage = { eventCount: place.eventCount };
+  const usage = placeUsageOf(place);
+  const [activePoll] = place.activePolls;
+  if (placeRemovalBlock(usage) !== null && activePoll) {
+    return fail(ACTION_ERROR_CODES.CONFLICT, placeInActivePollError(activePoll.title));
+  }
   const forbiddenMessage = placeRemoval(usage) === "archive" ? FORBIDDEN_ARCHIVE : FORBIDDEN_DELETE;
   if (!canRemovePlace(membership, place, user.id, usage)) {
     return fail(ACTION_ERROR_CODES.FORBIDDEN, forbiddenMessage);
   }
 
-  let status: Awaited<ReturnType<typeof removePlace>>["status"];
+  let result: Awaited<ReturnType<typeof removePlace>>;
   try {
-    ({ status } = await removePlace({
+    result = await removePlace({
       clubId: club.id,
       placeId: place.id,
       actorUserId: user.id,
       actorRole: membership.role,
-    }));
+    });
   } catch (error) {
     console.error("[places] removePlace failed", error);
     return unexpectedError();
   }
 
+  const { status } = result;
   if (status === "not-found") notFound();
+  // E5: a poll chose the place meanwhile.
+  if (result.status === "in-active-poll") {
+    return fail(ACTION_ERROR_CODES.CONFLICT, placeInActivePollError(result.poll.title));
+  }
   // Became used meanwhile and the caller is only its creator, for instance.
   if (status === "forbidden") return fail(ACTION_ERROR_CODES.FORBIDDEN, FORBIDDEN_ARCHIVE);
 

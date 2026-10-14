@@ -29,7 +29,8 @@ export async function generateMetadata({
  * Event detail, "som en invitation, ikke en formular" (SPEC §9.2): the
  * invitation (place, address, "Åbn i kort" or "Tilføj adresse", hosts),
  * Rediger/Slet for the creator, the hosts and admins (D-098), the plan and
- * the beers tasted at the event.
+ * the beers tasted at the event. An event a poll created links back to it
+ * ("Valgt ved afstemning 🗳", §9.2, D-137).
  *
  * The guard layout has already given a real 404 for an event that is not in
  * this club (E22, TG-008); requireEventPage() returns it and remembers the
@@ -76,6 +77,7 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
           }))}
           creatorName={getDisplayName(event.createdBy)}
           now={now}
+          pollId={event.pollId}
         />
 
         <EventManageActions

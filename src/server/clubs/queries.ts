@@ -131,7 +131,8 @@ export async function findClubMember(
 
 /**
  * What "Slet klubben" deletes (§7.5, D-103): "14 events, 37 øl med 102
- * ratings og 5 steder". Members are counted, but their accounts stay.
+ * ratings, 5 steder og 2 afstemninger". Members are counted, but their
+ * accounts stay.
  */
 export async function getClubContentCounts(clubId: string): Promise<{
   members: number;
@@ -139,15 +140,17 @@ export async function getClubContentCounts(clubId: string): Promise<{
   beers: number;
   ratings: number;
   places: number;
+  polls: number;
 }> {
-  const [members, events, beers, ratings, places] = await Promise.all([
+  const [members, events, beers, ratings, places, polls] = await Promise.all([
     db.membership.count({ where: { clubId } }),
     db.event.count({ where: { clubId } }),
     db.beer.count({ where: { clubId } }),
     db.beerRating.count({ where: { beer: { clubId } } }),
     db.place.count({ where: { clubId } }),
+    db.poll.count({ where: { clubId } }),
   ]);
-  return { members, events, beers, ratings, places };
+  return { members, events, beers, ratings, places, polls };
 }
 
 export type ResetLinkEligibility = {

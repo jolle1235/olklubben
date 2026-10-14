@@ -20,8 +20,8 @@ import { cleanSongTitle, songTitleKey } from "../src/server/domain/songs/title";
  * Test data for local development (SPEC §16.3 – round 1: users, clubs,
  * memberships, invitations; round 2: events, beers, ratings; round 3:
  * nicknames, places with owners, hosts and past tastings for the history,
- * and five SYNTHETIC songs in Torsdagsklubben – never real lyrics).
- * Run with `npm run db:seed`.
+ * and five SYNTHETIC songs in Torsdagsklubben – never real lyrics; round 4:
+ * polls). Run with `npm run db:seed`.
  *
  * Idempotent: running it again leaves the same rows. Users are matched by
  * email, clubs, events and beers by fixed id, memberships by (user, club),
@@ -39,6 +39,17 @@ import { cleanSongTitle, songTitleKey } from "../src/server/domain/songs/title";
  * Users log in with normal email + password: the hash comes from Better
  * Auth's own hasher, and the credential account looks exactly like the one
  * Better Auth creates on sign-up (providerId "credential", accountId = user id).
+ *
+ * Polls (round 4, fixed ids …01a1–…01a3): Drengene & Bajere has an OPEN
+ * poll where Mads and Anders have voted and Jesper has not ("Du mangler at
+ * stemme"), and a CLOSED poll that created "Ølsmagning #13" ("Valgt ved
+ * afstemning 🗳"); Torsdagsklubben has an AWAITING_DECISION poll with a tie
+ * about the place, which Mads (admin) can resolve. Poll rows are created once
+ * and never overwritten: a poll that is no longer in its seeded state (voted
+ * on, closed, resolved by hand) is left alone. The OPEN poll's deadline is
+ * fixed at its first seed, so after ~10 days it closes lazily into an event
+ * on the next Overblik/Kalender/poll view – expected in dev. Delete the poll
+ * rows (or run against a fresh database) to get it back.
  *
  * The test users and passwords are listed in README.md ("Testbrugere").
  *
@@ -131,6 +142,7 @@ const BODEGAEN = "5eed0000-0000-7000-8000-0000000000f4";
 const HOS_MADS_OG_ANDERS = "5eed0000-0000-7000-8000-0000000000f5";
 const GAMLE_KLUBHUS = "5eed0000-0000-7000-8000-0000000000f6";
 const LOKALE_BAR = "5eed0000-0000-7000-8000-0000000000f7";
+const MADS_KAELDER = "5eed0000-0000-7000-8000-0000000000f8";
 
 // Every kind of place (SPEC §9.4): one owner, two owners, no owner, archived
 // with an old tasting, and never used (so it may be deleted outright).
@@ -203,6 +215,17 @@ const SEED_PLACES: SeedPlace[] = [
     address: null,
     description: null,
     owners: [],
+    archivedInDays: null,
+  },
+  // Round 4: Torsdagsklubben's second place, for the tied poll.
+  {
+    id: MADS_KAELDER,
+    clubId: TORSDAG,
+    createdBy: "mads",
+    name: "Mads' kælder",
+    address: null,
+    description: "Trappen ned ved siden af cykelkælderen.",
+    owners: ["mads"],
     archivedInDays: null,
   },
 ];
@@ -481,7 +504,7 @@ function relativeInstant(today: string, days: number, time: string): Date {
 async function seedEventsAndBeers(
   db: PrismaClient,
   idOf: (key: SeedUserKey) => string,
-): Promise<void> {
+): Promise<Map<string, string>> {
   const today = utcToZonedParts(new Date()).date;
   const placeIds = await seedPlaces(db, idOf, today);
 
@@ -536,6 +559,214 @@ async function seedEventsAndBeers(
         where: { beerId_userId: { beerId: beer.id, userId } },
         create: { beerId: beer.id, userId, value },
         update: { value },
+      });
+    }
+  }
+  return placeIds;
+}
+
+// ─── Round 4: polls ─────────────────────────────────────────────────────────
+
+const POLL_OPEN = "5eed0000-0000-7000-8000-0000000001a1";
+const POLL_TIE = "5eed0000-0000-7000-8000-0000000001a2";
+const POLL_DONE = "5eed0000-0000-7000-8000-0000000001a3";
+/** The seeded event the CLOSED poll created ("Ølsmagning #13"). */
+const POLL_DONE_EVENT = "5eed0000-0000-7000-8000-0000000000e2";
+
+const pollId = (n: number) =>
+  `5eed0000-0000-7000-8000-0000000001${n.toString(16).padStart(2, "0")}`;
+
+type SeedPollOption =
+  | { id: string; kind: "date"; inDays: number; start: string }
+  | { id: string; kind: "place"; placeId: string };
+
+type SeedPoll = {
+  id: string;
+  clubId: string;
+  createdBy: SeedUserKey;
+  title: string;
+  theme: string | null;
+  description: string | null;
+  deadline: { inDays: number; time: string };
+  /** The state the seed creates; a poll found in any other state is left alone. */
+  status: "OPEN" | "AWAITING_DECISION" | "CLOSED";
+  close: { reason: "DEADLINE" | "ALL_VOTED"; inDays: number; time: string } | null;
+  options: SeedPollOption[];
+  ballots: { id: string; user: SeedUserKey; noDateWorks?: boolean; optionIds: string[] }[];
+  /** CLOSED: the seeded event it created (its date and place are the winners). */
+  eventId?: string;
+};
+
+const SEED_POLLS: SeedPoll[] = [
+  {
+    // Drengene & Bajere: open, Mads and Anders have voted, Jesper has not.
+    id: POLL_OPEN,
+    clubId: DRENGENE,
+    createdBy: "mads",
+    title: "Ølsmagning #14",
+    theme: "Juleøl",
+    description: "Vi stemmer om, hvornår og hvor juleøllene skal smages.\nTag gerne en med.",
+    deadline: { inDays: 10, time: "20:00" },
+    status: "OPEN",
+    close: null,
+    options: [
+      { id: pollId(0xb1), kind: "date", inDays: 14, start: "18:30" },
+      { id: pollId(0xb2), kind: "date", inDays: 21, start: "18:30" },
+      { id: pollId(0xb3), kind: "date", inDays: 28, start: "18:30" },
+      { id: pollId(0xb4), kind: "place", placeId: HOS_MADS },
+      { id: pollId(0xb5), kind: "place", placeId: HOS_JESPER },
+      { id: pollId(0xb6), kind: "place", placeId: HOS_ANDERS },
+    ],
+    ballots: [
+      { id: pollId(0xd1), user: "mads", optionIds: [pollId(0xb2), pollId(0xb3), pollId(0xb4)] },
+      { id: pollId(0xd2), user: "anders", noDateWorks: true, optionIds: [pollId(0xb5)] },
+    ],
+  },
+  {
+    // Torsdagsklubben: the deadline passed with a tie about the place; Mads (admin) chooses.
+    id: POLL_TIE,
+    clubId: TORSDAG,
+    createdBy: "mads",
+    title: "Juletorsdag",
+    theme: null,
+    description: null,
+    deadline: { inDays: -1, time: "20:00" },
+    status: "AWAITING_DECISION",
+    close: { reason: "DEADLINE", inDays: -1, time: "20:00" },
+    options: [
+      { id: pollId(0xb7), kind: "date", inDays: 20, start: "19:30" },
+      { id: pollId(0xb8), kind: "date", inDays: 27, start: "19:30" },
+      { id: pollId(0xb9), kind: "place", placeId: BODEGAEN },
+      { id: pollId(0xba), kind: "place", placeId: MADS_KAELDER },
+    ],
+    ballots: [
+      { id: pollId(0xd3), user: "mads", optionIds: [pollId(0xb7), pollId(0xb9)] },
+      { id: pollId(0xd4), user: "jesper", optionIds: [pollId(0xb7), pollId(0xba)] },
+    ],
+  },
+  {
+    // Drengene & Bajere: everyone voted, and the poll created "Ølsmagning #13".
+    id: POLL_DONE,
+    clubId: DRENGENE,
+    createdBy: "jesper",
+    title: "Ølsmagning #13",
+    theme: "Tyske øl",
+    description: "Medbring én tysk øl, gerne en I aldrig har smagt før.",
+    deadline: { inDays: 1, time: "20:00" },
+    status: "CLOSED",
+    close: { reason: "ALL_VOTED", inDays: -1, time: "21:15" },
+    options: [
+      // The first date and place are the event's (SEED_EVENTS e2: in 3 days, Hos Jesper).
+      { id: pollId(0xbb), kind: "date", inDays: 3, start: "18:30" },
+      { id: pollId(0xbc), kind: "date", inDays: 10, start: "18:30" },
+      { id: pollId(0xbd), kind: "place", placeId: HOS_JESPER },
+      { id: pollId(0xbe), kind: "place", placeId: HOS_MADS },
+    ],
+    ballots: [
+      { id: pollId(0xd5), user: "jesper", optionIds: [pollId(0xbb), pollId(0xbd)] },
+      { id: pollId(0xd6), user: "mads", optionIds: [pollId(0xbb), pollId(0xbc), pollId(0xbe)] },
+      { id: pollId(0xd7), user: "anders", optionIds: [pollId(0xbb), pollId(0xbd)] },
+    ],
+    eventId: POLL_DONE_EVENT,
+  },
+];
+
+/**
+ * Creates the seed polls once (fixed ids). A poll still in its seeded state
+ * gets its ballots (and, for the CLOSED one, its options – their dates follow
+ * the re-seeded event) written again; a poll the developer has changed since
+ * is left alone. Lifecycle columns satisfy the CHECKs (polls_lifecycle_*).
+ */
+async function seedPolls(
+  db: PrismaClient,
+  idOf: (key: SeedUserKey) => string,
+  placeIds: Map<string, string>,
+): Promise<void> {
+  const today = utcToZonedParts(new Date()).date;
+  for (const poll of SEED_POLLS) {
+    const close = poll.close;
+    const existing = await db.poll.findFirst({
+      where: { id: poll.id, clubId: poll.clubId },
+      select: { status: true },
+    });
+    if (existing && existing.status !== poll.status) continue;
+    if (!existing) {
+      await db.poll.create({
+        data: {
+          id: poll.id,
+          clubId: poll.clubId,
+          createdById: idOf(poll.createdBy),
+          title: poll.title,
+          theme: poll.theme,
+          description: poll.description,
+          deadline: relativeInstant(today, poll.deadline.inDays, poll.deadline.time),
+          status: poll.status,
+          closeReason: close?.reason ?? null,
+          closedAt: close ? relativeInstant(today, close.inDays, close.time) : null,
+        },
+      });
+    }
+
+    const optionRows = poll.options.map((option) => {
+      if (option.kind === "date") {
+        return {
+          id: option.id,
+          pollId: poll.id,
+          clubId: poll.clubId,
+          category: "DATE" as const,
+          startsAt: relativeInstant(today, option.inDays, option.start),
+        };
+      }
+      const placeId = placeIds.get(option.placeId);
+      if (!placeId) throw new Error(`Seed-sted mangler: ${option.placeId}`);
+      return {
+        id: option.id,
+        pollId: poll.id,
+        clubId: poll.clubId,
+        category: "PLACE" as const,
+        placeId,
+      };
+    });
+
+    // Ballots (and their votes, by cascade) are written again each run.
+    await db.pollBallot.deleteMany({
+      where: { pollId: poll.id, id: { in: poll.ballots.map((ballot) => ballot.id) } },
+    });
+    if (poll.status === "CLOSED") {
+      // Its dates follow the re-seeded event: recreate the options (votes cascade).
+      await db.pollOption.deleteMany({ where: { pollId: poll.id } });
+      await db.pollOption.createMany({ data: optionRows });
+    } else {
+      // Options never change after creation (D-133): only the missing ones are written.
+      await db.pollOption.createMany({ data: optionRows, skipDuplicates: true });
+    }
+
+    const categoryOf = new Map(optionRows.map((option) => [option.id, option.category]));
+    for (const ballot of poll.ballots) {
+      await db.pollBallot.create({
+        data: {
+          id: ballot.id,
+          pollId: poll.id,
+          userId: idOf(ballot.user),
+          noDateWorks: ballot.noDateWorks ?? false,
+          votes: {
+            createMany: {
+              data: ballot.optionIds.map((optionId) => {
+                const category = categoryOf.get(optionId);
+                if (!category) throw new Error(`Seed-valgmulighed mangler: ${optionId}`);
+                return { optionId, category };
+              }),
+            },
+          },
+        },
+      });
+    }
+
+    if (poll.eventId) {
+      // The event it created (§9.7.7); same club (composite FK), unique per poll.
+      await db.event.updateMany({
+        where: { id: poll.eventId, clubId: poll.clubId },
+        data: { pollId: poll.id },
       });
     }
   }
@@ -811,8 +1042,9 @@ async function main(): Promise<void> {
       });
     }
 
-    await seedEventsAndBeers(db, idOf);
+    const placeIds = await seedEventsAndBeers(db, idOf);
     await seedSongs(db, idOf);
+    await seedPolls(db, idOf, placeIds);
 
     // Jesper has two clubs and lands in his last active one; Mads has two and
     // gets the club picker; Anders has one and goes straight to it (SPEC §10.1).
@@ -834,6 +1066,8 @@ async function main(): Promise<void> {
       beers,
       ratings,
       songs,
+      polls,
+      ballots,
     ] = await Promise.all([
       db.user.count(),
       db.club.count(),
@@ -846,10 +1080,13 @@ async function main(): Promise<void> {
       db.beer.count(),
       db.beerRating.count(),
       db.song.count(),
+      db.poll.count(),
+      db.pollBallot.count(),
     ]);
     console.info(
       `Seed færdig: ${users} brugere, ${clubs} klubber, ${memberships} medlemskaber, ${invites} aktive invitationer, ` +
-        `${places} steder (${owners} ejerskaber), ${events} events (${hosts} værtskaber), ${beers} øl, ${ratings} ratings, ${songs} sange.`,
+        `${places} steder (${owners} ejerskaber), ${events} events (${hosts} værtskaber), ${beers} øl, ${ratings} ratings, ${songs} sange, ` +
+        `${polls} afstemninger (${ballots} stemmesedler).`,
     );
     console.info(
       `Log ind med ${SEED_USERS.map((user) => user.email).join(", ")} og password "${SEED_PASSWORD}".`,

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db, type TransactionClient } from "@/server/db";
-import { lockClub } from "@/server/db/locks";
+import { lockClub, lockClubPollIds, lockOpenPollIds } from "@/server/db/locks";
 import {
   decideMembershipChange,
   isClubNameConfirmed,
@@ -13,7 +13,7 @@ import type { ClubRole } from "@/server/domain/clubs/permissions";
 
 /**
  * Membership administration, club info and deleting the club (SPEC §5, §7.4,
- * §7.5, §9.8; E1–E3, E15, E25; D-102, D-103, D-110).
+ * §7.5, §9.8; E1–E3, E15, E25; D-102, D-103, D-110, D-130).
  *
  * Every function runs in ONE transaction that starts by locking the club's row
  * (lockClub, FOR NO KEY UPDATE) – a per-club mutex – and then reads the
@@ -59,29 +59,44 @@ async function withClubLock<T>(
 }
 
 /**
- * Ends a membership (§7.4, E1). ORDER MATTERS:
- *   1. Delete the membership. It waits for transactions that hold it FOR SHARE
+ * Ends a membership (§7.4, E1). Runs under the club lock. ORDER MATTERS
+ * (lock order club → polls → … → memberships, src/server/db/locks.ts):
+ *   1. Lock the club's OPEN polls (lockOpenPollIds) BEFORE the membership is
+ *      deleted. A vote or a close holds its poll and then reads or locks
+ *      memberships; deleting the membership first and then waiting for the
+ *      poll would deadlock. It also makes a voter's plain membership read
+ *      under the poll lock authoritative (D-130). Postgres re-checks
+ *      status = 'OPEN' after a wait, so a poll a concurrent vote has just
+ *      closed is left out – its ballots are history.
+ *   2. Delete the membership. It waits for transactions that hold it FOR SHARE
  *      (an event being saved with this user as host, lockMemberIds), and the
  *      composite FK cascades the user's place ownerships in this club.
- *   2. Delete the user's hostships on events that have NOT started; started
+ *   3. Delete the user's hostships on events that have NOT started; started
  *      and past ones stay as history.
- *   3. Clear lastActiveClubId when it pointed at this club (E15).
- * Ratings, beers, events, places and created-by references are kept.
+ *   4. Delete the user's ballots in exactly those OPEN polls (votes cascade);
+ *      ballots in AWAITING_DECISION/CLOSED/CANCELLED polls stay (§7.4).
+ *   5. Clear lastActiveClubId when it pointed at this club (E15).
+ * Ratings, beers, events, places and created-by references are kept. A poll
+ * that is now "all voted" closes on the next Overblik/Kalender/poll view or
+ * the cron (no close here, C18).
  */
 async function endMembership(
   tx: Tx,
   input: { clubId: string; userId: string; now: Date },
 ): Promise<void> {
   const { clubId, userId, now } = input;
+  const openPollIds = await lockOpenPollIds(tx, clubId);
   await tx.membership.deleteMany({ where: { clubId, userId } });
   await tx.eventHost.deleteMany({
     where: { userId, event: { clubId, startsAt: { gt: now } } },
   });
+  if (openPollIds.length > 0) {
+    await tx.pollBallot.deleteMany({ where: { userId, pollId: { in: openPollIds } } });
+  }
   await tx.user.updateMany({
     where: { id: userId, lastActiveClubId: clubId },
     data: { lastActiveClubId: null },
   });
-  // ROUND 4 HOOK: delete the user's ballots in this club's OPEN polls (§7.4).
 }
 
 /** Applies an allowed decision to the roster. */
@@ -183,10 +198,15 @@ export async function deleteClub(input: {
     const club = await tx.club.findUniqueOrThrow({ where: { id: clubId }, select: { name: true } });
     if (!isClubNameConfirmed(club.name, confirmName)) return { ok: false, reason: "NAME_MISMATCH" };
 
-    // Defence in depth: events go first, although deleting the club with
-    // events.place_id RESTRICT is verified to work (integration test).
+    // Polls first, FOR UPDATE (D-130): no close can add an event between the
+    // two deletes below (FOR UPDATE blocks the KEY SHARE of a new
+    // events.poll_id), and events.poll_id is RESTRICT.
+    await lockClubPollIds(tx, clubId);
+    // Events next (defence in depth for events.place_id RESTRICT, and they
+    // reference the polls), then the polls (→ options, ballots, votes, tie
+    // resolutions) BEFORE the places (poll_options.place_id RESTRICT, D-103).
     await tx.event.deleteMany({ where: { clubId } });
-    // ROUND 4: delete the club's polls before its places (PollOption → Place RESTRICT).
+    await tx.poll.deleteMany({ where: { clubId } });
     // Cascades: memberships (→ place_owners), places, beers (→ ratings) and
     // invites; users.last_active_club_id is set to NULL; users are kept.
     await tx.club.delete({ where: { id: clubId } });

@@ -12,21 +12,29 @@ import type { DateKey } from "@/server/domain/events/time";
 
 import { calendarHref, parseSelectedDay, type CalendarView } from "./calendar-params";
 import { EventCard } from "./event-card";
-import { capitalize, dateKeyLabel, eventCountLabel, type CalendarEvent } from "./event-format";
+import {
+  capitalize,
+  countItems,
+  dateKeyLabel,
+  itemCountLabel,
+  type CalendarItem,
+} from "./event-format";
+import { PollOptionCard } from "./poll-option-card";
 
 export type CalendarDayPanelProps = {
   clubId: string;
   monthKey: MonthKey;
   view: CalendarView | null;
-  /** The grid's events per Copenhagen day (groupEventsByDayKey), oldest first. */
-  eventsByDay: Record<DateKey, CalendarEvent[]>;
+  /** The grid's events and poll dates per Copenhagen day (groupEventsByDayKey), oldest first. */
+  itemsByDay: Record<DateKey, CalendarItem[]>;
   now: Date;
   className?: string;
 };
 
 /**
- * Under the mobile month grid (SPEC §9.3): the selected day's events
- * (?day=YYYY-MM-DD), or – with no day selected – all of the month's events,
+ * Under the mobile month grid (SPEC §9.3): the selected day's events and
+ * possible poll dates (dashed PollOptionCards, D-137) (?day=YYYY-MM-DD), or –
+ * with no day selected – all of the month's,
  * so the month is readable at a glance. Reads ?day in the browser, so a tap
  * on a date (DayLink) updates it without a server round trip.
  *
@@ -42,18 +50,19 @@ export function CalendarDayPanel({
   clubId,
   monthKey,
   view,
-  eventsByDay,
+  itemsByDay,
   now,
   className,
 }: CalendarDayPanelProps) {
   const searchParams = useSearchParams();
   const day = parseSelectedDay(searchParams.get("day"), monthKey);
 
-  const events = day
-    ? (eventsByDay[day] ?? [])
-    : Object.entries(eventsByDay)
+  const items = day
+    ? (itemsByDay[day] ?? [])
+    : Object.entries(itemsByDay)
         .filter(([dateKey]) => dateKey.startsWith(`${monthKey}-`))
-        .flatMap(([, dayEvents]) => dayEvents);
+        .flatMap(([, dayItems]) => dayItems);
+  const countLabel = itemCountLabel(countItems(items));
   const heading = capitalize(day ? dateKeyLabel(day, now) : monthKeyLabel(monthKey));
   const monthHref = calendarHref(clubId, { view, month: monthKey });
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -84,21 +93,23 @@ export function CalendarDayPanel({
             Vis hele måneden
           </Link>
         ) : (
-          <span className="text-[0.95rem] text-muted-foreground">
-            {capitalize(eventCountLabel(events.length))}
-          </span>
+          <span className="text-[0.95rem] text-muted-foreground">{capitalize(countLabel)}</span>
         )}
       </div>
 
       <p aria-live="polite" className="sr-only">
-        {day ? `${heading}: ${eventCountLabel(events.length)}` : ""}
+        {day ? `${heading}: ${countLabel}` : ""}
       </p>
 
-      {events.length > 0 ? (
+      {items.length > 0 ? (
         <ul className="grid grid-cols-1 gap-3">
-          {events.map((event) => (
-            <li key={event.id}>
-              <EventCard clubId={clubId} event={event} now={now} />
+          {items.map((item) => (
+            <li key={item.key}>
+              {item.kind === "event" ? (
+                <EventCard clubId={clubId} event={item.event} now={now} />
+              ) : (
+                <PollOptionCard clubId={clubId} option={item.option} now={now} />
+              )}
             </li>
           ))}
         </ul>

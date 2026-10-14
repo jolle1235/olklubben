@@ -16,6 +16,7 @@ import {
   signUp,
   signUpWithClub,
 } from "./support/app";
+import { insertPoll } from "./support/polls";
 import { joinClub } from "./support/round2";
 
 /** Club isolation (SPEC §4.4, D-012, E16, E22): other clubs and bad ids are 404, never 403/500. */
@@ -43,7 +44,10 @@ test.describe("Club isolation", () => {
       `/c/${clubId}/calendar`,
       `/c/${clubId}/places`,
       // Unknown sub-routes ([...rest]) and bad resource ids reveal nothing either.
+      // /polls has no index page (D-138); /stats is not built yet (TG-040).
       `/c/${clubId}/polls`,
+      `/c/${clubId}/stats`,
+      `/c/${clubId}/polls/123`,
       `/c/${clubId}/events/123`,
       `/c/${clubId}/places/123`,
       "/c/ikke-et-id",
@@ -94,10 +98,27 @@ test.describe("Club isolation", () => {
       name: "Hemmelig Bajer",
       eventId: otherEventId,
     });
+    const otherPoll = await insertPoll({
+      clubId: otherId,
+      creatorEmail: owner.email,
+      title: "Hemmelig afstemning",
+      dates: [
+        new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+        new Date(Date.now() + 17 * 24 * 60 * 60 * 1000),
+      ],
+      placeIds: [otherPlaceId],
+      deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+    });
     const unknownId = "0199a000-0000-7000-8000-000000000000";
 
     for (const path of [
       "polls",
+      "stats",
+      "polls/123",
+      `polls/${unknownId}`,
+      `polls/${unknownId}/edit`,
+      `polls/${otherPoll.pollId}`,
+      `polls/${otherPoll.pollId}/edit`,
       "places/123",
       `places/${unknownId}`,
       `places/${otherPlaceId}`,
@@ -132,6 +153,7 @@ test.describe("Club isolation", () => {
       `events/${otherEventId}`,
       `beers/${otherBeerId}`,
       `places/${otherPlaceId}`,
+      `polls/${otherPoll.pollId}`,
     ]) {
       const response = await page.goto(`/c/${otherId}/${path}`);
       expect(response?.status(), path).toBe(200);

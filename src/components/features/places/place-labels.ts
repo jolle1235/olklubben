@@ -1,5 +1,5 @@
 import { formatDanishList } from "@/lib/format/list";
-import type { PlaceRemoval } from "@/server/domain/places/permissions";
+import type { PlaceRemoval, PlaceUsage } from "@/server/domain/places/permissions";
 
 /**
  * Texts for the place pages (SPEC §9.4, D-100). Pure and client-safe, so the
@@ -32,10 +32,13 @@ export type PlaceRemovalCopy = {
 };
 
 /**
- * The one removal button (D-100), labelled by what the server will do:
- * an unused place is deleted, a used one archived (§9.4).
+ * The one removal button (D-100, D-132), labelled by what the server will do:
+ * an unused place is deleted, a used one (events or polls) archived (§9.4).
  */
-export function placeRemovalCopy(removal: PlaceRemoval, eventCount: number): PlaceRemovalCopy {
+export function placeRemovalCopy(
+  removal: PlaceRemoval,
+  usage: Pick<PlaceUsage, "eventCount">,
+): PlaceRemovalCopy {
   if (removal === "delete") {
     return {
       label: "Slet sted",
@@ -43,13 +46,30 @@ export function placeRemovalCopy(removal: PlaceRemoval, eventCount: number): Pla
       pendingLabel: "Sletter …",
     };
   }
+  if (usage.eventCount === 0) {
+    return {
+      label: "Arkivér sted",
+      description:
+        "Stedet har været med i en afstemning, så det bliver arkiveret i stedet for slettet. " +
+        "Det forsvinder fra listen, når I vælger sted, men afstemningen viser det stadig.",
+      pendingLabel: "Arkiverer …",
+    };
+  }
   return {
     label: "Arkivér sted",
     description:
-      `Stedet er brugt til ${tastings(eventCount)}, så det bliver ikke slettet. ` +
+      `Stedet er brugt til ${tastings(usage.eventCount)}, så det bliver ikke slettet. ` +
       "Det forsvinder fra listen, når I vælger sted, men de gamle events viser det stadig.",
     pendingLabel: "Arkiverer …",
   };
+}
+
+/**
+ * E5 (D-132): the note that replaces the removal button while the place is in
+ * a poll that is not finished.
+ */
+export function placeInActivePollNote(pollTitle: string): string {
+  return `Stedet er med i afstemningen «${pollTitle}», så det kan ikke arkiveres, før den er afsluttet eller annulleret.`;
 }
 
 /** The confirm dialog when an admin removes another owner. */

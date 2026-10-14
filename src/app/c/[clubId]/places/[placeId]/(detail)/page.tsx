@@ -1,28 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeftIcon, CalendarPlusIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarPlusIcon, PencilIcon, PlusIcon, VoteIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
 import { ArchivedPlaceBanner } from "@/components/features/places/archived-place-banner";
 import { PlaceAbout } from "@/components/features/places/place-about";
 import { PlaceEvents } from "@/components/features/places/place-events";
 import { PlaceOwners } from "@/components/features/places/place-owners";
+import { placeInActivePollNote } from "@/components/features/places/place-labels";
 import { RemovePlaceButton } from "@/components/features/places/remove-place-button";
 import { Button } from "@/components/ui/button";
 import { LinkPendingIcon } from "@/components/ui/link-pending";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatCompactDate, toDateKey } from "@/lib/format/date";
 import { getDisplayName } from "@/lib/format/display-name";
-import { editPlaceHref, newEventHref, placesHref } from "@/lib/routes";
+import { editPlaceHref, newEventHref, placesHref, pollHref } from "@/lib/routes";
 import { isAdmin } from "@/server/domain/clubs/permissions";
 import {
   canEditPlace,
   canRemovePlace,
   canRestorePlace,
   placeRemoval,
+  placeRemovalBlock,
 } from "@/server/domain/places/permissions";
 import { listEventsAtPlace } from "@/server/events/queries";
 import { requirePlace, requirePlacePage } from "@/server/places/access";
+import { placeUsageOf } from "@/server/places/queries";
 
 export async function generateMetadata({
   params,
@@ -37,7 +40,8 @@ export async function generateMetadata({
  * One place (SPEC §9.4, D-100, D-101, D-107): address with "Åbn i kort",
  * description, "Opret event her" (the primary action of an active place),
  * the owners with the "Det er mit sted" toggle, "Ølsmagninger her", and
- * Rediger plus ONE removal button labelled by what will happen. An archived
+ * Rediger plus ONE removal button labelled by what will happen – or, while
+ * the place is in an open or tied poll, a note linking to it (E5). An archived
  * place shows a banner with "Gendan sted" instead of "Opret event her".
  * Steder has no main navigation item (§8.1), so the page links back to it.
  *
@@ -52,7 +56,9 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
 
   const now = new Date();
   const archived = place.archivedAt !== null;
-  const usage = { eventCount: place.eventCount };
+  const usage = placeUsageOf(place);
+  // E5 (D-132): a place in a poll that is not finished can be neither archived nor deleted.
+  const [blockingPoll] = placeRemovalBlock(usage) !== null ? place.activePolls : [];
   const createHref = newEventHref(club.id, { placeId: place.id });
   const editHref = editPlaceHref(club.id, place.id);
   const canRemove = canRemovePlace(membership, place, user.id, usage);
@@ -136,10 +142,24 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
                   placeId={place.id}
                   placeName={place.name}
                   removal={placeRemoval(usage)}
-                  eventCount={place.eventCount}
+                  usage={usage}
                 />
               ) : null}
             </div>
+            {blockingPoll && !archived ? (
+              <p className="flex items-start gap-2 text-[0.95rem] break-words text-muted-foreground">
+                <VoteIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-harbor" />
+                <span className="min-w-0">
+                  {placeInActivePollNote(blockingPoll.title)}{" "}
+                  <Link
+                    href={pollHref(club.id, blockingPoll.id)}
+                    className="inline-flex min-h-11 items-center font-semibold text-olive underline underline-offset-4"
+                  >
+                    Se afstemningen
+                  </Link>
+                </span>
+              </p>
+            ) : null}
           </section>
         </div>
       </div>

@@ -33,14 +33,22 @@ export type ClubContentCounts = {
   beers: number;
   ratings: number;
   places: number;
+  /** Round 4: polls of any status. */
+  polls?: number;
 };
 
 /**
  * What "Slet klubben" deletes (§7.5, D-103): "Alt i klubben bliver slettet
- * permanent: 14 events, 37 øl med 102 ratings og 5 steder. Medlemmernes konti
- * bliver ikke slettet." Empty kinds are left out.
+ * permanent: 14 events, 37 øl med 102 ratings, 5 steder og 2 afstemninger.
+ * Medlemmernes konti bliver ikke slettet." Empty kinds are left out.
  */
-export function deleteClubSummary({ events, beers, ratings, places }: ClubContentCounts): string {
+export function deleteClubSummary({
+  events,
+  beers,
+  ratings,
+  places,
+  polls = 0,
+}: ClubContentCounts): string {
   const parts: string[] = [];
   if (events > 0) parts.push(count(events, "event", "events"));
   if (beers > 0) {
@@ -48,6 +56,7 @@ export function deleteClubSummary({ events, beers, ratings, places }: ClubConten
     parts.push(ratings > 0 ? `${beerPart} med ${count(ratings, "rating", "ratings")}` : beerPart);
   }
   if (places > 0) parts.push(count(places, "sted", "steder"));
+  if (polls > 0) parts.push(count(polls, "afstemning", "afstemninger"));
   const what = parts.length > 0 ? `: ${formatDanishList(parts)}.` : ".";
   return `Alt i klubben bliver slettet permanent${what} Medlemmernes konti bliver ikke slettet.`;
 }
