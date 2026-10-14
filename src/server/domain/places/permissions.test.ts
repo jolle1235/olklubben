@@ -10,8 +10,11 @@ import {
   canRestorePlace,
   canSetOwnOwnership,
   isPlaceOwner,
+  isPlaceUnused,
   placeRemoval,
+  placeRemovalBlock,
   type PlaceAccess,
+  type PlaceUsage,
 } from "./permissions";
 
 const OWNER = "0199a000-0000-7000-8000-0000000000a1";
@@ -30,8 +33,18 @@ function place(archived: boolean): PlaceAccess {
   };
 }
 
-const USED = { eventCount: 3 };
-const UNUSED = { eventCount: 0 };
+const usage = (patch: Partial<PlaceUsage> = {}): PlaceUsage => ({
+  eventCount: 0,
+  pollOptionCount: 0,
+  activePollCount: 0,
+  ...patch,
+});
+const USED = usage({ eventCount: 3 });
+const UNUSED = usage();
+/** Only ever in a finished (CLOSED/CANCELLED) poll: used, not blocked. */
+const POLL_ONLY = usage({ pollOptionCount: 1 });
+/** In an OPEN or AWAITING_DECISION poll (E5). */
+const IN_ACTIVE_POLL = usage({ pollOptionCount: 1, activePollCount: 1 });
 
 type Actor = "none" | "member" | "owner" | "creator" | "admin";
 
@@ -67,8 +80,25 @@ describe("place permissions (SPEC §5.1, §9.4, D-100)", () => {
 
   it("placeRemoval archives a used place and deletes an unused one", () => {
     expect(placeRemoval(USED)).toBe("archive");
-    expect(placeRemoval({ eventCount: 1 })).toBe("archive");
+    expect(placeRemoval(usage({ eventCount: 1 }))).toBe("archive");
     expect(placeRemoval(UNUSED)).toBe("delete");
+  });
+
+  it("a place that has been a poll option is used: archived, never deleted (D-132)", () => {
+    expect(isPlaceUnused(POLL_ONLY)).toBe(false);
+    expect(placeRemoval(POLL_ONLY)).toBe("archive");
+    expect(isPlaceUnused(UNUSED)).toBe(true);
+    expect(isPlaceUnused(USED)).toBe(false);
+  });
+
+  it("placeRemovalBlock: only a poll that is not finished blocks removal (E5)", () => {
+    expect(placeRemovalBlock(IN_ACTIVE_POLL)).toBe("in-active-poll");
+    expect(placeRemovalBlock(usage({ eventCount: 2, pollOptionCount: 3, activePollCount: 2 }))).toBe(
+      "in-active-poll",
+    );
+    expect(placeRemovalBlock(POLL_ONLY)).toBeNull();
+    expect(placeRemovalBlock(USED)).toBeNull();
+    expect(placeRemovalBlock(UNUSED)).toBeNull();
   });
 
   // The full matrix: actor × used/unused × active/archived.
@@ -98,6 +128,16 @@ describe("place permissions (SPEC §5.1, §9.4, D-100)", () => {
         );
         expect(canRemovePlace(membership, place(false), userId, UNUSED)).toBe(
           removeExpected[actor].unused,
+        );
+      });
+
+      it("never removes a place in an active poll (E5), not even an admin or owner", () => {
+        expect(canRemovePlace(membership, place(false), userId, IN_ACTIVE_POLL)).toBe(false);
+      });
+
+      it("treats a place only used in finished polls as used (creator may not delete it)", () => {
+        expect(canRemovePlace(membership, place(false), userId, POLL_ONLY)).toBe(
+          removeExpected[actor].used,
         );
       });
 

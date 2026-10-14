@@ -56,14 +56,19 @@ model User {
   sessions        Session[]
   accounts        Account[]
   memberships     Membership[]
-  invitesCreated  Invite[]     @relation("InviteCreatedBy")
-  eventsCreated   Event[]      @relation("EventCreatedBy")
-  beersCreated    Beer[]       @relation("BeerCreatedBy")
+  invitesCreated  Invite[]            @relation("InviteCreatedBy")
+  eventsCreated   Event[]             @relation("EventCreatedBy")
+  beersCreated    Beer[]              @relation("BeerCreatedBy")
   beerRatings     BeerRating[]
-  placesCreated   Place[]      @relation("PlaceCreatedBy")
+  placesCreated   Place[]             @relation("PlaceCreatedBy")
   placeOwnerships PlaceOwner[]
   eventHostships  EventHost[]
-  songsCreated    Song[]       @relation("SongCreatedBy")
+  songsCreated    Song[]              @relation("SongCreatedBy")
+  pollsCreated    Poll[]              @relation("PollCreatedBy")
+  pollsClosed     Poll[]              @relation("PollClosedBy")
+  pollsCancelled  Poll[]              @relation("PollCancelledBy")
+  pollBallots     PollBallot[]
+  pollTieChoices  PollTieResolution[] @relation("PollTieChosenBy")
 
   @@map("users")
 }
@@ -170,6 +175,7 @@ model Club {
   beers           Beer[]
   places          Place[]
   songs           Song[]
+  polls           Poll[]
 
   @@map("clubs")
 }
@@ -227,36 +233,38 @@ model Invite {
 // makes a hard delete fail loudly instead of silently losing club history.
 
 /// A tasting (SPEC §9.2). Round 3: the place is a Place of the same club and
-/// the hosts are EventHost rows (D-098); round 4 adds pollId.
+/// the hosts are EventHost rows (D-098). Round 4: pollId links the event a
+/// poll created (§9.7.7, D-007); the free-text location_text is gone (TG-032).
 /// Lengths (title 1–100, theme ≤ 80, description ≤ 5000) and
 /// ends_at > starts_at are CHECK constraints in the migrations.
 ///
-/// clubId takes part in two relations (club, and place via the composite FK).
+/// clubId takes part in THREE relations (club, place and poll via composite FKs).
 /// Write ONLY with unchecked scalar inputs (clubId, placeId, createdById …),
 /// never `connect` on club or place.
 model Event {
-  id           String    @id @default(uuid(7))
-  clubId       String    @map("club_id")
-  club         Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  title        String
-  theme        String?
-  description  String?
-  startsAt     DateTime  @map("starts_at") @db.Timestamptz(3)
+  id          String    @id @default(uuid(7))
+  clubId      String    @map("club_id")
+  club        Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  title       String
+  theme       String?
+  description String?
+  startsAt    DateTime  @map("starts_at") @db.Timestamptz(3)
   /// Optional. Without it the event counts as ongoing until startsAt + 6 h (§9.1).
-  endsAt       DateTime? @map("ends_at") @db.Timestamptz(3)
+  endsAt      DateTime? @map("ends_at") @db.Timestamptz(3)
   /// Required (§9.2). Composite FK (place_id, club_id) → places(id, club_id): the
   /// place is in the event's club (D-096). RESTRICT: used places are archived,
   /// never deleted (D-004, D-100).
-  placeId      String    @map("place_id")
-  place        Place     @relation(fields: [placeId, clubId], references: [id, clubId], onDelete: Restrict)
-  /// @deprecated Round-2 free text (D-022). Nullable since round 3; never read or
-  /// written by round-3 code. Dropped together with
-  /// events_location_text_length_check in round 4's first migration (TG-032).
-  locationText String?   @map("location_text")
-  createdById  String    @map("created_by_id")
-  createdBy    User      @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  placeId     String    @map("place_id")
+  place       Place     @relation(fields: [placeId, clubId], references: [id, clubId], onDelete: Restrict)
+  createdById String    @map("created_by_id")
+  createdBy   User      @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  /// Set when a poll created the event (§9.7.7). UNIQUE = idempotent close (D-007).
+  /// Composite (poll_id, club_id) → polls(id, club_id) RESTRICT: same club; polls
+  /// are only deleted by deleteClub, after its events (D-130).
+  pollId      String?   @unique @map("poll_id")
+  poll        Poll?     @relation(fields: [pollId, clubId], references: [id, clubId], onDelete: Restrict)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   beers Beer[]
   hosts EventHost[]
@@ -295,8 +303,9 @@ model Place {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  owners PlaceOwner[]
-  events Event[]
+  owners      PlaceOwner[]
+  events      Event[]
+  pollOptions PollOption[]
 
   /// Target of the composite FKs (club isolation in the DB, D-096).
   @@unique([id, clubId])
@@ -424,4 +433,176 @@ model Song {
   /// Query it with findFirst({ where: { clubId, sourceKey } }).
   @@unique([clubId, sourceKey])
   @@map("songs")
+}
+
+// ─── Round 4: polls (SPEC §9.7, §11, D-129 …) ───────────────────────────────
+//
+// Counts, "har stemt", "alle har stemt" and the winner are COMPUTED (§3.4),
+// never stored. Only the manual choice after a tie is stored (PollTieResolution).
+// Every writer of a poll holds lockPoll (src/server/db/locks.ts, FOR NO KEY
+// UPDATE); see the lock order there. Ballots of polls that are no longer OPEN
+// never change (votes are refused, endMembership only deletes OPEN ballots), so
+// a recomputed tally of a closed poll is stable.
+
+enum PollStatus {
+  OPEN
+  AWAITING_DECISION
+  CLOSED
+  CANCELLED
+
+  @@map("poll_status")
+}
+
+enum PollCloseReason {
+  DEADLINE
+  ALL_VOTED
+  MANUAL
+
+  @@map("poll_close_reason")
+}
+
+enum PollCategory {
+  DATE
+  PLACE
+
+  @@map("poll_category")
+}
+
+/// "Planlæg ølsmagning" (SPEC §9.7). title/theme/description have the SAME
+/// CHECKs as events, so copying them into the event can never fail (§9.7.7).
+/// Lifecycle CHECKs in the migration (polls_lifecycle_*).
+model Poll {
+  id            String           @id @default(uuid(7))
+  clubId        String           @map("club_id")
+  club          Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  /// 1–100 (CHECK).
+  title         String
+  /// ≤ 80 (CHECK).
+  theme         String?
+  /// ≤ 5000 (CHECK), "\n" kept.
+  description   String?
+  deadline      DateTime         @db.Timestamptz(3)
+  status        PollStatus       @default(OPEN)
+  /// Set when voting ended (→ AWAITING_DECISION or CLOSED). Kept on a later cancel.
+  closeReason   PollCloseReason? @map("close_reason")
+  closedAt      DateTime?        @map("closed_at") @db.Timestamptz(3)
+  /// Only for closeReason = MANUAL (CHECK).
+  closedById    String?          @map("closed_by_id")
+  closedBy      User?            @relation("PollClosedBy", fields: [closedById], references: [id], onDelete: Restrict)
+  cancelledAt   DateTime?        @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById String?          @map("cancelled_by_id")
+  cancelledBy   User?            @relation("PollCancelledBy", fields: [cancelledById], references: [id], onDelete: Restrict)
+  createdById   String           @map("created_by_id")
+  createdBy     User             @relation("PollCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  options        PollOption[]
+  ballots        PollBallot[]
+  tieResolutions PollTieResolution[]
+  /// 0 or 1 rows: events.poll_id is UNIQUE (D-007). Prisma sees 1:n because the
+  /// FK is composite (poll_id, club_id). Read it as events[0].
+  events         Event[]
+
+  /// Target of the composite FKs from poll_options and events (D-096 pattern).
+  @@unique([id, clubId])
+  @@index([clubId, status])
+  /// Cron / lazy-close scans.
+  @@index([status, deadline])
+  @@map("polls")
+}
+
+/// A date or a place to vote on (D-005). Options never change after creation (D-133).
+/// clubId takes part in two relations (poll, place): unchecked writes only.
+model PollOption {
+  id        String       @id @default(uuid(7))
+  pollId    String       @map("poll_id")
+  clubId    String       @map("club_id")
+  poll      Poll         @relation(fields: [pollId, clubId], references: [id, clubId], onDelete: Cascade)
+  category  PollCategory
+  /// DATE only (CHECK).
+  startsAt  DateTime?    @map("starts_at") @db.Timestamptz(3)
+  /// PLACE only (CHECK). Composite FK (place_id, club_id) → places(id, club_id):
+  /// the place is in the poll's club. RESTRICT: a place that has been in a poll
+  /// is archived, never deleted (D-132). DATE rows have place_id NULL, so the
+  /// FK is skipped (MATCH SIMPLE).
+  placeId   String?      @map("place_id")
+  place     Place?       @relation(fields: [placeId, clubId], references: [id, clubId], onDelete: Restrict)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  votes          PollVote[]
+  tieResolutions PollTieResolution[]
+
+  /// No duplicate dates (NULLs distinct, so PLACE rows never collide).
+  @@unique([pollId, startsAt])
+  /// No duplicate places.
+  @@unique([pollId, placeId])
+  /// Target of the vote and tie-resolution FKs: same poll AND same category.
+  @@unique([id, pollId, category])
+  /// PlaceUsage counts and the RESTRICT check.
+  @@index([placeId])
+  @@map("poll_options")
+}
+
+/// One ballot per member per poll. Only COMPLETE ballots are ever stored
+/// (D-134), so "har stemt" = a ballot exists. userId → users RESTRICT, no FK to
+/// memberships: ballots of polls that are no longer OPEN are history (§7.4).
+model PollBallot {
+  id          String   @id @default(uuid(7))
+  pollId      String   @map("poll_id")
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// "Ingen af datoerne passer mig". App rule: true ⇒ no DATE votes (TG-052).
+  noDateWorks Boolean  @default(false) @map("no_date_works")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  votes PollVote[]
+
+  @@unique([pollId, userId])
+  /// Target of PollVote's composite FK.
+  @@unique([id, pollId])
+  @@index([userId])
+  @@map("poll_ballots")
+}
+
+/// One tick. Both composite FKs carry poll_id, so option.poll_id = ballot.poll_id
+/// is enforced by the database (SPEC §11 listed it as an app rule), and the
+/// category must match the option's (D-005).
+model PollVote {
+  ballotId  String       @map("ballot_id")
+  pollId    String       @map("poll_id")
+  optionId  String       @map("option_id")
+  category  PollCategory
+  ballot    PollBallot   @relation(fields: [ballotId, pollId], references: [id, pollId], onDelete: Cascade)
+  option    PollOption   @relation(fields: [optionId, pollId, category], references: [id, pollId, category], onDelete: Cascade)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  /// No double tick.
+  @@id([ballotId, optionId])
+  /// At most one PLACE tick per ballot. TRAP (like TG-004): Prisma generates a
+  /// WhereUniqueInput on ballotId from this partial index. Never
+  /// findUnique({ where: { ballotId } }).
+  @@unique([ballotId], map: "poll_votes_ballot_id_place_key", where: { category: "PLACE" })
+  @@index([optionId])
+  @@map("poll_votes")
+}
+
+/// The manual choice after a tie (D-008). One row per tied category, written
+/// in the same tx as the event. The FK proves the option is in this poll AND
+/// in this category.
+model PollTieResolution {
+  pollId         String       @map("poll_id")
+  category       PollCategory
+  chosenOptionId String       @map("chosen_option_id")
+  poll           Poll         @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  chosenOption   PollOption   @relation(fields: [chosenOptionId, pollId, category], references: [id, pollId, category], onDelete: Cascade)
+  chosenById     String       @map("chosen_by_id")
+  chosenBy       User         @relation("PollTieChosenBy", fields: [chosenById], references: [id], onDelete: Restrict)
+  chosenAt       DateTime     @default(now()) @map("chosen_at") @db.Timestamptz(3)
+
+  @@id([pollId, category])
+  @@index([chosenOptionId])
+  @@map("poll_tie_resolutions")
 }

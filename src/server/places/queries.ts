@@ -7,6 +7,7 @@ import { compareByDisplayName, getDisplayName } from "@/lib/format/display-name"
 import { isValidId } from "@/lib/ids";
 import { db } from "@/server/db";
 import { comparePlacesByName } from "@/server/domain/places/name";
+import { ACTIVE_POLL_STATUSES } from "@/server/domain/polls/options";
 import type { PlaceUsage } from "@/server/domain/places/permissions";
 import { personSelect, type PersonRef } from "@/server/users/select";
 
@@ -27,6 +28,8 @@ export type PlaceListItem = {
   owners: PersonRef[];
   /** How many events use the place (decides archive vs. delete, §9.4). */
   eventCount: number;
+  /** How many poll options (any poll status) name the place (D-132: used → archive). */
+  pollOptionCount: number;
 };
 
 export type PlaceDetail = PlaceListItem & {
@@ -36,6 +39,8 @@ export type PlaceDetail = PlaceListItem & {
   createdBy: PersonRef;
   /** For the permission checks (PlaceAccess). */
   ownerIds: string[];
+  /** Polls that are not finished (OPEN, AWAITING_DECISION) with the place as an option (E5). */
+  activePolls: { id: string; title: string }[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -59,7 +64,7 @@ const listSelect = {
   address: true,
   archivedAt: true,
   owners: { select: { user: { select: personSelect } } },
-  _count: { select: { events: true } },
+  _count: { select: { events: true, pollOptions: true } },
 } satisfies Prisma.PlaceSelect;
 
 type ListRow = Prisma.PlaceGetPayload<{ select: typeof listSelect }>;
@@ -72,6 +77,16 @@ function toListItem(row: ListRow): PlaceListItem {
     archivedAt: row.archivedAt,
     owners: row.owners.map((owner) => owner.user).sort(compareByDisplayName),
     eventCount: row._count.events,
+    pollOptionCount: row._count.pollOptions,
+  };
+}
+
+/** Polls that are not finished with the place as an option (E5), oldest deadline first. */
+function activePollsWhere(clubId: string, placeId: string): Prisma.PollWhereInput {
+  return {
+    clubId,
+    status: { in: [...ACTIVE_POLL_STATUSES] },
+    options: { some: { placeId } },
   };
 }
 
@@ -95,6 +110,11 @@ export const getPlace = cache(
       },
     });
     if (!row) return null;
+    const activePolls = await db.poll.findMany({
+      where: activePollsWhere(clubId, placeId),
+      select: { id: true, title: true },
+      orderBy: [{ deadline: "asc" }, { id: "asc" }],
+    });
     const item = toListItem(row);
     return {
       ...item,
@@ -102,6 +122,7 @@ export const getPlace = cache(
       createdById: row.createdById,
       createdBy: row.createdBy,
       ownerIds: item.owners.map((owner) => owner.id),
+      activePolls,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -171,9 +192,27 @@ function compareLastUsed(a: Date | null, b: Date | null): number {
   return 0;
 }
 
-/** How much the place is used (removal decides archive vs. delete, §9.4). */
+/** The usage of a place detail (no query): what canRemovePlace and the labels need. */
+export function placeUsageOf(
+  place: Pick<PlaceDetail, "eventCount" | "pollOptionCount" | "activePolls">,
+): PlaceUsage {
+  return {
+    eventCount: place.eventCount,
+    pollOptionCount: place.pollOptionCount,
+    activePollCount: place.activePolls.length,
+  };
+}
+
+/**
+ * How much the place is used (removal decides archive vs. delete, §9.4, and
+ * E5 blocks it while a poll is not finished, D-132).
+ */
 export async function getPlaceUsage(clubId: string, placeId: string): Promise<PlaceUsage> {
-  if (!isValidId(placeId)) return { eventCount: 0 };
-  const eventCount = await db.event.count({ where: { clubId, placeId } });
-  return { eventCount };
+  if (!isValidId(placeId)) return { eventCount: 0, pollOptionCount: 0, activePollCount: 0 };
+  const [eventCount, pollOptionCount, activePollCount] = await Promise.all([
+    db.event.count({ where: { clubId, placeId } }),
+    db.pollOption.count({ where: { clubId, placeId } }),
+    db.poll.count({ where: activePollsWhere(clubId, placeId) }),
+  ]);
+  return { eventCount, pollOptionCount, activePollCount };
 }

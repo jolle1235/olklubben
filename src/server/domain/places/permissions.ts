@@ -7,9 +7,12 @@ import { isAdmin, type MembershipRole } from "@/server/domain/clubs/permissions"
  *     archived places too (the democratic model of §9.4).
  *   * Ownership is self-claimed: a member sets or removes only themself.
  *     Admins may remove other owners (clean-up).
- *   * Removing a place is ONE action (placeRemoval): a used place is archived,
- *     an unused one deleted. Archive: owner or admin (§5.1). Delete unused:
- *     owner, admin or the place's creator (typo clean-up).
+ *   * Removing a place is ONE action (placeRemoval): a used place (events or
+ *     poll options, D-132) is archived, an unused one deleted. Archive: owner
+ *     or admin (§5.1). Delete unused: owner, admin or the place's creator
+ *     (typo clean-up).
+ *   * A place in a poll that is not finished (OPEN or AWAITING_DECISION) can
+ *     be neither archived nor deleted (E5, placeRemovalBlock).
  *   * Restoring an archived place: owner or admin.
  *
  * The same functions hide buttons in the UI and enforce the rule on the server
@@ -28,8 +31,14 @@ export type PlaceAccess = {
   archivedAt: Date | null;
 };
 
-/** How much a place is used. Round 4 adds open polls (an open poll blocks archiving, E5). */
-export type PlaceUsage = { eventCount: number };
+/**
+ * How much a place is used (D-100 → D-132): its events, its poll options (any
+ * status) and the polls that are not finished (OPEN or AWAITING_DECISION).
+ */
+export type PlaceUsage = { eventCount: number; pollOptionCount: number; activePollCount: number };
+
+/** Why a place cannot be removed right now. */
+export type PlaceRemovalBlock = "in-active-poll";
 
 /** What "remove" does to a place: unused → deleted, used → archived (§9.4). */
 export type PlaceRemoval = "delete" | "archive";
@@ -61,13 +70,24 @@ export function canRemovePlaceOwner(
   return membership != null && (ownerUserId === actorUserId || isAdmin(membership));
 }
 
+/** Never used by an event or a poll (any status): it may be deleted. */
+export function isPlaceUnused(usage: PlaceUsage): boolean {
+  return usage.eventCount === 0 && usage.pollOptionCount === 0;
+}
+
 export function placeRemoval(usage: PlaceUsage): PlaceRemoval {
-  return usage.eventCount > 0 ? "archive" : "delete";
+  return isPlaceUnused(usage) ? "delete" : "archive";
+}
+
+/** E5: a place in an OPEN or AWAITING_DECISION poll can be neither archived nor deleted. */
+export function placeRemovalBlock(usage: PlaceUsage): PlaceRemovalBlock | null {
+  return usage.activePollCount > 0 ? "in-active-poll" : null;
 }
 
 /**
  * The one removal button (archive when used, delete when not). Not for an
- * archived place (restore it instead).
+ * archived place (restore it instead), and not while it is in a poll that is
+ * not finished (E5).
  */
 export function canRemovePlace(
   membership: Membership,
@@ -76,10 +96,11 @@ export function canRemovePlace(
   usage: PlaceUsage,
 ): boolean {
   if (membership == null || place.archivedAt !== null) return false;
+  if (placeRemovalBlock(usage) !== null) return false;
   return (
     isAdmin(membership) ||
     isPlaceOwner(place, userId) ||
-    (usage.eventCount === 0 && place.createdById === userId)
+    (isPlaceUnused(usage) && place.createdById === userId)
   );
 }
 

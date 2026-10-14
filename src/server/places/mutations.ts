@@ -5,7 +5,12 @@ import { db, type TransactionClient } from "@/server/db";
 import { lockMemberIds, lockPlace, lockPlaceNames } from "@/server/db/locks";
 import type { ClubRole } from "@/server/domain/clubs/permissions";
 import { placeNameKey } from "@/server/domain/places/name";
-import { canRemovePlace, placeRemoval } from "@/server/domain/places/permissions";
+import {
+  canRemovePlace,
+  placeRemoval,
+  placeRemovalBlock,
+} from "@/server/domain/places/permissions";
+import { ACTIVE_POLL_STATUSES } from "@/server/domain/polls/options";
 
 /**
  * Writes for places (SPEC §9.4, D-095, D-100).
@@ -162,19 +167,28 @@ export async function setPlaceOwnership(input: {
   }
 }
 
+export type RemovePlaceResult =
+  | { status: "deleted" | "archived" | "not-found" | "forbidden" }
+  /** E5: the place is an option in a poll that is not finished. Nothing written. */
+  | { status: "in-active-poll"; poll: { id: string; title: string } };
+
 /**
- * The one removal action (§9.4, D-100): an unused place is deleted, a used one
- * archived. Decided under the place's FOR UPDATE lock, which also blocks new
- * events from choosing it meanwhile (their FK check needs KEY SHARE), so the
- * usage count is exact. The permission (canRemovePlace) is checked again with
- * the locked row; `actorRole` is the actor's membership role.
+ * The one removal action (§9.4, D-100, D-132): an unused place (no events, no
+ * poll options) is deleted, a used one archived, and a place in an OPEN or
+ * AWAITING_DECISION poll neither (E5). Decided under the place's FOR UPDATE
+ * lock, which also blocks new events and poll options from choosing it
+ * meanwhile (their FK check needs KEY SHARE; createPoll holds it FOR SHARE),
+ * so the usage counts are exact. Polls are only READ here, never locked, so a
+ * close that holds its poll and waits for this place cannot deadlock with it.
+ * The permission (canRemovePlace) is checked again with the locked row;
+ * `actorRole` is the actor's membership role.
  */
 export async function removePlace(input: {
   clubId: string;
   placeId: string;
   actorUserId: string;
   actorRole: ClubRole;
-}): Promise<{ status: "deleted" | "archived" | "not-found" | "forbidden" }> {
+}): Promise<RemovePlaceResult> {
   const { clubId, placeId, actorUserId, actorRole } = input;
   return db.$transaction(async (tx) => {
     const place = await lockPlace(tx, clubId, placeId, "UPDATE");
@@ -184,13 +198,29 @@ export async function removePlace(input: {
       where: { placeId, clubId },
       select: { userId: true },
     });
+    const activeWhere = {
+      clubId,
+      status: { in: [...ACTIVE_POLL_STATUSES] },
+      options: { some: { placeId } },
+    } satisfies Prisma.PollWhereInput;
     const eventCount = await tx.event.count({ where: { clubId, placeId } });
+    const pollOptionCount = await tx.pollOption.count({ where: { clubId, placeId } });
+    const activePolls = await tx.poll.findMany({
+      where: activeWhere,
+      select: { id: true, title: true },
+      orderBy: [{ deadline: "asc" }, { id: "asc" }],
+    });
+    const [activePoll] = activePolls;
+    const activePollCount = activePolls.length;
     const access = {
       createdById: place.createdById,
       ownerIds: owners.map((owner) => owner.userId),
       archivedAt: place.archivedAt,
     };
-    const usage = { eventCount };
+    const usage = { eventCount, pollOptionCount, activePollCount };
+    if (placeRemovalBlock(usage) !== null && activePoll) {
+      return { status: "in-active-poll", poll: activePoll };
+    }
     if (!canRemovePlace({ role: actorRole }, access, actorUserId, usage)) {
       return { status: "forbidden" };
     }

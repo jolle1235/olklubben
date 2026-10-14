@@ -10,6 +10,7 @@ import { db } from "@/server/db";
 import { topRatedBeer } from "@/server/domain/events/history";
 import { fallbackStartCutoff } from "@/server/domain/events/status";
 import { suggestEventTitle } from "@/server/domain/events/title";
+import { ACTIVE_POLL_STATUSES } from "@/server/domain/polls/options";
 import { personSelect, type PersonRef } from "@/server/users/select";
 
 /**
@@ -54,6 +55,8 @@ export type EventDetail = EventSummary & {
   hostIds: string[];
   /** Sorted by display name. */
   hosts: EventHostRef[];
+  /** The poll that created the event ("Valgt ved afstemning 🗳", §9.7.7), else null. */
+  pollId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -146,6 +149,7 @@ export const getEvent = cache(
         ...summarySelect,
         description: true,
         createdById: true,
+        pollId: true,
         createdAt: true,
         updatedAt: true,
         createdBy: { select: personSelect },
@@ -176,6 +180,7 @@ export const getEvent = cache(
       createdBy: row.createdBy,
       hostIds: hosts.map((host) => host.id),
       hosts,
+      pollId: row.pollId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -295,14 +300,21 @@ export async function listEventOptions(clubId: string): Promise<EventOption[]> {
 
 /**
  * The new-event form's title suggestion (D-064): "Ølsmagning #N" after the
- * club's event count and its highest "Ølsmagning #N" title. One query.
+ * club's event count and its highest "Ølsmagning #N" title. Polls that are
+ * not finished (OPEN, AWAITING_DECISION) count too, because each becomes an
+ * event: two plans in parallel never both say "#15" (D-137). Also the poll
+ * form's suggestion (getSuggestedPollTitle).
  */
 export async function getSuggestedEventTitle(clubId: string): Promise<string> {
-  const events = await db.event.findMany({ where: { clubId }, select: { title: true } });
-  return suggestEventTitle(
-    events.length,
-    events.map((event) => event.title),
-  );
+  const [events, polls] = await Promise.all([
+    db.event.findMany({ where: { clubId }, select: { title: true } }),
+    db.poll.findMany({
+      where: { clubId, status: { in: [...ACTIVE_POLL_STATUSES] } },
+      select: { title: true },
+    }),
+  ]);
+  const titles = [...events, ...polls].map((row) => row.title);
+  return suggestEventTitle(titles.length, titles);
 }
 
 /**
