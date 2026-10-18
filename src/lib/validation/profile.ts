@@ -102,7 +102,12 @@ const setPasswordFields = z.object({
 
 export const setPasswordSchema = setPasswordFields.refine(
   (values) => values.newPassword === values.confirmPassword,
-  { message: PASSWORD_MISMATCH, path: ["confirmPassword"] },
+  {
+    message: PASSWORD_MISMATCH,
+    path: ["confirmPassword"],
+    // Like "Skift password": no mismatch on top of a password that is too short.
+    when: (payload) => setPasswordFields.safeParse(payload.value).success,
+  },
 );
 
 const EMAIL_MISMATCH = "De to emails er ikke ens.";

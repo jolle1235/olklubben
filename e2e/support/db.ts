@@ -9,7 +9,8 @@ import { testDatabaseUrl } from "../test-env";
 /**
  * Direct SQL against the E2E database (olklubben_test, guarded by test-env.ts)
  * for setup the UI cannot do (quickly): removing a member, changing a role,
- * ageing a reset token, inserting events, places, beers, ratings and songs. Each call opens and closes its own connection,
+ * ageing a reset token or a session, inserting events, places, beers, ratings
+ * and songs. Each call opens and closes its own connection,
  * so tests stay independent of each other. Sessions run in UTC like the app's
  * (pgConfig, F-012).
  */
@@ -127,6 +128,18 @@ export async function ageSession(sessionId: string): Promise<void> {
      SET expires_at = now() + interval '58 days', updated_at = now() - interval '2 days'
      WHERE id = $1`,
     [sessionId],
+  );
+}
+
+/**
+ * Makes a session look as if it was created `minutes` ago. "Tilføj password"
+ * needs a login under 10 minutes old (D-152); ageSession does not touch
+ * created_at.
+ */
+export async function backdateSessionCreatedAt(sessionId: string, minutes: number): Promise<void> {
+  await sql(
+    "UPDATE sessions SET created_at = now() - make_interval(mins => $2::int) WHERE id = $1",
+    [sessionId, minutes],
   );
 }
 

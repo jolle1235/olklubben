@@ -138,6 +138,10 @@ describe("setPasswordSchema (SPEC §9.8, D-152)", () => {
     expect(
       fieldErrors(setPasswordSchema.safeParse({ newPassword: "kort", confirmPassword: "kort" })),
     ).toEqual({ newPassword: ["Password skal være mindst 8 tegn."] });
+    // Only the length, like "Skift password": the mismatch waits for a valid password.
+    expect(
+      fieldErrors(setPasswordSchema.safeParse({ newPassword: "kort", confirmPassword: "andet" })),
+    ).toEqual({ newPassword: ["Password skal være mindst 8 tegn."] });
     const long = "x".repeat(129);
     expect(
       fieldErrors(setPasswordSchema.safeParse({ newPassword: long, confirmPassword: long })),

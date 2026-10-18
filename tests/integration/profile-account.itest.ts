@@ -1,12 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import { isAPIError } from "better-auth/api";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ACTION_ERROR_CODES } from "@/lib/action-result";
 import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
 import { changeEmailAction, setPasswordAction } from "@/server/actions/profile";
-import { auth } from "@/server/auth/auth";
 import { createPasswordResetUrl } from "@/server/auth/reset-link";
 import { db } from "@/server/db";
 import { rateLimit } from "@/server/rate-limit";
@@ -18,7 +16,11 @@ import {
   expectNotFound,
   expectRedirect,
   formData,
+  makeGoogleOnly,
+  sessionUserOf,
   setActor,
+  signInCookie,
+  signUpWithPassword,
   type TestUser,
 } from "./helpers";
 
@@ -63,23 +65,9 @@ beforeEach(() => {
   envState.appAdminEmails = [ADMIN_EMAIL];
 });
 
-function sessionCookie(headers: Headers): string {
-  const cookie = headers
-    .getSetCookie()
-    .map((value) => value.split(";")[0] ?? "")
-    .find((value) => value.startsWith("better-auth.session_token="));
-  if (!cookie) throw new Error("Ingen session-cookie.");
-  return cookie;
-}
-
-/** A user with a password we know (the helpers' createUser keeps its password private). */
+/** A user with a password we know. */
 async function signUp(name = "Konto Bruger"): Promise<TestUser> {
-  const email = `account-${randomUUID()}@example.test`;
-  const { headers, response } = await auth.api.signUpEmail({
-    body: { name, email, password: PASSWORD },
-    returnHeaders: true,
-  });
-  return { id: response.user.id, email, name, cookie: sessionCookie(headers) };
+  return signUpWithPassword(PASSWORD, name, `account-${randomUUID()}@example.test`);
 }
 
 /**
@@ -88,28 +76,8 @@ async function signUp(name = "Konto Bruger"): Promise<TestUser> {
  */
 async function googleOnlyUser(): Promise<TestUser> {
   const user = await signUp("Google Bruger");
-  await addGoogleAccount(user);
-  await db.account.deleteMany({ where: { userId: user.id, providerId: "credential" } });
+  await makeGoogleOnly(user);
   return user;
-}
-
-/** Logs in again (another device): a new session cookie, or null when refused. */
-async function signIn(email: string, password: string): Promise<string | null> {
-  try {
-    const { headers } = await auth.api.signInEmail({
-      body: { email, password },
-      returnHeaders: true,
-    });
-    return sessionCookie(headers);
-  } catch (error) {
-    if (isAPIError(error)) return null;
-    throw error;
-  }
-}
-
-async function sessionUser(cookie: string) {
-  const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
-  return session?.user ?? null;
 }
 
 async function storedUser(user: TestUser) {
@@ -219,7 +187,7 @@ describe("changeEmailAction (D-151)", () => {
     });
     expect((await storedUser(user)).email).toBe(user.email);
     expect((await storedUser(other)).email).toBe(other.email);
-    expect(await sessionUser(user.cookie)).toMatchObject({ email: user.email });
+    expect(await sessionUserOf(user.cookie)).toMatchObject({ email: user.email });
   });
 
   it("ens egen email giver 'Det er allerede din email.'", async () => {
@@ -261,7 +229,7 @@ describe("changeEmailAction (D-151)", () => {
     const user = await signUp();
     const clubId = await createClub(user);
     await db.user.update({ where: { id: user.id }, data: { emailVerified: true } });
-    const otherDevice = await signIn(user.email, PASSWORD);
+    const otherDevice = await signInCookie(user.email, PASSWORD);
     if (!otherDevice) throw new Error("kunne ikke logge ind igen");
     await createPasswordResetUrl(user.id);
     expect(await db.session.count({ where: { userId: user.id } })).toBe(2);
@@ -275,13 +243,13 @@ describe("changeEmailAction (D-151)", () => {
     );
 
     expect(await storedUser(user)).toEqual({ email: newEmail, emailVerified: false });
-    expect(await sessionUser(user.cookie)).toMatchObject({ id: user.id, email: newEmail });
-    expect(await sessionUser(otherDevice)).toBeNull();
+    expect(await sessionUserOf(user.cookie)).toMatchObject({ id: user.id, email: newEmail });
+    expect(await sessionUserOf(otherDevice)).toBeNull();
     expect(await db.session.count({ where: { userId: user.id } })).toBe(1);
     expect(await db.verification.count({ where: { value: user.id } })).toBe(0);
     // The new email logs in; the old one is gone.
-    expect(await signIn(newEmail, PASSWORD)).not.toBeNull();
-    expect(await signIn(user.email, PASSWORD)).toBeNull();
+    expect(await signInCookie(newEmail, PASSWORD)).not.toBeNull();
+    expect(await signInCookie(user.email, PASSWORD)).toBeNull();
   });
 
   it("en konto med password og Google beholder sit Google-login", async () => {
@@ -376,11 +344,11 @@ describe("setPasswordAction (D-152)", () => {
     );
 
     expect(await providers(user)).toEqual(["credential", "google"]);
-    expect(await sessionUser(user.cookie)).toMatchObject({ id: user.id });
+    expect(await sessionUserOf(user.cookie)).toMatchObject({ id: user.id });
     expect(await db.session.findUnique({ where: { id: otherSessionId } })).toBeNull();
     expect(await db.session.count({ where: { userId: user.id } })).toBe(1);
     expect(await db.verification.count({ where: { value: user.id } })).toBe(0);
-    expect(await signIn(user.email, NEW_PASSWORD)).not.toBeNull();
+    expect(await signInCookie(user.email, NEW_PASSWORD)).not.toBeNull();
   });
 
   it("et Google-login ældre end 10 minutter giver REAUTH_REQUIRED, og intet password gemmes", async () => {
@@ -401,7 +369,7 @@ describe("setPasswordAction (D-152)", () => {
       values: {},
     });
     expect(await providers(user)).toEqual(["google"]);
-    expect(await signIn(user.email, NEW_PASSWORD)).toBeNull();
+    expect(await signInCookie(user.email, NEW_PASSWORD)).toBeNull();
   });
 
   it("en konto, der allerede har et password, bliver afvist", async () => {
@@ -415,8 +383,8 @@ describe("setPasswordAction (D-152)", () => {
       error: { code: "PASSWORD_ALREADY_SET", message: AUTH_ERROR_MESSAGES.passwordAlreadySet },
       values: {},
     });
-    expect(await signIn(user.email, PASSWORD)).not.toBeNull();
-    expect(await signIn(user.email, NEW_PASSWORD)).toBeNull();
+    expect(await signInCookie(user.email, PASSWORD)).not.toBeNull();
+    expect(await signInCookie(user.email, NEW_PASSWORD)).toBeNull();
   });
 
   it("forskellige eller for korte passwords giver fejl på felterne, og intet skrives", async () => {

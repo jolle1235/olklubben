@@ -1,23 +1,24 @@
 import { randomUUID } from "node:crypto";
 
-import { isAPIError } from "better-auth/api";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ACTION_ERROR_CODES } from "@/lib/action-result";
 import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
 import { changePasswordAction, updateProfileAction } from "@/server/actions/profile";
-import { auth } from "@/server/auth/auth";
 import { createPasswordResetUrl } from "@/server/auth/reset-link";
 import { db } from "@/server/db";
 
 import {
-  addGoogleAccount,
   createClub,
   createUser,
   expectNotFound,
   expectRedirect,
   formData,
+  makeGoogleOnly,
+  sessionUserOf,
   setActor,
+  signInCookie,
+  signUpWithPassword,
   type TestUser,
 } from "./helpers";
 
@@ -51,42 +52,9 @@ beforeEach(() => {
   rateLimits.disabled = true;
 });
 
-function sessionCookie(headers: Headers): string {
-  const cookie = headers
-    .getSetCookie()
-    .map((value) => value.split(";")[0] ?? "")
-    .find((value) => value.startsWith("better-auth.session_token="));
-  if (!cookie) throw new Error("Ingen session-cookie.");
-  return cookie;
-}
-
-/** A user with a password we know (the helpers' createUser keeps its password private). */
+/** A user with a password we know. */
 async function signUp(name = "Profil Bruger"): Promise<TestUser> {
-  const email = `r3profile-${randomUUID()}@example.test`;
-  const { headers, response } = await auth.api.signUpEmail({
-    body: { name, email, password: PASSWORD },
-    returnHeaders: true,
-  });
-  return { id: response.user.id, email, name, cookie: sessionCookie(headers) };
-}
-
-/** Logs in again (another device): a new session cookie, or null when the password is wrong. */
-async function signIn(email: string, password: string): Promise<string | null> {
-  try {
-    const { headers } = await auth.api.signInEmail({
-      body: { email, password },
-      returnHeaders: true,
-    });
-    return sessionCookie(headers);
-  } catch (error) {
-    if (isAPIError(error)) return null;
-    throw error;
-  }
-}
-
-async function sessionUser(cookie: string) {
-  const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
-  return session?.user ?? null;
+  return signUpWithPassword(PASSWORD, name, `r3profile-${randomUUID()}@example.test`);
 }
 
 async function storedProfile(user: TestUser) {
@@ -110,7 +78,7 @@ describe("updateProfileAction", () => {
       new RegExp(`^/c/${clubId}/profile\\?toast=profile-updated$`),
     );
     expect(await storedProfile(user)).toEqual({ name: "Jesper Thomsen", nickname: "Kaptajnen" });
-    expect(await sessionUser(user.cookie)).toMatchObject({
+    expect(await sessionUserOf(user.cookie)).toMatchObject({
       name: "Jesper Thomsen",
       nickname: "Kaptajnen",
     });
@@ -190,7 +158,7 @@ describe("changePasswordAction", () => {
       },
       values: {},
     });
-    expect(await signIn(user.email, PASSWORD)).not.toBeNull();
+    expect(await signInCookie(user.email, PASSWORD)).not.toBeNull();
   });
 
   it("validerer i formularen: forskellige nye passwords og det samme som før", async () => {
@@ -227,7 +195,7 @@ describe("changePasswordAction", () => {
   it("skifter password, beholder denne session og logger de andre enheder og links ud (D-106)", async () => {
     const user = await signUp();
     const clubId = await createClub(user);
-    const otherDevice = await signIn(user.email, PASSWORD);
+    const otherDevice = await signInCookie(user.email, PASSWORD);
     if (!otherDevice) throw new Error("kunne ikke logge ind igen");
     await createPasswordResetUrl(user.id);
     expect(await db.verification.count({ where: { value: user.id } })).toBe(1);
@@ -239,19 +207,18 @@ describe("changePasswordAction", () => {
       new RegExp(`^/c/${clubId}/profile\\?toast=password-changed$`),
     );
 
-    expect(await sessionUser(user.cookie)).toMatchObject({ id: user.id });
-    expect(await sessionUser(otherDevice)).toBeNull();
+    expect(await sessionUserOf(user.cookie)).toMatchObject({ id: user.id });
+    expect(await sessionUserOf(otherDevice)).toBeNull();
     expect(await db.session.count({ where: { userId: user.id } })).toBe(1);
     expect(await db.verification.count({ where: { value: user.id } })).toBe(0);
-    expect(await signIn(user.email, PASSWORD)).toBeNull();
-    expect(await signIn(user.email, NEW_PASSWORD)).not.toBeNull();
+    expect(await signInCookie(user.email, PASSWORD)).toBeNull();
+    expect(await signInCookie(user.email, NEW_PASSWORD)).not.toBeNull();
   });
 
   it("en konto uden password (kun Google) får en forklaring", async () => {
     const user = await signUp();
     const clubId = await createClub(user);
-    await addGoogleAccount(user);
-    await db.account.deleteMany({ where: { userId: user.id, providerId: "credential" } });
+    await makeGoogleOnly(user);
     setActor(user);
 
     expect(await changePasswordAction(null, passwordForm(clubId, PASSWORD))).toEqual({
@@ -269,7 +236,7 @@ describe("changePasswordAction", () => {
 
     await expectNotFound(changePasswordAction(null, passwordForm(otherClubId, PASSWORD)));
     await expectNotFound(changePasswordAction(null, passwordForm(MALFORMED, PASSWORD)));
-    expect(await signIn(user.email, PASSWORD)).not.toBeNull();
+    expect(await signInCookie(user.email, PASSWORD)).not.toBeNull();
   });
 
   it("det 11. forsøg inden for 15 minutter bliver afvist (rate limit)", async () => {
@@ -291,6 +258,6 @@ describe("changePasswordAction", () => {
     });
     // The right password was never tried, so the old one still works.
     rateLimits.disabled = true;
-    expect(await signIn(user.email, PASSWORD)).not.toBeNull();
+    expect(await signInCookie(user.email, PASSWORD)).not.toBeNull();
   });
 });

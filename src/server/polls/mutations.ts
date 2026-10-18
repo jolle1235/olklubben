@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { PollPlacesInput } from "@/lib/validation/poll";
+import type { PollOptionsData, PollPlacesInput } from "@/lib/validation/poll";
 import { db, type TransactionClient } from "@/server/db";
 import { lockMemberIds, lockPlace, lockPoll, type LockedPoll } from "@/server/db/locks";
 import type { ClubRole } from "@/server/domain/clubs/permissions";
@@ -43,7 +43,7 @@ import {
   type CloseOutcome,
 } from "./close";
 
-export type { PollPlacesInput };
+export type { PollOptionsData, PollPlacesInput };
 export { PlaceNotSelectableError };
 
 /**
@@ -63,11 +63,65 @@ export { PlaceNotSelectableError };
 type Tx = TransactionClient;
 
 /** Rolls the transaction back (a new place must not stay behind) and becomes a result outside it. */
-class CreatePollRollback extends Error {
+class PollWriteRollback extends Error {
   constructor(readonly result: { status: "not-member" } | { status: "nothing-to-vote" }) {
     super(result.status);
-    this.name = "CreatePollRollback";
+    this.name = "PollWriteRollback";
   }
+}
+
+/** The date options as distinct instants, ascending. */
+function distinctSorted(dates: readonly Date[]): Date[] {
+  return [...new Set(dates.map((date) => date.getTime()))]
+    .sort((a, b) => a - b)
+    .map((time) => new Date(time));
+}
+
+/**
+ * The places of a new or edited poll, inside its transaction (D-130 order:
+ * after the poll lock, if any):
+ *   1. "＋ Nyt sted" → findOrCreatePlaceTx (name advisory; an ACTIVE place
+ *      with the same name is reused, E29; `actorUserId` creates it and may
+ *      become its owner);
+ *   2. the chosen places locked FOR SHARE in id order: unknown or another
+ *      club's → PlaceNotSelectableError("NOT_FOUND"), archived → ("ARCHIVED"),
+ *      THROWN so a just-created place is rolled back (E5);
+ *   3. deduplicated (the new place may be one of the chosen).
+ * Locked FOR SHARE, none of them can be archived or deleted before the
+ * options point at them.
+ */
+async function lockPollPlacesTx(
+  tx: Tx,
+  input: { clubId: string; actorUserId: string; places: PollPlacesInput },
+): Promise<string[]> {
+  const { clubId, actorUserId, places } = input;
+  const placeIds: string[] = [];
+  if (places.newPlace) {
+    const created = await findOrCreatePlaceTx(tx, {
+      clubId,
+      createdById: actorUserId,
+      name: places.newPlace.name,
+      address: places.newPlace.address,
+      ownedByCreator: places.newPlace.ownedByCreator,
+    });
+    placeIds.push(created.placeId);
+  }
+  for (const placeId of [...new Set(places.existingIds)].sort()) {
+    const locked = await lockPlace(tx, clubId, placeId, "SHARE");
+    if (!locked) throw new PlaceNotSelectableError("NOT_FOUND");
+    if (locked.archivedAt !== null) throw new PlaceNotSelectableError("ARCHIVED");
+    if (!placeIds.includes(locked.id)) placeIds.push(locked.id);
+  }
+  return placeIds;
+}
+
+/** ≤ 10 places and at least one category with two options (D-134). */
+function isVotable(dateCount: number, placeCount: number): boolean {
+  return (
+    dateCount <= MAX_POLL_DATE_OPTIONS &&
+    placeCount <= MAX_POLL_PLACE_OPTIONS &&
+    hasSomethingToVoteOn(dateCount, placeCount)
+  );
 }
 
 /** The actor's role in the club, read inside the transaction (null: not a member). */
@@ -107,40 +161,19 @@ export async function createPoll(input: {
   places: PollPlacesInput;
 }): Promise<CreatePollResult> {
   const { clubId, createdById, now, deadline, places } = input;
-  const dateStartsAt = [...new Set(input.dateStartsAt.map((date) => date.getTime()))]
-    .sort((a, b) => a - b)
-    .map((time) => new Date(time));
+  const dateStartsAt = distinctSorted(input.dateStartsAt);
   if (dateStartsAt.length > MAX_POLL_DATE_OPTIONS) return { status: "nothing-to-vote" };
   const timing = checkPollTiming({ now, deadline, dateStartsAt });
   if (timing) return { status: "timing", error: timing };
 
   try {
     return await db.$transaction(async (tx) => {
-      const placeIds: string[] = [];
-      if (places.newPlace) {
-        const created = await findOrCreatePlaceTx(tx, {
-          clubId,
-          createdById,
-          name: places.newPlace.name,
-          address: places.newPlace.address,
-          ownedByCreator: places.newPlace.ownedByCreator,
-        });
-        placeIds.push(created.placeId);
-      }
-      for (const placeId of [...new Set(places.existingIds)].sort()) {
-        const locked = await lockPlace(tx, clubId, placeId, "SHARE");
-        if (!locked) throw new PlaceNotSelectableError("NOT_FOUND");
-        if (locked.archivedAt !== null) throw new PlaceNotSelectableError("ARCHIVED");
-        if (!placeIds.includes(locked.id)) placeIds.push(locked.id);
-      }
+      const placeIds = await lockPollPlacesTx(tx, { clubId, actorUserId: createdById, places });
 
       const members = await lockMemberIds(tx, clubId, [createdById]);
-      if (!members.has(createdById)) throw new CreatePollRollback({ status: "not-member" });
-      if (
-        placeIds.length > MAX_POLL_PLACE_OPTIONS ||
-        !hasSomethingToVoteOn(dateStartsAt.length, placeIds.length)
-      ) {
-        throw new CreatePollRollback({ status: "nothing-to-vote" });
+      if (!members.has(createdById)) throw new PollWriteRollback({ status: "not-member" });
+      if (!isVotable(dateStartsAt.length, placeIds.length)) {
+        throw new PollWriteRollback({ status: "nothing-to-vote" });
       }
 
       const poll = await tx.poll.create({
@@ -173,7 +206,7 @@ export async function createPoll(input: {
       return { status: "created" as const, id: poll.id };
     });
   } catch (error) {
-    if (error instanceof CreatePollRollback) return error.result;
+    if (error instanceof PollWriteRollback) return error.result;
     throw error;
   }
 }
@@ -183,7 +216,11 @@ export type UpdatePollResult =
   | { status: "not-found" }
   | { status: "closed" }
   | { status: "forbidden" }
-  | { status: "timing"; error: PollTimingError };
+  | { status: "timing"; error: PollTimingError }
+  /** New options were sent, but the poll has a ballot (D-153). Nothing is written. */
+  | { status: "options-locked" }
+  /** The new options leave nothing to vote on, or more than 10 of a kind (D-134). */
+  | { status: "nothing-to-vote" };
 
 /**
  * "Rediger" (D-133, E24): title, theme, description and the deadline – which

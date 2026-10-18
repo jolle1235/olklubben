@@ -45,12 +45,14 @@ test.describe("Fokus ved fejl i formularer", () => {
 
     // Skift password: a wrong current password is checked by the server, and
     // its error moves focus to that field (D-056).
-    const currentPassword = page.getByLabel("Nuværende password");
+    // ("Skift email" has a "Nuværende password" too, so stay inside the card.)
+    const passwordCard = page.getByRole("region", { name: "Skift password", exact: true });
+    const currentPassword = passwordCard.getByLabel("Nuværende password");
     await currentPassword.fill("forkert-password");
-    await page.getByLabel("Nyt password", { exact: true }).fill(`${user.password}-ny`);
-    await page.getByLabel("Gentag nyt password").fill(`${user.password}-ny`);
-    await page.getByRole("button", { name: "Skift password" }).press("Enter");
-    await expect(page.getByText("Det nuværende password er forkert.")).toBeVisible();
+    await passwordCard.getByLabel("Nyt password", { exact: true }).fill(`${user.password}-ny`);
+    await passwordCard.getByLabel("Gentag nyt password").fill(`${user.password}-ny`);
+    await passwordCard.getByRole("button", { name: "Skift password" }).press("Enter");
+    await expect(passwordCard.getByText("Det nuværende password er forkert.")).toBeVisible();
     await expect(currentPassword).toHaveAttribute("aria-invalid", "true");
     await expect(currentPassword).toBeFocused();
   });

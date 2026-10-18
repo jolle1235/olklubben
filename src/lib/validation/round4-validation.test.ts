@@ -242,8 +242,8 @@ describe("pollFormSchema (§9.7.1, D-134)", () => {
   });
 });
 
-describe("pollEditSchema (D-133)", () => {
-  it("parses texts and the deadline", () => {
+describe("pollEditSchema without editOptions (D-133, E24)", () => {
+  it("parses texts and the deadline; options stay null", () => {
     expect(
       pollEditSchema.parse({
         title: "Ny titel",
@@ -257,6 +257,7 @@ describe("pollEditSchema (D-133)", () => {
       theme: null,
       description: null,
       deadline: new Date("2026-11-12T20:00:00.000Z"),
+      options: null,
     });
   });
 
@@ -266,6 +267,97 @@ describe("pollEditSchema (D-133)", () => {
     ).toEqual({
       title: ["Giv afstemningen en titel."],
       deadlineDate: ["Vælg en dato for fristen."],
+      deadlineTime: ["Vælg et tidspunkt for fristen."],
+    });
+  });
+
+  it("ignores option fields, also invalid ones, and an editOptions that is not a ticked checkbox", () => {
+    for (const editOptions of [undefined, "", "0", "off", "x".repeat(20)]) {
+      expect(
+        pollEditSchema.parse({
+          ...base,
+          editOptions,
+          dates: ["nope"],
+          placeIds: ["nej"],
+          deadlineDate: "2026-11-30",
+        }),
+      ).toMatchObject({ options: null, deadline: new Date("2026-11-30T19:00:00.000Z") });
+    }
+  });
+
+  it("reads a submitted form with the array fields (no editOptions → no option rules)", () => {
+    const form = new FormData();
+    form.set("title", "Plan");
+    form.set("deadlineDate", "2026-11-12");
+    form.set("deadlineTime", "20:00");
+    const values = readFormValues(form, { arrays: POLL_ARRAY_FIELDS });
+    expect(values).toMatchObject({ dates: [], placeIds: [] });
+    expect(pollEditSchema.parse(values).options).toBeNull();
+  });
+
+  it("refuses something that is not a form at the root", () => {
+    expect(pollEditSchema.safeParse("titel").success).toBe(false);
+    expect(Object.keys(fieldErrors(pollEditSchema.safeParse(null)) ?? {})).toEqual(["_form"]);
+  });
+});
+
+describe("pollEditSchema with editOptions (D-153)", () => {
+  const edit = { ...base, editOptions: "1" };
+
+  it("parses the options exactly as the create form does", () => {
+    const created = pollFormSchema.parse(base);
+    expect(pollEditSchema.parse(edit)).toEqual({
+      title: created.title,
+      theme: created.theme,
+      description: created.description,
+      deadline: created.deadline,
+      options: { dateStartsAt: created.dateStartsAt, places: created.places },
+    });
+    expect(pollEditSchema.parse({ ...edit, editOptions: "on" }).options).not.toBeNull();
+  });
+
+  it("takes «＋ Nyt sted» and the shared start time", () => {
+    const parsed = pollEditSchema.parse({
+      ...edit,
+      startTime: "19.30",
+      placeIds: [P1],
+      newPlace: "on",
+      newPlaceName: " Hos  Bo ",
+      newPlaceMine: "on",
+    });
+    expect(parsed.options).toEqual({
+      dateStartsAt: [new Date("2026-11-14T18:30:00.000Z"), new Date("2026-11-21T18:30:00.000Z")],
+      places: {
+        existingIds: [P1],
+        newPlace: { name: "Hos Bo", address: null, ownedByCreator: true },
+      },
+    });
+  });
+
+  it("gives the create form's messages, each once", () => {
+    const errors = (overrides: Record<string, unknown>) =>
+      fieldErrors(pollEditSchema.safeParse({ ...edit, ...overrides }));
+    expect(errors({ dates: ["", ""] })).toEqual({ dates: ["Tilføj mindst én dato."] });
+    expect(errors({ dates: ["2026-11-14"], placeIds: [P1] })).toEqual({
+      dates: [NOTHING_TO_VOTE_MESSAGE],
+    });
+    expect(errors({ placeIds: ids(11) })).toEqual({ placeIds: ["Der kan højst være 10 steder."] });
+    expect(errors({ placeIds: [] })).toEqual({
+      placeIds: ["Vælg mindst ét sted, eller opret et nyt."],
+    });
+    expect(errors({ startTime: "" })).toEqual({ startTime: ["Vælg et starttidspunkt."] });
+    expect(errors({ newPlace: "on", newPlaceName: "" })).toEqual({
+      newPlaceName: ["Giv stedet et navn."],
+    });
+    // The deadline must lie before the first NEW date.
+    expect(errors({ dates: ["2026-11-07", "2026-11-14"] })).toEqual({
+      deadlineDate: ["Fristen skal ligge før den første dato (lørdag 7. november kl. 18:30)."],
+    });
+    // Texts and options together, with no duplicates (F-056).
+    const mixed = errors({ title: "", dates: ["2026-02-30"], deadlineTime: "" });
+    expect(mixed).toEqual({
+      title: ["Giv afstemningen en titel."],
+      dates: ["Datoen findes ikke. Vælg en anden dato."],
       deadlineTime: ["Vælg et tidspunkt for fristen."],
     });
   });

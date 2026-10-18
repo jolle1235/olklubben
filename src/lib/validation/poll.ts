@@ -35,8 +35,9 @@ import {
 } from "./text";
 
 /**
- * Zod schemas for polls ("Planlæg ølsmagning", SPEC §9.7, D-133–D-135),
- * shared by the forms (client) and the Server Actions. Messages are Danish.
+ * Zod schemas for polls ("Planlæg ølsmagning", SPEC §9.7, D-134, D-135,
+ * D-153), shared by the forms (client) and the Server Actions. Messages are
+ * Danish.
  *
  * Pure: nothing here depends on the clock. "Dates and the deadline lie in the
  * future" and "the deadline only moves later" are checked on the server
@@ -52,6 +53,10 @@ import {
  *     Whether a place exists in the club and is active is checked on the
  *     server (PlaceNotSelectableError → POLL_PLACE_ERROR_MESSAGES).
  *   * deadlineDate + deadlineTime: the deadline (Copenhagen wall clock).
+ *   * editOptions (edit only): a hidden checkbox the edit form sends while
+ *     nobody has voted (D-153). Set, the edit form is parsed by
+ *     pollFormSchema itself – the same option fields, messages and checks as
+ *     on create; unset, only the texts and the deadline.
  *
  * Every free text strips U+0000 and is capped raw BEFORE trimming or any
  * regex (D-090, F-044). Object-level checks run while other fields are invalid
@@ -88,12 +93,21 @@ export type PollFormData = {
   deadline: Date;
 };
 
-/** What updatePoll stores (D-133: options never change). */
+/** New dates and places for an existing poll (D-153: only while nobody has voted). */
+export type PollOptionsData = {
+  /** UTC instants, ascending, deduplicated. */
+  dateStartsAt: Date[];
+  places: PollPlacesInput;
+};
+
+/** What updatePoll stores (D-153). */
 export type PollEditData = {
   title: string;
   theme: string | null;
   description: string | null;
   deadline: Date;
+  /** The edit form's new options (editOptions set), or null: the options stay as they are. */
+  options: PollOptionsData | null;
 };
 
 // ── Messages ────────────────────────────────────────────────────────────────
@@ -124,7 +138,7 @@ const DEADLINE_TIME_INVALID = "Skriv tiden som tt:mm, fx 20:00.";
 export const NOTHING_TO_VOTE_MESSAGE =
   "Tilføj mindst to datoer eller to steder, så der er noget at stemme om. Ligger alt fast, så opret et event i stedet.";
 
-/** createPoll's PlaceNotSelectableError, on placeIds. */
+/** createPoll's and updatePoll's PlaceNotSelectableError, on placeIds. */
 export const POLL_PLACE_ERROR_MESSAGES = {
   NOT_FOUND: "Et af stederne findes ikke længere. Vælg igen.",
   ARCHIVED: "Et af stederne er arkiveret. Vælg et andet.",
@@ -269,10 +283,21 @@ const datesField = z
   )
   .transform((rows) => rows.map((row) => row.trim()).filter((row) => row !== ""));
 
-const pollFieldsSchema = z.object({
-  title: titleField,
-  theme: themeField,
-  description: descriptionField,
+/** Titel, Tema and Beskrivelse: create, and edit at any time. */
+const textFields = { title: titleField, theme: themeField, description: descriptionField };
+
+/** Afstemningsfrist: create, and edit at any time. */
+const deadlineFields = {
+  deadlineDate: dateField(DEADLINE_DATE_REQUIRED),
+  deadlineTime: timeField(DEADLINE_TIME_REQUIRED, DEADLINE_TIME_INVALID),
+};
+
+/**
+ * The options – Hvornår? and Hvor? with "＋ Nyt sted": create, and edit
+ * while nobody has voted (D-153). Their object-level checks are on
+ * pollFormSchema below.
+ */
+const optionFields = {
   dates: datesField,
   startTime: timeField("Vælg et starttidspunkt.", "Skriv tiden som tt:mm, fx 18:30."),
   placeIds: idListSchema(MAX_POLL_PLACE_OPTIONS, {
@@ -292,9 +317,9 @@ const pollFieldsSchema = z.object({
     .nullish()
     .transform((value) => cleanOptionalText(value)),
   newPlaceMine: checkboxSchema,
-  deadlineDate: dateField(DEADLINE_DATE_REQUIRED),
-  deadlineTime: timeField(DEADLINE_TIME_REQUIRED, DEADLINE_TIME_INVALID),
-});
+};
+
+const pollFieldsSchema = z.object({ ...textFields, ...optionFields, ...deadlineFields });
 
 /** Runs an object-level check only when the fields it reads are valid (F-037). */
 function whenValid<K extends keyof typeof pollFieldsSchema.shape>(...keys: K[]) {
@@ -313,6 +338,12 @@ const placeCount = (values: Pick<PollFields, "placeIds" | "newPlace">) =>
 const deadlineOf = (values: Pick<PollFields, "deadlineDate" | "deadlineTime">) =>
   zonedDateTimeToUtc(values.deadlineDate, values.deadlineTime);
 
+/**
+ * "Planlæg ølsmagning" (§9.7.1). The object-level checks – the new place, at
+ * least one and at most 10 places with something to vote on (D-134), and the
+ * deadline before the first date – also guard "Rediger" while nobody has
+ * voted: pollEditSchema's options branch is this schema (D-153).
+ */
 export const pollFormSchema = pollFieldsSchema
   .superRefine(
     (values, ctx) => {
@@ -388,23 +419,53 @@ export const pollFormSchema = pollFieldsSchema
 /** The create form's raw values (as typed). */
 export type PollFormInput = z.input<typeof pollFormSchema>;
 
-export const pollEditSchema = z
-  .object({
-    title: titleField,
-    theme: themeField,
-    description: descriptionField,
-    deadlineDate: dateField(DEADLINE_DATE_REQUIRED),
-    deadlineTime: timeField(DEADLINE_TIME_REQUIRED, DEADLINE_TIME_INVALID),
-  })
+/** "Rediger" once somebody has voted (D-133, E24): the texts and the deadline only. */
+const pollEditTextsSchema = z
+  .object({ ...textFields, ...deadlineFields })
   .transform((values): PollEditData => ({
     title: values.title,
     theme: values.theme,
     description: values.description,
     deadline: deadlineOf(values) as Date,
+    options: null,
   }));
 
-/** The edit form's raw values. */
-export type PollEditInput = z.input<typeof pollEditSchema>;
+/** "Rediger" while nobody has voted (D-153): exactly the create form's fields and checks. */
+const pollEditOptionsSchema = pollFormSchema.transform(
+  ({ dateStartsAt, places, ...texts }): PollEditData => ({
+    ...texts,
+    options: { dateStartsAt, places },
+  }),
+);
+
+/** The edit form's hidden "editOptions" field (a checkbox value, "1"). */
+const editOptionsFlagSchema = z.object({ editOptions: checkboxSchema });
+
+/**
+ * "Rediger afstemning" (D-153). With editOptions set (the form shows the
+ * date rows and the place picker because nobody has voted) the whole form is
+ * parsed by pollFormSchema; without it only the texts and the deadline, and
+ * `options` is null. Whether the poll really has no ballots, and whether the
+ * deadline may move earlier, is decided by updatePoll under the poll lock.
+ *
+ * One schema for both, so the form engine and the action share it; the
+ * chosen branch's issues are passed on with their paths and messages.
+ */
+export const pollEditSchema = z.unknown().transform((input, ctx): PollEditData => {
+  const flag = editOptionsFlagSchema.safeParse(input);
+  const schema =
+    flag.success && flag.data.editOptions ? pollEditOptionsSchema : pollEditTextsSchema;
+  const result = schema.safeParse(input);
+  if (result.success) return result.data;
+  for (const issue of result.error.issues) {
+    ctx.addIssue({ code: "custom", path: issue.path, message: issue.message });
+  }
+  return z.NEVER;
+});
+
+/** The edit form's raw values: the texts and the deadline, plus the options with editOptions. */
+export type PollEditInput = z.input<typeof pollEditTextsSchema> &
+  Partial<PollFormInput> & { editOptions?: string | boolean | null };
 
 // ── Voting ──────────────────────────────────────────────────────────────────
 
