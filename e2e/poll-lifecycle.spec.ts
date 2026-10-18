@@ -1,5 +1,10 @@
 import type { Page, TestInfo } from "@playwright/test";
 
+import {
+  capitalize,
+  dateKeyLabel,
+  dayButtonLabel,
+} from "../src/components/features/calendar/event-format";
 import { formatShortDate } from "../src/lib/format/date";
 import { expect, test } from "./fixtures";
 import { clubName, expectHydrated, newUser, signUpWithClub, type TestUser } from "./support/app";
@@ -240,20 +245,25 @@ test.describe("Afstemningens afslutning (§9.7.4–§9.7.7)", () => {
     });
 
     await page.goto(pollPath(club.clubId, poll.pollId));
-    const cancel = page.getByRole("button", { name: "Annullér afstemning", exact: true });
+    // The trigger and the dialog's confirm button share the name "Annullér
+    // afstemning". While the dialog is open, and during its closing animation,
+    // Radix hides the page from the accessibility tree, so a page-wide locator
+    // would find the closing dialog's confirm button and cancel the poll
+    // (F-081). Scoped to its region, the locator only ever finds the trigger.
+    const cancel = page
+      .getByRole("region", { name: "Styr afstemningen" })
+      .getByRole("button", { name: "Annullér afstemning", exact: true });
     await expectHydrated(cancel);
     await cancel.click();
     const dialog = page.getByRole("alertdialog", { name: "Annullér «Aflyst smagning»?" });
     await expect(dialog).toContainText("Der bliver ikke oprettet et event.");
     // "Behold den" keeps it open.
     await dialog.getByRole("button", { name: "Behold den", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
     expect((await pollStatus(poll.pollId)).status).toBe("OPEN");
 
     await cancel.click();
-    await page
-      .getByRole("alertdialog")
-      .getByRole("button", { name: "Annullér afstemning", exact: true })
-      .click();
+    await dialog.getByRole("button", { name: "Annullér afstemning", exact: true }).click();
     await expect(page.getByText("Afstemningen er annulleret.", { exact: true })).toBeVisible();
     const banner = page.getByRole("region", { name: "Afstemningen er annulleret" });
     await expect(banner).toContainText(`Annulleret af ${club.owner.name}`);
@@ -342,13 +352,17 @@ test.describe("Synlighed: Overblik og Kalender (§9.1, §9.3, D-131, D-137)", ()
       // Mobile: the day's button names the possible date; the day panel lists it.
       const day = dayFromToday(20);
       await page
-        .getByRole("link", { name: /1 mulig dato/ })
-        .first()
+        .getByRole("link", { name: dayButtonLabel(day, 0, new Date(), 1), exact: true })
         .click();
       await expect(page).toHaveURL(new RegExp(`day=${day}`));
-      await expect(
-        page.getByRole("link", { name: /Kalender-afstemning \(afstemning\)/ }),
-      ).toBeVisible();
+      // The panel reads ?day in the browser: until it re-renders it still lists
+      // the whole month (both dates), so wait for exactly the day's one (F-081).
+      const dayPanel = page.getByRole("region", {
+        name: capitalize(dateKeyLabel(day, new Date())),
+      });
+      const panelDates = dayPanel.getByRole("link", { name: /Kalender-afstemning \(afstemning\)/ });
+      await expect(panelDates).toHaveCount(1);
+      await expect(panelDates).toBeVisible();
     } else {
       await expect(
         page.getByRole("link", {

@@ -247,7 +247,13 @@ test.describe("Stem (§9.7.2–§9.7.3)", () => {
     await none.check();
     await expect(dateBox(memberPage, dayFromToday(20))).not.toBeChecked();
     await expect(dateBox(memberPage, dayFromToday(27))).not.toBeChecked();
+    await expect(memberPage.getByText("Ikke gemt endnu")).toBeVisible();
     await memberPage.getByRole("button", { name: "Opdatér min stemme" }).click();
+    // The first save's toast has the same text (and id) and can still be
+    // showing, so it proves nothing here (F-081). The form remounts on the
+    // saved ballot only after the server has stored it: the draft is gone.
+    await expect(memberPage.getByText("Ikke gemt endnu")).toHaveCount(0);
+    await expect(memberPage.getByText("Du har stemt ✓")).toBeVisible();
     await expect(memberPage.getByText("Skål! Din stemme er gemt ✓")).toBeVisible();
     await expect(none).toBeChecked();
     expect((await pollStatus(poll.pollId)).status).toBe("OPEN");
