@@ -25,9 +25,8 @@ import { at, dayFromToday, isMobile, joinClub } from "./support/round2";
  * club) and an ordinary member. Everything that is the point of a test goes
  * through the real UI; SQL only sets up places and the extra polls.
  *
- * WRITTEN, NOT RUN in round 4 (Jesper, 2026-10-14: "stop før du starter end
- * to end test", TG-053). Run with `npx playwright test e2e/round4-dod.spec.ts`
- * once Jesper allows it.
+ * Written in round 4 and first run 2026-10-18 (TG-053 resolved): green in
+ * the full suite, desktop and 375 px.
  */
 
 type Club = {

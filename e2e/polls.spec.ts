@@ -27,8 +27,8 @@ import { at, dayFromToday, isMobile, joinClub } from "./support/round2";
  * deadline. Each test also checks 375 px for sideways
  * scrolling (the mobile project).
  *
- * WRITTEN, NOT RUN in round 4 (Jesper, 2026-10-14: "stop før du starter end
- * to end test", TG-053). Polls for the voting tests are inserted with SQL
+ * Written in round 4 and first run 2026-10-18 (TG-053 resolved, F-080,
+ * F-081). Polls for the voting tests are inserted with SQL
  * (e2e/support/polls.ts).
  *
  * PlaceChoiceCard's checkbox tick is ::before content with empty alt text

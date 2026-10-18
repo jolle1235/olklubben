@@ -31,9 +31,9 @@ import { at, dayFromToday, isMobile, joinClub } from "./support/round2";
  * the manage buttons. Each test also checks 375 px for sideways scrolling
  * (the mobile project).
  *
- * WRITTEN, NOT RUN in round 4 (Jesper, 2026-10-14: "stop før du starter end
- * to end test", TG-053). Polls are inserted with SQL (e2e/support/polls.ts);
- * the poll form and the vote form are covered by polls.spec.ts.
+ * Written in round 4 and first run 2026-10-18 (TG-053 resolved, F-081).
+ * Polls are inserted with SQL (e2e/support/polls.ts); the poll form and the
+ * vote form are covered by polls.spec.ts.
  */
 
 type Club = {

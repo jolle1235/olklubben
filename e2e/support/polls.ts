@@ -3,8 +3,7 @@ import { sql } from "./db";
 /**
  * Direct SQL for the round-4 poll E2E specs (SPEC §9.7): set up a poll or a
  * ballot without the forms, travel in time (expirePoll) and read the result.
- * Written by the foundation; the specs are written but NOT run in round 4
- * (Jesper, 2026-10-14, TG-053).
+ * Written by the round-4 foundation; first run 2026-10-18 (TG-053 resolved).
  *
  * The rows satisfy the database's CHECKs and composite FKs exactly like the
  * app's writes (polls_lifecycle_*, poll_options_category_check, votes in the
