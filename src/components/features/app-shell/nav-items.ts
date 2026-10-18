@@ -9,6 +9,9 @@ import {
 
 export type NavKey = "overview" | "calendar" | "beers" | "songs" | "profile";
 
+/** Feedback (SPEC §9.9) is app-wide, so the same prefix for every club. */
+const FEEDBACK_PATH = "/feedback";
+
 export type NavItem = {
   key: NavKey;
   label: string;
@@ -69,13 +72,15 @@ export function getNavItems(clubId: string): NavItem[] {
     },
     {
       // The club page and the places live under Profil (SPEC §8.1: "Profil →
-      // Klubben"; no new main navigation item for Steder, D-108).
+      // Klubben"; no new main navigation item for Steder, D-108). So does the
+      // app-wide Feedback (§9.9: no main navigation item, D-147), which is
+      // outside the club's URL space.
       key: "profile",
       label: "Profil",
       href: `${base}/profile`,
       icon: CircleUserRoundIcon,
       exact: false,
-      alsoActiveOn: [`${base}/club`, `${base}/places`],
+      alsoActiveOn: [`${base}/club`, `${base}/places`, FEEDBACK_PATH],
       // On desktop the user row at the bottom of the sidebar is the way to Profil.
       sidebar: "user-row",
     },

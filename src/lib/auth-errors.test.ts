@@ -49,6 +49,25 @@ describe("getAuthErrorMessage", () => {
     );
   });
 
+  it("explains a wrong current password (change-email) and a password already set (set-password)", () => {
+    expect(getAuthErrorMessage({ code: "INVALID_PASSWORD" }, "change-email")).toBe(
+      "Det nuværende password er forkert.",
+    );
+    expect(getAuthErrorMessage({ code: "PASSWORD_ALREADY_SET" }, "set-password")).toBe(
+      "Du har allerede et password. Brug 'Skift password'.",
+    );
+    expect(getAuthErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "set-password")).toBe(
+      "Password skal være mindst 8 tegn.",
+    );
+    expect(getAuthErrorMessage({ status: 429 }, "change-email")).toBe(
+      AUTH_ERROR_MESSAGES.rateLimited,
+    );
+    // The codes keep their meaning only in their own flow.
+    expect(getAuthErrorMessage({ code: "PASSWORD_ALREADY_SET" }, "change-email")).toBe(
+      AUTH_ERROR_MESSAGES.unexpected,
+    );
+  });
+
   it("falls back to a generic message", () => {
     expect(getAuthErrorMessage(null)).toBe(AUTH_ERROR_MESSAGES.unexpected);
     expect(getAuthErrorMessage({ code: "SOMETHING_NEW", status: 500 }, "sign-in")).toBe(

@@ -1,6 +1,6 @@
 # Ølklubben – Produkt-, UX- og teknisk specifikation
 
-> **Status:** Udkast v2 · **Sidst opdateret:** 2026-10-16
+> **Status:** Udkast v2 · **Sidst opdateret:** 2026-10-18
 > **Ejer:** Jesper
 > **Formål med dokumentet:** Én samlet kilde til sandhed for produktet. Både mennesker og AI-agenter skal kunne vende tilbage hertil, før de bygger, ændrer eller retter noget.
 
@@ -140,10 +140,12 @@ src/
     (auth)/                 # login, signup, forgot-password, reset-password
     (onboarding)/           # onboarding, clubs (klubvælger), join/[code]
     c/[clubId]/             # alt klub-scopet indhold
+    feedback/               # app-dækkende fejl og ønsker (§9.9): (list)/, new/, [feedbackId]/(detail)/, [feedbackId]/edit/ (D-147, D-148)
   components/
     ui/                     # generiske primitiver (Button, Modal, ConfirmDialog …)
     features/               # feature-komponenter (EventCard, BeerRating …)
       forms/                # useActionForm + feltkomponenter, fælles for alle formularer (D-109)
+      feedback/             # FeedbackForm, FeedbackCard, filtre, 👍, moderation, FeedbackShell, ReportErrorLink (§9.9)
   server/
     auth/                   # session-helpers, requireUser, requireMembership
     domain/                 # ren forretningslogik, ingen React og ingen Next-imports
@@ -153,7 +155,7 @@ src/
       places/
       clubs/
       songs/                # song-text (vers, akkorder, etiketter), søgning, titler og bogstaver (D-122, D-123)
-      feedback/             # status, page-path (E26), app-admin, permissions, votes, list-params, similar, cli-format (D-141–D-146)
+      feedback/             # status, page-path (E26), app-admin, permissions, votes, list-params, new-params, similar, cli-format (D-141–D-146)
     actions/                # Server Actions: valider → autoriser → kald domain → revalidate
     db/                     # Kun Prisma client (+ pg-config, seed-guard, locks.ts: al rå SQL til låse, D-102)
     clubs/, users/, places/ … # Pr. feature: queries.ts + mutations.ts (+ access.ts med require*-guards), altid scopet på clubId. app/** og actions/** må ikke importere @/server/db (ESLint, D-054)
@@ -462,6 +464,8 @@ Klubvælgeren vises kun som dropdown, når brugeren har mere end én klub. Med �
 
 **Steder** har intet hovedpunkt. De nås via Profil → "Steder", klubbens side ("Steder · N steder") og stednavnet på et event. Fra et steds side fører "Opret event her" til eventformularen med stedet valgt. Et steds side linker tilbage til "Alle steder", og stedernes sider markerer Profil aktiv (D-108).
 
+**Feedback** (§9.9) har heller intet hovedpunkt. Den nås via Profil → "Feedback (fejl og ønsker)" (en egen liste under klub-genvejene), via "Feedback" i footeren "Logget ind som …" på sider uden for en klub og via "Rapportér denne fejl" på fejlsiderne. `/feedback` ligger uden for `/c/[clubId]`, men vises i AppShell for brugerens senest aktive klub (ellers den første), med Profil markeret aktiv. En bruger uden klubber får en enkel ramme med logo, "Tilbage" og "Logget ind som …" (D-147).
+
 ## 8.2 Routes
 
 URL-slugs er på engelsk (kodekonsistens). Al UI-tekst er dansk.
@@ -501,7 +505,7 @@ URL-slugs er på engelsk (kodekonsistens). Al UI-tekst er dansk.
 /feedback                           → Liste over fejl og feature-ønsker (fælles for alle brugere)
 /feedback/new                       → Rapportér fejl / foreslå feature
 /feedback/[feedbackId]              → Detalje
-/feedback/[feedbackId]/edit         → Ret titel/beskrivelse (forfatteren mens Ny, eller app-admin; D-145)
+/feedback/[feedbackId]/edit         → Ret titel/beskrivelse (forfatteren mens Ny, eller app-admin; ellers ægte 404, D-145, D-148)
 
 /api/cron/close-polls               → daglig lukning af afstemninger (Vercel Cron, Bearer CRON_SECRET, §4.8)
 ```
@@ -1113,8 +1117,10 @@ Brugerne skal kunne rapportere fejl og foreslå nye features direkte i appen. Ra
 ### Hvor finder man det?
 
 * **Profil → "Feedback (fejl og ønsker)"** → `/feedback`.
-* På **fejlsider** (500-siden og generiske fejlbeskeder) vises linket "Rapportér denne fejl". Det åbner formularen med typen *Fejl* valgt og siden udfyldt på forhånd.
+* **"Feedback"** i footeren "Logget ind som … · Log ud" på `/onboarding`, `/clubs` og `/join`, så også en bruger uden klubber kan finde den (D-147).
+* På **fejlsiderne** (fejlgrænserne `error.tsx` i roden, i klubben og i feedback, og `global-error.tsx`) vises knappen "Rapportér denne fejl" ved siden af "Prøv igen". Den åbner formularen med typen *Fejl* valgt og siden udfyldt på forhånd (uden klub-id, D-143). Ikke på 404-sider, og ikke ved fejlbeskeder i formularer og toasts (D-150). Fejlkoden (digest) vises som før, men kommer aldrig med i linket.
 * Der er bevidst **ikke** et punkt i hovednavigationen. Den er forbeholdt klubbens kernefunktioner.
+* **Ramme (D-147):** siderne vises i AppShell for den senest aktive klub (ellers den første) med Profil markeret; uden klubber i en enkel ramme med logo, "Tilbage" og "Logget ind som …". Feedbackens layout skriver aldrig (husker ikke aktiv klub).
 
 ### Opret feedback (`/feedback/new`)
 
@@ -1175,11 +1181,13 @@ Sorter: [ Flest stemmer ▼ ]
 * Hver bruger kan give **én 👍 pr. rapport** og fjerne den igen (toggle, optimistisk UI).
 * Man kan ikke stemme på sin egen rapport (den tæller automatisk som 1).
 * Antallet beregnes ud fra stemmerne og gemmes ikke (§3.4).
-* Det mindsker dubletter: før man opretter en ny rapport, bliver man opfordret til at se, om den allerede findes. Formularen viser op til 3 **lignende rapporter**, når man har skrevet titlen (simpel tekstsøgning på titel).
+* Det mindsker dubletter: før man opretter en ny rapport, bliver man opfordret til at se, om den allerede findes. Formularen viser op til 3 **lignende rapporter**, når man har skrevet titlen (simpel tekstsøgning på titel): "Findes den allerede?" med status og 👍, fra 3 tegn og efter en kort pause. Siden sender titlerne på de 300 nyeste rapporter, og browseren matcher med samme rene funktion som serveren (`findSimilarFeedback`). Linkene åbner i en ny fane, så kladden bevares (D-149).
 
 ### Detaljeside (`/feedback/[feedbackId]`)
 
 Viser type, titel, beskrivelse, status, opretter (visningsnavn), dato, antal 👍 og 👍-knap. App-admin ser desuden den tekniske info, kan ændre status og kan skrive et kort **svar** ("Rettet i version fra 12/10" eller "Giver mening – planlagt efter afstemninger").
+
+Implementeret (2026-10-18): ved en fejl står "Side: /calendar". Beskrivelse og svar vises som ren tekst med linjeskift. En dublet viser "Dublet af «titel»" med link, eller "Dublet (den originale rapport er slettet)". 👍-knappen siger, hvad den gør ("👍 Jeg har også det problem" ved en fejl, "👍 Det vil jeg også gerne have" ved en idé, "Fjern min 👍"), er optimistisk og har ingen `aria-pressed` (som ejer-toggle, D-115). På sin egen rapport står i stedet "Din rapport tæller automatisk som 1 👍". [Ret] og [Slet rapport] (med bekræftelse) vises for forfatteren, mens rapporten er Ny, og for app-admin. App-admin ser "Teknisk info (kun synlig for dig)" (ved fejl) og formularen "Status og svar": Status, "Original rapport" (kun ved Dublet), et svar med tælleren "N / 2000 tegn" og tippet "Skriv gerne en begrundelse." ved Afvist.
 
 ### Status
 
@@ -1662,6 +1670,14 @@ Afledte nuancer (`cream-deep`, `sand`, `amber-light`, `amber-tint`, `danger-deep
 | Uafgjort | "Der er uafgjort om stedet 🤝" / "Ingen nåede at stemme 🦗" / "Mads valgte stedet, da det stod lige." |
 | Hvem styrer | "Mads (opretteren) og klubbens admins kan afslutte eller annullere afstemningen." / "Kun opretteren og klubbens admins kan …" (D-117) |
 | Event fra afstemning | "Valgt ved afstemning 🗳" / "Eventet fra afstemningen er slettet." |
+| Feedback gemt / rettet / slettet | "Tak! Din rapport er gemt 🍻" / "Gemt ✓" / "Rapporten er slettet." |
+| Feedback-status gemt (app-admin) | "Status er gemt ✓" |
+| Ingen rapporter | "Ingen åbne rapporter. Skål!" / "Ingen lukkede rapporter endnu." / "Du har ikke sendt nogen rapporter endnu." |
+| Slet rapport | "Slet rapporten?" / "Rapporten og dens 👍 slettes. Det kan ikke fortrydes." / [Behold den] |
+| 👍 på feedback | "👍 Jeg har også det problem" / "👍 Det vil jeg også gerne have" / "Fjern min 👍" / "Din rapport tæller automatisk som 1 👍" |
+| Lignende rapporter | "Findes den allerede?" / "Giv hellere en 👍 på en rapport, der findes, end at skrive den igen." |
+| Fejlside | [Prøv igen] [Rapportér denne fejl] |
+| Synlighed | "ⓘ Din rapport kan ses af alle brugere af appen." |
 
 ---
 
@@ -1703,7 +1719,9 @@ Genanvendelige og generiske nok til flere steder. Navne på engelsk.
 | `PlanActions` ([ Opret event ] [ Planlæg ølsmagning ]) | Overblik |
 | `getDisplayName()` (ingen egen komponent; `formatMemberName` på medlemslisten) | Overalt |
 | `InviteShare` | Onboarding, klubside |
-| `FeedbackForm` (med lignende rapporter), `FeedbackCard`, `FeedbackStatusBadge`, `UpvoteButton` | Feedback |
+| `FeedbackForm` (`FeedbackTypeChoice`, `SimilarFeedback` med lignende rapporter), `FeedbackCard`, `FeedbackStatusBadge`, `FeedbackFilters`, `UpvoteButton`, `DeleteFeedbackButton`, `FeedbackModerationForm`, `FeedbackMeta`/`FeedbackTechInfo`/`FeedbackAdminResponse` (`feedback-detail.tsx`), `FeedbackShell` (0 klubber), feedback-skeletons | Feedback (`src/components/features/feedback/`) |
+| `ReportErrorLink` ("Rapportér denne fejl") | Fejlgrænserne (`error.tsx` i roden, klubben og feedback; `global-error.tsx` har et almindeligt `<a>`) |
+| `FeedbackLink` (i `profile-links.tsx`) | Profil |
 
 ---
 
@@ -1858,7 +1876,7 @@ Inden en ny runde påbegyndes: gennemgå eksisterende arkitektur, genbrug eksist
 
 **Must have:** auth, klubber + medlemskaber, events, Overblik, Kalender, ølkatalog, rating. **Should have:** sangbog, steder, kælenavn, historik. **Advanced:** afstemninger, voting, automatisk event-oprettelse.
 
-Feedback (§9.9) indgår ikke i runderne (se Q10). Den bygges efter runde 4 (2026-10-16): først serveren (datamodel, domæne, validering, datalag, actions, script og seed), så siderne.
+Feedback (§9.9) indgår ikke i runderne (se Q10). Den bygges efter runde 4: først serveren (2026-10-16: datamodel, domæne, validering, datalag, actions, script og seed), så siderne, indgangene fra Profil og fejlsiderne og E2E (2026-10-18, D-147–D-150).
 
 ---
 
@@ -1953,7 +1971,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | 3 | 3.6 | Medlemsadministration (Q11) | ✅ | 2026-10-09. '⋯'-menu pr. medlem (gør til admin, fjern admin-rollen, nulstillingslink, fjern), forlad klub, slet klub med skrevet navn, rediger klubinfo (D-102–D-104, D-110, D-116). 11 unit, 20 integration (`round3-members`), 5 E2E (`members.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
 | 4 | 4.1 | Afstemninger: oprettelse + stemmer | 🟨 | 2026-10-14. Bygget (D-129–D-139); unit + integration grønne; E2E ikke kørt endnu – Jesper (TG-053). 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt: `round4-dod.spec.ts`, `polls.spec.ts`, `poll-lifecycle.spec.ts`, runde 4-delene af `club-isolation.spec.ts`. Opret med forslag (datoer, frist, titel), "＋ Nyt sted", ret (kun forlænget frist), stem med forhåndsvisning og åbne stemmer, auto-opdatering. |
 | 4 | 4.2 | Afstemninger: lukning, uafgjort, automatisk event, cron | 🟨 | 2026-10-14. Bygget (D-129–D-139); unit + integration grønne; E2E ikke kørt endnu – Jesper (TG-053). 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt: `round4-dod.spec.ts`, `polls.spec.ts`, `poll-lifecycle.spec.ts`, runde 4-delene af `club-isolation.spec.ts`. Én lukkefunktion (sidste stemme, lazy close på Overblik/Kalender/afstemningssiden, manuelt, daglig cron `0 4 * * *` med `CRON_SECRET`), uafgjort → vælg vinder, annullér, event i samme transaction, PollCard, stiplede "Mulig dato", "Valgt ved afstemning 🗳", E5. |
-| – | – | Feedback (fejl og ønsker) | 🟨 | 2026-10-16. **Server bygget, UI følger** (D-141–D-146): datamodel med 9 CHECKs, `APP_ADMIN_EMAILS` valideret ved opstart, rent domæne (`toFeedbackPagePath`, `isAppAdmin`, rettigheder, 👍 = 1 + stemmer, filtre, lignende rapporter, CLI-format), Zod-schemas, datalag med betingede skrivninger og rækkelåse, 5 Server Actions, 10 rapporter/døgn, `npm run feedback:list`, seed (4 rapporter). 1031 unit (87 filer, heraf 103 nye), 310 integration (14 filer, heraf 29 nye i `feedback.itest.ts`), build grøn, drift-tjek tomt. Mangler: siderne `/feedback`, `/feedback/new`, `/feedback/[id]`, redigering, links fra Profil og fejlsider, E2E. |
+| – | – | Feedback (fejl og ønsker) | 🟨 | 2026-10-18. **Bygget; E2E skrevet (`feedback.spec.ts`), hele suiten køres i E2E-fasen.** Server (2026-10-16, D-141–D-146): datamodel med 9 CHECKs, `APP_ADMIN_EMAILS` valideret ved opstart, rent domæne, Zod-schemas, datalag med betingede skrivninger og rækkelåse, 5 Server Actions, 10 rapporter/døgn, `npm run feedback:list`, seed (4 rapporter). Sider (2026-10-18, D-147–D-150): `/feedback` med filtre i URL'en og tomme tilstande, `/feedback/new` med type, side (uden klub-id) og "Findes den allerede?", detaljesiden med 👍, ret/slet, teknisk info og status/svar/dublet for app-admin, `/feedback/[id]/edit`, skeletons, 404 og fejlgrænse; indgange fra Profil, footeren på sider uden klub og "Rapportér denne fejl" på fejlsiderne. 1056 unit (89 filer), 311 integration (14 filer), build grøn, render-tjek ved 375 og 1280 px som Jesper (app-admin) og Mads. `feedback.spec.ts` (10 tests × desktop/375 px) kørt alene: 20/20 grønne to gange, sammen med `profile`, `profile-and-deep-links`, `invites` og `multi-club` 58/58. |
 
 ## 19.3 Beslutningslog
 
@@ -2107,6 +2125,10 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-144 | 2026-10-16 | 👍-tallet beregnes som 1 (forfatteren) + antal `FeedbackVote` (`feedbackVoteCount`) og gemmes aldrig; +1 bliver stående, når forfatteren sletter sin konto (vises som "Tidligere bruger", `getFeedbackAuthorName`). Statusgrupper: åbne = Ny, Planlagt, I gang; lukkede = Færdig, Afvist **og Dublet**. Sortering "Flest stemmer" = stemmer, så nyeste, så id. Listen viser højst 200, og "lignende rapporter" matcher mod de 300 nyeste (i browseren, `findSimilarFeedback`: ord på mindst 3 tegn, åbne først ved lighed, højst 3). | §3.4. En dublet er afsluttet: arbejdet ligger på originalen. Fælles for appen, så en slettet konto er en tidligere *bruger*, ikke et tidligere medlem. | §9.9 "lukkede = Færdig og Afvist" |
 | D-145 | 2026-10-16 | Rettigheder og atomicitet: alle logget-ind brugere ser og opretter; 👍 alle undtagen forfatteren (også app-admins); ret/slet forfatteren mens `NEW` eller app-admin; status, svar, dublet og teknisk info kun app-admin. En manglende rettighed er `FORBIDDEN` (rapporterne er offentlige), kun et ukendt id er 404. Ret/slet er én betinget `updateMany`/`deleteMany` (`WHERE id AND created_by_id AND status = 'NEW'`), og 0 rækker læses igen som `not-found`/`locked`/`forbidden`. 👍 er én `INSERT … SELECT … WHERE created_by_id IS DISTINCT FROM mig ON CONFLICT DO NOTHING`. Moderation: én transaction under `lockFeedbackRows` på rapporten og originalen; originalen skal findes og må ikke selv være en dublet (ingen kæder eller cykler ved markeringen); andre statusser rydder `duplicateOfId`; stemmer flyttes aldrig (E28). Teknisk info vælges kun i forespørgslen for app-admins, og user agent læses fra requesten på serveren (kun ved `BUG`, ≤ 500). 10 rapporter pr. bruger pr. døgn. | Skjulte knapper er kun UX (§4.4). Betingede skrivninger gør en samtidig statusændring sikker uden låse; låsen ved moderation holder originalen fast, til dubletten er skrevet. | – |
 | D-146 | 2026-10-16 | `scripts/list-feedback.ts` (`npm run feedback:list`) læser kun (`findMany`/`count`) med sin egen Prisma-klient. Guards: aldrig på Vercel, en database, der ikke er lokal, kræver `--remote` – men **ingen** TTY-bekræftelse (afviger fra sangbogsimporten, D-126), fordi intet skrives. Målet udskrives altid først med maskeret password (på stderr ved `--json`). Teknisk info kun med `--with-tech`. Forfattere som visningsnavn, aldrig email. Brugertekst udskrives med styretegn erstattet (`terminalSafe`), så en rapport aldrig kan sende escape-sekvenser til terminalen. | Agenten skal kunne læse produktionens backlog uden et menneske ved tastaturet, men aldrig ved et uheld. | – |
+| D-147 | 2026-10-18 | Feedbackens ramme: `src/app/feedback/layout.tsx` er read-only (kalder kun `requireUser` og `getUserClubs`) og viser AppShell for `lastActiveClubId`, så længe brugeren er medlem, ellers den første klub. `nav-items.ts` markerer Profil aktiv på `/feedback` (`alsoActiveOn`); der er intet hovedpunkt. Uden klubber: `FeedbackShell` (CenteredShells olivenbånd og logo → "/", en kolonne på `max-w-2xl`, "← Tilbage" til "/" og "Logget ind som …"). Footeren `SignedInFooter` har fået linket "Feedback" (ikke i FeedbackShell selv). Profil har en egen liste `<nav aria-label="Feedback">` under "Klubber". Feedbacksiderne kalder aldrig `requireClubPage`/`rememberActiveClub`. | §9.9: indgangen er Profil, så rammen og den aktive fane skal følge med. Feedback ændrer ikke den aktive klub. En bruger uden klubber har ingen Profil, men kan finde footeren. Listen "Klubber" bevares, fordi E2E vælger den. | – |
+| D-148 | 2026-10-18 | Feedbackens ruter efter D-065: ingen `loading.tsx` direkte i `src/app/feedback/`; `(list)/` og `new/` har loading; `[feedbackId]/layout.tsx` er guard (`requireFeedback`: ukendt eller ugyldigt id → ægte 404) over `(detail)/loading.tsx`; `[feedbackId]/edit/` har ingen loading og giver ægte 404, når `canEditFeedback` er falsk (også for forfatteren, når rapporten ikke længere er Ny). `feedback/not-found.tsx` viser 404 inde i rammen med "Til feedbacklisten"; `feedback/error.tsx` beholder rammen. Rapporterne er offentlige, så en manglende rettighed er kun 404 på redigeringssiden; actions svarer `FORBIDDEN` (D-145). | Ægte HTTP 404 som for alle andre ressourcer (TG-008). En redigeringsside, man ikke må bruge, giver 404 som D-066. | – |
+| D-149 | 2026-10-18 | "Findes den allerede?": siden `/feedback/new` sender `listSimilarCandidates()` (id, titel, status, 👍 for de 300 nyeste) som prop, og formularen kører den fælles rene `findSimilarFeedback` i browseren fra 3 tegn, 300 ms efter sidste tast, højst 3, i en høflig live region. Linkene åbner i en ny fane (`target="_blank" rel="noopener"`, sr-only "(åbner i en ny fane)"), så kladden ikke går tabt. | Øjeblikkeligt uden et request pr. tast, også på dårlig wifi (som sangbogen, D-123). Samme funktion på klient og server (§4.2). Grænsen står i TG-057. | – |
+| D-150 | 2026-10-18 | "Rapportér denne fejl" vises kun på fejlgrænserne (`src/app/error.tsx`, `src/app/c/[clubId]/error.tsx`, `src/app/feedback/error.tsx`: `ReportErrorLink` med `usePathname()`; `global-error.tsx`: et almindeligt `<a>` stylet som outline-knap, hvis side læses fra `window.location` efter hydrering, ellers `/feedback/new?type=bug`), som outline ved siden af den primære "Prøv igen". Ikke på 404-sider, og ikke i `FormError` eller toasts. Linket bygges med `newFeedbackHref` (klub-id, query og hash fjernes, D-143), og fejlkoden kommer aldrig med i URL'en. | Afviger fra §9.9 v2 ("fejlsider (500-siden og generiske fejlbeskeder)"): en formularfejl er sjældent en appfejl ("Titlen skal være mindst 3 tegn."), og et link i hver fejlbesked ville støje. Fejlgrænserne er der, hvor appen reelt fejler. | §9.9 "Hvor finder man det?" (generiske fejlbeskeder) |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -2120,6 +2142,13 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-078 · 2026-10-18 · E2E-brugere med æ/ø/å i etiketten fik en ugyldig email
+- **Område:** Tests
+- **Symptom:** To feedback-tests (i begge projekter) blev hængende på `/signup` ("Skriv en gyldig email, fx navn@example.com.").
+- **Årsag:** `newUser(testInfo, label)` bygger emailen af etiketten (`e2e-<label>-…@example.test`), og etiketterne "rapportør" og "klubløs" gav en email med "ø", som signup (med rette) afviser.
+- **Rettelse:** ASCII-etiketter ("rapporter", "klubloes") i `e2e/feedback.spec.ts`.
+- **Læring / forebyggelse:** Etiketten til `newUser` er en del af en email: kun a–z, tal og bindestreg. Danske ord hører til i navne og titler.
 
 ### F-077 · 2026-10-16 · JS-længder i UTF-16-enheder ville ramme CHECKs med en minimumslængde
 - **Område:** Validering / DB
@@ -2664,7 +2693,8 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-059 | 2026-10-16 | "Ingen 👍 på egen rapport" er ingen database-constraint; den håndhæves af selve INSERT'en (`setFeedbackVote`, D-145) | En ny skrivevej uden om datalaget kunne stemme på egen rapport | Evt. en trigger senere. Integrationstesten dækker både action og datalag |
 | TG-060 | 2026-10-16 | En email i `APP_ADMIN_EMAILS` uden konto kan registreres af hvem som helst, fordi signup ikke verificerer emails (D-029, TG-002) | Den, der registrerer adressen først, bliver app-admin | Opret altid kontoen, før emailen sættes (README og `.env.example` siger det). Løses helt med email-verificering (TG-001/TG-002) |
 | TG-061 | 2026-10-16 | En original, der senere selv markeres som dublet, efterlader sine dubletter pegende på sig (en kæde A → B → C). Markeringen afviser kun en original, der allerede er en dublet (D-145) | Detaljesiden viser kun ét led | Peg dubletterne om til den nye original i samme transaction, hvis det bliver forvirrende |
-| TG-062 | 2026-10-16 | Feedbackens sider og E2E er ikke bygget endnu (server først, D-141–D-146) | Feedback kan kun bruges via datalaget og scriptet | Næste batch: `/feedback`, `/feedback/new`, `/feedback/[feedbackId]`, redigering, links fra Profil og fejlsider, E2E |
+| ~~TG-062~~ | 2026-10-16 | ~~Feedbackens sider og E2E er ikke bygget endnu (server først, D-141–D-146)~~ | Feedback kan kun bruges via datalaget og scriptet | Næste batch: `/feedback`, `/feedback/new`, `/feedback/[feedbackId]`, redigering, links fra Profil og fejlsider, E2E ✅ Løst 2026-10-18 af D-147–D-150 (`e2e/feedback.spec.ts`). |
+| TG-063 | 2026-10-18 | 👍-knappen og "Slet rapport" virker kun med JavaScript (TG-020-klassen, som ejer-toggle og alle `ConfirmDialog`). Formularerne (ny, ret, status) og filtrene virker uden. | Uden JS kan man ikke give 👍 eller slette | Accepteret som for ejer-toggle (D-115). En `<form>`-fallback, hvis det bliver et problem |
 
 ## 19.6 Dokumenthistorik
 
@@ -2680,6 +2710,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | v2.6 | 2026-10-08 | Implementeringsplan i fire runder (§16.3, D-020–D-024). Status (§19.2) organiseret efter runder. Q10–Q11 tilføjet. |
 | v2.7 | 2026-10-08 | Runde 1-fundament: implementeringsnoter i §11 og §4.8, D-025–D-034, F-001–F-011, TG-002–TG-007. |
 | v2.8 | 2026-10-08 | Runde 1-features: D-035–D-044, F-012–F-021. |
+| v2.17 | 2026-10-18 | Feedback (§9.9), siderne: `/feedback` (filtre i URL'en, tomme tilstande), `/feedback/new` (type, side uden klub-id, "Findes den allerede?"), detaljesiden (👍, ret/slet, teknisk info og status/svar/dublet for app-admin), redigering, skeletons, 404 og fejlgrænse; ramme efter senest aktive klub med Profil markeret (FeedbackShell uden klubber); indgange fra Profil, footeren og "Rapportér denne fejl" på fejlsiderne; `formatRelativePast`. D-147–D-150, F-078, TG-063; TG-062 løst. §4.2, §8.1, §8.2, §9.9, §13.5, §14, §16.3 opdateret. 1056 unit (89 filer), 311 integration (14 filer), build grøn, `feedback.spec.ts` 20/20 (kørt alene). |
 | v2.16 | 2026-10-16 | Feedback (§9.9), serveren: datamodel med 9 CHECKs, `APP_ADMIN_EMAILS` valideret ved opstart, rent domæne, Zod-schemas, datalag med betingede skrivninger og rækkelåse, 5 Server Actions, 10 rapporter/døgn, `scripts/list-feedback.ts`, seed. D-141–D-146, F-077, TG-057–TG-062. §4.2, §4.7, §4.8, §9.9, §11, §16.3 opdateret. 1031 unit (87 filer), 310 integration (14 filer), build grøn, drift-tjek tomt. Siderne følger. |
 | v2.15 | 2026-10-14 | Runde 4 bygget (afstemninger): datamodel med sammensatte FK'er og 9 CHECKs, låse, én lukkefunktion bag sidste stemme, lazy close, manuel lukning og daglig cron (`CRON_SECRET`), uafgjort med valg, automatisk event, PollForm med forslag, stemme-UI med forhåndsvisning, Overblik-kort, stiplede datoer i Kalenderen, E5. D-129–D-140, F-075–F-076, TG-050–TG-056; TG-031, TG-032, TG-040 og TG-048 løst. §4.8, §5.1, §7.4, §7.5, §8.2, §9.1, §9.3, §9.4, §9.7, §11, §12 (E33, E34), §13.5, §14, §16.3 opdateret. 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt (TG-053). |
 | v2.14 | 2026-10-13 | Sangbogen bygget i runde 3 (D-118 erstatter D-091): datamodel, sangtekstformat med akkorder, oversigt, søgning, læsevisning, admin og importscript; 59 sange importeret lokalt. Jesper tester sangbogen manuelt (D-119). D-118–D-128, F-071–F-074, TG-043–TG-049; TG-025 løst; Q5 afklaret. §4.2, §8.2, §9.6, §11, §13.5, §14, §16, §17, §18, §19.1 opdateret. 724 unit, 197 integration, build og 150/150 E2E. |

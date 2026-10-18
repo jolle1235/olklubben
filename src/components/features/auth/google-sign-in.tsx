@@ -21,6 +21,44 @@ export type GoogleSignInProps = {
  * Creates the account or links it to an existing one (E19, handled by Better Auth).
  */
 export function GoogleSignIn({ callbackURL, errorCallbackURL }: GoogleSignInProps) {
+  return (
+    <div className="grid gap-5">
+      <GoogleSignInButton
+        callbackURL={callbackURL}
+        errorCallbackURL={errorCallbackURL}
+        className="w-full"
+      >
+        Fortsæt med Google
+      </GoogleSignInButton>
+      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+        <span aria-hidden className="h-px flex-1 bg-border" />
+        eller med email
+        <span aria-hidden className="h-px flex-1 bg-border" />
+      </div>
+    </div>
+  );
+}
+
+export type GoogleSignInButtonProps = GoogleSignInProps & {
+  /** Pre-selects this account in Google's chooser (fx "Log ind med Google igen", D-152). */
+  loginHint?: string;
+  className?: string;
+  children: React.ReactNode;
+};
+
+/**
+ * A button that sends the browser to Google (Better Auth's social sign-in),
+ * with Google's "G" and a spinner while it leaves. Used by "Fortsæt med
+ * Google" and by Profil's "Log ind med Google igen" (D-152). Only render it
+ * when Google is configured.
+ */
+export function GoogleSignInButton({
+  callbackURL,
+  errorCallbackURL,
+  loginHint,
+  className,
+  children,
+}: GoogleSignInButtonProps) {
   const [pending, setPending] = useState(false);
 
   // Coming back with the browser's back button restores this page from the
@@ -41,6 +79,7 @@ export function GoogleSignIn({ callbackURL, errorCallbackURL }: GoogleSignInProp
         provider: "google",
         callbackURL,
         errorCallbackURL,
+        ...(loginHint ? { loginHint } : {}),
       });
       if (error) {
         setPending(false);
@@ -53,25 +92,18 @@ export function GoogleSignIn({ callbackURL, errorCallbackURL }: GoogleSignInProp
   }
 
   return (
-    <div className="grid gap-5">
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        className="w-full"
-        onClick={signIn}
-        disabled={pending}
-        aria-busy={pending || undefined}
-      >
-        {pending ? <Loader2Icon aria-hidden className="animate-spin" /> : <GoogleLogo />}
-        Fortsæt med Google
-      </Button>
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <span aria-hidden className="h-px flex-1 bg-border" />
-        eller med email
-        <span aria-hidden className="h-px flex-1 bg-border" />
-      </div>
-    </div>
+    <Button
+      type="button"
+      variant="outline"
+      size="lg"
+      className={className}
+      onClick={signIn}
+      disabled={pending}
+      aria-busy={pending || undefined}
+    >
+      {pending ? <Loader2Icon aria-hidden className="animate-spin" /> : <GoogleLogo />}
+      {children}
+    </Button>
   );
 }
 

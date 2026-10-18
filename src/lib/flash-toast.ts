@@ -41,6 +41,9 @@ export const FLASH_TOASTS = {
   "poll-cancelled": "Afstemningen er annulleret.",
   "profile-updated": "Gemt ✓",
   "password-changed": "Dit password er skiftet. Dine andre enheder er logget ud.",
+  "email-changed": "Din email er skiftet. Dine andre enheder er logget ud.",
+  "password-set":
+    "Dit password er gemt. Nu kan du også logge ind med email og password. Dine andre enheder er logget ud.",
   "club-updated": "Gemt ✓",
   "club-left": "Du har forladt klubben.",
   "club-deleted": "Klubben er slettet.",

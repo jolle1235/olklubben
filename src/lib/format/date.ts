@@ -202,6 +202,41 @@ export function formatRelativeDays(days: number): string {
   return n > 1 ? `om ${n} dage` : `for ${-n} dage siden`;
 }
 
+/** The Copenhagen calendar date as { year, month, day } numbers (month 1–12). */
+function zonedYmd(date: Date): { year: number; month: number; day: number } {
+  const { year, month, day } = partsOf(numericDateParts, date);
+  return { year: Number(year), month: Number(month), day: Number(day) };
+}
+
+/**
+ * How long ago `input` was, counted in Copenhagen calendar days (never 24-hour
+ * blocks, so a day across a clock change is one day): "i dag", "i går",
+ * "for 4 dage siden", "for 1 uge siden", "for 3 uger siden", "for 1 måned
+ * siden", "for 2 måneder siden", "for 1 år siden". Weeks until a whole
+ * calendar month has passed, then months, then years. A date after `now`
+ * (a skewed clock) is "i dag". E.g. the feedback list (SPEC §9.9).
+ */
+export function formatRelativePast(input: DateInput, now: DateInput): string {
+  const date = toDate(input);
+  const current = toDate(now);
+  if (!date || !current) return "";
+  const from = zonedYmd(date);
+  const to = zonedYmd(current);
+  const days = Math.round(
+    (Date.UTC(to.year, to.month - 1, to.day) - Date.UTC(from.year, from.month - 1, from.day)) /
+      86_400_000,
+  );
+  if (days < 7) return formatRelativeDays(-Math.max(0, days));
+
+  const months = (to.year - from.year) * 12 + (to.month - from.month) - (to.day < from.day ? 1 : 0);
+  if (months < 1) {
+    const weeks = Math.floor(days / 7);
+    return `for ${weeks} ${weeks === 1 ? "uge" : "uger"} siden`;
+  }
+  if (months < 12) return `for ${months} ${months === 1 ? "måned" : "måneder"} siden`;
+  return `for ${Math.floor(months / 12)} år siden`;
+}
+
 function stripDot(value: string): string {
   return value.endsWith(".") ? value.slice(0, -1) : value;
 }

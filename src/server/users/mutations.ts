@@ -1,11 +1,13 @@
 import "server-only";
 
+import { isUniqueConstraintError } from "@/server/clubs/unique-retry";
 import { db } from "@/server/db";
 import { cleanNickname, cleanUserName } from "@/server/domain/users/user-name";
 
 /**
- * Writes for the user's own profile and sessions (SPEC §9.8, D-105, D-106).
- * Authorization is the caller's job: always the logged-in user's own id.
+ * Writes for the user's own profile and sessions (SPEC §9.8, D-105, D-106,
+ * D-151). Authorization is the caller's job: always the logged-in user's own
+ * id.
  */
 
 export class UserNotFoundError extends Error {
@@ -14,6 +16,16 @@ export class UserNotFoundError extends Error {
   constructor() {
     super("Brugeren findes ikke.");
     this.name = "UserNotFoundError";
+  }
+}
+
+/** Another account already has the email (users_email_key, D-151). */
+export class EmailInUseError extends Error {
+  readonly code = "EMAIL_IN_USE";
+
+  constructor() {
+    super("Emailen bruges allerede af en anden konto.");
+    this.name = "EmailInUseError";
   }
 }
 
@@ -45,4 +57,34 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
     where: { userId, NOT: { id: keepSessionId } },
   });
   return count;
+}
+
+/**
+ * "Skift email" (D-151): stores the new email, trimmed and lowercased once
+ * more behind the Zod schema (users_email_lowercase_check), and marks it
+ * unverified (no verification mail until SMTP and a domain exist, TG-033).
+ *
+ * One UPDATE: the unique index users_email_key is the race-safe check, so two
+ * accounts taking the same email at the same time cannot both succeed.
+ * Throws EmailInUseError when another account has the email, and
+ * UserNotFoundError when the user is gone. Returns the stored email.
+ *
+ * Never call it for a Google-only account or without checking the current
+ * password: the Server Action (changeEmailAction) does both.
+ */
+export async function changeUserEmail(userId: string, email: string): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  if (normalized === "") throw new Error("changeUserEmail: emailen er tom.");
+  let count: number;
+  try {
+    ({ count } = await db.user.updateMany({
+      where: { id: userId },
+      data: { email: normalized, emailVerified: false },
+    }));
+  } catch (error) {
+    if (isUniqueConstraintError(error)) throw new EmailInUseError();
+    throw error;
+  }
+  if (count !== 1) throw new UserNotFoundError();
+  return normalized;
 }

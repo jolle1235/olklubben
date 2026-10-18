@@ -14,6 +14,7 @@ import { FEEDBACK_STATUSES, type FeedbackStatus } from "@/server/domain/feedback
 import { deleteFeedback, setFeedbackVote, updateFeedback } from "@/server/feedback/mutations";
 import {
   getFeedbackDetail,
+  hasOwnFeedback,
   listDuplicateTargets,
   listFeedback,
   listSimilarCandidates,
@@ -651,6 +652,17 @@ describe("the lists", () => {
       status: "NEW",
       voteCount: 3,
     });
+  });
+
+  it("tells a user without reports from one whose reports are only under other filters", async () => {
+    const newcomer = await createUser("Nykommer");
+    expect(await hasOwnFeedback(newcomer.id)).toBe(false);
+    const id = await create(newcomer, featureFields({ title: "Nykommerens ønske" }));
+    await moderateOk(id, { status: "DONE" });
+    // Not on the default "Mine rapporter" (open), but they have sent one.
+    const mineOpen = { type: "all", status: "open", mine: true, sort: "votes" } as const;
+    expect(await listFeedback(viewerOf(newcomer), mineOpen)).toEqual([]);
+    expect(await hasOwnFeedback(newcomer.id)).toBe(true);
   });
 
   it("closed includes DUPLICATE, open never does", async () => {

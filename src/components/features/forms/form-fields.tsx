@@ -1,5 +1,6 @@
 import { useId } from "react";
 
+import { PasswordInput } from "@/components/features/auth/password-input";
 import { FieldError } from "@/components/ui/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,6 +97,25 @@ export function InputField({
   return (
     <FieldShell label={label} optional={optional} hint={hint} errors={errors} className={className}>
       {(control) => <Input {...control} {...inputProps} />}
+    </FieldShell>
+  );
+}
+
+type PasswordFieldProps = FieldShellProps &
+  Omit<React.ComponentProps<"input">, "id" | "name" | "className" | "type"> & { name: string };
+
+/** A password with the "Vis password" toggle (PasswordInput). Never give it a defaultValue. */
+export function PasswordField({
+  label,
+  optional,
+  hint,
+  errors,
+  className,
+  ...inputProps
+}: PasswordFieldProps) {
+  return (
+    <FieldShell label={label} optional={optional} hint={hint} errors={errors} className={className}>
+      {(control) => <PasswordInput {...control} {...inputProps} />}
     </FieldShell>
   );
 }

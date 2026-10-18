@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { isAPIError } from "better-auth/api";
 import { expect } from "vitest";
 
 import type { ClubRole } from "@/generated/prisma/enums";
@@ -69,20 +70,56 @@ export const nextHeadersModule = {
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
+/** "better-auth.session_token=…" from Better Auth's Set-Cookie headers. */
+export function sessionCookieFrom(headers: Headers): string {
+  const cookie = headers
+    .getSetCookie()
+    .map((value) => value.split(";")[0] ?? "")
+    .find((value) => value.startsWith("better-auth.session_token="));
+  if (!cookie) throw new Error("Better Auth satte ingen session-cookie.");
+  return cookie;
+}
+
 /** Signs up a user through Better Auth (itest-<n>@example.test) and keeps the session cookie. */
 export async function createUser(name = "Itest Bruger"): Promise<TestUser> {
   userCount += 1;
-  const email = `itest-${RUN_ID}-${userCount}@example.test`;
+  return signUpWithPassword(PASSWORD, name, `itest-${RUN_ID}-${userCount}@example.test`);
+}
+
+/**
+ * Signs up a user whose password the test knows (createUser keeps its own
+ * private), with a fresh session. The email is random unless given.
+ */
+export async function signUpWithPassword(
+  password: string,
+  name = "Itest Bruger",
+  email = `itest-pw-${randomUUID()}@example.test`,
+): Promise<TestUser> {
   const { headers, response } = await auth.api.signUpEmail({
-    body: { name, email, password: PASSWORD },
+    body: { name, email, password },
     returnHeaders: true,
   });
-  const sessionCookie = headers
-    .getSetCookie()
-    .map((cookie) => cookie.split(";")[0] ?? "")
-    .find((cookie) => cookie.startsWith("better-auth.session_token="));
-  if (!sessionCookie) throw new Error("signUpEmail satte ingen session-cookie.");
-  return { id: response.user.id, email, name, cookie: sessionCookie };
+  return { id: response.user.id, email, name, cookie: sessionCookieFrom(headers) };
+}
+
+/** Logs in again (another device): a new session cookie, or null when Better Auth refuses. */
+export async function signInCookie(email: string, password: string): Promise<string | null> {
+  try {
+    const { headers } = await auth.api.signInEmail({
+      body: { email, password },
+      returnHeaders: true,
+    });
+    return sessionCookieFrom(headers);
+  } catch (error) {
+    if (isAPIError(error)) return null;
+    throw error;
+  }
+}
+
+/** The user behind a session cookie, or null when that session is gone. */
+export async function sessionUserOf(cookie: string) {
+  const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
+  return session?.user ?? null;
 }
 
 /** A club with `admin` as its Admin and its first invitation code (like createClub). */
@@ -104,6 +141,12 @@ export async function addGoogleAccount(user: TestUser): Promise<void> {
   await db.account.create({
     data: { userId: user.id, providerId: "google", accountId: `google-${user.id}` },
   });
+}
+
+/** Leaves the user with only a Google login (no password), like an account made with Google. */
+export async function makeGoogleOnly(user: TestUser): Promise<void> {
+  await addGoogleAccount(user);
+  await db.account.deleteMany({ where: { userId: user.id, providerId: "credential" } });
 }
 
 /** The club's unrevoked invitation (findFirst, never findUnique: TG-004). */

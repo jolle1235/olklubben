@@ -10,7 +10,7 @@ import { hashRateLimitPart, rateLimit, type RateLimitOptions } from "@/server/ra
 /**
  * Better Auth's `hooks.before` (auth.ts): guards for the sensitive auth
  * endpoints (SPEC §4.7: login, signup, forgot password; round 3: change
- * password).
+ * password; the current password behind "Skift email", D-151).
  *
  *   1. "Glemt password" is rejected up front when no email can be sent
  *      (production without SMTP, SPEC §6.4, D-024).
@@ -70,6 +70,13 @@ export const AUTH_RATE_LIMIT_RULES: Readonly<Record<string, readonly AuthRateLim
   // "Skift password" (§9.8, D-106). The Server Action adds a per-user limit
   // (password:change:user:<id>), because the body has no email to key on.
   "/change-password": [{ scope: "ip", limit: 10, windowSeconds: 15 * 60 }],
+  // "Skift email" checks the current password through verifyPassword (D-151).
+  // The Server Action adds a per-user limit (email:change:user:<id>). The
+  // endpoint is also reachable over HTTP for a logged-in user, so it is
+  // limited per IP here, whoever calls it. ("Tilføj password" uses
+  // setPassword, which is server-only and has no HTTP path; its limit is in
+  // the Server Action, D-152.)
+  "/verify-password": [{ scope: "ip", limit: 10, windowSeconds: 15 * 60 }],
 };
 
 /** Paths handled here, for `rateLimit.customRules` in auth.ts. */

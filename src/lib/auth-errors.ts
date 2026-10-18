@@ -14,7 +14,16 @@
 import { DEFAULT_ERROR_MESSAGES } from "./action-result";
 
 export type AuthFlow =
-  "sign-in" | "sign-up" | "forgot-password" | "reset-password" | "change-password" | "generic";
+  | "sign-in"
+  | "sign-up"
+  | "forgot-password"
+  | "reset-password"
+  | "change-password"
+  /** "Skift email" (D-151): the current password through verifyPassword. */
+  | "change-email"
+  /** "Tilføj password" for a Google-only account (D-152): setPassword. */
+  | "set-password"
+  | "generic";
 
 /** The shape of both a Better Auth client error and a server APIError (normalized). */
 export type AuthErrorLike = {
@@ -35,6 +44,10 @@ export const AUTH_ERROR_MESSAGES = {
   currentPasswordWrong: "Det nuværende password er forkert.",
   /** "Skift password" for an account without a password login (Google only). */
   noPasswordLogin: "Du logger ind med Google og har intet password her.",
+  /** "Skift email" for a Google-only account (D-151), also shown on Profil. */
+  emailFollowsGoogle: "Du logger ind med Google, så din email følger din Google-konto.",
+  /** "Tilføj password" when the account already has one (D-152, fx a second tab). */
+  passwordAlreadySet: "Du har allerede et password. Brug 'Skift password'.",
   rateLimited: DEFAULT_ERROR_MESSAGES.RATE_LIMITED,
   unexpected: DEFAULT_ERROR_MESSAGES.UNEXPECTED,
 } as const;
@@ -67,6 +80,14 @@ export function getAuthErrorMessage(
   if (flow === "change-password") {
     if (code === "INVALID_PASSWORD") return AUTH_ERROR_MESSAGES.currentPasswordWrong;
     if (code === "CREDENTIAL_ACCOUNT_NOT_FOUND") return AUTH_ERROR_MESSAGES.noPasswordLogin;
+  }
+
+  if (flow === "change-email" && code === "INVALID_PASSWORD") {
+    return AUTH_ERROR_MESSAGES.currentPasswordWrong;
+  }
+
+  if (flow === "set-password" && code === "PASSWORD_ALREADY_SET") {
+    return AUTH_ERROR_MESSAGES.passwordAlreadySet;
   }
 
   switch (code) {

@@ -88,6 +88,15 @@ describe("isNavItemActive", () => {
     expect(activeKeys("/c/club1/placesx")).toEqual([]);
   });
 
+  it("treats the app-wide feedback pages as part of Profil (§9.9, D-147)", () => {
+    expect(activeKeys("/feedback")).toEqual(["profile"]);
+    expect(activeKeys("/feedback/new")).toEqual(["profile"]);
+    expect(activeKeys("/feedback/f1/edit")).toEqual(["profile"]);
+    expect(activeKeys("/feedbackx")).toEqual([]);
+    // Every club's Profil item, whichever club the shell shows.
+    expect(isNavItemActive("/feedback/f1", getSidebarNav("club2").userRow)).toBe(true);
+  });
+
   it("never matches another club", () => {
     expect(activeKeys("/c/club2/beers")).toEqual([]);
   });

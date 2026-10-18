@@ -50,6 +50,37 @@ describe("toAuthActionError", () => {
     });
   });
 
+  it("puts a wrong current password on the currentPassword field (change-email, D-151)", () => {
+    const error = new APIError("BAD_REQUEST", { code: "INVALID_PASSWORD" });
+    expect(toAuthActionError(error, "change-email")).toEqual({
+      ok: false,
+      error: {
+        code: "INVALID_PASSWORD",
+        message: AUTH_ERROR_MESSAGES.currentPasswordWrong,
+        fieldErrors: { currentPassword: [AUTH_ERROR_MESSAGES.currentPasswordWrong] },
+      },
+    });
+  });
+
+  it("gives RATE_LIMITED for our 429 on the password check (change-email)", () => {
+    const error = new APIError("TOO_MANY_REQUESTS", {
+      code: "TOO_MANY_REQUESTS",
+      retryAfterSeconds: 61,
+    });
+    expect(toAuthActionError(error, "change-email")).toEqual({
+      ok: false,
+      error: { code: "RATE_LIMITED", message: "For mange forsøg. Prøv igen om 2 minutter." },
+    });
+  });
+
+  it("explains a password that is already set as a form error (set-password, D-152)", () => {
+    const error = new APIError("BAD_REQUEST", { code: "PASSWORD_ALREADY_SET" });
+    expect(toAuthActionError(error, "set-password")).toEqual({
+      ok: false,
+      error: { code: "PASSWORD_ALREADY_SET", message: AUTH_ERROR_MESSAGES.passwordAlreadySet },
+    });
+  });
+
   it("explains a Google-only account as a form error (change-password)", () => {
     const error = new APIError("BAD_REQUEST", { code: "CREDENTIAL_ACCOUNT_NOT_FOUND" });
     expect(toAuthActionError(error, "change-password").error).toEqual({

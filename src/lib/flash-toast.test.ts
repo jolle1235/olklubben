@@ -76,6 +76,16 @@ describe("flashToastMessage", () => {
     expect(flashToastMessage("club-deleted")).toBe("Klubben er slettet.");
   });
 
+  it("knows the toasts for 'Skift email' and 'Tilføj password' (D-151, D-152)", () => {
+    expect(flashToastMessage("email-changed")).toBe(
+      "Din email er skiftet. Dine andre enheder er logget ud.",
+    );
+    expect(flashToastMessage("password-set")).toBe(
+      "Dit password er gemt. Nu kan du også logge ind med email og password. Dine andre enheder er logget ud.",
+    );
+    expect(withToast("/c/abc/profile", "email-changed")).toBe("/c/abc/profile?toast=email-changed");
+  });
+
   it("ignores missing and unknown keys, also inherited ones", () => {
     expect(flashToastMessage(null)).toBeNull();
     expect(flashToastMessage(undefined)).toBeNull();

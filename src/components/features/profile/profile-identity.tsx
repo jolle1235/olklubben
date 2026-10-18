@@ -15,7 +15,7 @@ export type ProfileIdentityProps = {
  * Who you are logged in as (SPEC §9.8, D-105): the picture (from Google, or
  * the display name's initials), the display name large with the official
  * name after it when a nickname is set ("Kaptajnen (Jesper Thomsen)"), and
- * the email (read only: email change comes later, D-106).
+ * the email (changed in the "Email" card below, D-151).
  */
 export function ProfileIdentity({
   name,

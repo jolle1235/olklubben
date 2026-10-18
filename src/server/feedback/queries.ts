@@ -121,6 +121,16 @@ export async function listFeedback(
 }
 
 /**
+ * Whether the user has written any report (any type and status). Tells the
+ * empty "Mine rapporter" list apart: "Du har ikke sendt nogen rapporter
+ * endnu." vs. reports that only other filters show.
+ */
+export async function hasOwnFeedback(userId: string): Promise<boolean> {
+  const row = await db.feedback.findFirst({ where: { createdById: userId }, select: { id: true } });
+  return row !== null;
+}
+
+/**
  * The candidates for "Lignende rapporter" on /feedback/new (matched in the
  * browser by findSimilarFeedback): the newest SIMILAR_CANDIDATES_LIMIT reports.
  */

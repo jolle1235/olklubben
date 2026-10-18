@@ -7,6 +7,7 @@ import {
   formatLongDate,
   formatMonthLabel,
   formatRelativeDays,
+  formatRelativePast,
   formatShortDate,
   formatTime,
   formatTimeRange,
@@ -224,5 +225,65 @@ describe("formatRelativeDays", () => {
 
   it("returns an empty string for a non-number", () => {
     expect(formatRelativeDays(Number.NaN)).toBe("");
+  });
+});
+
+describe("formatRelativePast", () => {
+  const now = new Date("2026-10-18T10:00:00Z"); // Sunday 18 October 2026, 12:00 in Copenhagen
+
+  it("names today and yesterday by the Copenhagen calendar day", () => {
+    expect(formatRelativePast("2026-10-18T05:00:00Z", now)).toBe("i dag");
+    // 23:30 Copenhagen the day before: yesterday, although only 10½ hours ago.
+    expect(formatRelativePast("2026-10-17T21:30:00Z", now)).toBe("i går");
+    // 00:30 Copenhagen today is 22:30 UTC the day before: still today.
+    expect(formatRelativePast("2026-10-17T22:30:00Z", now)).toBe("i dag");
+  });
+
+  it("counts days up to a week", () => {
+    expect(formatRelativePast("2026-10-16T10:00:00Z", now)).toBe("for 2 dage siden");
+    expect(formatRelativePast("2026-10-14T10:00:00Z", now)).toBe("for 4 dage siden");
+    expect(formatRelativePast("2026-10-12T10:00:00Z", now)).toBe("for 6 dage siden");
+  });
+
+  it("counts weeks until a whole calendar month has passed", () => {
+    expect(formatRelativePast("2026-10-11T10:00:00Z", now)).toBe("for 1 uge siden");
+    expect(formatRelativePast("2026-10-05T10:00:00Z", now)).toBe("for 1 uge siden");
+    expect(formatRelativePast("2026-10-04T10:00:00Z", now)).toBe("for 2 uger siden");
+    expect(formatRelativePast("2026-09-27T10:00:00Z", now)).toBe("for 3 uger siden");
+    // 26 days, and 19 September → 18 October is not yet a month: weeks.
+    expect(formatRelativePast("2026-09-22T10:00:00Z", now)).toBe("for 3 uger siden");
+    expect(formatRelativePast("2026-09-19T10:00:00Z", now)).toBe("for 4 uger siden");
+  });
+
+  it("counts calendar months, then years", () => {
+    expect(formatRelativePast("2026-09-18T10:00:00Z", now)).toBe("for 1 måned siden");
+    expect(formatRelativePast("2026-08-10T10:00:00Z", now)).toBe("for 2 måneder siden");
+    expect(formatRelativePast("2025-11-01T10:00:00Z", now)).toBe("for 11 måneder siden");
+    expect(formatRelativePast("2025-10-18T10:00:00Z", now)).toBe("for 1 år siden");
+    expect(formatRelativePast("2023-01-01T10:00:00Z", now)).toBe("for 3 år siden");
+  });
+
+  it("counts one calendar day across the autumn clock change (25-hour day)", () => {
+    // 00:30 CEST on Sunday 25 October → 00:30 CET on Monday 26 October: 25 hours.
+    expect(
+      formatRelativePast(new Date("2026-10-24T22:30:00Z"), new Date("2026-10-25T23:30:00Z")),
+    ).toBe("i går");
+    // 23:30 CEST on Saturday 24 October → 00:30 CET on Monday 26 October: two days.
+    expect(
+      formatRelativePast(new Date("2026-10-24T21:30:00Z"), new Date("2026-10-25T23:30:00Z")),
+    ).toBe("for 2 dage siden");
+  });
+
+  it("counts one calendar day across the spring clock change (23-hour day)", () => {
+    // 00:30 CET on Sunday 29 March → 00:30 CEST on Monday 30 March: 23 hours.
+    expect(
+      formatRelativePast(new Date("2026-03-28T23:30:00Z"), new Date("2026-03-29T22:30:00Z")),
+    ).toBe("i går");
+  });
+
+  it("treats a date after now as today and an invalid date as empty", () => {
+    expect(formatRelativePast("2026-10-19T10:00:00Z", now)).toBe("i dag");
+    expect(formatRelativePast("ikke en dato", now)).toBe("");
+    expect(formatRelativePast(now, "ikke en dato")).toBe("");
   });
 });

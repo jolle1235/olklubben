@@ -53,6 +53,10 @@ export const ACTION_ERROR_CODES = {
   NAME_MISMATCH: "NAME_MISMATCH",
   /** A feedback report is no longer NEW, so its author can no longer change it (§9.9). */
   FEEDBACK_LOCKED: "FEEDBACK_LOCKED",
+  /** "Skift email": another account has the email, or it is reserved (D-151). */
+  EMAIL_IN_USE: "EMAIL_IN_USE",
+  /** "Tilføj password" needs a Google login from the last 10 minutes (D-152). */
+  REAUTH_REQUIRED: "REAUTH_REQUIRED",
 } as const;
 
 export const DEFAULT_ERROR_MESSAGES = {

@@ -15,7 +15,7 @@ import { stripNul } from "@/lib/text";
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 export const USER_NAME_MAX_LENGTH = 100;
-const EMAIL_MAX_LENGTH = 254;
+export const EMAIL_MAX_LENGTH = 254;
 
 /** A person's name: NUL-free, trimmed, 1–100 characters. */
 export const userNameSchema = z

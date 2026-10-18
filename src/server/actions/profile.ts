@@ -3,34 +3,56 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { appAdminEmails } from "@/env";
 import {
+  ACTION_ERROR_CODES,
+  fail,
   rateLimitedError,
   unexpectedError,
   validationError,
   type ActionError,
   type FormFailure,
 } from "@/lib/action-result";
+import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
 import { withToast } from "@/lib/flash-toast";
 import { readFormValues } from "@/lib/form-data";
 import { profileHref } from "@/lib/routes";
 import { idSchema } from "@/lib/validation/id";
-import { changePasswordSchema, updateProfileSchema } from "@/lib/validation/profile";
+import {
+  changeEmailSchema,
+  changePasswordSchema,
+  PASSWORD_FIELDS,
+  setPasswordSchema,
+  updateProfileSchema,
+} from "@/lib/validation/profile";
 import { auth } from "@/server/auth/auth";
 import { toAuthActionError } from "@/server/auth/errors";
 import { revokePasswordResetTokens } from "@/server/auth/reset-link";
 import { getSession, requireMembership } from "@/server/auth/session";
+import { isAppAdmin } from "@/server/domain/feedback/app-admin";
+import { isFreshLogin } from "@/server/domain/users/login-freshness";
 import { rateLimit } from "@/server/rate-limit";
 import { revalidateAppShell } from "@/server/revalidate";
-import { revokeOtherSessions, updateUserProfile } from "@/server/users/mutations";
+import {
+  changeUserEmail,
+  EmailInUseError,
+  revokeOtherSessions,
+  updateUserProfile,
+} from "@/server/users/mutations";
+import { getAccountLogins } from "@/server/users/queries";
 
 /**
- * Server Actions for Profil (SPEC §9.8, D-105, D-106): name + nickname, and
- * changing the password. Both forms live on /c/[clubId]/profile (D-023) and
- * send the club's id (hidden) only to know where to go back to; a malformed
- * id or a club the user has left gives a 404 (E16).
+ * Server Actions for Profil (SPEC §9.8, D-105, D-106, D-151, D-152): name +
+ * nickname, "Skift password", "Skift email" and "Tilføj password". All forms
+ * live on /c/[clubId]/profile (D-023) and send the club's id (hidden) only to
+ * know where to go back to; a malformed id or a club the user has left gives
+ * a 404 (E16).
  *
  * Order (§4.3): ids → the shared Zod schema → membership → write → revalidate
- * → redirect with a toast (D-075), so both forms also work without JavaScript.
+ * → redirect with a toast (D-075), so the forms also work without JavaScript.
+ *
+ * The session is read through headers(); none of these actions ever sets a
+ * cookie, so this device stays logged in (D-106).
  */
 
 /** What was typed, echoed back after a failed submit (React resets the form). */
@@ -42,6 +64,14 @@ export type ProfileFormState = FormFailure<ProfileFormValues> | null;
 /** Passwords are never echoed back, so a failed password change returns no values. */
 export type ChangePasswordFormState = FormFailure<Record<string, never>> | null;
 
+/** "Skift email": the two emails are echoed back, never the password. */
+export type ChangeEmailFormValues = { newEmail?: string; confirmEmail?: string };
+
+export type ChangeEmailFormState = FormFailure<ChangeEmailFormValues> | null;
+
+/** "Tilføj password": nothing is echoed back. */
+export type SetPasswordFormState = FormFailure<Record<string, never>> | null;
+
 /** An echoed value is capped, so a forged request cannot bounce megabytes back. */
 const MAX_ECHO_LENGTH = 2000;
 
@@ -50,6 +80,20 @@ const CHANGE_PASSWORD_LIMIT = { limit: 10, windowSeconds: 15 * 60 };
 
 const SESSIONS_NOT_REVOKED =
   "Dit nye password er gemt, men vi kunne ikke logge dine andre enheder ud. Prøv at skifte password igen.";
+
+/** "Skift email": 10 attempts per user per 15 minutes (on top of the IP rule on /verify-password, D-151). */
+const CHANGE_EMAIL_LIMIT = { limit: 10, windowSeconds: 15 * 60 };
+
+/** "Tilføj password": 10 attempts per user per 15 minutes (D-152). */
+const SET_PASSWORD_LIMIT = { limit: 10, windowSeconds: 15 * 60 };
+
+const EMAIL_IN_USE = "Den email bruges allerede af en anden konto.";
+const EMAIL_UNCHANGED = "Det er allerede din email.";
+const EMAIL_SESSIONS_NOT_REVOKED =
+  "Din email er skiftet, men vi kunne ikke logge dine andre enheder ud. Prøv at skifte password.";
+const REAUTH_REQUIRED = "Log ind med Google igen for at tilføje et password.";
+const PASSWORD_SET_SESSIONS_NOT_REVOKED =
+  "Dit password er gemt, men vi kunne ikke logge dine andre enheder ud. Prøv at skifte password.";
 
 function readProfileValues(formData: FormData): ProfileFormValues {
   const raw = readFormValues(formData);
@@ -153,4 +197,179 @@ export async function changePasswordAction(
   }
 
   redirect(withToast(profileHref(club.id), "password-changed"));
+}
+
+/** The two emails as typed (capped), never the password. */
+function readEmailValues(formData: FormData): ChangeEmailFormValues {
+  const raw = readFormValues(formData, { exclude: PASSWORD_FIELDS });
+  const values: ChangeEmailFormValues = {};
+  for (const field of ["newEmail", "confirmEmail"] as const) {
+    const value = raw[field];
+    if (typeof value === "string") values[field] = value.slice(0, MAX_ECHO_LENGTH);
+  }
+  return values;
+}
+
+/**
+ * "Skift email" (§9.8, D-151), for accounts with a password login: the new
+ * email twice and the current password. Better Auth's own changeEmail stays
+ * off: without verification it switches at once, asks for no password and
+ * silently ignores an email that is in use.
+ *
+ *   1. Rate limited per user (here) and per IP (/verify-password, Better
+ *      Auth's before hook).
+ *   2. A Google-only account gets a form error: its email follows Google.
+ *   3. Its own email → "Det er allerede din email." (before the password).
+ *   4. The current password through auth.api.verifyPassword; wrong → a field
+ *      error on currentPassword.
+ *   5. An address in APP_ADMIN_EMAILS gets exactly the "in use" answer, so
+ *      app-admin cannot be claimed and the list cannot be probed (D-142).
+ *   6. One UPDATE (changeUserEmail); the unique index decides a race. The
+ *      email is stored lowercase and unverified.
+ *   7. Every other session and every outstanding reset link is revoked
+ *      (D-047); this device stays logged in.
+ *
+ * No mail to the old address yet (no SMTP/domain, TG-033). The sidebar shows
+ * the email, so the whole app shell is revalidated.
+ * Form fields: clubId (hidden), newEmail, confirmEmail, currentPassword.
+ */
+export async function changeEmailAction(
+  _previous: ChangeEmailFormState,
+  formData: FormData,
+): Promise<ChangeEmailFormState> {
+  const clubId = idSchema.safeParse(formData.get("clubId"));
+  if (!clubId.success) notFound();
+
+  const values = readEmailValues(formData);
+  const parsed = changeEmailSchema.safeParse(readFormValues(formData));
+  if (!parsed.success) return { ...validationError(parsed.error), values };
+  const { newEmail, currentPassword } = parsed.data;
+
+  const { user, club } = await requireMembership(clubId.data);
+  // requireMembership has just read it (cached per request).
+  const session = await getSession();
+  if (!session) return { ...unexpectedError(), values };
+
+  const limited = await rateLimit(`email:change:user:${user.id}`, CHANGE_EMAIL_LIMIT);
+  if (!limited.ok) return { ...rateLimitedError(limited.retryAfterSeconds), values };
+
+  const logins = await getAccountLogins(user.id);
+  if (!logins.hasPassword) {
+    return {
+      ...fail(ACTION_ERROR_CODES.FORBIDDEN, AUTH_ERROR_MESSAGES.emailFollowsGoogle),
+      values,
+    };
+  }
+
+  if (newEmail === user.email) {
+    return {
+      ...fail(ACTION_ERROR_CODES.VALIDATION, EMAIL_UNCHANGED, { newEmail: [EMAIL_UNCHANGED] }),
+      values,
+    };
+  }
+
+  try {
+    await auth.api.verifyPassword({
+      body: { password: currentPassword },
+      headers: await headers(),
+    });
+  } catch (error) {
+    // Rethrows anything that is not a Better Auth error (fx the database is down).
+    return { ...toAuthActionError(error, "change-email"), values };
+  }
+
+  const emailInUse = {
+    ...fail(ACTION_ERROR_CODES.EMAIL_IN_USE, EMAIL_IN_USE, { newEmail: [EMAIL_IN_USE] }),
+    values,
+  };
+  if (isAppAdmin(newEmail, appAdminEmails)) return emailInUse;
+
+  try {
+    await changeUserEmail(user.id, newEmail);
+  } catch (error) {
+    if (error instanceof EmailInUseError) return emailInUse;
+    console.error("[profile] changeUserEmail failed", error);
+    return { ...unexpectedError(), values };
+  }
+
+  try {
+    await revokeOtherSessions(user.id, session.session.id);
+    await revokePasswordResetTokens(user.id);
+  } catch (error) {
+    console.error("[profile] revoking sessions after an email change failed", error);
+    return { ...unexpectedError(EMAIL_SESSIONS_NOT_REVOKED), values };
+  }
+
+  revalidateAppShell();
+  redirect(withToast(profileHref(club.id), "email-changed"));
+}
+
+function setPasswordFailure(result: { ok: false; error: ActionError }): SetPasswordFormState {
+  return { ...result, values: {} };
+}
+
+/**
+ * "Tilføj password" (§9.8, D-152): a Google-only account picks its first
+ * password, so it can also log in with email and password. There is no
+ * current password to confirm, and Better Auth's setPassword has no
+ * freshness check, so the session must come from a Google login less than
+ * 10 minutes ago (isFreshLogin on session.createdAt); otherwise
+ * REAUTH_REQUIRED and Better Auth is never called. Profil then offers "Log
+ * ind med Google igen".
+ *
+ * An account that already has a password (fx set in another tab) gets a form
+ * error, from the check here or from Better Auth (PASSWORD_ALREADY_SET).
+ * Afterwards every other session and every outstanding reset link is revoked
+ * (D-047); this device stays logged in. The Google login stays, so admin
+ * reset links stay refused (D-046). Passwords are never echoed.
+ * Form fields: clubId (hidden), newPassword, confirmPassword.
+ */
+export async function setPasswordAction(
+  _previous: SetPasswordFormState,
+  formData: FormData,
+): Promise<SetPasswordFormState> {
+  const clubId = idSchema.safeParse(formData.get("clubId"));
+  if (!clubId.success) notFound();
+
+  const parsed = setPasswordSchema.safeParse(readFormValues(formData));
+  if (!parsed.success) return setPasswordFailure(validationError(parsed.error));
+
+  const { user, club } = await requireMembership(clubId.data);
+  // requireMembership has just read it (cached per request).
+  const session = await getSession();
+  if (!session) return setPasswordFailure(unexpectedError());
+
+  const logins = await getAccountLogins(user.id);
+  if (logins.hasPassword) {
+    return setPasswordFailure(fail("PASSWORD_ALREADY_SET", AUTH_ERROR_MESSAGES.passwordAlreadySet));
+  }
+  // Neither Google nor a password: nothing this form is meant for.
+  if (!logins.hasGoogle) return setPasswordFailure(unexpectedError());
+
+  if (!isFreshLogin(session.session.createdAt, new Date())) {
+    return setPasswordFailure(fail(ACTION_ERROR_CODES.REAUTH_REQUIRED, REAUTH_REQUIRED));
+  }
+
+  const limited = await rateLimit(`password:set:user:${user.id}`, SET_PASSWORD_LIMIT);
+  if (!limited.ok) return setPasswordFailure(rateLimitedError(limited.retryAfterSeconds));
+
+  try {
+    await auth.api.setPassword({
+      body: { newPassword: parsed.data.newPassword },
+      headers: await headers(),
+    });
+  } catch (error) {
+    // Rethrows anything that is not a Better Auth error (fx the database is down).
+    return setPasswordFailure(toAuthActionError(error, "set-password"));
+  }
+
+  try {
+    await revokeOtherSessions(user.id, session.session.id);
+    await revokePasswordResetTokens(user.id);
+  } catch (error) {
+    console.error("[profile] revoking sessions after setting a password failed", error);
+    return setPasswordFailure(unexpectedError(PASSWORD_SET_SESSIONS_NOT_REVOKED));
+  }
+
+  redirect(withToast(profileHref(club.id), "password-set"));
 }

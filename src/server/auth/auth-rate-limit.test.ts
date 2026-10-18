@@ -108,6 +108,17 @@ describe("authBeforeHook i Better Auth", () => {
     expect(AUTH_RATE_LIMITED_PATHS).toContain("/change-password");
   });
 
+  it("begrænser password-tjekket bag 'Skift email' pr. IP, men ikke setPassword (D-151, D-152)", async () => {
+    const { AUTH_RATE_LIMIT_RULES, AUTH_RATE_LIMITED_PATHS } = await import("./auth-rate-limit");
+    expect(AUTH_RATE_LIMIT_RULES["/verify-password"]).toEqual([
+      { scope: "ip", limit: 10, windowSeconds: 15 * 60 },
+    ]);
+    // Better Auth's built-in limiter is switched off for the paths we limit (auth.ts).
+    expect(AUTH_RATE_LIMITED_PATHS).toContain("/verify-password");
+    // setPassword is server-only: it has no HTTP path to limit.
+    expect(AUTH_RATE_LIMITED_PATHS).not.toContain("/set-password");
+  });
+
   describe("login-grænserne (D-028)", () => {
     const IP = "203.0.113.7";
     const ipKey = `auth:/sign-in/email:ip:${IP}`;

@@ -4,11 +4,12 @@ import {
   ArrowLeftRightIcon,
   ChevronRightIcon,
   MapPinIcon,
+  MessageSquareWarningIcon,
   PlusIcon,
   type LucideIcon,
 } from "lucide-react";
 
-import { clubHref, placesHref } from "@/lib/routes";
+import { clubHref, feedbackListHref, placesHref } from "@/lib/routes";
 
 export type ProfileLinksProps = {
   clubId: string;
@@ -24,6 +25,9 @@ type Row = { href: string; icon: LucideIcon; title: string; subtitle: string };
  * item), with more than one club "Mine klubber" (/clubs), and always "Opret
  * eller join ny klub" (/onboarding). With one club the ClubSwitcher is just a
  * link (§8.1), so this row is that user's only way to a second club.
+ *
+ * The list's name stays "Klubber" (E2E specs select it). The app-wide
+ * Feedback has its own list, FeedbackLink, below it on Profil (§9.9, D-147).
  */
 export function ProfileLinks({ clubId, clubCount }: ProfileLinksProps) {
   const rows: Row[] = [
@@ -55,8 +59,34 @@ export function ProfileLinks({ clubId, clubCount }: ProfileLinksProps) {
     subtitle: "Start en ny ølklub eller join med en kode",
   });
 
+  return <LinkList label="Klubber" rows={rows} />;
+}
+
+/**
+ * "Feedback (fejl og ønsker)" on Profil (SPEC §8.1, §9.9): the way to the
+ * app-wide reports, which have no main navigation item (D-147). Its own
+ * list, so the "Klubber" list keeps its rows.
+ */
+export function FeedbackLink() {
   return (
-    <nav aria-label="Klubber">
+    <LinkList
+      label="Feedback"
+      rows={[
+        {
+          href: feedbackListHref(),
+          icon: MessageSquareWarningIcon,
+          title: "Feedback (fejl og ønsker)",
+          subtitle: "Rapportér en fejl eller foreslå en idé",
+        },
+      ]}
+    />
+  );
+}
+
+/** A list of big link rows (icon, title, subtitle, ›) in one rounded card. */
+function LinkList({ label, rows }: { label: string; rows: readonly Row[] }) {
+  return (
+    <nav aria-label={label}>
       <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
         {rows.map(({ href, icon: Icon, title, subtitle }) => (
           <li key={href} className="first:*:rounded-t-xl last:*:rounded-b-xl">

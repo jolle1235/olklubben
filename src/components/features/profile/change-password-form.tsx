@@ -1,6 +1,6 @@
 "use client";
 
-import { InputField } from "@/components/features/forms/form-fields";
+import { PasswordField } from "@/components/features/forms/form-fields";
 import { useActionForm } from "@/components/features/forms/use-action-form";
 import { FormError } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -32,8 +32,7 @@ export function ChangePasswordForm({ clubId, email }: { clubId: string; email: s
 
       {formError ? <FormError>{formError.message}</FormError> : null}
 
-      <InputField
-        type="password"
+      <PasswordField
         name="currentPassword"
         label="Nuværende password"
         autoComplete="current-password"
@@ -41,8 +40,7 @@ export function ChangePasswordForm({ clubId, email }: { clubId: string; email: s
         required
         errors={fieldErrors.currentPassword}
       />
-      <InputField
-        type="password"
+      <PasswordField
         name="newPassword"
         label="Nyt password"
         autoComplete="new-password"
@@ -52,8 +50,7 @@ export function ChangePasswordForm({ clubId, email }: { clubId: string; email: s
         errors={fieldErrors.newPassword}
         hint={`Mindst ${PASSWORD_MIN_LENGTH} tegn.`}
       />
-      <InputField
-        type="password"
+      <PasswordField
         name="confirmPassword"
         label="Gentag nyt password"
         autoComplete="new-password"
