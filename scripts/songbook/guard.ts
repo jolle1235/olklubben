@@ -51,12 +51,13 @@ export function maskDatabaseUrl(
   }
 }
 
-/** Throws GuardError when the importer must not run against this target. */
-export function assertNotOnVercel(env: GuardEnv): void {
+/**
+ * Throws GuardError on Vercel. Shared with scripts/list-feedback.ts, which
+ * passes its own name for the message.
+ */
+export function assertNotOnVercel(env: GuardEnv, scriptName = "Sangbogsimporten"): void {
   if (env.VERCEL || env.VERCEL_ENV) {
-    throw new GuardError(
-      "Sangbogsimporten kører aldrig på Vercel (VERCEL eller VERCEL_ENV er sat).",
-    );
+    throw new GuardError(`${scriptName} kører aldrig på Vercel (VERCEL eller VERCEL_ENV er sat).`);
   }
 }
 

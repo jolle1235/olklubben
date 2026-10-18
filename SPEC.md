@@ -1,6 +1,6 @@
 # Ølklubben – Produkt-, UX- og teknisk specifikation
 
-> **Status:** Udkast v2 · **Sidst opdateret:** 2026-10-09
+> **Status:** Udkast v2 · **Sidst opdateret:** 2026-10-16
 > **Ejer:** Jesper
 > **Formål med dokumentet:** Én samlet kilde til sandhed for produktet. Både mennesker og AI-agenter skal kunne vende tilbage hertil, før de bygger, ændrer eller retter noget.
 
@@ -153,9 +153,11 @@ src/
       places/
       clubs/
       songs/                # song-text (vers, akkorder, etiketter), søgning, titler og bogstaver (D-122, D-123)
+      feedback/             # status, page-path (E26), app-admin, permissions, votes, list-params, similar, cli-format (D-141–D-146)
     actions/                # Server Actions: valider → autoriser → kald domain → revalidate
     db/                     # Kun Prisma client (+ pg-config, seed-guard, locks.ts: al rå SQL til låse, D-102)
     clubs/, users/, places/ … # Pr. feature: queries.ts + mutations.ts (+ access.ts med require*-guards), altid scopet på clubId. app/** og actions/** må ikke importere @/server/db (ESLint, D-054)
+    feedback/               # access.ts (requireFeedback, getFeedbackViewer), queries.ts, mutations.ts – app-dækkende, intet clubId (§9.9)
   lib/
     validation/             # Zod-schemas, delt mellem client og server
     form-data.ts            # readFormValues (listefelter, loft, exclude), bruges af formularer og actions
@@ -166,6 +168,7 @@ prisma/
   seed.ts                   # testdata: 2 klubber, brugere, events, øl, opdigtede sange, steder
 scripts/
   import-songbook.ts        # sangbogsimport (CLI, §9.6, D-126) + songbook/ (pdftohtml, parser, plan, guards)
+  list-feedback.ts          # åbne feedback-rapporter til AI-agenten (læser kun, §9.9, D-146)
 ```
 
 Regler:
@@ -217,7 +220,7 @@ Derudover gemmes `User.lastActiveClubId`, så `/` kan sende brugeren direkte til
 ## 4.7 Sikkerhed
 
 * Passwords hashes af auth-biblioteket (aldrig custom).
-* Rate limiting på login, signup, glemt password og join-med-kode.
+* Rate limiting på login, signup, glemt password og join-med-kode. Feedback: højst 10 nye rapporter pr. bruger pr. døgn (`feedback:create:user:<id>`, §9.9).
 * Invitationskoder er tilfældige og ikke gættelige (§7.3).
 * Ingen hemmeligheder i client-bundles. Miljøvariabler valideres ved opstart (fx med Zod).
 
@@ -269,7 +272,8 @@ SMTP_PASSWORD           # Gmail app password, ikke kontoens rigtige password
 EMAIL_FROM
 # RESEND_API_KEY        # når der kommer et eget domæne
 CRON_SECRET             # mindst 16 tegn; Vercel Cron sender den som Bearer-token. Uden den svarer ruten 503 (D-131)
-APP_ADMIN_EMAILS        # kommasepareret liste over app-admins (feedback-status, §9.9)
+APP_ADMIN_EMAILS        # kommasepareret liste over app-admins (feedback-status, §9.9). Trimmes, lowercases, dubletter fjernes;
+                        # en post, der ikke er en email, stopper opstarten. Tom i produktion → advarsel i loggen (D-142)
 ```
 
 Alle valideres med Zod ved opstart (`src/env.ts`). Hemmeligheder ligger kun i Vercels miljøvariabler og i en lokal `.env.local`, der aldrig committes.
@@ -282,7 +286,7 @@ Alle valideres med Zod ved opstart (`src/env.ts`). Hemmeligheder ligger kun i Ve
 
 **Rate limiting**
 * Serverless functions deler ikke hukommelse, så in-memory rate limiting virker ikke. Brug enten auth-bibliotekets database-baserede rate limiting eller en ekstern store (fx Upstash Redis via Vercel Marketplace).
-* **Implementeret (D-028):** Login, signup, glemt password og nulstilling begrænses i en Better Auth `hooks.before`-middleware med appens egen database-limiter (`app_rate_limits`, `src/server/rate-limit.ts`), fordi Better Auths indbyggede limiter ikke dækker `auth.api.*`-kald fra Server Actions. Den indbyggede limiter (database-lager) dækker resten af auth-endpoints. Join-med-kode bruger samme limiter. `RATE_LIMIT_DISABLED` slår den fra i test-miljøet (aldrig i produktion).
+* **Implementeret (D-028):** Login, signup, glemt password og nulstilling begrænses i en Better Auth `hooks.before`-middleware med appens egen database-limiter (`app_rate_limits`, `src/server/rate-limit.ts`), fordi Better Auths indbyggede limiter ikke dækker `auth.api.*`-kald fra Server Actions. Den indbyggede limiter (database-lager) dækker resten af auth-endpoints. Join-med-kode bruger samme limiter, og det samme gør feedback (10 rapporter pr. bruger pr. døgn, D-145). `RATE_LIMIT_DISABLED` slår den fra i test-miljøet (aldrig i produktion).
 
 ---
 
@@ -497,6 +501,7 @@ URL-slugs er på engelsk (kodekonsistens). Al UI-tekst er dansk.
 /feedback                           → Liste over fejl og feature-ønsker (fælles for alle brugere)
 /feedback/new                       → Rapportér fejl / foreslå feature
 /feedback/[feedbackId]              → Detalje
+/feedback/[feedbackId]/edit         → Ret titel/beskrivelse (forfatteren mens Ny, eller app-admin; D-145)
 
 /api/cron/close-polls               → daglig lukning af afstemninger (Vercel Cron, Bearer CRON_SECRET, §4.8)
 ```
@@ -1137,7 +1142,7 @@ Side (udfyldt automatisk, kan rettes)
 | Type | ✅ | `BUG` (Fejl) eller `FEATURE` (Idé/ønske) |
 | Titel | ✅ | 3–120 tegn |
 | Beskrivelse | ✅ | 10–5000 tegn. Placeholder-teksten guider efter typen. |
-| Side | – | Kun ved fejl. Udfyldes med den side, brugeren kom fra. **Klub-id fjernes fra stien** (`/c/abc123/calendar` gemmes som `/calendar`), så andre brugere ikke ser klubdata. |
+| Side | – | Kun ved fejl. Udfyldes med den side, brugeren kom fra. **Klub-id fjernes fra stien** (`/c/abc123/calendar` gemmes som `/calendar`), så andre brugere ikke ser klubdata. Strammere (D-143): query og `#hash` fjernes også (`?q=`, `?token=`), `/join/<kode>` gemmes som `/join`, kun en sti med præcis ét `/` foran godtages (ellers feltfejlen "Skriv en sti, fx /calendar."), og den skæres ved 200 tegn. Samme funktion (`toFeedbackPagePath`) bruges i linket "Rapportér denne fejl", i formularens forudfyldning og i serveren. |
 | Teknisk info | – | Ved fejl gemmes browser/enhed (user agent) og skærmbredde automatisk. **Kun synlig for app-admin.** |
 
 Efter oprettelse: "Tak! Din rapport er gemt 🍻", og brugeren sendes til rapportens detaljeside.
@@ -1160,8 +1165,8 @@ Sorter: [ Flest stemmer ▼ ]
    Færdig ✓ · Anders · for 3 uger siden       👍 5
 ```
 
-* **Filtre:** type (alle/fejl/ønsker) og status (åbne = Ny, Planlagt og I gang · lukkede = Færdig og Afvist · alle).
-* **Sortering:** flest stemmer (standard), nyeste.
+* **Filtre:** type (alle/fejl/ønsker) og status (åbne = Ny, Planlagt og I gang · lukkede = Færdig, Afvist og Dublet (D-144) · alle). URL: `/feedback?type=bug|feature&status=closed|all&mine=1&sort=newest` (standardværdier udelades).
+* **Sortering:** flest stemmer (standard; ved lighed nyeste), nyeste. Listen viser højst 200 rapporter (TG-057).
 * **Søgning** i titel og beskrivelse [SENERE, når der er mange rapporter].
 * **"Mine rapporter"** som ekstra filter.
 
@@ -1199,18 +1204,20 @@ Viser type, titel, beskrivelse, status, opretter (visningsnavn), dato, antal �
 | Ændre status, skrive svar, markere som dublet | ❌ | ❌ | ✅ |
 | Se teknisk info | ❌ | ❌ | ✅ |
 
-**App-admin [BESLUTNING]:** Bestemmes af miljøvariablen `APP_ADMIN_EMAILS` (kommasepareret). Der er ingen UI til at uddele rollen, og den er uafhængig af klubroller. En klub-admin er altså ikke automatisk app-admin.
+**App-admin [BESLUTNING]:** Bestemmes af miljøvariablen `APP_ADMIN_EMAILS` (kommasepareret). Der er ingen UI til at uddele rollen, og den er uafhængig af klubroller. En klub-admin er altså ikke automatisk app-admin. Emailen sammenlignes præcist efter trim og lowercase (`isAppAdmin`, D-142). Opret kontoen, før emailen sættes i listen (signup verificerer ikke emails, D-029, TG-060).
+
+**Implementeringsnoter (D-145):** En manglende rettighed giver `FORBIDDEN` (rapporterne er offentlige for alle brugere), kun et ukendt id giver 404. Ret og slet skrives med `WHERE id AND created_by_id = mig AND status = 'NEW'` (app-admin: kun id), så en samtidig statusændring vinder ("Rapporten er ikke længere ny, så den kan ikke rettes."). 👍 er én `INSERT … SELECT … WHERE created_by_id IS DISTINCT FROM mig ON CONFLICT DO NOTHING`. Moderation sker i én transaction under rækkelåse på rapporten og originalen: en dublet skal pege på en rapport, der findes og ikke selv er en dublet; andre statusser rydder henvisningen. Brugerens browser (user agent) læses på serveren fra requesten, aldrig fra formularen, og teknisk info vælges kun i forespørgslen for app-admins.
 
 ### Misbrug og grænser
 
-* Rate limiting: maks. 10 rapporter pr. bruger pr. døgn.
+* Rate limiting: maks. 10 rapporter pr. bruger pr. døgn ("Du kan sende højst 10 rapporter i døgnet. Prøv igen om N timer."). 👍 og rettelser er ikke begrænset (TG-058).
 * Teksten vises som ren tekst (ingen HTML, ingen markdown-rendering i MVP). Linjeskift bevares.
 
 ### AI-agent og feedback
 
 AI-agenten kan bruge feedback som input til backlog'en:
 
-* Scriptet `scripts/list-feedback.ts` udskriver åbne rapporter (sorteret efter 👍) fra en angivet database, så agenten kan læse dem uden at gå gennem UI'et.
+* Scriptet `scripts/list-feedback.ts` (`npm run feedback:list`) udskriver åbne rapporter (Ny, Planlagt, I gang; flest 👍, så nyeste) fra databasen i `DATABASE_URL`, så agenten kan læse dem uden at gå gennem UI'et. Det læser kun. Indstillinger: `--type bug|feature`, `--limit N` (standard 50), `--json`, `--with-tech` (browser og skærmbredde, slået fra som standard), `--remote` (påkrævet for en database, der ikke er lokal; ingen TTY-bekræftelse, D-146), `-h/--help`. Målet udskrives altid først med maskeret password, og forfatteren vises som visningsnavn, aldrig email. Exit-koder 0/1/2.
 * Når en rapport bliver rettet, nævnes rapportens id i fejlloggen (§19.4), og app-admin sætter status til *Færdig*.
 
 ---
@@ -1464,25 +1471,34 @@ PollTieResolution                           -- valget ved uafgjort
   PRIMARY KEY (pollId, category)
   -- vinderne gemmes aldrig: de beregnes af tallyPoll + resolveWinner (§3.4)
 
-Feedback                                    -- app-dækkende, INGEN clubId (§9.9)
-  id
+Feedback                                    -- app-dækkende, INGEN clubId (§9.9, D-141)
+  id                      UUIDv7
   type                    BUG | FEATURE
-  title                   String (3–120)
-  description             Text (10–5000)
-  pagePath?               String            -- klub-id fjernet fra stien
-  userAgent?              String            -- kun synlig for app-admin
-  viewportWidth?          Int               -- kun synlig for app-admin
+  title                   String (3–120)    -- CHECK efter btrim og ≤ 120 råt
+  description             Text (10–5000)    -- CHECK efter btrim
+  pagePath?               String            -- klub-id, query og hash fjernet (D-143); CHECK starter med '/' og ≤ 200
+  userAgent?              String            -- kun synlig for app-admin; CHECK 1–500
+  viewportWidth?          Int               -- kun synlig for app-admin; CHECK 1–20.000
   status                  NEW | PLANNED | IN_PROGRESS | DONE | WONT_DO | DUPLICATE  DEFAULT NEW
-  adminResponse?          Text
+  adminResponse?          Text              -- CHECK 1–2000 efter btrim
   duplicateOfId?          → Feedback (ON DELETE SET NULL)
   createdById?            → User  (ON DELETE SET NULL, "Tidligere bruger")
+  createdAt, updatedAt
   INDEX (status, createdAt)
+  INDEX (createdById)
+  INDEX (duplicateOfId)
+  CHECK duplicateOfId <> id
+  CHECK duplicateOfId IS NULL OR status = 'DUPLICATE'     -- envejs: SET NULL ved slettet original bryder den aldrig
+  CHECK type = 'BUG' OR (pagePath, userAgent, viewportWidth alle NULL)
+  -- 👍-tallet gemmes aldrig: 1 (forfatteren) + antal FeedbackVote (§3.4, D-144)
 
 FeedbackVote
   feedbackId              → Feedback (CASCADE)
   userId                  → User     (CASCADE)
+  createdAt
   PRIMARY KEY (feedbackId, userId)
-  -- app-regel: man kan ikke stemme på egen rapport
+  INDEX (userId)
+  -- app-regel: man kan ikke stemme på egen rapport; håndhævet i selve INSERT'en (D-145), ikke som constraint (TG-059)
 ```
 
 **Hvorfor én `PollOption`-tabel med `category`** (i stedet for separate `DateOption`/`PlaceOption`)? Stemmer bliver én simpel tabel, reglerne pr. kategori (mange datoer / ét sted) bliver constraints, og nye kategorier (fx *tema* eller *øltype*) kan tilføjes senere uden nye tabeller.
@@ -1514,6 +1530,12 @@ FeedbackVote
 * **Låse (D-130):** `lockPoll` (`FOR NO KEY UPDATE`) tages af **alle**, der skriver til en afstemning, også den, der stemmer. Fast rækkefølge: klub → afstemninger → stednavne (advisory) → steder → event → medlemskaber. `endMembership` låser klubbens åbne afstemninger (`lockOpenPollIds`) før medlemskabet slettes, og `deleteClub` låser alle klubbens afstemninger (`lockClubPollIds`, `FOR UPDATE`). Under afstemningens lås læses den stemmendes medlemskab uden lås: det er korrekt, fordi `endMembership` er den eneste vej, der sletter et medlemskab i en klub, der findes. En ny vej, der sletter medlemskaber, skal også låse åbne afstemninger først.
 * **Fælder:** Prisma genererer en `WhereUniqueInput` på `PollVote.ballotId` ud fra det partielle index. Brug aldrig `findUnique({ where: { ballotId } })`. Skriv kun med unchecked skalarer.
 
+**Implementeringsnoter (feedback, 2026-10-16):**
+
+* **Migrering:** én migrering (`20261016131043_feedback`) laver enums `feedback_type`/`feedback_status`, tabellerne `feedback` og `feedback_votes` og til sidst 9 navngivne CHECKs i rå SQL (`feedback_title_length_check`, `feedback_description_length_check`, `feedback_page_path_check`, `feedback_user_agent_length_check`, `feedback_viewport_width_check`, `feedback_admin_response_length_check`, `feedback_duplicate_not_self_check`, `feedback_duplicate_status_check`, `feedback_tech_info_bug_only_check`). Drift-tjekket giver en tom migrering (F-075).
+* **Låse (D-145):** `lockFeedbackRows` (`FOR NO KEY UPDATE`, id-orden) i `src/server/db/locks.ts`, kun til moderation. Feedback har ingen klub og indgår ikke i klub-låserækkefølgen.
+* **Længder tælles som Postgres (F-077):** schemaerne tæller kodepunkter, ikke UTF-16-enheder, så "🍺🍺" er 2 tegn og afvises af både formular og CHECK.
+
 ---
 
 # 12. Edge cases
@@ -1544,7 +1566,7 @@ FeedbackVote
 | E22 | ID fra en anden klub i URL'en | 404. |
 | E23 | Sidste admin i en klub vil slette sin konto | Blokeres, indtil en anden er gjort til admin, eller klubben er slettet. |
 | E25 | To admins nedgraderer/fjerner hinanden samtidig | Transaction + lås på klubbens række sikrer, at der altid er mindst én admin tilbage (D-102). Den ene får "Klubben skal have mindst én admin …". |
-| E26 | Fejlrapport oprettet fra en klubside | Klub-id fjernes fra den gemte sti. Klubnavn gemmes ikke (§9.9). |
+| E26 | Fejlrapport oprettet fra en klubside | Klub-id fjernes fra den gemte sti, og det samme gør query og `#hash` (D-143). Klubnavn gemmes ikke (§9.9). |
 | E27 | Opretteren af en rapport sletter sin konto | Rapporten bevares og vises som "Tidligere bruger". Opretterens stemmer slettes. |
 | E28 | En rapport markeres som dublet | Status `DUPLICATE` med link til originalen. 👍 flyttes ikke automatisk. |
 | E24 | Afstemningens frist forlænges efter nogen har stemt | Tilladt (kun forlængelse). Stemmer bevares. |
@@ -1836,7 +1858,7 @@ Inden en ny runde påbegyndes: gennemgå eksisterende arkitektur, genbrug eksist
 
 **Must have:** auth, klubber + medlemskaber, events, Overblik, Kalender, ølkatalog, rating. **Should have:** sangbog, steder, kælenavn, historik. **Advanced:** afstemninger, voting, automatisk event-oprettelse.
 
-Feedback (§9.9) indgår ikke i runderne (se Q10).
+Feedback (§9.9) indgår ikke i runderne (se Q10). Den bygges efter runde 4 (2026-10-16): først serveren (datamodel, domæne, validering, datalag, actions, script og seed), så siderne.
 
 ---
 
@@ -1931,7 +1953,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | 3 | 3.6 | Medlemsadministration (Q11) | ✅ | 2026-10-09. '⋯'-menu pr. medlem (gør til admin, fjern admin-rollen, nulstillingslink, fjern), forlad klub, slet klub med skrevet navn, rediger klubinfo (D-102–D-104, D-110, D-116). 11 unit, 20 integration (`round3-members`), 5 E2E (`members.spec.ts`). Hele runden: 724 unit, 197 integration, build, 150/150 E2E (75 tests × desktop/375 px) to kørsler i træk, DoD i `round3-dod.spec.ts`. Manuel gennemgang ved 375 og 1280 px som admin og medlem. Adversarial review (fase 4) følger. |
 | 4 | 4.1 | Afstemninger: oprettelse + stemmer | 🟨 | 2026-10-14. Bygget (D-129–D-139); unit + integration grønne; E2E ikke kørt endnu – Jesper (TG-053). 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt: `round4-dod.spec.ts`, `polls.spec.ts`, `poll-lifecycle.spec.ts`, runde 4-delene af `club-isolation.spec.ts`. Opret med forslag (datoer, frist, titel), "＋ Nyt sted", ret (kun forlænget frist), stem med forhåndsvisning og åbne stemmer, auto-opdatering. |
 | 4 | 4.2 | Afstemninger: lukning, uafgjort, automatisk event, cron | 🟨 | 2026-10-14. Bygget (D-129–D-139); unit + integration grønne; E2E ikke kørt endnu – Jesper (TG-053). 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt: `round4-dod.spec.ts`, `polls.spec.ts`, `poll-lifecycle.spec.ts`, runde 4-delene af `club-isolation.spec.ts`. Én lukkefunktion (sidste stemme, lazy close på Overblik/Kalender/afstemningssiden, manuelt, daglig cron `0 4 * * *` med `CRON_SECRET`), uafgjort → vælg vinder, annullér, event i samme transaction, PollCard, stiplede "Mulig dato", "Valgt ved afstemning 🗳", E5. |
-| – | – | Feedback (fejl og ønsker) | ⬜ | Ikke i runderne (Q10). Kan med fordel bygges tidligere. |
+| – | – | Feedback (fejl og ønsker) | 🟨 | 2026-10-16. **Server bygget, UI følger** (D-141–D-146): datamodel med 9 CHECKs, `APP_ADMIN_EMAILS` valideret ved opstart, rent domæne (`toFeedbackPagePath`, `isAppAdmin`, rettigheder, 👍 = 1 + stemmer, filtre, lignende rapporter, CLI-format), Zod-schemas, datalag med betingede skrivninger og rækkelåse, 5 Server Actions, 10 rapporter/døgn, `npm run feedback:list`, seed (4 rapporter). 1031 unit (87 filer, heraf 103 nye), 310 integration (14 filer, heraf 29 nye i `feedback.itest.ts`), build grøn, drift-tjek tomt. Mangler: siderne `/feedback`, `/feedback/new`, `/feedback/[id]`, redigering, links fra Profil og fejlsider, E2E. |
 
 ## 19.3 Beslutningslog
 
@@ -2079,6 +2101,12 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-138 | 2026-10-14 | Ruter efter D-065: `polls/new` med loading; `polls/[pollId]/layout.tsx` er guard (`requirePoll`) over `(detail)/loading.tsx`; `edit/` har ingen loading. Ingen `/polls`-oversigt (catch-all 404; isolationstesten bruger nu `stats` som ubygget sti, TG-040). `/api/cron/close-polls` og `vercel.json` `crons`. Toast-nøgler: `poll-created`, `poll-updated`, `vote-saved`, `vote-saved-closed`, `vote-saved-tie`, `poll-locked`, `poll-closed`, `poll-awaiting`, `poll-decided`, `poll-cancelled`. Er afstemningen allerede afgjort eller ikke uafgjort, sender afslut/annullér/vælg vinder bare til afstemningen uden toast (et dobbelt tryk gør intet ekstra). | Ægte 404 for ukendte, ugyldige og andre klubbers afstemninger (E22). | – |
 | D-139 | 2026-10-14 | TG-032 er gjort: `events.location_text` og dens CHECK droppes i `round4_polls`. Vinduet under en deploy, hvor gammel kode kunne læse kolonnen, accepteres, fordi der ikke er nogen produktion endnu (som D-097). | Død kolonne. | – |
 | D-140 | 2026-10-14 | Sangbogens tekstspørgsmål er afgjort af Jesper: de to titler, der er rettet via `overrides.json`, og pladsholderen "X" i den ene sang **beholdes, som de er**. | Jespers valg. Løser TG-048. | – |
+| D-141 | 2026-10-16 | Feedbackens datamodel (§11): `Feedback` (UUIDv7, intet `clubId`) og `FeedbackVote` (PK `(feedback_id, user_id)`, begge FK'er CASCADE). `createdById` og `duplicateOfId` er SET NULL. 9 navngivne CHECKs: titel 3–120 efter btrim og ≤ 120 råt, beskrivelse 10–5000, sti starter med `/` og ≤ 200, user agent 1–500, skærmbredde 1–20.000, svar 1–2000, ikke dublet af sig selv, `duplicate_of_id` kun ved status `DUPLICATE` (envejs), teknisk info kun ved `BUG`. Index på `(status, created_at)`, `created_by_id` og `duplicate_of_id`. | §15.4: databasen beskytter invarianterne, også mod scripts og håndskrevet SQL. Envejs-reglen gør, at SET NULL ved en slettet original aldrig bryder en CHECK (E28). | §11 Feedback v2 |
+| D-142 | 2026-10-16 | `APP_ADMIN_EMAILS` parses i `parseEnv`: split på komma, trim, tomme poster droppes, lowercase, dubletter fjernes, hver post valideres med `z.email()`. En ugyldig post stopper opstarten (`APP_ADMIN_EMAILS: «foo» er ikke en gyldig email`); tom liste i produktion giver en advarsel. `src/env.ts` eksporterer `appAdminEmails`. `isAppAdmin(email, adminEmails)` er ren (præcist match efter trim og lowercase) og ser aldrig på en klubrolle. Kontoen skal oprettes, før emailen sættes i listen. | En tastefejl ville ellers stille efterlade appen uden app-admin. Signup verificerer ikke emails (D-029), så en adresse på listen uden konto kan registreres af hvem som helst; at registrere først lukker hullet (TG-060). | – |
+| D-143 | 2026-10-16 | `toFeedbackPagePath` (E26) er strammere end §9.9: ud over klub-segmentet (`/c/<hvad som helst>`) fjernes query og `#hash` (søgninger, `?token=`), `/join/<kode>` bliver `/join`, kun en sti med præcis ét `/` foran godtages (ingen `//`, `\`, styretegn eller URL'er), gentagne `/` samles, afsluttende `/` fjernes, og den skæres ved 200 tegn. Én funktion bruges i `newFeedbackHref`, i `/feedback/new`'s forudfyldning og i create-actionen, så klub-id'et aldrig når en URL, en formular eller databasen. En udfyldt sti, der ikke er en sti, giver feltfejlen "Skriv en sti, fx /calendar."; ved en idé ignoreres feltet. | Rapporter er synlige for alle brugere (§3.3). En invitationskode og en nulstillings-token er hemmeligheder, og en søgning kan afsløre klubdata. | §9.9 "Side" |
+| D-144 | 2026-10-16 | 👍-tallet beregnes som 1 (forfatteren) + antal `FeedbackVote` (`feedbackVoteCount`) og gemmes aldrig; +1 bliver stående, når forfatteren sletter sin konto (vises som "Tidligere bruger", `getFeedbackAuthorName`). Statusgrupper: åbne = Ny, Planlagt, I gang; lukkede = Færdig, Afvist **og Dublet**. Sortering "Flest stemmer" = stemmer, så nyeste, så id. Listen viser højst 200, og "lignende rapporter" matcher mod de 300 nyeste (i browseren, `findSimilarFeedback`: ord på mindst 3 tegn, åbne først ved lighed, højst 3). | §3.4. En dublet er afsluttet: arbejdet ligger på originalen. Fælles for appen, så en slettet konto er en tidligere *bruger*, ikke et tidligere medlem. | §9.9 "lukkede = Færdig og Afvist" |
+| D-145 | 2026-10-16 | Rettigheder og atomicitet: alle logget-ind brugere ser og opretter; 👍 alle undtagen forfatteren (også app-admins); ret/slet forfatteren mens `NEW` eller app-admin; status, svar, dublet og teknisk info kun app-admin. En manglende rettighed er `FORBIDDEN` (rapporterne er offentlige), kun et ukendt id er 404. Ret/slet er én betinget `updateMany`/`deleteMany` (`WHERE id AND created_by_id AND status = 'NEW'`), og 0 rækker læses igen som `not-found`/`locked`/`forbidden`. 👍 er én `INSERT … SELECT … WHERE created_by_id IS DISTINCT FROM mig ON CONFLICT DO NOTHING`. Moderation: én transaction under `lockFeedbackRows` på rapporten og originalen; originalen skal findes og må ikke selv være en dublet (ingen kæder eller cykler ved markeringen); andre statusser rydder `duplicateOfId`; stemmer flyttes aldrig (E28). Teknisk info vælges kun i forespørgslen for app-admins, og user agent læses fra requesten på serveren (kun ved `BUG`, ≤ 500). 10 rapporter pr. bruger pr. døgn. | Skjulte knapper er kun UX (§4.4). Betingede skrivninger gør en samtidig statusændring sikker uden låse; låsen ved moderation holder originalen fast, til dubletten er skrevet. | – |
+| D-146 | 2026-10-16 | `scripts/list-feedback.ts` (`npm run feedback:list`) læser kun (`findMany`/`count`) med sin egen Prisma-klient. Guards: aldrig på Vercel, en database, der ikke er lokal, kræver `--remote` – men **ingen** TTY-bekræftelse (afviger fra sangbogsimporten, D-126), fordi intet skrives. Målet udskrives altid først med maskeret password (på stderr ved `--json`). Teknisk info kun med `--with-tech`. Forfattere som visningsnavn, aldrig email. Brugertekst udskrives med styretegn erstattet (`terminalSafe`), så en rapport aldrig kan sende escape-sekvenser til terminalen. | Agenten skal kunne læse produktionens backlog uden et menneske ved tastaturet, men aldrig ved et uheld. | – |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -2092,6 +2120,13 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-077 · 2026-10-16 · JS-længder i UTF-16-enheder ville ramme CHECKs med en minimumslængde
+- **Område:** Validering / DB
+- **Symptom:** (Fundet under design af feedback, før det ramte.) En titel som "🍺🍺" er 4 lange i JavaScript (`.length`), men 2 tegn for Postgres' `char_length`. Med `.min(3)` i Zod ville den passere formularen og så fejle på `feedback_title_length_check` med den generiske fejl.
+- **Årsag:** `String.length` tæller UTF-16-enheder, CHECKs tæller kodepunkter. For maksimumslængder er JS bare strammere; for minimumslængder over 1 bliver de uenige.
+- **Rettelse:** `src/lib/validation/feedback.ts` tæller kodepunkter (`[...value].length`) for både min og max, efter rensning (NFC). Testet med emoji i `feedback-validation.test.ts`. Under arbejdet afkodede shell-heredocs igen `\uXXXX` til bogstavelige tegn (F-057); testen blev genskrevet med escapes.
+- **Læring / forebyggelse:** En ny minimumslængde > 1 skal tælle kodepunkter. Skriv filer med `\u`-escapes med Write-værktøjet, ikke en heredoc.
 
 ### F-076 · 2026-10-14 · Et `::before`-flueben kom med i checkboksens tilgængelige navn
 - **Område:** UI / Tilgængelighed
@@ -2624,6 +2659,12 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-054 | 2026-10-14 | `PlaceChoiceCard` har fået en checkbox-variant (`type`, `name`) i stedet for en generisk `ChoiceCard` | Komponentens navn og kommentarer handler stadig mest om radioen | Udskil en generisk `ChoiceCard`, hvis en tredje formular får brug for kortene |
 | TG-055 | 2026-10-14 | Ingen rate limits på afstemningernes skrivninger (TG-030-klassen) | Et medlem kunne oprette mange afstemninger i sin egen klub | Som TG-030 |
 | TG-056 | 2026-10-14 | `PollEditForm` er en klientkomponent, der får hele `PollView` (med vælgerne) som prop; `OverviewPollItem` har hverken `closeReason` eller hvem der valgte efter en uafgjort | Lidt mere data til klienten end nødvendigt; det afgjorte Overblik-kort kan ikke sige "Alle havde stemt" | Et reduceret prop og felterne i forespørgslen, hvis det bliver nødvendigt |
+| TG-057 | 2026-10-16 | Feedbacklisten viser højst 200 rapporter, og "lignende rapporter" matcher mod de 300 nyeste i browseren (D-144). Søgning i titel og beskrivelse er stadig [SENERE] (§9.9). | Ældre rapporter forsvinder fra listen og fra dublet-forslagene, når der er mange | Paging og søgning på serveren, når der er over ca. 200 rapporter |
+| TG-058 | 2026-10-16 | Ingen rate limit på 👍 og på rettelser af feedback (kun på nye rapporter, 10/døgn) | En bruger kan toggle 👍 og rette sin nye rapport uden grænse | Som TG-030: limits pr. bruger, hvis det bliver misbrugt |
+| TG-059 | 2026-10-16 | "Ingen 👍 på egen rapport" er ingen database-constraint; den håndhæves af selve INSERT'en (`setFeedbackVote`, D-145) | En ny skrivevej uden om datalaget kunne stemme på egen rapport | Evt. en trigger senere. Integrationstesten dækker både action og datalag |
+| TG-060 | 2026-10-16 | En email i `APP_ADMIN_EMAILS` uden konto kan registreres af hvem som helst, fordi signup ikke verificerer emails (D-029, TG-002) | Den, der registrerer adressen først, bliver app-admin | Opret altid kontoen, før emailen sættes (README og `.env.example` siger det). Løses helt med email-verificering (TG-001/TG-002) |
+| TG-061 | 2026-10-16 | En original, der senere selv markeres som dublet, efterlader sine dubletter pegende på sig (en kæde A → B → C). Markeringen afviser kun en original, der allerede er en dublet (D-145) | Detaljesiden viser kun ét led | Peg dubletterne om til den nye original i samme transaction, hvis det bliver forvirrende |
+| TG-062 | 2026-10-16 | Feedbackens sider og E2E er ikke bygget endnu (server først, D-141–D-146) | Feedback kan kun bruges via datalaget og scriptet | Næste batch: `/feedback`, `/feedback/new`, `/feedback/[feedbackId]`, redigering, links fra Profil og fejlsider, E2E |
 
 ## 19.6 Dokumenthistorik
 
@@ -2639,6 +2680,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | v2.6 | 2026-10-08 | Implementeringsplan i fire runder (§16.3, D-020–D-024). Status (§19.2) organiseret efter runder. Q10–Q11 tilføjet. |
 | v2.7 | 2026-10-08 | Runde 1-fundament: implementeringsnoter i §11 og §4.8, D-025–D-034, F-001–F-011, TG-002–TG-007. |
 | v2.8 | 2026-10-08 | Runde 1-features: D-035–D-044, F-012–F-021. |
+| v2.16 | 2026-10-16 | Feedback (§9.9), serveren: datamodel med 9 CHECKs, `APP_ADMIN_EMAILS` valideret ved opstart, rent domæne, Zod-schemas, datalag med betingede skrivninger og rækkelåse, 5 Server Actions, 10 rapporter/døgn, `scripts/list-feedback.ts`, seed. D-141–D-146, F-077, TG-057–TG-062. §4.2, §4.7, §4.8, §9.9, §11, §16.3 opdateret. 1031 unit (87 filer), 310 integration (14 filer), build grøn, drift-tjek tomt. Siderne følger. |
 | v2.15 | 2026-10-14 | Runde 4 bygget (afstemninger): datamodel med sammensatte FK'er og 9 CHECKs, låse, én lukkefunktion bag sidste stemme, lazy close, manuel lukning og daglig cron (`CRON_SECRET`), uafgjort med valg, automatisk event, PollForm med forslag, stemme-UI med forhåndsvisning, Overblik-kort, stiplede datoer i Kalenderen, E5. D-129–D-140, F-075–F-076, TG-050–TG-056; TG-031, TG-032, TG-040 og TG-048 løst. §4.8, §5.1, §7.4, §7.5, §8.2, §9.1, §9.3, §9.4, §9.7, §11, §12 (E33, E34), §13.5, §14, §16.3 opdateret. 928 unit (78 filer), 281 integration (13 filer, heraf 84 nye i runde 4), build grøn, drift-tjek tomt. E2E skrevet, ikke kørt (TG-053). |
 | v2.14 | 2026-10-13 | Sangbogen bygget i runde 3 (D-118 erstatter D-091): datamodel, sangtekstformat med akkorder, oversigt, søgning, læsevisning, admin og importscript; 59 sange importeret lokalt. Jesper tester sangbogen manuelt (D-119). D-118–D-128, F-071–F-074, TG-043–TG-049; TG-025 løst; Q5 afklaret. §4.2, §8.2, §9.6, §11, §13.5, §14, §16, §17, §18, §19.1 opdateret. 724 unit, 197 integration, build og 150/150 E2E. |
 | v2.13 | 2026-10-09 | Runde 3 færdig (uden sangbogen, D-091): kælenavn, skift password, steder med ejere og arkivering, events med steder og værter, eventhistorik og medlemsadministration. D-094–D-117, F-053–F-070, TG-032–TG-042; TG-021, TG-028, TG-029 og TG-039 løst; D-061 og D-062 erstattet. §5.1, §7, §8, §9.1–9.4, §9.8, §11, §12 (E29–E32), §14, §16, §18 (Q13) opdateret. 724 unit, 197 integration, build og 150/150 E2E to kørsler i træk. |

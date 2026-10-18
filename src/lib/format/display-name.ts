@@ -12,6 +12,8 @@
 import { nameKey } from "@/lib/text";
 
 export const FORMER_MEMBER_NAME = "Tidligere medlem";
+/** Feedback is app-wide, not club data, so a deleted author is a former USER (E27). */
+export const FORMER_USER_NAME = "Tidligere bruger";
 
 export type DisplayNameUser = {
   name: string;
@@ -24,6 +26,18 @@ export function getDisplayName(user: DisplayNameUser | null | undefined): string
   if (nickname) return nickname;
   const name = user.name.trim();
   return name || FORMER_MEMBER_NAME;
+}
+
+/**
+ * The author of a feedback report (SPEC §9.9, E27): the display name, or
+ * "Tidligere bruger" when the account is deleted (createdBy is null). Never
+ * the email.
+ */
+export function getFeedbackAuthorName(user: DisplayNameUser | null | undefined): string {
+  if (!user) return FORMER_USER_NAME;
+  const nickname = user.nickname?.trim();
+  if (nickname) return nickname;
+  return user.name.trim() || FORMER_USER_NAME;
 }
 
 /**

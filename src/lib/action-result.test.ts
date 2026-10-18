@@ -64,6 +64,9 @@ describe("action results (SPEC §4.3)", () => {
     expect(formatWait(60)).toBe("1 minut");
     expect(formatWait(61)).toBe("2 minutter");
     expect(formatWait(600)).toBe("10 minutter");
+    expect(formatWait(3600)).toBe("60 minutter");
+    expect(formatWait(3601)).toBe("2 timer");
+    expect(formatWait(86_400)).toBe("24 timer");
   });
 
   it("unexpectedError() has a safe default message", () => {

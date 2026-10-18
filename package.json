@@ -21,6 +21,7 @@
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "songbook:import": "tsx scripts/import-songbook.ts",
+    "feedback:list": "tsx scripts/list-feedback.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",

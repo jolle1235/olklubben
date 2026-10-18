@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { formatWeekdayDateTime } from "@/lib/format/date";
-import { isValidId } from "@/lib/ids";
 import { stripNul } from "@/lib/text";
 import { isDateKey, normalizeTimeOfDay, zonedDateTimeToUtc } from "@/server/domain/events/time";
 import {
@@ -30,6 +29,7 @@ import {
   checkboxSchema,
   cleanOptionalText,
   idListSchema,
+  optionalId,
   optionalText,
   rawTextLimit,
 } from "./text";
@@ -408,24 +408,13 @@ export type PollEditInput = z.input<typeof pollEditSchema>;
 
 // ── Voting ──────────────────────────────────────────────────────────────────
 
-const optionalOptionId = (invalid: string) =>
-  z
-    .string()
-    .max(64, { error: invalid, abort: true })
-    .nullish()
-    .transform((value) => {
-      const trimmed = (value ?? "").trim();
-      return trimmed === "" ? null : trimmed;
-    })
-    .refine((value) => value === null || isValidId(value), invalid);
-
 const ballotFieldsSchema = z.object({
   dateOptionIds: idListSchema(MAX_POLL_DATE_OPTIONS, {
     tooMany: `Vælg højst ${MAX_POLL_DATE_OPTIONS} datoer.`,
     invalid: "Vælg datoer fra listen.",
   }),
   noDateWorks: checkboxSchema,
-  placeOptionId: optionalOptionId("Vælg et sted fra listen."),
+  placeOptionId: optionalId("Vælg et sted fra listen."),
 });
 
 /**
@@ -456,8 +445,8 @@ export type BallotInput = z.input<typeof ballotSchema>;
  */
 export const tieChoiceSchema = z
   .object({
-    dateOptionId: optionalOptionId(TIE_CHOICE_MESSAGES.DATE),
-    placeOptionId: optionalOptionId(TIE_CHOICE_MESSAGES.PLACE),
+    dateOptionId: optionalId(TIE_CHOICE_MESSAGES.DATE),
+    placeOptionId: optionalId(TIE_CHOICE_MESSAGES.PLACE),
   })
   .transform((values): Resolutions => {
     const resolutions: Resolutions = {};

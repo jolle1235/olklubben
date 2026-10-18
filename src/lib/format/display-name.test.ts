@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   compareByDisplayName,
   FORMER_MEMBER_NAME,
+  FORMER_USER_NAME,
   formatMemberName,
   getDisplayName,
+  getFeedbackAuthorName,
   officialNameSuffix,
 } from "./display-name";
 
@@ -73,5 +75,21 @@ describe("compareByDisplayName", () => {
       "6",
       "1",
     ]);
+  });
+});
+
+describe("getFeedbackAuthorName (SPEC §9.9, E27)", () => {
+  it("shows the display name of the author", () => {
+    expect(getFeedbackAuthorName({ name: "Jesper Thomsen", nickname: "Kaptajnen" })).toBe(
+      "Kaptajnen",
+    );
+    expect(getFeedbackAuthorName({ name: " Mads ", nickname: null })).toBe("Mads");
+  });
+
+  it('shows "Tidligere bruger" (not "Tidligere medlem") for a deleted account', () => {
+    expect(FORMER_USER_NAME).toBe("Tidligere bruger");
+    expect(getFeedbackAuthorName(null)).toBe(FORMER_USER_NAME);
+    expect(getFeedbackAuthorName(undefined)).toBe(FORMER_USER_NAME);
+    expect(getFeedbackAuthorName({ name: "  ", nickname: "" })).toBe(FORMER_USER_NAME);
   });
 });

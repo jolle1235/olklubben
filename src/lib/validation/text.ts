@@ -61,6 +61,22 @@ export const checkboxSchema = z
 const ID_MAX_LENGTH = 64;
 
 /**
+ * One optional id from a radio group, a select or a hidden field: "" or
+ * missing → null; anything else must be a valid id (`invalid` otherwise).
+ */
+export function optionalId(invalid: string) {
+  return z
+    .string()
+    .max(ID_MAX_LENGTH, { error: invalid, abort: true })
+    .nullish()
+    .transform((value) => {
+      const trimmed = (value ?? "").trim();
+      return trimmed === "" ? null : trimmed;
+    })
+    .refine((value) => value === null || isValidId(value), invalid);
+}
+
+/**
  * A list of ids from repeated form fields (checkbox lists, fx hostIds; read
  * with readFormValues' `arrays`). Missing → []. At most `max` entries, each a
  * valid id; duplicates are removed (first occurrence wins).

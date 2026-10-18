@@ -1,6 +1,7 @@
 /**
- * App paths that need a logged-in user (SPEC §8.2, round 1). Used by the
- * optimistic redirect in src/proxy.ts; the real check is requireUser().
+ * App paths that need a logged-in user (SPEC §8.2, round 1; /feedback, §9.9).
+ * Used by the optimistic redirect in src/proxy.ts; the real check is
+ * requireUser().
  *
  * Not protected: /join/* (the join page handles logged-out users itself),
  * /login, /signup, /forgot-password, /reset-password and /api/*.
@@ -8,9 +9,9 @@
  * Keep in sync with `config.matcher` in src/proxy.ts (matchers must be literals).
  */
 
-export const PROTECTED_SECTIONS = ["/c", "/onboarding", "/clubs", "/profile"] as const;
+export const PROTECTED_SECTIONS = ["/c", "/onboarding", "/clubs", "/profile", "/feedback"] as const;
 
-/** "/", and "/c", "/onboarding", "/clubs", "/profile" with everything below them. */
+/** "/", and "/c", "/onboarding", "/clubs", "/profile", "/feedback" with everything below them. */
 export function isProtectedPath(pathname: string): boolean {
   if (pathname === "/") return true;
   return PROTECTED_SECTIONS.some(

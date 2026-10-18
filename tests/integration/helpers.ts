@@ -41,9 +41,12 @@ export type TestUser = {
 
 let currentHeaders = new Headers();
 
-/** The user the next Server Action call runs as (null: logged out). */
-export function setActor(user: TestUser | null): void {
-  currentHeaders = new Headers(user ? { cookie: user.cookie } : {});
+/**
+ * The user the next Server Action call runs as (null: logged out), with
+ * optional extra request headers (fx "user-agent" for a bug report).
+ */
+export function setActor(user: TestUser | null, extraHeaders: Record<string, string> = {}): void {
+  currentHeaders = new Headers({ ...extraHeaders, ...(user ? { cookie: user.cookie } : {}) });
 }
 
 /**

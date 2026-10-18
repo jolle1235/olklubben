@@ -51,6 +51,11 @@ import { cleanSongTitle, songTitleKey } from "../src/server/domain/songs/title";
  * on the next Overblik/Kalender/poll view – expected in dev. Delete the poll
  * rows (or run against a fresh database) to get it back.
  *
+ * Feedback (§9.9, fixed ids …02f1–…02f4): four fictional reports, one per
+ * kind – a NEW bug with a page and technical info, a PLANNED wish with an
+ * answer, a DONE wish and a DUPLICATE bug pointing at the first – plus a few
+ * 👍 (never on the author's own report). Created once, never overwritten.
+ *
  * The test users and passwords are listed in README.md ("Testbrugere").
  *
  * Refuses production and non-local databases before connecting
@@ -772,6 +777,130 @@ async function seedPolls(
   }
 }
 
+// ─── Feedback (SPEC §9.9) ───────────────────────────────────────────────────
+
+const FEEDBACK_CALENDAR_BUG = "5eed0000-0000-7000-8000-0000000002f1";
+const FEEDBACK_DARK_THEME = "5eed0000-0000-7000-8000-0000000002f2";
+const FEEDBACK_SONGBOOK = "5eed0000-0000-7000-8000-0000000002f3";
+const FEEDBACK_CALENDAR_DUPLICATE = "5eed0000-0000-7000-8000-0000000002f4";
+
+type SeedFeedback = {
+  id: string;
+  type: "BUG" | "FEATURE";
+  status: "NEW" | "PLANNED" | "DONE" | "DUPLICATE";
+  createdBy: SeedUserKey;
+  title: string;
+  description: string;
+  pagePath?: string;
+  userAgent?: string;
+  viewportWidth?: number;
+  adminResponse?: string;
+  duplicateOfId?: string;
+  /** Created this many days ago (first seed only). */
+  daysAgo: number;
+  /** 👍 from these users (never the author: they already count as 1). */
+  voters: SeedUserKey[];
+};
+
+// Fictional reports: one of each kind the list and the detail page show.
+const SEED_FEEDBACK: SeedFeedback[] = [
+  {
+    id: FEEDBACK_CALENDAR_BUG,
+    type: "BUG",
+    status: "NEW",
+    createdBy: "mads",
+    title: "Kalenderen viser forkert dato på mobil",
+    description:
+      "Når jeg trykker på en fredag i månedsvisningen, åbner den lørdagen i stedet.\n" +
+      "Det sker kun på telefonen, ikke på computeren.",
+    pagePath: "/calendar",
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 " +
+      "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+    viewportWidth: 390,
+    daysAgo: 2,
+    voters: ["jesper", "anders"],
+  },
+  {
+    id: FEEDBACK_DARK_THEME,
+    type: "FEATURE",
+    status: "PLANNED",
+    createdBy: "anders",
+    title: "Mørkt tema",
+    description: "Et mørkt tema til de sene smagninger, så skærmen ikke blænder hele bordet.",
+    adminResponse: "Giver mening – planlagt efter afstemningerne.",
+    daysAgo: 9,
+    voters: ["mads"],
+  },
+  {
+    id: FEEDBACK_SONGBOOK,
+    type: "FEATURE",
+    status: "DONE",
+    createdBy: "jesper",
+    title: "Sangbogen i appen",
+    description: "Vi vil gerne kunne finde sangene på telefonen i stedet for at bladre i PDF'er.",
+    adminResponse: "Færdig – Sangbog ligger i menuen.",
+    daysAgo: 21,
+    voters: [],
+  },
+  {
+    id: FEEDBACK_CALENDAR_DUPLICATE,
+    type: "BUG",
+    status: "DUPLICATE",
+    createdBy: "anders",
+    title: "Forkert dag i kalenderen",
+    description: "Kalenderen åbner dagen efter den, jeg trykker på.",
+    pagePath: "/calendar",
+    adminResponse: "Samme fejl som den første rapport om kalenderen.",
+    duplicateOfId: FEEDBACK_CALENDAR_BUG,
+    daysAgo: 1,
+    voters: [],
+  },
+];
+
+/**
+ * Creates the seed reports and their 👍 once (fixed ids, create-only): a
+ * report changed in the app (status, answer, text) is never overwritten. A
+ * deleted one is created again; the duplicate only points at the original
+ * while it exists (duplicate_of_id is SET NULL otherwise).
+ */
+async function seedFeedback(db: PrismaClient, idOf: (key: SeedUserKey) => string): Promise<void> {
+  const now = Date.now();
+  for (const report of SEED_FEEDBACK) {
+    const isBug = report.type === "BUG";
+    const duplicateOfId =
+      report.duplicateOfId &&
+      (await db.feedback.findUnique({ where: { id: report.duplicateOfId }, select: { id: true } }))
+        ? report.duplicateOfId
+        : null;
+    await db.feedback.upsert({
+      where: { id: report.id },
+      create: {
+        id: report.id,
+        type: report.type,
+        status: report.status,
+        title: report.title,
+        description: report.description,
+        pagePath: isBug ? (report.pagePath ?? null) : null,
+        userAgent: isBug ? (report.userAgent ?? null) : null,
+        viewportWidth: isBug ? (report.viewportWidth ?? null) : null,
+        adminResponse: report.adminResponse ?? null,
+        duplicateOfId: report.status === "DUPLICATE" ? duplicateOfId : null,
+        createdById: idOf(report.createdBy),
+        createdAt: new Date(now - report.daysAgo * 24 * 60 * 60 * 1000),
+      },
+      update: {},
+    });
+    const voters = report.voters.filter((voter) => voter !== report.createdBy);
+    if (voters.length > 0) {
+      await db.feedbackVote.createMany({
+        data: voters.map((voter) => ({ feedbackId: report.id, userId: idOf(voter) })),
+        skipDuplicates: true,
+      });
+    }
+  }
+}
+
 // ─── Round 3: the songbook ──────────────────────────────────────────────────
 
 type SeedSong = {
@@ -1045,6 +1174,7 @@ async function main(): Promise<void> {
     const placeIds = await seedEventsAndBeers(db, idOf);
     await seedSongs(db, idOf);
     await seedPolls(db, idOf, placeIds);
+    await seedFeedback(db, idOf);
 
     // Jesper has two clubs and lands in his last active one; Mads has two and
     // gets the club picker; Anders has one and goes straight to it (SPEC §10.1).
@@ -1068,6 +1198,8 @@ async function main(): Promise<void> {
       songs,
       polls,
       ballots,
+      feedback,
+      feedbackVotes,
     ] = await Promise.all([
       db.user.count(),
       db.club.count(),
@@ -1082,11 +1214,14 @@ async function main(): Promise<void> {
       db.song.count(),
       db.poll.count(),
       db.pollBallot.count(),
+      db.feedback.count(),
+      db.feedbackVote.count(),
     ]);
     console.info(
       `Seed færdig: ${users} brugere, ${clubs} klubber, ${memberships} medlemskaber, ${invites} aktive invitationer, ` +
         `${places} steder (${owners} ejerskaber), ${events} events (${hosts} værtskaber), ${beers} øl, ${ratings} ratings, ${songs} sange, ` +
-        `${polls} afstemninger (${ballots} stemmesedler).`,
+        `${polls} afstemninger (${ballots} stemmesedler), ` +
+        `${feedback} feedback-rapporter (${feedbackVotes} 👍).`,
     );
     console.info(
       `Log ind med ${SEED_USERS.map((user) => user.email).join(", ")} og password "${SEED_PASSWORD}".`,

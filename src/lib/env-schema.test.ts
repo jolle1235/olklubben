@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseEnv } from "@/lib/env-schema";
+import { parseAppAdminEmails, parseEnv } from "@/lib/env-schema";
 
 const required = {
   DATABASE_URL: "postgresql://postgres@localhost:5432/olklubben_test",
@@ -89,6 +89,7 @@ describe("parseEnv", () => {
       NODE_ENV: "production",
       RATE_LIMIT_DISABLED: "1",
       CRON_SECRET: "x".repeat(32),
+      APP_ADMIN_EMAILS: "jesper@example.com",
     });
     expect(production.isRateLimitDisabled).toBe(false);
     expect(production.warnings).toEqual([expect.stringContaining("RATE_LIMIT_DISABLED")]);
@@ -121,8 +122,69 @@ describe("parseEnv", () => {
       "Den daglige lukning af afstemninger er slået fra: CRON_SECRET mangler.",
     );
     expect(
-      parseEnv({ ...required, NODE_ENV: "production", CRON_SECRET: "x".repeat(32) }).warnings,
+      parseEnv({
+        ...required,
+        NODE_ENV: "production",
+        CRON_SECRET: "x".repeat(32),
+        APP_ADMIN_EMAILS: "jesper@example.com",
+      }).warnings,
     ).toEqual([]);
     expect(parseEnv(required).warnings).toEqual([]);
+  });
+});
+
+describe("parseEnv: APP_ADMIN_EMAILS (feedback, §9.9, D-142)", () => {
+  const NO_ADMIN_WARNING =
+    "Ingen app-admin: APP_ADMIN_EMAILS er tom, så feedback-status kan ikke ændres.";
+
+  it("splits on commas, trims, lowercases, drops empty entries and de-duplicates", () => {
+    const result = parseEnv({
+      ...required,
+      APP_ADMIN_EMAILS: " Jesper@Example.com , ,mads@example.com,JESPER@example.com,",
+    });
+    expect(result.appAdminEmails).toEqual(["jesper@example.com", "mads@example.com"]);
+  });
+
+  it("is an empty list when unset, empty or only commas", () => {
+    expect(parseEnv(required).appAdminEmails).toEqual([]);
+    expect(parseEnv({ ...required, APP_ADMIN_EMAILS: "" }).appAdminEmails).toEqual([]);
+    expect(parseEnv({ ...required, APP_ADMIN_EMAILS: "   " }).appAdminEmails).toEqual([]);
+    expect(parseEnv({ ...required, APP_ADMIN_EMAILS: " , ," }).appAdminEmails).toEqual([]);
+  });
+
+  it("fails startup naming every entry that is not an email", () => {
+    expect(() =>
+      parseEnv({ ...required, APP_ADMIN_EMAILS: "jesper@example.com,foo" }),
+    ).toThrowError("APP_ADMIN_EMAILS: «foo» er ikke en gyldig email");
+    expect(() =>
+      parseEnv({ ...required, APP_ADMIN_EMAILS: "jesper@example.com; mads@example.com" }),
+    ).toThrowError(
+      /APP_ADMIN_EMAILS: «jesper@example.com; mads@example.com» er ikke en gyldig email/,
+    );
+    expect(() => parseEnv({ ...required, APP_ADMIN_EMAILS: "a, b@" })).toThrowError(
+      /«a» er ikke en gyldig email[\s\S]*«b@» er ikke en gyldig email/,
+    );
+  });
+
+  it("warns in production only, when the list is empty", () => {
+    const production = { ...required, NODE_ENV: "production", CRON_SECRET: "x".repeat(32) };
+    expect(parseEnv(production).warnings).toEqual([NO_ADMIN_WARNING]);
+    expect(parseEnv({ ...production, APP_ADMIN_EMAILS: " , " }).warnings).toEqual([
+      NO_ADMIN_WARNING,
+    ]);
+    expect(parseEnv({ ...production, APP_ADMIN_EMAILS: "jesper@example.com" }).warnings).toEqual(
+      [],
+    );
+    expect(parseEnv(required).warnings).not.toContain(NO_ADMIN_WARNING);
+  });
+});
+
+describe("parseAppAdminEmails", () => {
+  it("returns the valid emails and the invalid entries as written", () => {
+    expect(parseAppAdminEmails(undefined)).toEqual({ emails: [], invalid: [] });
+    expect(parseAppAdminEmails(" A@Example.com ,nope , a@example.com")).toEqual({
+      emails: ["a@example.com"],
+      invalid: ["nope"],
+    });
   });
 });

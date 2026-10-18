@@ -23,3 +23,12 @@ export function revalidateClub(clubId: string): void {
 export function revalidateAppShell(): void {
   revalidatePath("/", "layout");
 }
+
+/**
+ * Revalidates the feedback pages (/feedback, its reports and forms) after a
+ * report, an edit, a 👍 or a moderation (SPEC §9.9). Feedback is app-wide, so
+ * no club layout needs it.
+ */
+export function revalidateFeedback(): void {
+  revalidatePath("/feedback", "layout");
+}

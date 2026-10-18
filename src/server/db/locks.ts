@@ -1,11 +1,14 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
+import type { FeedbackStatus } from "@/server/domain/feedback/status";
 import type { PollStatus } from "@/server/domain/polls/options";
 
 /**
  * Row and advisory locks for round 3's and round 4's invariants (D-095, D-096,
- * D-102, D-130). The ONLY place with raw SQL besides the migrations. Every
+ * D-102, D-130) and feedback moderation (D-145). The ONLY place with raw SQL
+ * for locks (other raw SQL: the rate limiter's upsert and the feedback vote's
+ * guarded INSERT … SELECT in src/server/feedback/mutations.ts). Every
  * function runs inside an interactive transaction (`db.$transaction(async (tx)
  * => …)`) and holds its lock until that transaction ends.
  *
@@ -172,4 +175,24 @@ export async function lockClubPollIds(tx: Tx, clubId: string): Promise<string[]>
     ORDER BY id
     FOR UPDATE`;
   return rows.map((row) => row.id);
+}
+
+export type LockedFeedback = { id: string; status: FeedbackStatus };
+
+/**
+ * Feedback reports (app-wide, no club), FOR NO KEY UPDATE in id order
+ * (moderateFeedback: the report and the original it is marked a duplicate
+ * of). Holding the original's lock means it can be neither deleted (DELETE
+ * needs FOR UPDATE) nor turned into a duplicate itself until the transaction
+ * ends, so "the original exists and is not a duplicate" stays true (D-145).
+ * Unknown ids are simply missing from the result.
+ */
+export async function lockFeedbackRows(tx: Tx, ids: readonly string[]): Promise<LockedFeedback[]> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return [];
+  return tx.$queryRaw<LockedFeedback[]>`
+    SELECT id, status::text AS status FROM feedback
+    WHERE id = ANY(${unique}::text[])
+    ORDER BY id
+    FOR NO KEY UPDATE`;
 }

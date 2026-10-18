@@ -1,8 +1,13 @@
+import { feedbackListSearch, type FeedbackListParams } from "@/server/domain/feedback/list-params";
+import { toFeedbackPagePath } from "@/server/domain/feedback/page-path";
+import type { FeedbackType } from "@/server/domain/feedback/status";
+
 /**
  * Links inside a club (SPEC §8.2) for events, polls, beers, places, the club
- * page and the profile, shared by pages, components and Server Actions, so a route
- * is spelled in one place (D-076). The calendar's own URL state (?view,
- * ?month, ?day, ?past) lives in src/components/features/calendar/calendar-params.ts.
+ * page and the profile, plus the app-wide feedback pages (§9.9), shared by
+ * pages, components and Server Actions, so a route is spelled in one place
+ * (D-076). The calendar's own URL state (?view, ?month, ?day, ?past) lives in
+ * src/components/features/calendar/calendar-params.ts.
  *
  * Ids are the club's UUIDs; prefill values are URL-encoded. Pure and
  * client-safe.
@@ -147,4 +152,42 @@ export function mapsSearchUrl(place: string): string | null {
   const query = place.replace(/\s+/g, " ").trim();
   if (query === "") return null;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+// ── Feedback (SPEC §9.9): app-wide, outside /c/[clubId] ──────────────────────
+
+/** "Feedback (fejl og ønsker)": the list, with its filters (defaults left out). */
+export function feedbackListHref(params: Partial<FeedbackListParams> = {}): string {
+  return `/feedback${feedbackListSearch(params)}`;
+}
+
+export type NewFeedbackPrefill = {
+  /** Pre-selects "Fejl" or "Idé / ønske". */
+  type?: FeedbackType | null;
+  /**
+   * The page the user came from ("Rapportér denne fejl"). Normalised by
+   * toFeedbackPagePath, so the club id, query and hash never reach the URL
+   * (E26, D-143); dropped when it is not a path.
+   */
+  page?: string | null;
+};
+
+/** "Ny rapport", e.g. /feedback/new?type=bug&page=%2Fcalendar. */
+export function newFeedbackHref(prefill: NewFeedbackPrefill = {}): string {
+  const query = new URLSearchParams();
+  if (prefill.type) query.set("type", prefill.type.toLowerCase());
+  const page = toFeedbackPagePath(prefill.page);
+  if (page) query.set("page", page);
+  const search = query.toString();
+  return `/feedback/new${search ? `?${search}` : ""}`;
+}
+
+/** One report: description, 👍, status and (app-admins) moderation. */
+export function feedbackHref(feedbackId: string): string {
+  return `/feedback/${feedbackId}`;
+}
+
+/** "Rediger" (the author while NEW, or an app-admin). */
+export function editFeedbackHref(feedbackId: string): string {
+  return `${feedbackHref(feedbackId)}/edit`;
 }

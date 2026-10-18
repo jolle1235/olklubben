@@ -51,5 +51,12 @@ export function proxy(request: NextRequest): NextResponse {
 export const config = {
   // Must mirror PROTECTED_SECTIONS in src/lib/protected-paths.ts (matchers have
   // to be literals). Add new top-level app routes in both places.
-  matcher: ["/", "/c/:path*", "/onboarding/:path*", "/clubs/:path*", "/profile/:path*"],
+  matcher: [
+    "/",
+    "/c/:path*",
+    "/onboarding/:path*",
+    "/clubs/:path*",
+    "/profile/:path*",
+    "/feedback/:path*",
+  ],
 };

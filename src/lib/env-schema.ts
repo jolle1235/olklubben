@@ -14,6 +14,29 @@ const postgresUrl = z.url({
   error: "skal være en postgresql:// connection string",
 });
 
+const emailSchema = z.email();
+
+/**
+ * APP_ADMIN_EMAILS as a list (D-142): split on ",", trimmed, empty entries
+ * dropped, lowercased (account emails are always lowercase), de-duplicated.
+ * `invalid` holds the entries that are not an email, as written (trimmed).
+ */
+export function parseAppAdminEmails(raw: string | undefined): {
+  emails: string[];
+  invalid: string[];
+} {
+  const emails: string[] = [];
+  const invalid: string[] = [];
+  for (const part of (raw ?? "").split(",")) {
+    const entry = part.trim();
+    if (entry === "") continue;
+    const email = entry.toLowerCase();
+    if (!emailSchema.safeParse(email).success) invalid.push(entry);
+    else if (!emails.includes(email)) emails.push(email);
+  }
+  return { emails, invalid };
+}
+
 export const envSchema = z.object({
   DATABASE_URL: postgresUrl,
   DIRECT_URL: postgresUrl.optional(),
@@ -40,6 +63,18 @@ export const envSchema = z.object({
   // Round 4 (§4.8, D-131): Vercel Cron sends it as "Authorization: Bearer …" to
   // /api/cron/close-polls. Unset → the daily close is switched off (503).
   CRON_SECRET: z.string().min(16, "skal være mindst 16 tegn (openssl rand -hex 32)").optional(),
+
+  // Feedback (§9.9, D-142): comma-separated emails of the app-admins, who set a
+  // report's status, answer it and mark duplicates. Unset → nobody can. Every
+  // entry must be an email (a typo would silently leave the app without an admin).
+  APP_ADMIN_EMAILS: z
+    .string()
+    .optional()
+    .superRefine((value, ctx) => {
+      for (const entry of parseAppAdminEmails(value).invalid) {
+        ctx.addIssue({ code: "custom", message: `«${entry}» er ikke en gyldig email` });
+      }
+    }),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -52,6 +87,8 @@ export type ParsedEnv = {
   isSmtpConfigured: boolean;
   /** RATE_LIMIT_DISABLED is set and NODE_ENV is not "production". */
   isRateLimitDisabled: boolean;
+  /** APP_ADMIN_EMAILS, lowercased and de-duplicated ([] when unset, D-142). */
+  appAdminEmails: readonly string[];
   /** Human-readable notes about half-configured optional features. */
   warnings: string[];
 };
@@ -115,5 +152,17 @@ export function parseEnv(source: RawEnv): ParsedEnv {
     warnings.push("RATE_LIMIT_DISABLED ignoreres i produktion: rate limiting er slået til.");
   }
 
-  return { env, isGoogleConfigured, isSmtpConfigured, isRateLimitDisabled, warnings };
+  const appAdminEmails = parseAppAdminEmails(env.APP_ADMIN_EMAILS).emails;
+  if (isProduction && appAdminEmails.length === 0) {
+    warnings.push("Ingen app-admin: APP_ADMIN_EMAILS er tom, så feedback-status kan ikke ændres.");
+  }
+
+  return {
+    env,
+    isGoogleConfigured,
+    isSmtpConfigured,
+    isRateLimitDisabled,
+    appAdminEmails,
+    warnings,
+  };
 }

@@ -69,6 +69,8 @@ model User {
   pollsCancelled  Poll[]              @relation("PollCancelledBy")
   pollBallots     PollBallot[]
   pollTieChoices  PollTieResolution[] @relation("PollTieChosenBy")
+  feedbackCreated Feedback[]          @relation("FeedbackCreatedBy")
+  feedbackVotes   FeedbackVote[]
 
   @@map("users")
 }
@@ -605,4 +607,92 @@ model PollTieResolution {
   @@id([pollId, category])
   @@index([chosenOptionId])
   @@map("poll_tie_resolutions")
+}
+
+// ─── Feedback: bug reports and feature wishes (SPEC §9.9, §11, D-141 …) ─────
+//
+// App-wide, NOT club data (§3.3 exception): no clubId, every logged-in user
+// sees every report. The 👍 count is COMPUTED (§3.4): 1 (the author) + the
+// FeedbackVote rows, never stored. Only an app-admin (APP_ADMIN_EMAILS, D-142)
+// changes status, writes a response or marks a duplicate. CHECKs in the
+// migration (feedback_*_check, D-141).
+
+enum FeedbackType {
+  BUG
+  FEATURE
+
+  @@map("feedback_type")
+}
+
+enum FeedbackStatus {
+  NEW
+  PLANNED
+  IN_PROGRESS
+  DONE
+  WONT_DO
+  DUPLICATE
+
+  @@map("feedback_status")
+}
+
+/// One report (SPEC §9.9, D-141). title 3–120 and description 10–5000 after
+/// btrim (CHECKs); shown as plain text, line breaks kept. pagePath is the page
+/// a BUG came from with the club id removed (toFeedbackPagePath, E26, D-143).
+/// userAgent and viewportWidth are BUG-only (CHECK) and only ever selected for
+/// an app-admin (getFeedbackDetail, D-145). duplicateOfId only with status
+/// DUPLICATE (one-way CHECK: SET NULL when the original is deleted keeps the
+/// status). createdById SET NULL when the account is deleted: the report stays
+/// as "Tidligere bruger" (E27).
+model Feedback {
+  id            String         @id @default(uuid(7))
+  type          FeedbackType
+  /// 3–120 after btrim (CHECK), cleaned single line.
+  title         String
+  /// 10–5000 after btrim (CHECK), "\n" kept.
+  description   String         @db.Text
+  /// BUG only. Starts with "/", ≤ 200, no club id, query or hash (CHECK + D-143).
+  pagePath      String?        @map("page_path")
+  /// BUG only, ≤ 500 (CHECK). Read server-side from the request (D-145). App-admin only.
+  userAgent     String?        @map("user_agent")
+  /// BUG only, 1–20 000 (CHECK). App-admin only.
+  viewportWidth Int?           @map("viewport_width")
+  status        FeedbackStatus @default(NEW)
+  /// The app-admin's short answer, 1–2000 after btrim (CHECK).
+  adminResponse String?        @map("admin_response") @db.Text
+  /// The original report (status DUPLICATE only, never itself, CHECKs). Never a
+  /// chain: the original is never a DUPLICATE (moderateFeedback, D-145).
+  duplicateOfId String?        @map("duplicate_of_id")
+  duplicateOf   Feedback?      @relation("FeedbackDuplicateOf", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates    Feedback[]     @relation("FeedbackDuplicateOf")
+  /// Null after the author's account is deleted ("Tidligere bruger", E27).
+  createdById   String?        @map("created_by_id")
+  createdBy     User?          @relation("FeedbackCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  votes FeedbackVote[]
+
+  /// The list's status filter + newest first, and the agent script.
+  @@index([status, createdAt])
+  /// "Mine rapporter".
+  @@index([createdById])
+  /// SET NULL when an original is deleted.
+  @@index([duplicateOfId])
+  @@map("feedback")
+}
+
+/// One 👍 (SPEC §9.9). One per user per report (PK). "Not on your own report"
+/// is an app rule, enforced in SQL by the insert itself (setFeedbackVote:
+/// INSERT … SELECT … WHERE created_by_id IS DISTINCT FROM the voter, D-145),
+/// not by a constraint. Deleting the account deletes its votes (E27).
+model FeedbackVote {
+  feedbackId String   @map("feedback_id")
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([feedbackId, userId])
+  @@index([userId])
+  @@map("feedback_votes")
 }

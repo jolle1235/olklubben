@@ -21,3 +21,8 @@ export const isGoogleConfigured = parsed.isGoogleConfigured;
 export const isSmtpConfigured = parsed.isSmtpConfigured;
 /** Rate limiting is off (RATE_LIMIT_DISABLED, never in production). */
 export const isRateLimitDisabled = parsed.isRateLimitDisabled;
+/**
+ * The app-admins' emails (APP_ADMIN_EMAILS, lowercase, D-142). Use
+ * isAppAdmin(user.email, appAdminEmails) from src/server/domain/feedback/app-admin.ts.
+ */
+export const appAdminEmails = parsed.appAdminEmails;

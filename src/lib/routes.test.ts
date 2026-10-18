@@ -7,12 +7,16 @@ import {
   editBeerHref,
   editClubHref,
   editEventHref,
+  editFeedbackHref,
   editPlaceHref,
   editPollHref,
   eventHref,
+  feedbackHref,
+  feedbackListHref,
   mapsSearchUrl,
   newBeerHref,
   newEventHref,
+  newFeedbackHref,
   newPlaceHref,
   newPollHref,
   overviewHref,
@@ -102,5 +106,35 @@ describe("mapsSearchUrl (SPEC §9.2 'Åbn i kort')", () => {
   it("gives null for an empty place", () => {
     expect(mapsSearchUrl("")).toBeNull();
     expect(mapsSearchUrl("   ")).toBeNull();
+  });
+});
+
+describe("feedback routes (SPEC §9.9, D-143)", () => {
+  const FEEDBACK = "0199a000-0000-7000-8000-00000000f001";
+
+  it("builds the list with its filters, defaults left out", () => {
+    expect(feedbackListHref()).toBe("/feedback");
+    expect(feedbackListHref({ status: "open", sort: "votes" })).toBe("/feedback");
+    expect(feedbackListHref({ type: "bug", mine: true })).toBe("/feedback?type=bug&mine=1");
+  });
+
+  it("builds a report and its edit page", () => {
+    expect(feedbackHref(FEEDBACK)).toBe(`/feedback/${FEEDBACK}`);
+    expect(editFeedbackHref(FEEDBACK)).toBe(`/feedback/${FEEDBACK}/edit`);
+  });
+
+  it("prefills the new report without ever putting the club id in the URL", () => {
+    expect(newFeedbackHref()).toBe("/feedback/new");
+    expect(newFeedbackHref({ type: "FEATURE" })).toBe("/feedback/new?type=feature");
+    const href = newFeedbackHref({ type: "BUG", page: `/c/${CLUB}/calendar?month=2026-10#x` });
+    expect(href).toBe("/feedback/new?type=bug&page=%2Fcalendar");
+    expect(href).not.toContain(CLUB);
+    expect(newFeedbackHref({ type: "BUG", page: `/c/${CLUB}` })).toBe(
+      "/feedback/new?type=bug&page=%2F",
+    );
+    expect(newFeedbackHref({ type: "BUG", page: "https://evil.example" })).toBe(
+      "/feedback/new?type=bug",
+    );
+    expect(newFeedbackHref({ page: null, type: null })).toBe("/feedback/new");
   });
 });

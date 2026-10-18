@@ -51,6 +51,8 @@ export const ACTION_ERROR_CODES = {
   USE_LEAVE: "USE_LEAVE",
   /** The typed club name does not match (§7.5). */
   NAME_MISMATCH: "NAME_MISMATCH",
+  /** A feedback report is no longer NEW, so its author can no longer change it (§9.9). */
+  FEEDBACK_LOCKED: "FEEDBACK_LOCKED",
 } as const;
 
 export const DEFAULT_ERROR_MESSAGES = {
@@ -104,9 +106,14 @@ export function unexpectedError(message: string = DEFAULT_ERROR_MESSAGES.UNEXPEC
   return fail(ACTION_ERROR_CODES.UNEXPECTED, message);
 }
 
-/** "1 sekund", "45 sekunder", "1 minut", "3 minutter" (rounded up to whole minutes from 60 s). */
+/**
+ * "1 sekund", "45 sekunder", "1 minut", "3 minutter" (rounded up to whole
+ * minutes from 60 s), and whole hours above one hour ("2 timer", "24 timer"),
+ * for day-long windows like the feedback limit.
+ */
 export function formatWait(seconds: number): string {
   if (seconds < 60) return seconds === 1 ? "1 sekund" : `${seconds} sekunder`;
+  if (seconds > 60 * 60) return `${Math.ceil(seconds / (60 * 60))} timer`;
   const minutes = Math.ceil(seconds / 60);
   return minutes === 1 ? "1 minut" : `${minutes} minutter`;
 }

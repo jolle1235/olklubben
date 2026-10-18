@@ -42,6 +42,11 @@ Appen bygges i fire runder (SPEC §16.3). Runde 1 ("Vi har en klub") er fundamen
 - **Steder:** et sted i en åben eller uafgjort afstemning kan hverken arkiveres eller slettes (E5). Et sted, der har været med i en afstemning, arkiveres i stedet for at blive slettet.
 - **Daglig lukning:** Vercel Cron kalder `/api/cron/close-polls` hver nat (se "Afstemninger og cron" nedenfor). Overblik, Kalender og afstemningssiden lukker også selv en afstemning, der er klar til det.
 
+**Feedback** (fejl og ønsker, SPEC §9.9; serveren er bygget, siderne under `/feedback` følger)
+
+- Alle logget-ind brugere kan rapportere en fejl 🐞 eller foreslå en idé 💡 (titel 3–120 tegn, beskrivelse 10–5000), se alle rapporter og give 👍 (ikke på sin egen: den tæller allerede som 1). Rapporterne er fælles for hele appen, ikke for en klub, så siden en fejl kom fra gemmes uden klub-id (`/c/<id>/calendar` → `/calendar`), og browser og skærmbredde ses kun af app-admins.
+- Den, der skrev rapporten, kan rette og slette den, så længe den er "Ny". App-admins (`APP_ADMIN_EMAILS`, uafhængigt af klubroller) sætter status (Ny, Planlagt, I gang, Færdig ✓, Afvist, Dublet), skriver et kort svar og markerer dubletter. Højst 10 rapporter pr. bruger pr. døgn. AI-agenten læser de åbne rapporter med `npm run feedback:list` (se "Feedback og app-admin").
+
 Klubbens data er adskilt: en side eller handling i en klub, du ikke er medlem af, giver altid 404 (SPEC §4.4). Det samme gælder events, øl og steder fra en anden klub, også i databasen (sammensatte fremmednøgler, D-096).
 
 ## Stack
@@ -89,7 +94,7 @@ npm run dev                    # http://localhost:3000
 
 Alle værktøjer læser filerne med samme prioritet som Next.js (`@next/env`): Prisma CLI via `prisma.config.ts`, og egne `tsx`-scripts ved at importere `scripts/load-env.ts` først. Med `NODE_ENV=test` læses `.env.test`, og `.env.local` ignoreres. Variabler sat i shell eller CI vinder altid over filerne.
 
-Appen validerer miljøet med Zod i `src/env.ts`. Mangler `DATABASE_URL`, `BETTER_AUTH_SECRET` eller `BETTER_AUTH_URL`, stopper den med en fejl, der nævner variablen. Google-login og SMTP er valgfrie og slås kun til, når alle deres variabler er sat. `CRON_SECRET` (mindst 16 tegn) er valgfri lokalt; uden den svarer cron-ruten 503 (se "Afstemninger og cron").
+Appen validerer miljøet med Zod i `src/env.ts`. Mangler `DATABASE_URL`, `BETTER_AUTH_SECRET` eller `BETTER_AUTH_URL`, stopper den med en fejl, der nævner variablen. Google-login og SMTP er valgfrie og slås kun til, når alle deres variabler er sat. `CRON_SECRET` (mindst 16 tegn) er valgfri lokalt; uden den svarer cron-ruten 503 (se "Afstemninger og cron"). `APP_ADMIN_EMAILS` er en kommasepareret liste over app-admins til feedback (store/små bogstaver og mellemrum er ligegyldige). En post, der ikke er en email, stopper appen ved opstart (`APP_ADMIN_EMAILS: «foo» er ikke en gyldig email`), og i produktion advarer loggen, når listen er tom. **Opret først kontoen, og sæt den derefter i listen**: oprettelse verificerer ikke emails (D-029), så en adresse på listen, der endnu ikke har en konto, kan registreres af hvem som helst. Lokalt: `APP_ADMIN_EMAILS="jesper@example.com"` i `.env.local`, så er seed-brugeren Jesper app-admin.
 
 ## Testbrugere
 
@@ -100,6 +105,8 @@ Appen validerer miljøet med Zod i `src/env.ts`. Mangler `DATABASE_URL`, `BETTER
 | `jesper@example.com` | `olklubben123` | Jesper Thomsen (**Kaptajnen**) | Drengene & Bajere (**Admin**), Torsdagsklubben (Medlem) | Drengene & Bajere (sidst aktive klub) |
 | `mads@example.com`   | `olklubben123` | Mads                           | Drengene & Bajere (Medlem), Torsdagsklubben (**Admin**) | Klubvælgeren (`/clubs`)               |
 | `anders@example.com` | `olklubben123` | Anders                         | Drengene & Bajere (Medlem)                              | Drengene & Bajere (eneste klub)       |
+
+Med `APP_ADMIN_EMAILS="jesper@example.com"` i `.env.local` (se `.env.example`) er Jesper også **app-admin** for feedback: han kan ændre status, svare og markere dubletter og ser den tekniske info. Mads og Anders er almindelige brugere, også i Torsdagsklubben, hvor Mads er klub-admin.
 
 Jesper vises overalt som **Kaptajnen**. Kun medlemslisten og hans profil viser også det rigtige navn: "Kaptajnen (Jesper Thomsen)" (D-105). Seed nulstiller navne og kælenavne ved hver kørsel.
 
@@ -141,13 +148,22 @@ Mads lander kun i klubvælgeren, så længe han ikke har åbnet en klub (åbner 
 | Drengene & Bajere | **Ølsmagning #13** · tema "Tyske øl"                  | **Afgjort** (alle havde stemt) og har oprettet eventet Ølsmagning #13, der viser "Valgt ved afstemning 🗳".                                                                                                                                |
 | Torsdagsklubben   | **Juletorsdag** · oprettet af Mads                    | **Uafgjort** om stedet (Bodegaen på hjørnet og Mads' kælder har 1 stemme hver; datoen er afgjort). Mads er admin og kan vælge vinderen; Jesper ser, at Mads eller en admin vælger.                                                        |
 
+**Feedback (§9.9).** Fire opdigtede rapporter, oprettet én gang og aldrig overskrevet (ændrer du dem i appen, bliver ændringen stående). 👍-tallet er 1 (den, der skrev den) + stemmerne.
+
+| Rapport                                    | Type     | Status   | Skrevet af | 👍  | Bemærkning                                                          |
+| ------------------------------------------ | -------- | -------- | ---------- | --- | ------------------------------------------------------------------- |
+| **Kalenderen viser forkert dato på mobil** | 🐞 Fejl  | Ny       | Mads       | 3   | Side `/calendar`, iPhone-browser og 390 px (kun app-admins ser dem) |
+| **Mørkt tema**                             | 💡 Ønske | Planlagt | Anders     | 2   | Med svar fra app-admin                                              |
+| **Sangbogen i appen**                      | 💡 Ønske | Færdig ✓ | Kaptajnen  | 1   | Lukket, vises under "Lukkede"                                       |
+| **Forkert dag i kalenderen**               | 🐞 Fejl  | Dublet   | Anders     | 1   | Dublet af den første rapport                                        |
+
 ### Email og "Glemt password" lokalt
 
 Uden SMTP-opsætning skrives alle mails som JSON til `.dev-outbox/` (D-024), og terminalen viser en linje med linket. Mappen kan flyttes med `DEV_OUTBOX_DIR`. I produktion uden SMTP sendes ingen mails, og "Glemt password" henviser til en admin, der kan lave et nulstillingslink fra klubbens medlemsliste. Linket kan kun laves til medlemmer, hvis klubber alle administreres af den admin, og aldrig til konti med Google-login (SPEC §6.4). Et nyt link ugyldiggør det forrige.
 
 ### Rate limiting
 
-Login, signup, "Glemt password", join-med-kode og opslag af invitationskoder er rate-limited i databasen (`app_rate_limits` og Better Auths `rate_limits`). Login er fx højst 10 forsøg pr. email pr. 15 minutter. Rammer du grænsen lokalt ("Rolig nu 🍺"), så vent, eller sæt `RATE_LIMIT_DISABLED=1` i `.env.local` og genstart `npm run dev`. E2E-tests opretter mange brugere fra samme IP, så `.env.test` sætter flaget. Det virker kun uden for produktion.
+Login, signup, "Glemt password", join-med-kode og opslag af invitationskoder er rate-limited i databasen (`app_rate_limits` og Better Auths `rate_limits`). Det samme gælder feedback: højst 10 nye rapporter pr. bruger pr. døgn (`feedback:create:user:<id>`); 👍 og rettelser er ikke begrænset. Login er fx højst 10 forsøg pr. email pr. 15 minutter. Rammer du grænsen lokalt ("Rolig nu 🍺"), så vent, eller sæt `RATE_LIMIT_DISABLED=1` i `.env.local` og genstart `npm run dev`. E2E-tests opretter mange brugere fra samme IP, så `.env.test` sætter flaget. Det virker kun uden for produktion.
 
 ## Scripts
 
@@ -168,6 +184,7 @@ Login, signup, "Glemt password", join-med-kode og opslag af invitationskoder er 
 | `npm run db:reset`                | Slet og genopbyg udviklingsdatabasen (spørger først)                       |
 | `npm run db:studio`               | Prisma Studio                                                              |
 | `npm run songbook:import`         | Læs/importér sangbogens PDF'er (se "Importér sangbogen")                   |
+| `npm run feedback:list`           | Vis åbne feedback-rapporter, flest 👍 først (se "Feedback og app-admin")   |
 | `npm run format` / `format:check` | Prettier (inkl. sortering af Tailwind-klasser)                             |
 
 `npm run build` kører `prisma migrate deploy` mod databasen i `.env.local`. Stop `npm run dev` først, da begge bruger `.next/`. Slet `.next/dev`, før du starter `npm run dev` igen efter et build, ellers kan siderne genindlæse i en løkke (`HMR hash mismatch`, SPEC F-013).
@@ -224,6 +241,28 @@ DATABASE_URL="<Neon unpooled URL>" npm run songbook:import -- --user <din email>
 DATABASE_URL="<Neon unpooled URL>" npm run songbook:import -- --user <din email> --club <klub-id i produktion> --apply --remote
 ```
 
+## Feedback og app-admin
+
+Feedback (SPEC §9.9) er appens egen backlog fra brugerne: fælles for alle, ikke klubdata. App-admins styres alene af `APP_ADMIN_EMAILS` (D-142); der er ingen UI til at uddele rollen, og en klub-admin er ikke automatisk app-admin.
+
+`scripts/list-feedback.ts` udskriver de **åbne** rapporter (Ny, Planlagt, I gang), flest 👍 først, så AI-agenten (eller du) kan læse dem uden at gå gennem appen. Scriptet læser kun (ingen skrivninger), viser altid målet først (`Mål: postgresql://***@host/db`) og viser forfatteren som visningsnavn, aldrig email.
+
+```bash
+npm run feedback:list                              # lokal database (.env.local)
+npm run feedback:list -- --type bug --limit 20     # kun fejl, højst 20
+npm run feedback:list -- --json                    # JSON (målet skrives til stderr)
+npm run feedback:list -- --with-tech               # med browser og skærmbredde
+npm run feedback:list -- --help                    # alle indstillinger
+```
+
+En database, der ikke ligger på denne maskine, kræver `--remote` (ingen TTY-bekræftelse, fordi scriptet ikke skriver, D-146). Produktion:
+
+```bash
+DATABASE_URL="<Neon URL>" npm run feedback:list -- --remote
+```
+
+Exit-koder: 0 OK, 1 fejl, 2 forkerte argumenter eller sikkerhedsstop (fx en fjern database uden `--remote`, eller på Vercel). Når en rapport er rettet, nævnes dens id i fejlloggen (SPEC §19.4), og app-admin sætter status til _Færdig_.
+
 ## Ruter under `/c/[clubId]` og indlæsning
 
 Next.js sender svaret med HTTP 200, så snart en `loading.tsx` (skeleton) vises. Kalder siden derefter `notFound()`, bliver det en "blød" 404 (SPEC TG-008). Derfor:
@@ -260,7 +299,7 @@ Reglerne står også i `src/app/c/[clubId]/layout.tsx`.
 
 **Unit (Vitest):** `npm test`. Filer hedder `src/**/*.test.ts` og kører i Node. Domænelogik testes uden database (SPEC §4.2, §15.3). Moduler, der importerer `server-only`, kan godt testes.
 
-**Integration (Vitest):** `npm run test:integration`. Filer hedder `tests/integration/**/*.itest.ts` og kalder de rigtige Server Actions, Better Auth og rate limiteren mod Postgres (SPEC §15.3), fx at ikke-medlemmer får 404, at kun admins kan lave en ny kode eller et nulstillingslink, og at join med en ukendt, tilbagekaldt eller udløbet kode giver E18. Runde 2: `events-beers.itest.ts` tester datalaget (klub-scoping, kommende/igangværende events, gennemsnit, E13, E14, CHECK-constraints), og `round2-actions.itest.ts` tester Server Actions for events, øl og ratings (ikke-medlem og anden klubs id → 404, kun opretter, vært eller admin må rette/slette, dublet-advarsel, event fra en anden klub, ratingværdier, redirects med toast). Runde 3: `round3-migration.itest.ts` kører migreringen på en midlertidig database med svære fixtures, `round3-data.itest.ts` tester datalaget (sammensatte FK'er, CHECKs, låse og samtidighed i løkker, `endMembership`, `deleteClub`, steder og værter), og `round3-events`, `round3-places`, `round3-members` og `round3-profile` tester runde 3's Server Actions (værter, steder fra andre klubber, navnedubletter, sidste admin, forlad og slet, kælenavn, skift password og rate limit). Runde 4: `round4-polls-data.itest.ts` tester afstemningernes datalag (CHECKs og sammensatte FK'er, én stemme på sted pr. stemmeseddel, lukning med event i samme transaction, idempotent lukning, E5, `endMembership`, `deleteClub` og 11 samtidighedsløkker, fx at to samtidige lukninger kun giver ét event), `round4-poll-actions.itest.ts` opret, ret og stem (404, rettigheder, frist og datoer, ufuldstændige og forfalskede stemmesedler, stemme efter fristen), og `round4-poll-lifecycle.itest.ts` afslut, annullér, vælg vinder, Overblikkets og Kalenderens forespørgsler og cron-ruten (503 uden `CRON_SECRET`, 401, 200).
+**Integration (Vitest):** `npm run test:integration`. Filer hedder `tests/integration/**/*.itest.ts` og kalder de rigtige Server Actions, Better Auth og rate limiteren mod Postgres (SPEC §15.3), fx at ikke-medlemmer får 404, at kun admins kan lave en ny kode eller et nulstillingslink, og at join med en ukendt, tilbagekaldt eller udløbet kode giver E18. Runde 2: `events-beers.itest.ts` tester datalaget (klub-scoping, kommende/igangværende events, gennemsnit, E13, E14, CHECK-constraints), og `round2-actions.itest.ts` tester Server Actions for events, øl og ratings (ikke-medlem og anden klubs id → 404, kun opretter, vært eller admin må rette/slette, dublet-advarsel, event fra en anden klub, ratingværdier, redirects med toast). Runde 3: `round3-migration.itest.ts` kører migreringen på en midlertidig database med svære fixtures, `round3-data.itest.ts` tester datalaget (sammensatte FK'er, CHECKs, låse og samtidighed i løkker, `endMembership`, `deleteClub`, steder og værter), og `round3-events`, `round3-places`, `round3-members` og `round3-profile` tester runde 3's Server Actions (værter, steder fra andre klubber, navnedubletter, sidste admin, forlad og slet, kælenavn, skift password og rate limit). Runde 4: `round4-polls-data.itest.ts` tester afstemningernes datalag (CHECKs og sammensatte FK'er, én stemme på sted pr. stemmeseddel, lukning med event i samme transaction, idempotent lukning, E5, `endMembership`, `deleteClub` og 11 samtidighedsløkker, fx at to samtidige lukninger kun giver ét event), `round4-poll-actions.itest.ts` opret, ret og stem (404, rettigheder, frist og datoer, ufuldstændige og forfalskede stemmesedler, stemme efter fristen), og `round4-poll-lifecycle.itest.ts` afslut, annullér, vælg vinder, Overblikkets og Kalenderens forespørgsler og cron-ruten (503 uden `CRON_SECRET`, 401, 200). Feedback: `feedback.itest.ts` tester, at kun app-admin (ikke en klub-admin og ikke den, der skrev rapporten) kan ændre status og se teknisk info, 👍 (aldrig på egen rapport, idempotent, 1 + stemmer), ret/slet kun mens rapporten er ny, dublet-reglerne (E28), at klub-id'et fjernes fra siden (E26), grænsen på 10 rapporter i døgnet, 404, logget ud, en bruger uden klubber, en slettet forfatter (E27) og CHECKs. Testene sætter deres egen app-admin ved at mocke `appAdminEmails` fra `@/env`.
 
 - Testene bruger deres egen database, **`olklubben_itest`**, på samme server som `.env.test`'s `DATABASE_URL` (eller `ITEST_DATABASE_URL`, hvis den er sat). Konfigurationen nægter at køre mod en database, hvis navn ikke ender på `_itest`, så hverken udviklings- eller E2E-databasen bliver rørt, og E2E og integrationstests kan køre samtidig.
 - Før hver kørsel oprettes databasen, hvis den mangler, migrations anvendes (`prisma migrate deploy`), og alle tabeller tømmes. Efter kørslen tømmes de igen (`tests/integration/global-setup.ts`). Må din Postgres-bruger ikke oprette databaser, så opret den selv én gang (som i lokal opsætning, trin 3).
@@ -383,6 +422,7 @@ Se SPEC §4.8 for baggrunden. Tjekliste:
   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (valgfrit, se ovenfor).
   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` (valgfrit, se ovenfor).
   - `CRON_SECRET` (Production): `openssl rand -hex 32`. Vercel Cron sender den som Bearer-token (se "Afstemninger og cron").
+  - `APP_ADMIN_EMAILS` (Production og Preview): din email (kommasepareret, hvis I er flere). **Opret først din konto i appen**, og sæt så variablen og redeploy: en adresse på listen uden konto kan registreres af hvem som helst (D-029). Tom = ingen kan ændre feedback-status (loggen advarer ved opstart).
   - Sæt **aldrig** `RATE_LIMIT_DISABLED` eller `DEV_OUTBOX_DIR` (de ignoreres i produktion).
 - [ ] **Migrations:** `npm run build` kører `prisma migrate deploy` ved hvert deploy mod `DATABASE_URL_UNPOOLED` (lokalt `DIRECT_URL` eller `DATABASE_URL`), så schemaet altid matcher koden. Migrations skal være bagudkompatible. Previews migrerer kun deres egen Neon-branch, aldrig produktionsdata.
 - [ ] **Før deploy** (der er endnu ingen CI, og Vercels build type-checker, men linter og tester ikke):

@@ -44,6 +44,10 @@ export const FLASH_TOASTS = {
   "club-updated": "Gemt ✓",
   "club-left": "Du har forladt klubben.",
   "club-deleted": "Klubben er slettet.",
+  "feedback-created": "Tak! Din rapport er gemt 🍻",
+  "feedback-updated": "Gemt ✓",
+  "feedback-deleted": "Rapporten er slettet.",
+  "feedback-moderated": "Status er gemt ✓",
 } as const satisfies Record<string, string>;
 
 export type FlashToastKey = keyof typeof FLASH_TOASTS;

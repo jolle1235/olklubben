@@ -47,6 +47,16 @@ describe("flashToastMessage", () => {
     expect(withToast("/c/x/polls/y#stem", "vote-saved")).toBe("/c/x/polls/y?toast=vote-saved#stem");
   });
 
+  it("knows the feedback toasts (§9.9)", () => {
+    expect(flashToastMessage("feedback-created")).toBe("Tak! Din rapport er gemt 🍻");
+    expect(flashToastMessage("feedback-updated")).toBe("Gemt ✓");
+    expect(flashToastMessage("feedback-deleted")).toBe("Rapporten er slettet.");
+    expect(flashToastMessage("feedback-moderated")).toBe("Status er gemt ✓");
+    expect(withToast("/feedback?type=bug", "feedback-deleted")).toBe(
+      "/feedback?type=bug&toast=feedback-deleted",
+    );
+  });
+
   it("knows the round-3 toasts for places, profile and club", () => {
     for (const key of [
       "place-created",

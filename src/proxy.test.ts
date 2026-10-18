@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 
-import { isProtectedPath, RETURN_TO_HEADER } from "./lib/protected-paths";
-import { proxy } from "./proxy";
+import { isProtectedPath, PROTECTED_SECTIONS, RETURN_TO_HEADER } from "./lib/protected-paths";
+import { config, proxy } from "./proxy";
 
 const ORIGIN = "http://localhost:3000";
 const COOKIE = "better-auth.session_token=abc.def";
@@ -32,12 +32,20 @@ function forwardedHeaderNames(response: Response): string[] {
 }
 
 describe("isProtectedPath", () => {
-  it.each(["/", "/c", "/c/abc", "/c/abc/beers", "/onboarding", "/clubs", "/profile"])(
-    "protects %s",
-    (path) => {
-      expect(isProtectedPath(path)).toBe(true);
-    },
-  );
+  it.each([
+    "/",
+    "/c",
+    "/c/abc",
+    "/c/abc/beers",
+    "/onboarding",
+    "/clubs",
+    "/profile",
+    "/feedback",
+    "/feedback/x",
+    "/feedback/new",
+  ])("protects %s", (path) => {
+    expect(isProtectedPath(path)).toBe(true);
+  });
 
   it.each([
     "/join/K7XMQ2PA",
@@ -47,6 +55,7 @@ describe("isProtectedPath", () => {
     "/reset-password",
     "/api/auth/get-session",
     "/clubsx",
+    "/feedbackx",
     "/cafe",
     "/favicon.ico",
   ])("leaves %s alone", (path) => {
@@ -61,6 +70,26 @@ describe("proxy", () => {
     const location = new URL(redirectTarget(response) ?? "");
     expect(location.pathname).toBe("/login");
     expect(location.searchParams.get("next")).toBe("/c/abc/beers?sort=name");
+  });
+
+  it("keeps the feedback form's prefill through the login (§9.9)", () => {
+    const response = proxy(request("/feedback/new?type=bug&page=%2Fcalendar"));
+    expect(response.status).toBe(307);
+    const location = new URL(redirectTarget(response) ?? "");
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("next")).toBe("/feedback/new?type=bug&page=%2Fcalendar");
+
+    const unencoded = new URL(
+      redirectTarget(proxy(request("/feedback/new?type=bug&page=/calendar"))) ?? "",
+    );
+    expect(unencoded.searchParams.get("next")).toBe("/feedback/new?type=bug&page=/calendar");
+  });
+
+  it("matches /feedback in the proxy config (mirrors PROTECTED_SECTIONS)", () => {
+    expect(config.matcher).toContain("/feedback/:path*");
+    for (const section of PROTECTED_SECTIONS) {
+      expect(config.matcher).toContain(`${section}/:path*`);
+    }
   });
 
   it("sends / to /login without ?next=", () => {
