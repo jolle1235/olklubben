@@ -68,3 +68,64 @@ export function pollShape(options: readonly PollOptionRef[]): PollShape {
 export function hasSomethingToVoteOn(dateCount: number, placeCount: number): boolean {
   return dateCount >= 1 && placeCount >= 1 && (dateCount >= 2 || placeCount >= 2);
 }
+
+/** An option as stored: a date (startsAt) or a place (placeId). */
+export type StoredPollOption = {
+  id: string;
+  category: PollCategory;
+  startsAt: Date | null;
+  placeId: string | null;
+};
+
+export type PollOptionsDiff = {
+  /** Options that are no longer wanted. */
+  removedIds: string[];
+  /** Wanted dates without an option yet, in the given order. */
+  addedDates: Date[];
+  /** Wanted places without an option yet, in the given order. */
+  addedPlaceIds: string[];
+};
+
+/**
+ * What changes when a poll's options become exactly `dates` and `placeIds`
+ * (D-153, "Rediger" while nobody has voted): an option for the same instant or
+ * the same place is kept with its id, every other option is removed, and what
+ * is still missing is added. Repeated wishes count once.
+ */
+export function diffPollOptions(
+  current: readonly StoredPollOption[],
+  wanted: { dates: readonly Date[]; placeIds: readonly string[] },
+): PollOptionsDiff {
+  const wantedDates = new Set(wanted.dates.map((date) => date.getTime()));
+  const wantedPlaces = new Set(wanted.placeIds);
+  const keptDates = new Set<number>();
+  const keptPlaces = new Set<string>();
+  const removedIds: string[] = [];
+
+  for (const option of current) {
+    const time = option.category === "DATE" ? (option.startsAt?.getTime() ?? null) : null;
+    const placeId = option.category === "PLACE" ? option.placeId : null;
+    if (time !== null && wantedDates.has(time) && !keptDates.has(time)) {
+      keptDates.add(time);
+    } else if (placeId !== null && wantedPlaces.has(placeId) && !keptPlaces.has(placeId)) {
+      keptPlaces.add(placeId);
+    } else {
+      removedIds.push(option.id);
+    }
+  }
+
+  const addedDates: Date[] = [];
+  for (const date of wanted.dates) {
+    const time = date.getTime();
+    if (keptDates.has(time)) continue;
+    keptDates.add(time);
+    addedDates.push(new Date(time));
+  }
+  const addedPlaceIds: string[] = [];
+  for (const placeId of wanted.placeIds) {
+    if (keptPlaces.has(placeId)) continue;
+    keptPlaces.add(placeId);
+    addedPlaceIds.push(placeId);
+  }
+  return { removedIds, addedDates, addedPlaceIds };
+}

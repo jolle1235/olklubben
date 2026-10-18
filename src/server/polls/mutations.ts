@@ -12,6 +12,7 @@ import {
 import { shouldAutoClose } from "@/server/domain/polls/lifecycle";
 import {
   ACTIVE_POLL_STATUSES,
+  diffPollOptions,
   hasSomethingToVoteOn,
   isActivePollStatus,
   MAX_POLL_DATE_OPTIONS,
@@ -47,13 +48,14 @@ export type { PollOptionsData, PollPlacesInput };
 export { PlaceNotSelectableError };
 
 /**
- * Writes for polls (SPEC §9.7, D-129–D-134).
+ * Writes for polls (SPEC §9.7, D-129–D-134, D-153).
  *
  * Authorization is checked by the Server Actions first (membership with
  * requirePoll, the can* rules), and AGAIN here under lockPoll with the actor's
  * role read inside the transaction (an action's earlier check may be stale).
  * Results are unions, not exceptions – except PlaceNotSelectableError, which
- * createPoll throws like createEvent does (→ fieldErrors.placeIds). Prisma
+ * createPoll and updatePoll throw like createEvent does, so a just-created
+ * place is rolled back (→ fieldErrors.placeIds). Prisma
  * errors are never caught inside a transaction: every invariant is checked
  * under the locks first (src/server/db/locks.ts for the lock order).
  *
@@ -223,10 +225,60 @@ export type UpdatePollResult =
   | { status: "nothing-to-vote" };
 
 /**
- * "Rediger" (D-133, E24): title, theme, description and the deadline – which
- * may only move later and must stay before the first date. Options never
- * change; ballots are kept. A poll whose deadline has passed is closed here
- * (DEADLINE) and answers "closed".
+ * Makes the poll's options exactly these dates and places (D-153, diffPollOptions):
+ * removed options are deleted, new ones created with the poll's clubId, and
+ * unchanged ones keep their ids. Only under lockPoll with no ballot, so
+ * nothing points at an option yet (votes need a ballot, tie choices a close).
+ */
+async function replacePollOptionsTx(
+  tx: Tx,
+  input: { clubId: string; pollId: string; dateStartsAt: Date[]; placeIds: string[] },
+): Promise<void> {
+  const { clubId, pollId } = input;
+  const current = await tx.pollOption.findMany({
+    where: { pollId, clubId },
+    select: { id: true, category: true, startsAt: true, placeId: true },
+  });
+  const diff = diffPollOptions(current, { dates: input.dateStartsAt, placeIds: input.placeIds });
+  if (diff.removedIds.length > 0) {
+    await tx.pollOption.deleteMany({ where: { pollId, clubId, id: { in: diff.removedIds } } });
+  }
+  const added = [
+    ...diff.addedDates.map((startsAt) => ({
+      pollId,
+      clubId,
+      category: "DATE" as const,
+      startsAt,
+    })),
+    ...diff.addedPlaceIds.map((placeId) => ({
+      pollId,
+      clubId,
+      category: "PLACE" as const,
+      placeId,
+    })),
+  ];
+  if (added.length > 0) await tx.pollOption.createMany({ data: added });
+}
+
+/**
+ * "Rediger" (D-133, D-153, E24). One transaction under lockPoll:
+ *   1. not OPEN → closed; deadline passed → closed here (DEADLINE) → closed;
+ *      not the creator (while a member) or an admin → forbidden;
+ *   2. options === null (the form showed them read-only): the deadline may
+ *      only move later and must stay before the current first date (E24);
+ *   3. new options: the poll must have NO ballot – a database count, so a
+ *      former member's ballot counts too – else options-locked and nothing is
+ *      written. Then create's rules against the NEW dates (checkPollTiming:
+ *      dates and deadline in the future, deadline before the first date;
+ *      nobody has voted, so the deadline may also move earlier), the places
+ *      (lockPollPlacesTx: name advisory → places FOR SHARE after the poll
+ *      lock, D-130; PlaceNotSelectableError is thrown and rolls a new place
+ *      back), ≤ 10 of each with something to vote on (else nothing-to-vote,
+ *      rolled back too), and replacePollOptionsTx;
+ *   4. title, theme, description and deadline.
+ * castBallot holds the same lock, so a first ballot and an option edit run
+ * one after the other: the edit sees the ballot (options-locked), or the
+ * ballot sees the new options (a stale form's ids → UNKNOWN_OPTION).
  */
 export async function updatePoll(input: {
   clubId: string;
@@ -237,43 +289,72 @@ export async function updatePoll(input: {
   theme: string | null;
   description: string | null;
   deadline: Date;
+  /** New dates and places (the edit form's editOptions), or null: unchanged. */
+  options: PollOptionsData | null;
 }): Promise<UpdatePollResult> {
-  const { clubId, pollId, actorUserId, now } = input;
-  return db.$transaction(async (tx) => {
-    const poll = await lockPoll(tx, clubId, pollId);
-    if (!poll) return { status: "not-found" };
-    if (poll.status !== "OPEN") return { status: "closed" };
-    if (now.getTime() >= poll.deadline.getTime()) {
-      await closeLockedPollTx(tx, poll, { clubId, reason: "DEADLINE", now, actorUserId: null });
-      return { status: "closed" };
-    }
-    if (!canEditPoll(await roleOf(tx, clubId, actorUserId), poll, actorUserId)) {
-      return { status: "forbidden" };
-    }
+  const { clubId, pollId, actorUserId, now, options } = input;
+  try {
+    return await db.$transaction(async (tx): Promise<UpdatePollResult> => {
+      const poll = await lockPoll(tx, clubId, pollId);
+      if (!poll) return { status: "not-found" };
+      if (poll.status !== "OPEN") return { status: "closed" };
+      if (now.getTime() >= poll.deadline.getTime()) {
+        await closeLockedPollTx(tx, poll, { clubId, reason: "DEADLINE", now, actorUserId: null });
+        return { status: "closed" };
+      }
+      if (!canEditPoll(await roleOf(tx, clubId, actorUserId), poll, actorUserId)) {
+        return { status: "forbidden" };
+      }
 
-    const dates = await tx.pollOption.findMany({
-      where: { pollId, category: "DATE" },
-      select: { startsAt: true },
-    });
-    const timing = checkPollTiming({
-      now,
-      deadline: input.deadline,
-      dateStartsAt: dates.flatMap((date) => (date.startsAt ? [date.startsAt] : [])),
-      previousDeadline: poll.deadline,
-    });
-    if (timing) return { status: "timing", error: timing };
+      if (options) {
+        if ((await tx.pollBallot.count({ where: { pollId } })) > 0) {
+          return { status: "options-locked" };
+        }
+        const dateStartsAt = distinctSorted(options.dateStartsAt);
+        if (dateStartsAt.length > MAX_POLL_DATE_OPTIONS) return { status: "nothing-to-vote" };
+        const timing = checkPollTiming({ now, deadline: input.deadline, dateStartsAt });
+        if (timing) return { status: "timing", error: timing };
 
-    await tx.poll.updateMany({
-      where: { id: pollId, clubId, status: "OPEN" },
-      data: {
-        title: input.title,
-        theme: input.theme,
-        description: input.description,
-        deadline: input.deadline,
-      },
+        const placeIds = await lockPollPlacesTx(tx, {
+          clubId,
+          actorUserId,
+          places: options.places,
+        });
+        if (!isVotable(dateStartsAt.length, placeIds.length)) {
+          throw new PollWriteRollback({ status: "nothing-to-vote" });
+        }
+        await replacePollOptionsTx(tx, { clubId, pollId, dateStartsAt, placeIds });
+      } else {
+        const dates = await tx.pollOption.findMany({
+          where: { pollId, clubId, category: "DATE" },
+          select: { startsAt: true },
+        });
+        const timing = checkPollTiming({
+          now,
+          deadline: input.deadline,
+          dateStartsAt: dates.flatMap((date) => (date.startsAt ? [date.startsAt] : [])),
+          previousDeadline: poll.deadline,
+        });
+        if (timing) return { status: "timing", error: timing };
+      }
+
+      await tx.poll.updateMany({
+        where: { id: pollId, clubId, status: "OPEN" },
+        data: {
+          title: input.title,
+          theme: input.theme,
+          description: input.description,
+          deadline: input.deadline,
+        },
+      });
+      return { status: "updated" };
     });
-    return { status: "updated" };
-  });
+  } catch (error) {
+    if (error instanceof PollWriteRollback && error.result.status === "nothing-to-vote") {
+      return { status: "nothing-to-vote" };
+    }
+    throw error;
+  }
 }
 
 export type CastBallotResult =

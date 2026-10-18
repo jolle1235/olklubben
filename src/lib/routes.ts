@@ -101,7 +101,7 @@ export function pollHref(clubId: string, pollId: string): string {
   return `/c/${clubId}/polls/${pollId}`;
 }
 
-/** "Rediger" (creator or admin, while OPEN, D-133). */
+/** "Rediger" (creator or admin, while OPEN, D-133; dates and places until the first vote, D-153). */
 export function editPollHref(clubId: string, pollId: string): string {
   return `${pollHref(clubId, pollId)}/edit`;
 }

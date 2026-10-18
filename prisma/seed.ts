@@ -45,11 +45,12 @@ import { cleanSongTitle, songTitleKey } from "../src/server/domain/songs/title";
  * stemme"), and a CLOSED poll that created "Ølsmagning #13" ("Valgt ved
  * afstemning 🗳"); Torsdagsklubben has an AWAITING_DECISION poll with a tie
  * about the place, which Mads (admin) can resolve. Poll rows are created once
- * and never overwritten: a poll that is no longer in its seeded state (voted
- * on, closed, resolved by hand) is left alone. The OPEN poll's deadline is
- * fixed at its first seed, so after ~10 days it closes lazily into an event
- * on the next Overblik/Kalender/poll view – expected in dev. Delete the poll
- * rows (or run against a fresh database) to get it back.
+ * and never overwritten: a poll that is no longer in its seeded state (closed
+ * or resolved by hand, or its dates and places edited, D-153) is left alone.
+ * The OPEN poll's deadline is fixed at its first seed, so after ~10 days it
+ * closes lazily into an event on the next Overblik/Kalender/poll view –
+ * expected in dev. Delete the poll rows (or run against a fresh database) to
+ * get it back.
  *
  * Feedback (§9.9, fixed ids …02f1–…02f4): four fictional reports, one per
  * kind – a NEW bug with a page and technical info, a PLANNED wish with an
@@ -695,6 +696,16 @@ async function seedPolls(
       select: { status: true },
     });
     if (existing && existing.status !== poll.status) continue;
+    if (existing && poll.status !== "CLOSED") {
+      // Dates and places edited since (D-153: possible while nobody has voted).
+      const stored = await db.pollOption.findMany({
+        where: { pollId: poll.id },
+        select: { id: true },
+      });
+      const seeded = new Set(poll.options.map((option) => option.id));
+      const same = stored.length === seeded.size && stored.every((option) => seeded.has(option.id));
+      if (!same) continue;
+    }
     if (!existing) {
       await db.poll.create({
         data: {
@@ -742,7 +753,7 @@ async function seedPolls(
       await db.pollOption.deleteMany({ where: { pollId: poll.id } });
       await db.pollOption.createMany({ data: optionRows });
     } else {
-      // Options never change after creation (D-133): only the missing ones are written.
+      // A new poll gets its options; an existing one has exactly these already (above).
       await db.pollOption.createMany({ data: optionRows, skipDuplicates: true });
     }
 

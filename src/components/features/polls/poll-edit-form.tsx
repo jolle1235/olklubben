@@ -9,40 +9,52 @@ import { useActionForm } from "@/components/features/forms/use-action-form";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
+import type { FieldErrors } from "@/lib/action-result";
 import { pollHref } from "@/lib/routes";
 import {
+  POLL_ARRAY_FIELDS,
   POLL_DESCRIPTION_MAX_LENGTH,
   POLL_THEME_MAX_LENGTH,
   POLL_TITLE_MAX_LENGTH,
   pollEditSchema,
 } from "@/lib/validation/poll";
-import { updatePollAction } from "@/server/actions/polls";
-import { utcToZonedParts } from "@/server/domain/events/time";
+import { updatePollAction, type PollEditFormValues } from "@/server/actions/polls";
+import { utcToZonedParts, type DateKey } from "@/server/domain/events/time";
+import type { PlaceOption } from "@/server/places/queries";
 import type { PollView } from "@/server/polls/queries";
 
 import { PollDeadlineField } from "./poll-deadline-field";
+import { PollEditPlan } from "./poll-edit-plan";
 import { pollDateLongLabel } from "./poll-labels";
 import { placeOptionLabel } from "./vote-form-model";
 
-export type PollEditFormProps = { clubId: string; view: PollView };
+export type PollEditFormProps = {
+  clubId: string;
+  view: PollView;
+  /** listPlaceOptions(clubId) while nobody has voted; [] once somebody has. */
+  places: PlaceOption[];
+  /** Today in Copenhagen: the date pickers' minimum. */
+  today: DateKey;
+};
 
 /**
- * "Rediger afstemning" (D-133, E24): Titel, Beskrivelse, Tema (valgfrit) and
- * Afstemningsfrist – which can only move later and must stay before the
- * first date (the server decides). The dates and places are shown read-only:
- * options never change after creation; wrong options → cancel and start a
- * new poll. Ballots are kept. Posts to updatePollAction. The page renders the
- * PageHeader and the Card.
+ * "Rediger afstemning" (D-133, D-153, E24): Titel, Beskrivelse, Tema
+ * (valgfrit), then
+ *   * while nobody has voted (view.ballotCount === 0, former members'
+ *     ballots included): the dates, start time and places as on create
+ *     (PollEditPlan) and the deadline;
+ *   * once somebody has: the dates and places read-only and a deadline that
+ *     can only move later (E24).
+ * Posts to updatePollAction, which decides under the poll lock. If a ballot
+ * arrives while the plan is open, the action answers with a form error and the
+ * page re-renders read-only. Ballots are kept. The page renders the PageHeader
+ * and the Card.
  */
-export function PollEditForm({ clubId, view }: PollEditFormProps) {
-  const { formProps, fieldErrors, formError, values } = useActionForm(updatePollAction, {
-    schema: pollEditSchema,
-  });
-  const stored = utcToZonedParts(view.deadline);
-  const [deadline, setDeadline] = useState({
-    date: values.deadlineDate ?? stored.date,
-    time: values.deadlineTime ?? stored.time,
-  });
+export function PollEditForm({ clubId, view, places, today }: PollEditFormProps) {
+  const { state, formProps, fieldErrors, formError, values, revalidate } = useActionForm(
+    updatePollAction,
+    { schema: pollEditSchema, arrayFields: POLL_ARRAY_FIELDS },
+  );
 
   return (
     <form {...formProps} className="grid gap-7">
@@ -82,6 +94,56 @@ export function PollEditForm({ clubId, view }: PollEditFormProps) {
         errors={fieldErrors.theme}
       />
 
+      {view.ballotCount === 0 ? (
+        <PollEditPlan
+          clubId={clubId}
+          view={view}
+          places={places}
+          today={today}
+          formRef={formProps.ref}
+          revalidate={revalidate}
+          echo={values}
+          errors={fieldErrors}
+          resetSignal={state}
+        />
+      ) : (
+        <FrozenPollPlan view={view} echo={values} errors={fieldErrors} />
+      )}
+
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
+        <SubmitButton size="lg" pendingLabel="Gemmer …">
+          Gem ændringer
+        </SubmitButton>
+        <Button asChild variant="ghost" size="lg">
+          <Link href={pollHref(clubId, view.id)}>Annuller</Link>
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Once somebody has voted (D-153): the dates and places as a list – wrong
+ * options mean cancelling and starting a new poll – and the deadline, which
+ * the server only lets move later (E24).
+ */
+function FrozenPollPlan({
+  view,
+  echo,
+  errors,
+}: {
+  view: PollView;
+  echo: Partial<PollEditFormValues>;
+  errors: FieldErrors;
+}) {
+  const stored = utcToZonedParts(view.deadline);
+  const [deadline, setDeadline] = useState({
+    date: echo.deadlineDate ?? stored.date,
+    time: echo.deadlineTime ?? stored.time,
+  });
+
+  return (
+    <>
       <section
         aria-labelledby="poll-edit-options-heading"
         className="grid grid-cols-1 gap-3 rounded-xl border-2 border-dashed border-harbor/40 bg-harbor-tint/40 px-4 py-4"
@@ -108,7 +170,8 @@ export function PollEditForm({ clubId, view }: PollEditFormProps) {
           ))}
         </ul>
         <p className="text-[0.95rem] text-slate">
-          Datoer og steder kan ikke ændres. Er de forkerte, så annullér afstemningen og start en ny.
+          Datoer og steder kan ikke ændres, når nogen har stemt. Er de forkerte, så annullér
+          afstemningen og start en ny.
         </p>
       </section>
 
@@ -116,17 +179,8 @@ export function PollEditForm({ clubId, view }: PollEditFormProps) {
         value={deadline}
         onChange={setDeadline}
         hint="Fristen kan kun rykkes senere."
-        errors={{ deadlineDate: fieldErrors.deadlineDate, deadlineTime: fieldErrors.deadlineTime }}
+        errors={{ deadlineDate: errors.deadlineDate, deadlineTime: errors.deadlineTime }}
       />
-
-      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
-        <SubmitButton size="lg" pendingLabel="Gemmer …">
-          Gem ændringer
-        </SubmitButton>
-        <Button asChild variant="ghost" size="lg">
-          <Link href={pollHref(clubId, view.id)}>Annuller</Link>
-        </Button>
-      </div>
-    </form>
+    </>
   );
 }

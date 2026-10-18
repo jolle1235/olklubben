@@ -15,6 +15,8 @@ import {
   initialDeadline,
   initialPlaceSelection,
   placeCount,
+  pollEditDefaults,
+  pollPlanStatus,
   pollSummary,
   removeDateLabel,
   removeDateRow,
@@ -135,6 +137,24 @@ describe("places", () => {
     });
   });
 
+  it("the edit form starts from the poll's places (D-153); the echo still wins", () => {
+    expect(
+      initialPlaceSelection({ placeIds: ["a", "b", "c"], current: ["c", "a", "archived"] }),
+    ).toEqual({ placeIds: ["c", "a"], newPlace: false });
+    // One current place among many: only that one, never the "exactly one" default.
+    expect(initialPlaceSelection({ placeIds: ["a", "b"], current: ["b"] })).toEqual({
+      placeIds: ["b"],
+      newPlace: false,
+    });
+    expect(
+      initialPlaceSelection({
+        placeIds: ["a", "b"],
+        current: ["a", "b"],
+        echo: { placeIds: ["b"], newPlace: "" },
+      }),
+    ).toEqual({ placeIds: ["b"], newPlace: false });
+  });
+
   it("toggle and count", () => {
     expect(togglePlace(["a"], "b", true)).toEqual(["a", "b"]);
     expect(togglePlace(["a", "b"], "a", false)).toEqual(["b"]);
@@ -157,6 +177,21 @@ describe("deadline", () => {
       value: { date: "", time: "20:00" },
       touched: false,
     });
+  });
+
+  it("the edit form's stored deadline is pinned: it never follows the dates (D-153)", () => {
+    const stored = { date: "2026-11-12", time: "20:00" };
+    const start = initialDeadline({ suggested: stored, pinned: true });
+    expect(start).toEqual({ value: stored, touched: true });
+    expect(
+      followDeadline({
+        current: start.value,
+        touched: start.touched,
+        rows: rows("2026-12-05", "2026-12-12"),
+        startTime: "18:30",
+        now,
+      }),
+    ).toEqual(stored);
   });
 
   it("follows the first date until touched", () => {
@@ -227,5 +262,56 @@ describe("live hints", () => {
     );
     expect(pollSummary({ dateCount: 1, placeCount: 1, deadline })).toBeNull();
     expect(pollSummary({ dateCount: 0, placeCount: 3, deadline })).toBeNull();
+  });
+});
+
+describe("plan status", () => {
+  const deadline = { date: "2026-11-12", time: "20:00" };
+
+  it("hint, summary and the values for «opret et event i stedet»", () => {
+    expect(
+      pollPlanStatus({
+        rows: rows("2026-11-21", "2026-11-14", "x"),
+        selection: { placeIds: ["a", "b"], newPlace: false },
+        deadline,
+      }),
+    ).toEqual({
+      hint: null,
+      summary: "Klubben stemmer om 2 datoer og 2 steder · frist torsdag 12. november kl. 20:00.",
+      firstDate: "2026-11-14",
+      onlyPlace: null,
+    });
+    expect(
+      pollPlanStatus({
+        rows: rows("2026-11-14"),
+        selection: { placeIds: ["a"], newPlace: false },
+        deadline: { date: "", time: "20:00" },
+      }),
+    ).toEqual({ hint: "nothing-to-vote", summary: null, firstDate: "2026-11-14", onlyPlace: "a" });
+    expect(
+      pollPlanStatus({ rows: rows(""), selection: { placeIds: ["a"], newPlace: true }, deadline }),
+    ).toMatchObject({ hint: null, firstDate: null, onlyPlace: null });
+  });
+});
+
+describe("edit defaults (D-153)", () => {
+  it("Copenhagen days, the shared start time on both sides of the DST change, and the deadline", () => {
+    expect(
+      pollEditDefaults({
+        // 18:30 in summer time (UTC+2) and in winter time (UTC+1).
+        dates: [new Date("2026-10-24T16:30:00.000Z"), new Date("2026-10-31T17:30:00.000Z")],
+        deadline: new Date("2026-10-22T18:00:00.000Z"),
+      }),
+    ).toEqual({
+      dates: ["2026-10-24", "2026-10-31"],
+      startTime: "18:30",
+      deadline: { date: "2026-10-22", time: "20:00" },
+    });
+  });
+
+  it("falls back to 18:30 without dates (never stored)", () => {
+    expect(
+      pollEditDefaults({ dates: [], deadline: new Date("2026-11-12T19:00:00.000Z") }).startTime,
+    ).toBe("18:30");
   });
 });

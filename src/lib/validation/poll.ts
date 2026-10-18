@@ -138,6 +138,10 @@ const DEADLINE_TIME_INVALID = "Skriv tiden som tt:mm, fx 20:00.";
 export const NOTHING_TO_VOTE_MESSAGE =
   "Tilføj mindst to datoer eller to steder, så der er noget at stemme om. Ligger alt fast, så opret et event i stedet.";
 
+/** updatePoll's options-locked (D-153): the first ballot came between loading and saving the form. */
+export const POLL_OPTIONS_LOCKED_MESSAGE =
+  "Nogen har stemt i mellemtiden, så datoer og steder kan ikke længere ændres. Intet er gemt.";
+
 /** createPoll's and updatePoll's PlaceNotSelectableError, on placeIds. */
 export const POLL_PLACE_ERROR_MESSAGES = {
   NOT_FOUND: "Et af stederne findes ikke længere. Vælg igen.",

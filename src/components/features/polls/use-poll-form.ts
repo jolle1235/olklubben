@@ -31,14 +31,21 @@ export type UsePollFormInput = {
   today: DateKey;
   /** What a failed submit sent (useActionForm's values). */
   echo: Partial<PollFormValues>;
+  /**
+   * "Rediger" while nobody has voted (D-153): the poll's current places start
+   * ticked, and the stored deadline never follows the dates. `defaults` then
+   * holds the poll's own dates, start time and deadline (pollEditDefaults).
+   */
+  editing?: { placeIds: readonly string[] } | null;
 };
 
 /**
  * The poll form's state (SPEC §9.7.1, D-135): the date rows, the shared start
  * time, the ticked places and "＋ Nyt sted", and the deadline – which follows
- * the first date (suggestDeadline) until the member touches it. Starts from
- * the echo of a failed submit, else the page's suggestions. The rules are the
- * pure functions in poll-form-state.ts.
+ * the first date (suggestDeadline) until the member touches it (never while
+ * editing). Starts from the echo of a failed submit, else the page's
+ * suggestions or the poll's own options. The rules are the pure functions in
+ * poll-form-state.ts.
  */
 export function usePollForm({
   formRef,
@@ -47,6 +54,7 @@ export function usePollForm({
   defaults,
   today,
   echo,
+  editing = null,
 }: UsePollFormInput) {
   const echoed = echo.placeIds !== undefined || echo.dates !== undefined;
   const [rows, setRows] = useState<DateRow[]>(() =>
@@ -57,6 +65,7 @@ export function usePollForm({
     initialPlaceSelection({
       placeIds: places.map((place) => place.id),
       echo: echoed ? { placeIds: echo.placeIds, newPlace: echo.newPlace ?? "" } : null,
+      current: editing?.placeIds ?? null,
     }),
   );
   const [newPlaceName, setNewPlaceName] = useState(echo.newPlaceName ?? "");
@@ -64,6 +73,7 @@ export function usePollForm({
     initialDeadline({
       echoed: echoed ? { date: echo.deadlineDate, time: echo.deadlineTime } : null,
       suggested: defaults.deadline,
+      pinned: editing !== null,
     }),
   );
   const keySequence = useRef(0);
@@ -193,3 +203,6 @@ export function usePollForm({
     },
   };
 }
+
+/** What usePollForm hands the form's fields (PollPlanFields). */
+export type PollFormController = ReturnType<typeof usePollForm>;

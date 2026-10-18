@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ACTION_ERROR_CODES } from "@/lib/action-result";
+import { NOTHING_TO_VOTE_MESSAGE, POLL_OPTIONS_LOCKED_MESSAGE } from "@/lib/validation/poll";
 import { castBallotAction, createPollAction, updatePollAction } from "@/server/actions/polls";
 import { db } from "@/server/db";
 import { utcToZonedParts } from "@/server/domain/events/time";
@@ -93,6 +94,30 @@ function editFields(pollId: string, overrides: Record<string, string> = {}) {
     deadlineTime: "20:00",
     ...overrides,
   };
+}
+
+/** The edit form while nobody has voted (D-153): the texts plus the options, like create. */
+function editOptionsFields(pollId: string, overrides: Record<string, string | string[]> = {}) {
+  return {
+    ...editFields(pollId),
+    editOptions: "1",
+    dates: [dayOf(inDays(20)), dayOf(inDays(34))],
+    startTime: "19:00",
+    placeIds: [baren],
+    newPlace: "on",
+    newPlaceName: "Kolonihaven P1",
+    newPlaceAddress: "",
+    ...overrides,
+  };
+}
+
+async function optionsOf(pollId: string) {
+  const rows = await db.pollOption.findMany({
+    where: { pollId },
+    select: { id: true, clubId: true, category: true, startsAt: true, placeId: true },
+    orderBy: { id: "asc" },
+  });
+  return rows;
 }
 
 const pollUrl = (pollId: string, toast: string) =>
@@ -683,5 +708,175 @@ describe("updatePollAction", () => {
       updatePollAction(null, formData(editFields(pollId))),
       pollUrl(pollId, "poll-updated"),
     );
+  });
+});
+
+describe("updatePollAction with dates and places (D-153)", () => {
+  it("nobody has voted: new dates, start time and places → poll-updated", async () => {
+    const { pollId } = await openPoll(mads);
+    setActor(mads);
+    await expectRedirect(
+      updatePollAction(null, formData(editOptionsFields(pollId, { title: "Ny plan P1" }))),
+      pollUrl(pollId, "poll-updated"),
+    );
+    const options = await optionsOf(pollId);
+    const dates = options.filter((o) => o.category === "DATE");
+    expect(dates.map((o) => dayOf(o.startsAt as Date)).sort()).toEqual(
+      [dayOf(inDays(20)), dayOf(inDays(34))].sort(),
+    );
+    for (const option of dates) expect(utcToZonedParts(option.startsAt as Date).time).toBe("19:00");
+    const kolonihaven = await db.place.findFirstOrThrow({
+      where: { clubId, name: "Kolonihaven P1" },
+      select: { id: true, createdById: true },
+    });
+    expect(kolonihaven.createdById).toBe(mads.id);
+    expect(
+      options
+        .filter((o) => o.category === "PLACE")
+        .map((o) => o.placeId)
+        .sort(),
+    ).toEqual([baren, kolonihaven.id].sort());
+    expect(options.every((o) => o.clubId === clubId)).toBe(true);
+    expect((await db.poll.findUniqueOrThrow({ where: { id: pollId } })).title).toBe("Ny plan P1");
+  });
+
+  it("nobody has voted: the deadline may move earlier; with a vote it may not", async () => {
+    const { pollId } = await openPoll(admin, inDays(10));
+    setActor(admin);
+    await expectRedirect(
+      updatePollAction(
+        null,
+        formData(
+          editOptionsFields(pollId, {
+            deadlineDate: dayOf(inDays(8)),
+            newPlace: "",
+            placeIds: [hosMads, baren],
+          }),
+        ),
+      ),
+      pollUrl(pollId, "poll-updated"),
+    );
+    expect(dayOf((await db.poll.findUniqueOrThrow({ where: { id: pollId } })).deadline)).toBe(
+      dayOf(inDays(8)),
+    );
+
+    const voted = await openPoll(admin, inDays(10));
+    await insertBallot({
+      pollId: voted.pollId,
+      userId: anders.id,
+      optionIds: [voted.dateOptionIds[0] ?? "", voted.placeOptionIds[0] ?? ""],
+    });
+    const shorter = failure(
+      await updatePollAction(
+        null,
+        formData(editFields(voted.pollId, { deadlineDate: dayOf(inDays(8)) })),
+      ),
+    );
+    expect(shorter.error.fieldErrors?.deadlineDate?.[0]).toMatch(/^Fristen kan kun rykkes senere/);
+  });
+
+  it("somebody voted in the meantime → CONFLICT, values echoed, nothing changed", async () => {
+    const { pollId, dateOptionIds, placeOptionIds } = await openPoll(mads);
+    await insertBallot({
+      pollId,
+      userId: anders.id,
+      optionIds: [dateOptionIds[0] ?? "", placeOptionIds[0] ?? ""],
+    });
+    const before = await optionsOf(pollId);
+    const places = await db.place.count({ where: { clubId } });
+    setActor(mads);
+    const result = failure(
+      await updatePollAction(null, formData(editOptionsFields(pollId, { title: "Ikke gemt" }))),
+    );
+    expect(result.error).toEqual({
+      code: ACTION_ERROR_CODES.CONFLICT,
+      message: POLL_OPTIONS_LOCKED_MESSAGE,
+    });
+    expect(result.values).toMatchObject({
+      title: "Ikke gemt",
+      editOptions: "1",
+      dates: [dayOf(inDays(20)), dayOf(inDays(34))],
+      placeIds: [baren],
+      newPlaceName: "Kolonihaven P1",
+    });
+    expect(await optionsOf(pollId)).toEqual(before);
+    expect(await db.place.count({ where: { clubId } })).toBe(places);
+    expect((await db.poll.findUniqueOrThrow({ where: { id: pollId } })).title).toBe(
+      "Ølsmagning til test",
+    );
+  });
+
+  it("maps the data layer's refusals to the fields, nothing changed", async () => {
+    const { pollId } = await openPoll(admin);
+    const before = await optionsOf(pollId);
+    setActor(admin);
+    // Every refused edit also ticks "＋ Nyt sted" «Aldrig P1», which must never be created.
+    const errorsOf = async (overrides: Record<string, string | string[]>) =>
+      failure(
+        await updatePollAction(
+          null,
+          formData(editOptionsFields(pollId, { newPlaceName: "Aldrig P1", ...overrides })),
+        ),
+      ).error.fieldErrors;
+
+    // "＋ Nyt sted" turns out to be the chosen place: one date and one place left.
+    expect(
+      await errorsOf({ dates: [dayOf(inDays(20))], placeIds: [hosMads], newPlaceName: "hos MADS" }),
+    ).toEqual({ dates: [NOTHING_TO_VOTE_MESSAGE] });
+    // The new place is created first and rolled back with the refusal.
+    expect(await errorsOf({ placeIds: [hosMads, naboensSted] })).toEqual({
+      placeIds: ["Et af stederne findes ikke længere. Vælg igen."],
+    });
+    expect(await errorsOf({ placeIds: [hosMads, arkiveret] })).toEqual({
+      placeIds: ["Et af stederne er arkiveret. Vælg et andet."],
+    });
+    expect(
+      await errorsOf({
+        dates: [dayOf(inDays(-3)), dayOf(inDays(20))],
+        deadlineDate: dayOf(inDays(-5)),
+      }),
+    ).toEqual({ dates: ["Datoerne skal ligge i fremtiden."] });
+    expect(await errorsOf({ deadlineDate: dayOf(inDays(-1)) })).toEqual({
+      deadlineDate: ["Fristen skal ligge i fremtiden."],
+    });
+    // The schema already names the NEW first date.
+    expect((await errorsOf({ deadlineDate: dayOf(inDays(22)) }))?.deadlineDate?.[0]).toMatch(
+      /^Fristen skal ligge før den første dato \(.+ kl\. 19:00\)\.$/,
+    );
+    // editOptions without the option fields (a forged form) → the create form's messages.
+    expect(
+      await errorsOf({ dates: [], startTime: "", placeIds: [], newPlace: "", newPlaceName: "" }),
+    ).toEqual({
+      dates: ["Tilføj mindst én dato."],
+      startTime: ["Vælg et starttidspunkt."],
+    });
+
+    expect(await optionsOf(pollId)).toEqual(before);
+    expect(await db.place.count({ where: { clubId, name: "Aldrig P1" } })).toBe(0);
+  });
+
+  it("club isolation and permissions: another club's poll → 404, a plain member → FORBIDDEN", async () => {
+    const foreign = await insertPoll({
+      clubId: otherClubId,
+      createdById: outsider.id,
+      dates: [inDays(20), inDays(27)],
+      placeIds: [naboensSted],
+      deadline: inDays(10),
+    });
+    const foreignBefore = await optionsOf(foreign.pollId);
+    setActor(admin);
+    await expectNotFound(updatePollAction(null, formData(editOptionsFields(foreign.pollId))));
+    setActor(outsider);
+    const own = await openPoll(admin);
+    await expectNotFound(updatePollAction(null, formData(editOptionsFields(own.pollId))));
+    expect(await optionsOf(foreign.pollId)).toEqual(foreignBefore);
+
+    const ownBefore = await optionsOf(own.pollId);
+    setActor(anders);
+    const forbidden = failure(
+      await updatePollAction(null, formData(editOptionsFields(own.pollId))),
+    );
+    expect(forbidden.error.code).toBe(ACTION_ERROR_CODES.FORBIDDEN);
+    expect(await optionsOf(own.pollId)).toEqual(ownBefore);
   });
 });

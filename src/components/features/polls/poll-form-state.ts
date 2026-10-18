@@ -2,12 +2,14 @@ import { formatWeekdayDate, formatWeekdayDateTime } from "@/lib/format/date";
 import {
   isDateKey,
   normalizeTimeOfDay,
+  utcToZonedParts,
   zonedDateTimeToUtc,
   type DateKey,
   type TimeOfDay,
 } from "@/server/domain/events/time";
 import {
   DEFAULT_POLL_DEADLINE_TIME,
+  DEFAULT_POLL_START_TIME,
   hasSomethingToVoteOn,
   MAX_POLL_DATE_OPTIONS,
 } from "@/server/domain/polls/options";
@@ -16,9 +18,11 @@ import { nextPollDate, suggestDeadline } from "@/server/domain/polls/schedule";
 /**
  * The "Planlæg ølsmagning" form's rules (SPEC §9.7.1, D-134, D-135) as pure
  * functions: the date rows, which places start ticked, the deadline that
- * follows the first date until it is touched, and the live hints. The server
- * decides again (pollFormSchema, createPoll); this only drives what the form
- * shows and pre-fills.
+ * follows the first date until it is touched, and the live hints. "Rediger"
+ * uses the same rules while nobody has voted (D-153), starting from the
+ * poll's own options. The server decides again (pollFormSchema / createPoll,
+ * pollEditSchema / updatePoll); this only drives what the form shows and
+ * pre-fills.
  *
  * Pure module: client-safe. Nothing here reads the clock – `now` is passed in
  * (an event handler's `new Date()`, never a render's).
@@ -121,15 +125,17 @@ function pluralWeekday(weekday: string): string {
 export type PlaceSelection = { placeIds: string[]; newPlace: boolean };
 
 /**
- * Where the place checkboxes start (D-135):
+ * Where the place checkboxes start (D-135, D-153):
  *   1. the echo of a failed submit (ids still offered);
- *   2. no places at all → "＋ Nyt sted" ticked and open;
- *   3. exactly one place → ticked;
- *   4. more → nothing (the member picks the candidates).
+ *   2. the edit form: the poll's current places (`current`, still offered);
+ *   3. no places at all → "＋ Nyt sted" ticked and open;
+ *   4. exactly one place → ticked;
+ *   5. more → nothing (the member picks the candidates).
  */
 export function initialPlaceSelection(input: {
   placeIds: readonly string[];
   echo?: { placeIds?: readonly string[]; newPlace?: string } | null;
+  current?: readonly string[] | null;
 }): PlaceSelection {
   const offered = new Set(input.placeIds);
   const echo = input.echo;
@@ -138,6 +144,9 @@ export function initialPlaceSelection(input: {
       placeIds: (echo.placeIds ?? []).filter((id) => offered.has(id)),
       newPlace: echo.newPlace === "on",
     };
+  }
+  if (input.current) {
+    return { placeIds: input.current.filter((id) => offered.has(id)), newPlace: false };
   }
   if (input.placeIds.length === 0) return { placeIds: [], newPlace: true };
   if (input.placeIds.length === 1) return { placeIds: [...input.placeIds], newPlace: false };
@@ -158,10 +167,15 @@ export function placeCount(selection: PlaceSelection): number {
 
 export type DeadlineValue = { date: string; time: string };
 
-/** Where the deadline starts: the echo, else the suggestion, else empty at 20:00. */
+/**
+ * Where the deadline starts: the echo, else the suggestion, else empty at
+ * 20:00. `pinned` (the edit form's stored deadline, D-153) starts touched, so
+ * it never follows the dates.
+ */
 export function initialDeadline(input: {
   echoed?: { date?: string; time?: string } | null;
   suggested: { date: DateKey; time: TimeOfDay } | null;
+  pinned?: boolean;
 }): { value: DeadlineValue; touched: boolean } {
   const { echoed, suggested } = input;
   if (echoed && (echoed.date !== undefined || echoed.time !== undefined)) {
@@ -173,7 +187,7 @@ export function initialDeadline(input: {
   }
   return {
     value: suggested ?? { date: "", time: DEFAULT_POLL_DEADLINE_TIME },
-    touched: false,
+    touched: input.pinned === true,
   };
 }
 
@@ -249,4 +263,54 @@ export function pollSummary(input: {
   if (places > 1) parts.push(count(places, "sted", "steder"));
   const subject = `Klubben stemmer om ${parts.join(" og ")}`;
   return deadline ? `${subject} · frist ${formatWeekdayDateTime(deadline)}.` : `${subject}.`;
+}
+
+/**
+ * What the form says about the plan right now: the live hint, the summary
+ * above the button, and the date and the single place for "opret et event i
+ * stedet" (C16).
+ */
+export function pollPlanStatus(input: {
+  rows: readonly DateRow[];
+  selection: PlaceSelection;
+  deadline: DeadlineValue;
+}): {
+  hint: ShapeHint;
+  summary: string | null;
+  firstDate: DateKey | null;
+  onlyPlace: string | null;
+} {
+  const dates = validDates(input.rows);
+  const places = placeCount(input.selection);
+  const { placeIds, newPlace } = input.selection;
+  return {
+    hint: shapeHint(dates.length, places),
+    summary: pollSummary({
+      dateCount: dates.length,
+      placeCount: places,
+      deadline: deadlineInstant(input.deadline),
+    }),
+    firstDate: dates[0] ?? null,
+    onlyPlace: placeIds.length === 1 && !newPlace ? (placeIds[0] ?? null) : null,
+  };
+}
+
+// ── Edit (D-153) ────────────────────────────────────────────────────────────
+
+/**
+ * Where "Rediger" starts while nobody has voted: the poll's dates as
+ * Copenhagen calendar days, their shared start time (from the first option;
+ * every option has the same wall-clock time, D-134) and the stored deadline.
+ */
+export function pollEditDefaults(input: { dates: readonly Date[]; deadline: Date }): {
+  dates: DateKey[];
+  startTime: TimeOfDay;
+  deadline: { date: DateKey; time: TimeOfDay };
+} {
+  const [first] = input.dates;
+  return {
+    dates: input.dates.map((date) => utcToZonedParts(date).date),
+    startTime: first ? utcToZonedParts(first).time : DEFAULT_POLL_START_TIME,
+    deadline: utcToZonedParts(input.deadline),
+  };
 }

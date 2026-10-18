@@ -21,7 +21,9 @@ import type { PollStatus } from "@/server/domain/polls/options";
  *
  * Polls (round 4): EVERY writer of a poll – a vote, a close, choosing the
  * winner, cancelling, editing – holds lockPoll (FOR NO KEY UPDATE) first, so
- * they run one after the other per poll. Never take a weaker lock and upgrade.
+ * they run one after the other per poll. That is also what keeps an edit of
+ * the options (only while the poll has no ballot, D-153) from racing the
+ * first vote. Never take a weaker lock and upgrade.
  * A voter's membership is then read PLAINLY under the poll lock: that is
  * authoritative because the only path that deletes a membership while the club
  * exists (endMembership, src/server/clubs/membership.ts) locks the club's OPEN

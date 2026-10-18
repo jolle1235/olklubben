@@ -514,7 +514,9 @@ model Poll {
   @@map("polls")
 }
 
-/// A date or a place to vote on (D-005). Options never change after creation (D-133).
+/// A date or a place to vote on (D-005). The options change only while the poll
+/// is OPEN and has no ballot (D-153): updatePoll diffs them under lockPoll, and
+/// unchanged options keep their ids.
 /// clubId takes part in two relations (poll, place): unchecked writes only.
 model PollOption {
   id        String       @id @default(uuid(7))

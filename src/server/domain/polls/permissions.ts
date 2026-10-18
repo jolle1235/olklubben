@@ -39,7 +39,10 @@ export function canManagePoll(membership: Membership, poll: PollOwner, userId: s
   return membership != null && (isAdmin(membership) || poll.createdById === userId);
 }
 
-/** Title, theme, description and a later deadline (D-133): manage && OPEN. */
+/**
+ * "Rediger" (D-133, D-153): manage && OPEN. The dates and places only while
+ * the poll has no ballot – decided by updatePoll under the poll lock.
+ */
 export function canEditPoll(membership: Membership, poll: PollWithStatus, userId: string): boolean {
   return poll.status === "OPEN" && canManagePoll(membership, poll, userId);
 }

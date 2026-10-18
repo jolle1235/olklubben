@@ -1084,6 +1084,7 @@ describe("cancelPoll og updatePoll (D-133, E24)", () => {
         theme: null,
         description: "Ny plan",
         deadline: new Date(current.getTime() + DAY),
+        options: null,
         ...overrides,
       });
     expect(await edit({ actorUserId: club.anders.id })).toEqual({ status: "forbidden" });
@@ -1118,12 +1119,291 @@ describe("cancelPoll og updatePoll (D-133, E24)", () => {
       theme: null,
       description: null,
       deadline: inDays(6),
+      options: null,
     });
     expect(result).toEqual({ status: "closed" });
     expect((await pollState(poll.pollId)).status).toBe("AWAITING_DECISION");
     expect((await db.poll.findUniqueOrThrow({ where: { id: poll.pollId } })).title).not.toBe(
       "For sent",
     );
+  });
+});
+
+// ── Edit the options while nobody has voted (D-153) ─────────────────────────
+
+describe("updatePoll med datoer og steder (D-153)", () => {
+  let club: Club;
+  beforeAll(async () => {
+    club = await standardClub("R4-ret-valg");
+  });
+
+  type Edit = Parameters<typeof updatePoll>[0];
+  const edit = (pollId: string, overrides: Partial<Edit> = {}) =>
+    updatePoll({
+      clubId: club.clubId,
+      pollId,
+      actorUserId: club.mads.id,
+      now: new Date(),
+      title: "Ølsmagning #21",
+      theme: "Porter",
+      description: null,
+      deadline: inDays(4),
+      options: {
+        dateStartsAt: [inDays(10), inDays(24)],
+        places: { existingIds: [club.bar, club.hosAnders], newPlace: null },
+      },
+      ...overrides,
+    });
+
+  /** The poll's options and texts, to prove that nothing changed. */
+  async function snapshot(pollId: string) {
+    const [poll, options] = await Promise.all([
+      db.poll.findUniqueOrThrow({
+        where: { id: pollId },
+        select: { title: true, theme: true, description: true, deadline: true, status: true },
+      }),
+      db.pollOption.findMany({
+        where: { pollId },
+        select: { id: true, clubId: true, category: true, startsAt: true, placeId: true },
+        orderBy: { id: "asc" },
+      }),
+    ]);
+    return { poll, options };
+  }
+
+  it("0 stemmer: tilføjer, fjerner og ændrer datoer og steder; uændrede beholder deres id", async () => {
+    const before = await openPoll(club);
+    const kept = (
+      await db.pollOption.findUniqueOrThrow({
+        where: { id: before.dateOptionIds[0] as string },
+        select: { startsAt: true },
+      })
+    ).startsAt as Date;
+    const added = inDays(24);
+    // +10 is kept, +17 goes, +24 comes; Baren stays, Hos Mads goes, Hos Anders comes.
+    // Repeats count once, and the deadline may move EARLIER (+5 → +4): nobody has voted.
+    expect(
+      await edit(before.pollId, {
+        deadline: inDays(4),
+        options: {
+          dateStartsAt: [added, kept, added],
+          places: { existingIds: [club.hosAnders, club.bar, club.bar], newPlace: null },
+        },
+      }),
+    ).toEqual({ status: "updated" });
+
+    const after = await snapshot(before.pollId);
+    expect(after.poll).toMatchObject({ title: "Ølsmagning #21", theme: "Porter", status: "OPEN" });
+    expect(after.poll.deadline.getTime()).toBeLessThan(inDays(4.5).getTime());
+    const dateRows = after.options.filter((o) => o.category === "DATE");
+    const placeRows = after.options.filter((o) => o.category === "PLACE");
+    expect(dateRows.map((o) => o.startsAt?.getTime()).sort()).toEqual(
+      [kept.getTime(), added.getTime()].sort(),
+    );
+    expect(dateRows.find((o) => o.startsAt?.getTime() === kept.getTime())?.id).toBe(
+      before.dateOptionIds[0],
+    );
+    expect(placeRows.map((o) => o.placeId).sort()).toEqual([club.bar, club.hosAnders].sort());
+    expect(placeRows.find((o) => o.placeId === club.bar)?.id).toBe(before.placeOptionIds[1]);
+    expect(after.options.every((o) => o.clubId === club.clubId)).toBe(true);
+    const ids = after.options.map((o) => o.id);
+    expect(ids).not.toContain(before.dateOptionIds[1]);
+    expect(ids).not.toContain(before.placeOptionIds[0]);
+
+    // The poll page and E5 follow the new options.
+    const view = await getPollView(club.clubId, before.pollId, club.mads.id);
+    expect(view?.places.map((p) => p.place.id).sort()).toEqual([club.bar, club.hosAnders].sort());
+    expect(view?.dates.map((d) => d.startsAt.getTime())).toEqual([kept.getTime(), added.getTime()]);
+    expect((await getPlaceUsage(club.clubId, club.hosAnders)).activePollCount).toBeGreaterThan(0);
+  });
+
+  it("0 stemmer: «＋ Nyt sted» oprettes med den, der retter, som ejer – eller genbruges ved navn (E29)", async () => {
+    const poll = await openPoll(club);
+    expect(
+      await edit(poll.pollId, {
+        actorUserId: club.admin.id,
+        options: {
+          dateStartsAt: [inDays(10)],
+          places: {
+            existingIds: [club.hosMads],
+            newPlace: { name: "Haven", address: "Havevej 2", ownedByCreator: true },
+          },
+        },
+      }),
+    ).toEqual({ status: "updated" });
+    const haven = await db.place.findFirstOrThrow({
+      where: { clubId: club.clubId, name: "Haven" },
+      select: { id: true, createdById: true, owners: { select: { userId: true } } },
+    });
+    expect(haven.createdById).toBe(club.admin.id);
+    expect(haven.owners).toEqual([{ userId: club.admin.id }]);
+    const placeIds = await db.pollOption.findMany({
+      where: { pollId: poll.pollId, category: "PLACE" },
+      select: { placeId: true },
+    });
+    expect(placeIds.map((row) => row.placeId).sort()).toEqual([club.hosMads, haven.id].sort());
+
+    // The same name again reuses the place; with one date and one place left → nothing to vote on.
+    const placesBefore = await db.place.count({ where: { clubId: club.clubId } });
+    expect(
+      await edit(poll.pollId, {
+        options: {
+          dateStartsAt: [inDays(10)],
+          places: {
+            existingIds: [haven.id],
+            newPlace: { name: " haven ", address: null, ownedByCreator: false },
+          },
+        },
+      }),
+    ).toEqual({ status: "nothing-to-vote" });
+    expect(await db.place.count({ where: { clubId: club.clubId } })).toBe(placesBefore);
+  });
+
+  it("1 stemme: options-locked og intet ændret – også når stemmen er et tidligere medlems", async () => {
+    const poll = await openPoll(club);
+    await insertBallot({
+      pollId: poll.pollId,
+      userId: club.anders.id,
+      optionIds: [poll.dateOptionIds[0] as string, poll.placeOptionIds[0] as string],
+    });
+    const before = await snapshot(poll.pollId);
+    const placesBefore = await db.place.count({ where: { clubId: club.clubId } });
+    expect(
+      await edit(poll.pollId, {
+        options: {
+          dateStartsAt: [inDays(10), inDays(24)],
+          places: {
+            existingIds: [club.bar],
+            newPlace: { name: "Aldrig oprettet", address: null, ownedByCreator: true },
+          },
+        },
+      }),
+    ).toEqual({ status: "options-locked" });
+    expect(await snapshot(poll.pollId)).toEqual(before);
+    expect(await db.place.count({ where: { clubId: club.clubId } })).toBe(placesBefore);
+
+    // Title, theme, description and a later deadline still work after a vote (E24).
+    expect(
+      await edit(poll.pollId, { title: "Kun titlen", deadline: inDays(6), options: null }),
+    ).toEqual({ status: "updated" });
+    const after = await snapshot(poll.pollId);
+    expect(after.poll.title).toBe("Kun titlen");
+    expect(after.options).toEqual(before.options);
+    expect(await db.pollBallot.count({ where: { pollId: poll.pollId } })).toBe(1);
+
+    // A ballot whose voter is no longer a member still freezes the options.
+    const former = await person("Tidligere medlem");
+    await db.membership.create({
+      data: { clubId: club.clubId, userId: former.id, role: "MEMBER" },
+    });
+    const other = await openPoll(club);
+    await insertBallot({
+      pollId: other.pollId,
+      userId: former.id,
+      optionIds: [other.dateOptionIds[1] as string, other.placeOptionIds[1] as string],
+    });
+    await db.membership.deleteMany({ where: { clubId: club.clubId, userId: former.id } });
+    const frozen = await snapshot(other.pollId);
+    expect(await edit(other.pollId)).toEqual({ status: "options-locked" });
+    expect(await snapshot(other.pollId)).toEqual(frozen);
+  });
+
+  it("afviser intet at stemme om, over 10, arkiverede og andre klubbers steder og tidsfejl uden at skrive", async () => {
+    const poll = await openPoll(club);
+    const before = await snapshot(poll.pollId);
+    const placesBefore = await db.place.count({ where: { clubId: club.clubId } });
+    const opts = (dateStartsAt: Date[], existingIds: string[]) => ({
+      dateStartsAt,
+      places: { existingIds, newPlace: null },
+    });
+
+    expect(await edit(poll.pollId, { options: opts([inDays(10)], [club.bar]) })).toEqual({
+      status: "nothing-to-vote",
+    });
+    const eleven = Array.from({ length: 11 }, (_, i) => inDays(10 + i));
+    expect(await edit(poll.pollId, { options: opts(eleven, [club.bar]) })).toEqual({
+      status: "nothing-to-vote",
+    });
+    const many: string[] = [];
+    for (let i = 0; i < 11; i += 1) many.push(await place(club.clubId, club.admin, `Mange ${i}`));
+    expect(await edit(poll.pollId, { options: opts([inDays(10), inDays(17)], many) })).toEqual({
+      status: "nothing-to-vote",
+    });
+
+    const archived = await place(club.clubId, club.admin, "Lukket sted", { archived: true });
+    await expect(
+      edit(poll.pollId, { options: opts([inDays(10), inDays(17)], [club.bar, archived]) }),
+    ).rejects.toMatchObject({ name: "PlaceNotSelectableError", reason: "ARCHIVED" });
+
+    // Another club's place → NOT_FOUND, and the new place from the same edit is rolled back.
+    const other = await standardClub("R4-ret-valg-nabo");
+    const withNew = await settle(
+      edit(poll.pollId, {
+        options: {
+          dateStartsAt: [inDays(10), inDays(17)],
+          places: {
+            existingIds: [other.bar],
+            newPlace: { name: "Rulles tilbage", address: null, ownedByCreator: true },
+          },
+        },
+      }),
+    );
+    expect(withNew.ok).toBe(false);
+    if (!withNew.ok) {
+      expect(withNew.error).toBeInstanceOf(PlaceNotSelectableError);
+      expect((withNew.error as PlaceNotSelectableError).reason).toBe("NOT_FOUND");
+    }
+    expect(await db.place.count({ where: { name: "Rulles tilbage" } })).toBe(0);
+
+    expect(
+      await edit(poll.pollId, {
+        options: opts([new Date(Date.now() - HOUR), inDays(17)], [club.bar]),
+      }),
+    ).toEqual({ status: "timing", error: "DATE_PAST" });
+    expect(
+      await edit(poll.pollId, {
+        deadline: inDays(12),
+        options: opts([inDays(11), inDays(17)], [club.bar]),
+      }),
+    ).toEqual({ status: "timing", error: "DEADLINE_NOT_BEFORE_FIRST_DATE" });
+    expect(
+      await edit(poll.pollId, {
+        deadline: new Date(Date.now() - MINUTE),
+        options: opts([inDays(11), inDays(17)], [club.bar]),
+      }),
+    ).toEqual({ status: "timing", error: "DEADLINE_PAST" });
+
+    expect(await snapshot(poll.pollId)).toEqual(before);
+    expect(await db.place.count({ where: { clubId: club.clubId } })).toBe(placesBefore + 12);
+  });
+
+  it("svarer forbidden for et almindeligt medlem, not-found for en anden klubs afstemning og closed efter fristen", async () => {
+    const poll = await openPoll(club);
+    const before = await snapshot(poll.pollId);
+    expect(await edit(poll.pollId, { actorUserId: club.anders.id })).toEqual({
+      status: "forbidden",
+    });
+    const other = await standardClub("R4-ret-valg-isolation");
+    const foreign = await openPoll(other);
+    expect(await edit(foreign.pollId)).toEqual({ status: "not-found" });
+    expect(
+      await updatePoll({
+        clubId: other.clubId,
+        pollId: poll.pollId,
+        actorUserId: other.admin.id,
+        now: new Date(),
+        title: "Kapret",
+        theme: null,
+        description: null,
+        deadline: inDays(4),
+        options: null,
+      }),
+    ).toEqual({ status: "not-found" });
+    expect(await snapshot(poll.pollId)).toEqual(before);
+
+    await expirePoll(poll.pollId);
+    expect(await edit(poll.pollId)).toEqual({ status: "closed" });
+    expect((await pollState(poll.pollId)).status).not.toBe("OPEN");
   });
 });
 
@@ -1837,6 +2117,84 @@ describe("samtidighed under poll-låsen (D-130)", () => {
       expect(ballots).toHaveLength(1);
       const ticks = (ballots[0]?.votes ?? []).map((vote) => vote.optionId).sort();
       expect([[d1, p1].sort(), [d1, d2, p2].sort()]).toContainEqual(ticks);
+    }
+  });
+
+  it(`12: castBallot ‖ updatePoll med nye valgmuligheder: stemmen eller rettelsen, aldrig begge (×${LOOPS})`, async () => {
+    const admin = await person("Race12 Admin");
+    const voter = await person("Race12 Stemmer");
+    const clubId = await clubWith(admin, [[voter, "MEMBER"]], "R4-race-12");
+    const [a, b, c] = [
+      await place(clubId, admin, "Race12 A"),
+      await place(clubId, admin, "Race12 B"),
+      await place(clubId, admin, "Race12 C"),
+    ];
+    for (let round = 0; round < LOOPS; round += 1) {
+      const poll = await insertPoll({
+        clubId,
+        createdById: admin.id,
+        dates: [inDays(10), inDays(17)],
+        placeIds: [a as string, b as string],
+        deadline: inDays(5),
+      });
+      const originalIds = [...poll.dateOptionIds, ...poll.placeOptionIds].sort();
+      const [vote, update] = await Promise.all([
+        staggered(round, () =>
+          castBallot({
+            clubId,
+            pollId: poll.pollId,
+            userId: voter.id,
+            now: new Date(),
+            // Exactly the options the edit removes.
+            choice: {
+              dateOptionIds: [poll.dateOptionIds[0] as string],
+              noDateWorks: false,
+              placeOptionId: poll.placeOptionIds[0] as string,
+            },
+          }),
+        ),
+        staggered(round + 3, () =>
+          updatePoll({
+            clubId,
+            pollId: poll.pollId,
+            actorUserId: admin.id,
+            now: new Date(),
+            title: "Race12",
+            theme: null,
+            description: null,
+            deadline: inDays(5),
+            options: {
+              dateStartsAt: [inDays(11), inDays(17)],
+              places: { existingIds: [b as string, c as string], newPlace: null },
+            },
+          }),
+        ),
+      ]);
+      const optionIds = (
+        await db.pollOption.findMany({ where: { pollId: poll.pollId }, select: { id: true } })
+      )
+        .map((row) => row.id)
+        .sort();
+      const ballots = await db.pollBallot.findMany({
+        where: { pollId: poll.pollId },
+        select: { votes: { select: { optionId: true } } },
+      });
+      if (vote.status === "saved") {
+        // The vote came first: the options are frozen and the ballot keeps both ticks.
+        expect(update).toEqual({ status: "options-locked" });
+        expect(optionIds).toEqual(originalIds);
+        expect(ballots).toHaveLength(1);
+        expect(ballots[0]?.votes).toHaveLength(2);
+      } else {
+        // The edit came first: the stale form's ids are refused (UNKNOWN_OPTION).
+        expect(update).toEqual({ status: "updated" });
+        expect(vote).toEqual({
+          status: "invalid",
+          errors: { dateOptionIds: "UNKNOWN_OPTION", placeOptionId: "UNKNOWN_OPTION" },
+        });
+        expect(optionIds).not.toEqual(originalIds);
+        expect(ballots).toEqual([]);
+      }
     }
   });
 });

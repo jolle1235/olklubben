@@ -22,8 +22,9 @@ import { at, dayFromToday, isMobile, joinClub } from "./support/round2";
  * D-133–D-136; E6, E24). The "Planlæg ølsmagning" form with its suggestions,
  * validation and focus, voting and changing the vote ("Skål! Din stemme er
  * gemt ✓"), «Ingen af datoerne passer mig» clearing the dates, a fixed
- * category, the open voters list and "Mangler: …", extending the deadline,
- * and a vote after the deadline. Each test also checks 375 px for sideways
+ * category, the open voters list and "Mangler: …", changing dates and places
+ * before the first vote (D-153), extending the deadline, and a vote after the
+ * deadline. Each test also checks 375 px for sideways
  * scrolling (the mobile project).
  *
  * WRITTEN, NOT RUN in round 4 (Jesper, 2026-10-14: "stop før du starter end
@@ -106,7 +107,8 @@ test.describe("Planlæg ølsmagning (§9.7.1)", () => {
     page,
     openPage,
   }, testInfo) => {
-    const club = await clubWithMember(page, openPage, testInfo, "Planlæg");
+    // ASCII only: the label becomes part of the users' emails (F-078).
+    const club = await clubWithMember(page, openPage, testInfo, "Planlaeg");
     await page.goto(`/c/${club.clubId}/polls/new`);
     await expect(page.getByRole("heading", { level: 1, name: "Planlæg ølsmagning" })).toBeVisible();
     await expect(page.getByLabel("Titel")).toHaveValue(/^Ølsmagning #\d+$/);
@@ -290,14 +292,118 @@ test.describe("Stem (§9.7.2–§9.7.3)", () => {
     await memberPage.goto(pollPath(club.clubId, poll.pollId));
     await expect(memberPage.getByText("1 af 2 har stemt")).toBeVisible();
     await expect(memberPage.getByText("Mangler: dig")).toBeVisible();
+    // The only ticked date leads, and the description says so first (D-136).
     await expect(dateBox(memberPage, dayFromToday(20))).toHaveAccessibleDescription(
-      new RegExp(`^1 kan: ${club.owner.name.split(" ")[0]}`),
+      new RegExp(`^Fører\\. 1 kan: ${club.owner.name.split(" ")[0]}`),
     );
     await expectNoSideScroll(memberPage, testInfo);
   });
 });
 
-test.describe("Rediger og fristen (D-133, E6, E24)", () => {
+test.describe("Rediger og fristen (D-133, D-153, E6, E24)", () => {
+  test("uden stemmer retter opretteren datoer og steder; efter første stemme ligger de fast (D-153)", async ({
+    page,
+    openPage,
+  }, testInfo) => {
+    const club = await clubWithMember(page, openPage, testInfo, "RetValg");
+    const poll = await openPoll(club);
+    const editPath = `${pollPath(club.clubId, poll.pollId)}/edit`;
+    await page.goto(editPath);
+    await expect(page.getByRole("heading", { level: 1, name: "Rediger afstemning" })).toBeVisible();
+    await expect(
+      page.getByText(/^Ingen har stemt endnu, så du kan stadig rette datoer og steder\./),
+    ).toBeVisible();
+
+    // The create form's fields, prefilled with the poll's own options.
+    const dates = page.locator('input[name="dates"]');
+    await expect(dates).toHaveCount(2);
+    await expect(dates.nth(0)).toHaveValue(dayFromToday(20));
+    await expect(dates.nth(1)).toHaveValue(dayFromToday(27));
+    await expect(page.getByLabel("Starttid for alle datoer")).toHaveValue("18:30");
+    await expect(placeBox(page, "Hos Admin")).toBeChecked();
+    await expect(placeBox(page, "Hos Medlem")).toBeChecked();
+    const deadlineDate = page.locator('input[name="deadlineDate"]');
+    await expect(deadlineDate).toHaveValue(dayFromToday(10));
+    const save = page.getByRole("button", { name: "Gem ændringer" });
+    await expectHydrated(save);
+
+    // Move the second date and drop a place; the stored deadline does not follow the dates.
+    await page.getByLabel("Dato 2", { exact: true }).fill(dayFromToday(34));
+    await placeBox(page, "Hos Medlem").uncheck();
+    await expect(
+      page.getByText("Kun ét sted: det ligger fast, og I stemmer kun om datoen."),
+    ).toBeVisible();
+    await expect(deadlineDate).toHaveValue(dayFromToday(10));
+    await expectNoSideScroll(page, testInfo);
+    await save.click();
+    await expect(page.getByText("Gemt ✓")).toBeVisible();
+
+    // The poll page offers the new date, and the place is fixed.
+    await expect(page).toHaveURL(new RegExp(`${pollPath(club.clubId, poll.pollId)}(\\?|$)`));
+    await expect(dateBox(page, dayFromToday(34))).toBeVisible();
+    await expect(dateBox(page, dayFromToday(27))).toHaveCount(0);
+    await expect(page.getByText("· ligger fast")).toBeVisible();
+
+    // The member votes on the new date …
+    const { memberPage } = club;
+    await memberPage.goto(pollPath(club.clubId, poll.pollId));
+    const vote = memberPage.getByRole("button", { name: "Gem min stemme" });
+    await expectHydrated(vote);
+    await dateBox(memberPage, dayFromToday(34)).check();
+    await vote.click();
+    await expect(memberPage.getByText("Skål! Din stemme er gemt ✓")).toBeVisible();
+
+    // … and from then on the dates and places are read-only.
+    await page.goto(editPath);
+    await expect(
+      page.getByText(
+        "Datoer og steder kan ikke ændres, når nogen har stemt. Er de forkerte, så annullér afstemningen og start en ny.",
+      ),
+    ).toBeVisible();
+    await expect(page.locator('input[name="dates"]')).toHaveCount(0);
+    await expectNoSideScroll(page, testInfo);
+  });
+
+  test("en stemme midt i en rettelse: intet gemmes, og datoerne bliver skrivebeskyttede (D-153)", async ({
+    page,
+    openPage,
+  }, testInfo) => {
+    const club = await clubWithMember(page, openPage, testInfo, "Kapl");
+    const poll = await openPoll(club);
+    await page.goto(`${pollPath(club.clubId, poll.pollId)}/edit`);
+    const save = page.getByRole("button", { name: "Gem ændringer" });
+    await expectHydrated(save);
+    await page.getByLabel("Titel").fill("Ølsmagning #16");
+    await page.getByLabel("Dato 2", { exact: true }).fill(dayFromToday(34));
+
+    // The member votes while the form is open.
+    await insertBallot({
+      pollId: poll.pollId,
+      email: club.member.email,
+      optionIds: [poll.dateOptionIds[0]!, poll.placeOptionIds[0]!],
+    });
+    await save.click();
+    await expect(
+      page.getByText(
+        "Nogen har stemt i mellemtiden, så datoer og steder kan ikke længere ændres. Intet er gemt.",
+      ),
+    ).toBeVisible();
+    // The page re-renders read-only and keeps what was typed in the texts.
+    await expect(
+      page.getByText(/^Datoer og steder kan ikke ændres, når nogen har stemt\./),
+    ).toBeVisible();
+    await expect(page.locator('input[name="dates"]')).toHaveCount(0);
+    await expect(page.getByLabel("Titel")).toHaveValue("Ølsmagning #16");
+    expect((await pollStatus(poll.pollId)).status).toBe("OPEN");
+    await expectNoSideScroll(page, testInfo);
+
+    // Saving the texts alone still works.
+    await save.click();
+    await expect(page.getByText("Gemt ✓")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Ølsmagning #16" })).toBeVisible();
+    await expect(dateBox(page, dayFromToday(27))).toBeVisible();
+  });
+
   test("opretteren forlænger fristen; stemmerne bliver stående", async ({
     page,
     openPage,
@@ -311,9 +417,10 @@ test.describe("Rediger og fristen (D-133, E6, E24)", () => {
     });
     await page.goto(`${pollPath(club.clubId, poll.pollId)}/edit`);
     await expect(page.getByRole("heading", { level: 1, name: "Rediger afstemning" })).toBeVisible();
+    // Somebody has voted (D-153): the dates and places are read-only.
     await expect(
       page.getByText(
-        "Datoer og steder kan ikke ændres. Er de forkerte, så annullér afstemningen og start en ny.",
+        "Datoer og steder kan ikke ændres, når nogen har stemt. Er de forkerte, så annullér afstemningen og start en ny.",
       ),
     ).toBeVisible();
     const save = page.getByRole("button", { name: "Gem ændringer" });
@@ -327,8 +434,9 @@ test.describe("Rediger og fristen (D-133, E6, E24)", () => {
     await page.locator('input[name="deadlineDate"]').fill(dayFromToday(14));
     await save.click();
     await expect(page.getByText("Gemt ✓")).toBeVisible();
+    // The header's <time> (the same date is also inside "Du kan stemme indtil …").
     await expect(
-      page.getByText(formatWeekdayDateTime(at(dayFromToday(14), "20:00"))),
+      page.getByText(formatWeekdayDateTime(at(dayFromToday(14), "20:00")), { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("1 af 2 har stemt")).toBeVisible();
     await expectNoSideScroll(page, testInfo);

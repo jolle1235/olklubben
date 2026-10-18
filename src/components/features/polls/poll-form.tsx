@@ -7,7 +7,7 @@ import { useActionForm } from "@/components/features/forms/use-action-form";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { newEventHref, overviewHref } from "@/lib/routes";
+import { overviewHref } from "@/lib/routes";
 import {
   POLL_ARRAY_FIELDS,
   POLL_DESCRIPTION_MAX_LENGTH,
@@ -21,18 +21,8 @@ import type { PlaceOption } from "@/server/places/queries";
 
 import { toPlaceChoices } from "../events/event-form-state";
 
-import { PollDateRows } from "./poll-date-rows";
-import { PollDeadlineField } from "./poll-deadline-field";
-import {
-  datesHint,
-  deadlineInstant,
-  placeCount,
-  pollSummary,
-  SHAPE_HINT_TEXT,
-  shapeHint,
-  validDates,
-} from "./poll-form-state";
-import { PollPlacePicker } from "./poll-place-picker";
+import { datesHint, pollPlanStatus } from "./poll-form-state";
+import { PollPlanFields } from "./poll-plan-fields";
 import { usePollForm } from "./use-poll-form";
 
 export type PollFormDefaults = {
@@ -83,17 +73,7 @@ export function PollForm({ clubId, places, defaults, today }: PollFormProps) {
     today,
     echo: values,
   });
-
-  const dateCount = validDates(form.rows).length;
-  const selectedPlaces = placeCount(form.selection);
-  const hint = shapeHint(dateCount, selectedPlaces);
-  const deadline = deadlineInstant(form.deadline);
-  const summary = pollSummary({ dateCount, placeCount: selectedPlaces, deadline });
-  const [firstDate] = validDates(form.rows);
-  const onlyPlace =
-    form.selection.placeIds.length === 1 && !form.selection.newPlace
-      ? form.selection.placeIds[0]
-      : null;
+  const { summary } = pollPlanStatus(form);
 
   return (
     <form {...formProps} className="grid gap-7">
@@ -134,67 +114,22 @@ export function PollForm({ clubId, places, defaults, today }: PollFormProps) {
         errors={fieldErrors.theme}
       />
 
-      <PollDateRows
-        rows={form.rows}
-        onAdd={form.addRow}
-        onRemove={form.removeRow}
-        onChange={form.changeRow}
-        startTime={form.startTime}
-        onStartTimeChange={form.changeStartTime}
-        today={today}
-        hint={datesHint(defaults.dates)}
-        errors={{ dates: fieldErrors.dates, startTime: fieldErrors.startTime }}
-      />
-
-      <PollPlacePicker
+      <PollPlanFields
+        clubId={clubId}
+        form={form}
         places={choices}
-        selection={form.selection}
-        onTogglePlace={form.togglePlace}
-        onToggleNewPlace={form.toggleNewPlace}
-        onChooseExisting={form.chooseExisting}
+        today={today}
+        hints={{
+          dates: datesHint(defaults.dates),
+          deadline: "Skal ligge før den første dato. Afstemningen lukker også, når alle har stemt.",
+        }}
+        errors={fieldErrors}
         newPlaceDefaults={{
           name: values.newPlaceName ?? "",
           address: values.newPlaceAddress ?? "",
           mine: values.newPlaceMine === "on",
         }}
-        newPlaceName={form.newPlaceName}
-        onNewPlaceNameChange={form.setNewPlaceName}
-        errors={{
-          placeIds: fieldErrors.placeIds,
-          newPlaceName: fieldErrors.newPlaceName,
-          newPlaceAddress: fieldErrors.newPlaceAddress,
-        }}
         resetSignal={state}
-      />
-
-      <div aria-live="polite" className="empty:hidden">
-        {hint === "nothing-to-vote" ? (
-          <p className="grid grid-cols-1 gap-1 rounded-xl border-2 border-amber bg-amber-tint px-4 py-3 text-ink">
-            <span className="font-semibold">{SHAPE_HINT_TEXT[hint]}</span>
-            <span className="text-[0.95rem]">
-              Tilføj en dato eller et sted mere – eller{" "}
-              <Link
-                href={newEventHref(clubId, { date: firstDate ?? null, placeId: onlyPlace })}
-                className="font-semibold text-olive underline decoration-2 underline-offset-4 hover:decoration-amber"
-              >
-                opret et event i stedet
-              </Link>
-              .
-            </span>
-          </p>
-        ) : hint ? (
-          <p className="rounded-xl bg-harbor-tint px-4 py-3 text-[0.95rem] text-harbor">
-            {SHAPE_HINT_TEXT[hint]}
-          </p>
-        ) : null}
-      </div>
-
-      <PollDeadlineField
-        value={form.deadline}
-        onChange={form.changeDeadline}
-        today={today}
-        hint="Skal ligge før den første dato. Afstemningen lukker også, når alle har stemt."
-        errors={{ deadlineDate: fieldErrors.deadlineDate, deadlineTime: fieldErrors.deadlineTime }}
       />
 
       <div className="grid grid-cols-1 gap-3 border-t border-border pt-5">

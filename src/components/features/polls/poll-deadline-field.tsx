@@ -16,8 +16,9 @@ export type PollDeadlineFieldProps = {
 /**
  * "Afstemningsfrist" (SPEC §9.7.1, §9.7.5): a date and a time side by side,
  * Copenhagen wall clock. Controlled: the create form lets it follow the first
- * date until it is touched (D-135); the edit form only allows a later one
- * (D-133, E24; the server decides).
+ * date until it is touched (D-135); the edit form keeps the stored one, which
+ * can only move later once somebody has voted (E24, D-153; the server
+ * decides).
  */
 export function PollDeadlineField({
   value,

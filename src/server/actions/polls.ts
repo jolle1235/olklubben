@@ -22,6 +22,7 @@ import {
   ballotSchema,
   NOTHING_TO_VOTE_MESSAGE,
   POLL_ARRAY_FIELDS,
+  POLL_OPTIONS_LOCKED_MESSAGE,
   POLL_PLACE_ERROR_MESSAGES,
   pollEditSchema,
   pollFormSchema,
@@ -58,7 +59,9 @@ import { revalidateClub } from "@/server/revalidate";
  *                     startTime, placeIds[], newPlace, newPlaceName,
  *                     newPlaceAddress, newPlaceMine, deadlineDate, deadlineTime
  *   updatePollAction  clubId, pollId (hidden), title, theme, description,
- *                     deadlineDate, deadlineTime
+ *                     deadlineDate, deadlineTime; while nobody has voted also
+ *                     editOptions (hidden "1") and the create form's option
+ *                     fields (D-153)
  *   castBallotAction  clubId, pollId (hidden), dateOptionIds[], noDateWorks,
  *                     placeOptionId
  */
@@ -81,9 +84,8 @@ export type PollFormValues = Partial<Record<PollFormTextField, string>> & {
   placeIds?: string[];
 };
 
-export type PollEditFormValues = Partial<
-  Record<"title" | "theme" | "description" | "deadlineDate" | "deadlineTime", string>
->;
+/** The edit form's echo: the create form's fields (the options only with editOptions, D-153). */
+export type PollEditFormValues = PollFormValues & { editOptions?: string };
 
 export type BallotFormValues = {
   dateOptionIds?: string[];
@@ -112,11 +114,8 @@ const POLL_TEXT_FIELDS = [
 ] as const satisfies readonly PollFormTextField[];
 
 const POLL_EDIT_FIELDS = [
-  "title",
-  "theme",
-  "description",
-  "deadlineDate",
-  "deadlineTime",
+  ...POLL_TEXT_FIELDS,
+  "editOptions",
 ] as const satisfies readonly (keyof PollEditFormValues)[];
 
 const NOT_ALLOWED_TO_CREATE = "Kun medlemmer kan planlægge en ølsmagning.";
@@ -159,11 +158,20 @@ function parsePollRef(formData: FormData): { clubId: string; pollId: string } {
 
 // ── Create ──────────────────────────────────────────────────────────────────
 
-function readPollFormValues(formData: FormData): PollFormValues {
-  // The default list cap (50): the schema refuses more than 10 dates / places
-  // itself, and blank no-JS date rows are dropped before that count.
+/**
+ * The poll form's values (create, and edit with its editOptions). The
+ * default list cap (50): the schema refuses more than 10 dates / places
+ * itself, and blank no-JS date rows are dropped before that count.
+ */
+function readPollFormValues<F extends string>(
+  formData: FormData,
+  textFields: readonly F[],
+): Partial<Record<F, string>> & Pick<PollFormValues, "dates" | "placeIds"> {
   const raw = readFormValues(formData, { arrays: POLL_ARRAY_FIELDS });
-  const values: PollFormValues = pickText(raw, POLL_TEXT_FIELDS);
+  const values: Partial<Record<F, string>> & Pick<PollFormValues, "dates" | "placeIds"> = pickText(
+    raw,
+    textFields,
+  );
   if (Array.isArray(raw.dates)) values.dates = raw.dates;
   if (Array.isArray(raw.placeIds)) values.placeIds = raw.placeIds;
   return values;
@@ -186,7 +194,7 @@ export async function createPollAction(
   const clubId = idSchema.safeParse(formData.get("clubId"));
   if (!clubId.success) notFound();
 
-  const values = readPollFormValues(formData);
+  const values: PollFormValues = readPollFormValues(formData, POLL_TEXT_FIELDS);
   const parsed = pollFormSchema.safeParse(values);
   if (!parsed.success) return failed(validationError(parsed.error), values);
   const data = parsed.data;
@@ -236,20 +244,27 @@ export async function createPollAction(
 /**
  * "Gem ændringer" (creator or admin while OPEN). updated → pollHref +
  * "poll-updated"; closed → pollHref + "poll-locked"; forbidden → FORBIDDEN
- * "Kun opretteren og klubbens admins kan rette afstemningen."; timing → field.
+ * "Kun opretteren og klubbens admins kan rette afstemningen."; timing → the
+ * field pollTimingMessage names; options-locked → CONFLICT
+ * (POLL_OPTIONS_LOCKED_MESSAGE, values echoed, the page re-rendered without
+ * the option fields); nothing-to-vote → dates; PlaceNotSelectableError →
+ * placeIds.
  *
  * Fields: clubId, pollId (hidden), title, theme, description, deadlineDate,
- * deadlineTime. Options never change (D-133); the deadline only moves later
- * and must stay before the first date (E24). Ballots are kept.
+ * deadlineTime – and, while nobody has voted, editOptions plus the create
+ * form's option fields (D-153). With ballots the deadline only moves later and
+ * must stay before the first date (E24); without, the new options follow
+ * create's rules. updatePoll decides under the poll lock.
  */
 export async function updatePollAction(
   _previous: PollEditFormState,
   formData: FormData,
 ): Promise<PollEditFormState> {
   const ids = parsePollRef(formData);
-  const values: PollEditFormValues = pickText(readFormValues(formData), POLL_EDIT_FIELDS);
+  const values: PollEditFormValues = readPollFormValues(formData, POLL_EDIT_FIELDS);
   const parsed = pollEditSchema.safeParse(values);
   if (!parsed.success) return failed(validationError(parsed.error), values);
+  const data = parsed.data;
 
   const { user, membership, club, poll } = await requirePoll(ids.clubId, ids.pollId);
   if (!canManagePoll(membership, poll, user.id)) {
@@ -263,9 +278,12 @@ export async function updatePollAction(
       pollId: poll.id,
       actorUserId: user.id,
       now: new Date(),
-      ...parsed.data,
+      ...data,
     });
   } catch (error) {
+    if (error instanceof PlaceNotSelectableError) {
+      return fieldFailure("placeIds", POLL_PLACE_ERROR_MESSAGES[error.reason], values);
+    }
     console.error("[polls] updatePoll failed", error);
     return failed(unexpectedError(), values);
   }
@@ -275,23 +293,30 @@ export async function updatePollAction(
       notFound();
     case "forbidden":
       return failed(fail(ACTION_ERROR_CODES.FORBIDDEN, NOT_ALLOWED_TO_EDIT), values);
+    case "options-locked":
+      // Re-render the page: it now shows the options read-only (ballotCount ≥ 1).
+      revalidateClub(club.id);
+      return failed(fail(ACTION_ERROR_CODES.CONFLICT, POLL_OPTIONS_LOCKED_MESSAGE), values);
+    case "nothing-to-vote":
+      return fieldFailure("dates", NOTHING_TO_VOTE_MESSAGE, values);
     case "timing": {
-      // The first date is only needed for its message (rare path: one extra read).
-      const firstDate =
-        result.error === "DEADLINE_NOT_BEFORE_FIRST_DATE"
+      // The first date names the message: the new one, else the stored one (one extra read).
+      const firstDate = data.options
+        ? (data.options.dateStartsAt[0] ?? null)
+        : result.error === "DEADLINE_NOT_BEFORE_FIRST_DATE"
           ? ((await getPollView(club.id, poll.id, user.id))?.dates[0]?.startsAt ?? null)
           : null;
-      const { message } = pollTimingMessage(result.error, {
+      const { field, message } = pollTimingMessage(result.error, {
         firstDate,
         previousDeadline: poll.deadline,
       });
-      // Every timing error of an edit is about the deadline (the dates are fixed).
-      return fieldFailure("deadlineDate", message, values);
+      return fieldFailure(field, message, values);
     }
     case "closed":
       revalidateClub(club.id);
       redirect(withToast(pollHref(club.id, poll.id), "poll-locked"));
     case "updated":
+      // The calendar's "Mulig dato" rows follow the options (D-137).
       revalidateClub(club.id);
       redirect(withToast(pollHref(club.id, poll.id), "poll-updated"));
   }
