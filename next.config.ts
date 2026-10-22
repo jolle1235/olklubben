@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
   // test that taps it would hit the indicator instead (TG-009).
   devIndicators: process.env.E2E_SERVER === "1" ? false : { position: "top-right" },
 
+  // Upgrade reminders during `next dev`/`next build` and the default policy for
+  // `next upgrade --agent`: only recommend upgrades that fix a security advisory.
+  experimental: {
+    agentUpgrade: "security",
+  },
+
   // Tailwind CSS v4 runs as a Turbopack loader (create-next-app 16.4 default),
   // not through PostCSS.
   turbopack: {
