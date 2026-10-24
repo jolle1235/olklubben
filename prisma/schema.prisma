@@ -371,10 +371,34 @@ model Beer {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   ratings BeerRating[]
+  /// Optional photo (D-158). Its own table, so lists never load the bytes.
+  image   BeerImage?
 
+  /// Target of beer_images' composite FK (club isolation in the DB, D-096).
+  @@unique([id, clubId])
   @@index([clubId, name])
   @@index([eventId])
   @@map("beers")
+}
+
+/// A beer's photo (SPEC §9.5, D-158): re-encoded on the server with sharp to
+/// WebP, at most 1200 × 1200 px, without metadata (no EXIF/GPS from phones).
+/// Served only to members by /c/[clubId]/beers/[beerId]/image?v=<updatedAt>.
+/// Deleted with the beer. CHECKs in the migration.
+model BeerImage {
+  beerId      String   @id @map("beer_id")
+  clubId      String   @map("club_id")
+  beer        Beer     @relation(fields: [beerId, clubId], references: [id, clubId], onDelete: Cascade)
+  /// Always "image/webp" (CHECK).
+  contentType String   @map("content_type")
+  /// ≤ 1 MB (CHECK).
+  data        Bytes
+  width       Int
+  height      Int
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([beerId, clubId])
+  @@map("beer_images")
 }
 
 /// One member's rating of one beer (SPEC §9.5). Stored in half points: 2 = 1,0

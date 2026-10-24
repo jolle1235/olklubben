@@ -1,7 +1,7 @@
-import { normalizeChordGlyphs } from "../../src/server/domain/songs/chords";
+import { normalizeChordGlyphs } from "@/server/domain/songs/chords";
 
 import { cleanRunText } from "./clean";
-import type { PdfRun } from "./pdf-xml";
+import type { PdfRun } from "./pdf-run";
 
 /**
  * ChordBank layout: font roles, visual rows, chord tokens with their x, and

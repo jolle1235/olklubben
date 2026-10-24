@@ -32,6 +32,8 @@ export type BeerListItem = RatingStats & {
   createdById: string;
   eventId: string | null;
   event: BeerEventRef | null;
+  /** The photo's updatedAt in ms (beerImageHref), null without a photo (D-158). */
+  imageVersion: number | null;
 };
 
 export type BeerRatingEntry = {
@@ -52,6 +54,12 @@ export type BeerDetail = BeerListItem & {
 export type SimilarBeer = { id: string; name: string; abv: number };
 
 const eventRefSelect = { select: { id: true, title: true, startsAt: true } } as const;
+/** Only the photo's version, never its bytes. */
+const imageVersionSelect = { select: { updatedAt: true } } as const;
+
+function imageVersionOf(image: { updatedAt: Date } | null): number | null {
+  return image ? image.updatedAt.getTime() : null;
+}
 
 /**
  * Every beer of the club, newest first, with the club's average, the number of
@@ -70,15 +78,17 @@ export async function listClubBeers(clubId: string, userId: string): Promise<Bee
         createdById: true,
         eventId: true,
         event: eventRefSelect,
+        image: imageVersionSelect,
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     }),
     getRatingStats({ beer: { clubId } }, userId),
   ]);
 
-  return beers.map((beer) => ({
+  return beers.map(({ image, ...beer }) => ({
     ...beer,
     abv: beer.abv.toNumber(),
+    imageVersion: imageVersionOf(image),
     ...(stats.get(beer.id) ?? NO_RATINGS),
   }));
 }
@@ -103,6 +113,7 @@ export const getBeer = cache(
         createdBy: { select: personSelect },
         eventId: true,
         event: eventRefSelect,
+        image: imageVersionSelect,
         ratings: {
           select: { value: true, updatedAt: true, user: { select: personSelect } },
         },
@@ -110,12 +121,14 @@ export const getBeer = cache(
     });
     if (!beer) return null;
 
+    const { image, ...rest } = beer;
     const ratings = [...beer.ratings].sort(
       (a, b) => b.value - a.value || compareByDisplayName(a.user, b.user),
     );
     return {
-      ...beer,
+      ...rest,
       abv: beer.abv.toNumber(),
+      imageVersion: imageVersionOf(image),
       ratings,
       averageStars: averageRating(ratings.map((rating) => rating.value)),
       ratingCount: ratings.length,
@@ -153,4 +166,21 @@ export async function findSimilarBeers(
   excludeId?: string,
 ): Promise<SimilarBeer[]> {
   return findSameNameBeers(await listBeerNames(clubId), name, excludeId);
+}
+
+/**
+ * A beer's photo for the image route (D-158), or null: no photo, a malformed
+ * id, another club's beer, or a user who is not a member of the club. One
+ * query, so the route never reveals more than a 404 (§4.4).
+ */
+export async function getBeerImageForMember(
+  clubId: string,
+  beerId: string,
+  userId: string,
+): Promise<{ contentType: string; data: Uint8Array; updatedAt: Date } | null> {
+  if (!isValidId(clubId) || !isValidId(beerId)) return null;
+  return db.beerImage.findFirst({
+    where: { beerId, clubId, beer: { club: { memberships: { some: { userId } } } } },
+    select: { contentType: true, data: true, updatedAt: true },
+  });
 }

@@ -6,8 +6,8 @@ import {
   parseSong,
 } from "../../src/server/domain/songs/song-text";
 
-import type { ChordBankStats } from "./chordbank";
-import { oddChars } from "./clean";
+import type { ChordBankStats } from "../../src/server/domain/songs/chordbank/chordbank";
+import { oddChars } from "../../src/server/domain/songs/chordbank/clean";
 
 /**
  * Things in a parsed song a human may want to look at. `decision: true` puts

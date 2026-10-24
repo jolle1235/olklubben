@@ -82,7 +82,8 @@ export function profileLink(page: Page): Locator {
 export async function logOut(page: Page) {
   await profileLink(page).click();
   await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
-  await page.getByRole("button", { name: "Log ud" }).click();
+  // The Profil page's button (the desktop sidebar has one too).
+  await page.getByRole("main").getByRole("button", { name: "Log ud" }).click();
   await expect(page).toHaveURL(/\/login$/);
 }
 

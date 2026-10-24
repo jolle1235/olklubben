@@ -5,7 +5,7 @@ import { BeerForm } from "@/components/features/beers/beer-form";
 import { toEventChoices } from "@/components/features/beers/catalog-view";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { beerHref } from "@/lib/routes";
+import { beerHref, beerImageHref } from "@/lib/routes";
 import { rememberActiveClub } from "@/server/auth/session";
 import { requireBeer } from "@/server/beers/access";
 import { listBeerNames } from "@/server/beers/queries";
@@ -56,6 +56,9 @@ export default async function EditBeerPage({
             events={toEventChoices(events)}
             existingBeers={beerNames.filter((other) => other.id !== beer.id)}
             cancelHref={beerHref(club.id, beer.id)}
+            currentImageUrl={
+              beer.imageVersion === null ? null : beerImageHref(club.id, beer.id, beer.imageVersion)
+            }
           />
         </CardContent>
       </Card>

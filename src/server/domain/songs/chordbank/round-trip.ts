@@ -1,4 +1,4 @@
-import { lineKind, type SongLineKind } from "../../src/server/domain/songs/song-text";
+import { lineKind, type SongLineKind } from "@/server/domain/songs/song-text";
 
 import type { Block, BlockKind } from "./chordbank";
 import { storedLines } from "./to-stored-text";

@@ -51,6 +51,14 @@ export function beerHref(clubId: string, beerId: string): string {
   return `${beersHref(clubId)}/${beerId}`;
 }
 
+/**
+ * A beer's photo (D-158). `version` (the photo's updatedAt in ms) changes the
+ * URL when the photo changes, so the browser may cache each URL forever.
+ */
+export function beerImageHref(clubId: string, beerId: string, version: number): string {
+  return `${beerHref(clubId, beerId)}/image?v=${version}`;
+}
+
 export function editBeerHref(clubId: string, beerId: string): string {
   return `${beerHref(clubId, beerId)}/edit`;
 }
@@ -79,6 +87,11 @@ export function songsHref(clubId: string): string {
 /** "Tilføj sang" (admins). */
 export function newSongHref(clubId: string): string {
   return `${songsHref(clubId)}/new`;
+}
+
+/** "Importér fra PDF" (admins). */
+export function importSongsHref(clubId: string): string {
+  return `${songsHref(clubId)}/import`;
 }
 
 /** One song in the reader. */

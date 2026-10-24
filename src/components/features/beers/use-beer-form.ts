@@ -79,6 +79,8 @@ export function useBeerForm({ mode, defaults, existingBeers }: UseBeerFormOption
 
   return {
     formProps: { ref, action, onSubmit, noValidate },
+    /** Changes after every server answer (the photo field puts its file back then). */
+    state,
     pending: form.pending,
     values,
     setValue,

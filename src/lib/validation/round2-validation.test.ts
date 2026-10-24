@@ -180,7 +180,13 @@ describe("beerFormSchema (SPEC §9.5)", () => {
       abv: 9.5,
       eventId: null,
       confirmDuplicate: false,
+      removeImage: false,
     });
+  });
+
+  it("reads 'Fjern billede' as a flag (D-158)", () => {
+    expect(beerFormSchema.parse({ ...valid, removeImage: "1" }).removeImage).toBe(true);
+    expect(beerFormSchema.parse({ ...valid, removeImage: "" }).removeImage).toBe(false);
   });
 
   it("accepts an event id and the duplicate confirmation", () => {

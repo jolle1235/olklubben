@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
+import { LogoutButton } from "@/components/features/profile/logout-button";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ClubSwitcher, type ClubSummary } from "./club-switcher";
 import { getSidebarNav, isNavItemActive } from "./nav-items";
@@ -21,7 +22,7 @@ export type SidebarProps = {
 /**
  * Desktop navigation (md+): olive sidebar with logo, club switcher, the list
  * (Overblik, Kalender, Øl, Sangbog) and, at the bottom, the user row, which is
- * the way to Profil (and the club page) on desktop.
+ * the way to Profil (and the club page) on desktop, with "Log ud" under it.
  */
 export function Sidebar({ club, clubs, user, className }: SidebarProps) {
   const pathname = usePathname();
@@ -100,6 +101,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
               <span className="block truncate text-sm text-on-dark-muted">{user.email}</span>
             </span>
           </Link>
+          <LogoutButton variant="sidebar" className="mt-1" />
         </div>
       </nav>
     </div>

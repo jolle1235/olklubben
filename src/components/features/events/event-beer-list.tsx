@@ -3,9 +3,9 @@ import { PlusIcon } from "lucide-react";
 
 import { BeerCard, type BeerCardBeer } from "@/components/features/beers/beer-card";
 import { Button } from "@/components/ui/button";
-import { beerHref } from "@/lib/routes";
+import { beerHref, beerImageHref } from "@/lib/routes";
 
-export type EventBeerListItem = BeerCardBeer & { id: string };
+export type EventBeerListItem = BeerCardBeer & { id: string; imageVersion: number | null };
 
 export type EventBeerListProps = {
   clubId: string;
@@ -34,7 +34,15 @@ export function EventBeerList({ clubId, beers, addBeerHref, emphasizeAdd }: Even
         <ul className="grid grid-cols-1 gap-3 text-left">
           {beers.map((beer) => (
             <li key={beer.id}>
-              <BeerCard beer={beer} href={beerHref(clubId, beer.id)} />
+              <BeerCard
+                beer={beer}
+                href={beerHref(clubId, beer.id)}
+                imageUrl={
+                  beer.imageVersion === null
+                    ? null
+                    : beerImageHref(clubId, beer.id, beer.imageVersion)
+                }
+              />
             </li>
           ))}
         </ul>

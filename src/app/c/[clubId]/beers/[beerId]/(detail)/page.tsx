@@ -13,7 +13,7 @@ import { LinkPendingIcon } from "@/components/ui/link-pending";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatCompactDate, toDateKey } from "@/lib/format/date";
 import { getDisplayName } from "@/lib/format/display-name";
-import { editBeerHref, newBeerHref } from "@/lib/routes";
+import { beerImageHref, editBeerHref, newBeerHref } from "@/lib/routes";
 import { requireBeer, requireBeerPage } from "@/server/beers/access";
 import { formatAbv } from "@/server/domain/beers/abv";
 import { canDeleteBeer, canEditBeer } from "@/server/domain/beers/permissions";
@@ -56,6 +56,15 @@ export default async function BeerPage({ params }: PageProps<"/c/[clubId]/beers/
       </TopBarAction>
 
       <PageHeader title={beer.name} description={formatAbv(beer.abv)} />
+
+      {beer.imageVersion !== null ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a member-only route; nothing to optimise
+        <img
+          src={beerImageHref(club.id, beer.id, beer.imageVersion)}
+          alt={`Billede af ${beer.name}`}
+          className="mb-6 max-h-80 w-fit max-w-full rounded-2xl border border-border bg-paper object-contain md:max-h-96"
+        />
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <RatingSummary averageStars={beer.averageStars} ratingCount={beer.ratingCount} />

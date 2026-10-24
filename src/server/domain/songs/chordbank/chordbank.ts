@@ -1,8 +1,8 @@
-import { normalizeChordGlyphs } from "../../src/server/domain/songs/chords";
-import { lineKind, sectionLabel } from "../../src/server/domain/songs/song-text";
+import { normalizeChordGlyphs } from "@/server/domain/songs/chords";
+import { lineKind, sectionLabel } from "@/server/domain/songs/song-text";
 
 import { cleanRunText } from "./clean";
-import type { PdfRun } from "./pdf-xml";
+import type { PdfRun } from "./pdf-run";
 import {
   alignChords,
   chordTokens,

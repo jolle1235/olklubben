@@ -10,13 +10,19 @@ import {
 import { songTitleKey } from "../../src/server/domain/songs/title";
 
 import { detectAnomalies, type Anomaly } from "./anomalies";
-import { extractChordBankSong, type ChordBankStats } from "./chordbank";
+import {
+  extractChordBankSong,
+  type ChordBankStats,
+} from "../../src/server/domain/songs/chordbank/chordbank";
 import type { SongbookOverrides } from "./overrides";
 import { parsePdfXml } from "./pdf-xml";
 import { pdfToXml } from "./pdftohtml";
-import { roundTrip, type RoundTripDisagreement } from "./round-trip";
-import { chooseSongTitle, type TitleSource } from "./title";
-import { storedLines } from "./to-stored-text";
+import {
+  roundTrip,
+  type RoundTripDisagreement,
+} from "../../src/server/domain/songs/chordbank/round-trip";
+import { chooseSongTitle, type TitleSource } from "../../src/server/domain/songs/chordbank/title";
+import { storedLines } from "../../src/server/domain/songs/chordbank/to-stored-text";
 
 /**
  * One PDF → the song the importer would store, with every self-check:

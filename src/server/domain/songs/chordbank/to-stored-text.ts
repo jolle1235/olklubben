@@ -1,4 +1,4 @@
-import { cleanSongText } from "../../src/server/domain/songs/song-text";
+import { cleanSongText } from "@/server/domain/songs/song-text";
 
 import type { Block } from "./chordbank";
 

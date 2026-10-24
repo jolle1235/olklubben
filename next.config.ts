@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
   // `next upgrade --agent`: only recommend upgrades that fix a security advisory.
   experimental: {
     agentUpgrade: "security",
+    // The songbook's PDF import sends one PDF (≤ 4 MB) per Server Action call
+    // (SPEC §9.6, D-156). Vercel caps request bodies at 4.5 MB anyway.
+    serverActions: { bodySizeLimit: "4.5mb" },
   },
 
   // Tailwind CSS v4 runs as a Turbopack loader (create-next-app 16.4 default),

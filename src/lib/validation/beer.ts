@@ -17,9 +17,16 @@ import { idSchema } from "./id";
  *     Server Action checks that the event is in the same club (§4.4).
  *   * confirmDuplicate: "1" / "true" / "on" → true. The form sends it when the
  *     member saw the duplicate warning (E21) and still wants to add the beer.
+ *   * removeImage: like confirmDuplicate; "Fjern billede" when editing (D-158).
+ *     The photo itself is a File, read by the Server Action (image.ts).
  *
  * Client-safe: the domain modules are pure.
  */
+
+const flagSchema = z
+  .union([z.string(), z.boolean()])
+  .nullish()
+  .transform((value) => value === true || value === "1" || value === "true" || value === "on");
 
 export const beerFormSchema = z.object({
   name: z
@@ -48,10 +55,8 @@ export const beerFormSchema = z.object({
     .transform((value) => (value ?? "").trim())
     .refine((value) => value === "" || isValidId(value), "Vælg et event fra listen.")
     .transform((value) => (value === "" ? null : value)),
-  confirmDuplicate: z
-    .union([z.string(), z.boolean()])
-    .nullish()
-    .transform((value) => value === true || value === "1" || value === "true" || value === "on"),
+  confirmDuplicate: flagSchema,
+  removeImage: flagSchema,
 });
 
 export type BeerFormInput = z.input<typeof beerFormSchema>;

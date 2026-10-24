@@ -3,11 +3,11 @@
 import { useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { MusicIcon, PlusIcon } from "lucide-react";
+import { FileUpIcon, MusicIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { newSongHref, songsHref } from "@/lib/routes";
+import { importSongsHref, newSongHref, songsHref } from "@/lib/routes";
 import {
   buildSongSearchIndex,
   matchSongs,
@@ -172,17 +172,25 @@ function EmptySongbook({ clubId, canManage }: { clubId: string; canManage: boole
       title="Sangbogen er tom endnu 🎵"
       description={
         canManage
-          ? "Tilføj klubbens første sang, så alle kan synge med."
+          ? "Skriv klubbens første sang ind, eller importér hele sangbogen fra PDF'er."
           : "Når en admin har lagt sangene ind, finder I dem her – også midt i smagningen."
       }
       actions={
         canManage ? (
-          <Button asChild size="lg">
-            <Link href={newSongHref(clubId)}>
-              <PlusIcon aria-hidden />
-              Tilføj sang
-            </Link>
-          </Button>
+          <>
+            <Button asChild size="lg">
+              <Link href={newSongHref(clubId)}>
+                <PlusIcon aria-hidden />
+                Tilføj sang
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href={importSongsHref(clubId)}>
+                <FileUpIcon aria-hidden />
+                Importér fra PDF
+              </Link>
+            </Button>
+          </>
         ) : undefined
       }
     />

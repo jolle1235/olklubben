@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 /**
  * "Log ud" (SPEC §9.8). Ends the session and goes to /login.
  * variant "outline": the button on Profil. "link": inline text, e.g. in the
- * "Logget ind som …" footer on onboarding pages.
+ * "Logget ind som …" footer on onboarding pages. "sidebar": a row under the
+ * user in the desktop sidebar, so logging out needs no trip to Profil.
  *
  * `next`: a same-origin path to come back to after logging in again, e.g. the
  * invitation on /join/<code> (someone on the wrong account, §6.5). It becomes
@@ -25,7 +26,7 @@ export function LogoutButton({
   next,
 }: {
   className?: string;
-  variant?: "outline" | "link";
+  variant?: "outline" | "link" | "sidebar";
   next?: string | null;
 }) {
   const router = useRouter();
@@ -43,6 +44,30 @@ export function LogoutButton({
       router.replace(withNext("/login", next));
       router.refresh();
     });
+  }
+
+  if (variant === "sidebar") {
+    return (
+      <button
+        type="button"
+        onClick={logOut}
+        disabled={pending}
+        aria-busy={pending || undefined}
+        className={cn(
+          "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-left font-semibold text-on-dark-muted transition-colors hover:bg-olive-soft/60 hover:text-cream disabled:cursor-wait",
+          className,
+        )}
+      >
+        <span aria-hidden className="grid size-8 shrink-0 place-items-center">
+          {pending ? (
+            <Loader2Icon className="size-5 animate-spin" />
+          ) : (
+            <LogOutIcon className="size-5" />
+          )}
+        </span>
+        {pending ? "Logger ud …" : "Log ud"}
+      </button>
+    );
   }
 
   return (

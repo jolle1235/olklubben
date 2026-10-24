@@ -3,6 +3,8 @@ import "server-only";
 import { db, type TransactionClient } from "@/server/db";
 import { isValidRatingValue } from "@/server/domain/ratings/ratings";
 
+import type { ProcessedBeerImage } from "./image";
+
 /**
  * Writes for beers and ratings (SPEC §9.5, §5.1, D-063).
  *
@@ -32,7 +34,36 @@ export type BeerWriteData = {
   /** 0.0–99.9 with one decimal. */
   abv: number;
   eventId: string | null;
+  /**
+   * The photo (D-158), already processed (image.ts): a new one replaces the
+   * old, null removes it, undefined leaves it as it is.
+   */
+  image?: ProcessedBeerImage | null;
 };
+
+async function writeImage(
+  tx: TransactionClient,
+  clubId: string,
+  beerId: string,
+  image: ProcessedBeerImage | null | undefined,
+): Promise<void> {
+  if (image === undefined) return;
+  if (image === null) {
+    await tx.beerImage.deleteMany({ where: { beerId, clubId } });
+    return;
+  }
+  const data = {
+    contentType: "image/webp",
+    data: image.data,
+    width: image.width,
+    height: image.height,
+  };
+  await tx.beerImage.upsert({
+    where: { beerId },
+    create: { beerId, clubId, ...data },
+    update: data,
+  });
+}
 
 async function assertEventInClub(
   tx: TransactionClient,
@@ -58,13 +89,15 @@ function isForeignKeyError(error: unknown): boolean {
 export async function createBeer(
   input: { clubId: string; createdById: string } & BeerWriteData,
 ): Promise<{ id: string }> {
-  const { clubId, createdById, name, abv, eventId } = input;
+  const { clubId, createdById, name, abv, eventId, image } = input;
   return db.$transaction(async (tx) => {
     await assertEventInClub(tx, clubId, eventId);
-    return tx.beer.create({
+    const beer = await tx.beer.create({
       data: { clubId, createdById, name, abv: toDecimalString(abv), eventId },
       select: { id: true },
     });
+    await writeImage(tx, clubId, beer.id, image);
+    return beer;
   });
 }
 
@@ -75,13 +108,14 @@ export async function createBeer(
 export async function updateBeer(
   input: { clubId: string; beerId: string } & BeerWriteData,
 ): Promise<boolean> {
-  const { clubId, beerId, name, abv, eventId } = input;
+  const { clubId, beerId, name, abv, eventId, image } = input;
   return db.$transaction(async (tx) => {
     await assertEventInClub(tx, clubId, eventId);
     const { count } = await tx.beer.updateMany({
       where: { id: beerId, clubId },
       data: { name, abv: toDecimalString(abv), eventId },
     });
+    if (count === 1) await writeImage(tx, clubId, beerId, image);
     return count === 1;
   });
 }

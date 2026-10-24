@@ -11,6 +11,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ABV_INPUT_MAX_LENGTH } from "@/server/domain/beers/abv";
 
+import { BeerImageField } from "./beer-image-field";
 import type { BeerNameEntry } from "./catalog-view";
 import { DuplicateBeerWarning } from "./duplicate-beer-warning";
 import { useBeerForm, type BeerFormDefaults } from "./use-beer-form";
@@ -27,11 +28,13 @@ export type BeerFormProps = {
   existingBeers: BeerNameEntry[];
   /** Where "Annuller" goes. */
   cancelHref: string;
+  /** The saved photo when editing (beerImageHref), else null (D-158). */
+  currentImageUrl?: string | null;
 };
 
 /**
  * "Tilføj øl" / "Rediger øl" (SPEC §9.5): navn, alkoholprocent ("5,2" or
- * "5.2") and an optional event of this club. A name the club already has
+ * "5.2"), an optional event of this club and an optional photo (D-158). A name the club already has
  * shows "Den her har I vist smagt før 👀" (E21); the button then says
  * "Tilføj alligevel" and confirms the duplicate. Adding opens the new beer's
  * page, ready to rate (§10.5).
@@ -44,6 +47,7 @@ export function BeerForm({
   events,
   existingBeers,
   cancelHref,
+  currentImageUrl = null,
 }: BeerFormProps) {
   const form = useBeerForm({ mode, defaults, existingBeers });
   const id = useId();
@@ -160,6 +164,12 @@ export function BeerForm({
           <FieldError id={`${ids.event}-error`}>{errors.eventId[0]}</FieldError>
         ) : null}
       </div>
+
+      <BeerImageField
+        currentImageUrl={currentImageUrl}
+        error={errors.image?.[0]}
+        resetKey={form.state}
+      />
 
       <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center">
         <SubmitButton pending={form.pending} pendingLabel="Gemmer …" size="lg">

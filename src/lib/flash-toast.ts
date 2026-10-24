@@ -29,6 +29,7 @@ export const FLASH_TOASTS = {
   "song-created": "Sangen er tilføjet 🎵",
   "song-updated": "Gemt ✓",
   "song-deleted": "Sangen er slettet.",
+  "songs-imported": "Sangene er importeret 🎵",
   "poll-created": "Afstemningen er klar 🗳 Del linket med klubben.",
   "poll-updated": "Gemt ✓",
   "vote-saved": "Skål! Din stemme er gemt ✓",

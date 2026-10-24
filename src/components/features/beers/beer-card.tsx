@@ -26,6 +26,8 @@ export type BeerCardBeer = {
 export type BeerCardProps = {
   beer: BeerCardBeer;
   href: string;
+  /** The beer's photo (beerImageHref), shown instead of 🍺 (D-158). */
+  imageUrl?: string | null;
 };
 
 /**
@@ -39,18 +41,28 @@ export type BeerCardProps = {
  * catalogue and the event page's "Øl smagt til dette event" (§9.2), so the
  * club's and your own rating look the same everywhere.
  */
-export function BeerCard({ beer, href }: BeerCardProps) {
+export function BeerCard({ beer, href, imageUrl = null }: BeerCardProps) {
   return (
     <Link
       href={href}
       className="group/beer flex gap-3 rounded-xl border border-border bg-paper px-4 py-3.5 transition-[border-color,box-shadow] hover:border-input hover:shadow-[0_10px_24px_-20px_rgb(65_68_55/0.7)] sm:gap-4 sm:px-5"
     >
-      <span
-        aria-hidden
-        className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-cream-deep text-xl"
-      >
-        🍺
-      </span>
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a member-only route; nothing to optimise
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          className="mt-0.5 size-14 shrink-0 rounded-lg border border-border bg-cream-deep object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-cream-deep text-xl"
+        >
+          🍺
+        </span>
+      )}
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="flex items-start justify-between gap-3">
           <span className="min-w-0 font-heading text-lg leading-snug font-semibold break-words hyphens-auto text-olive group-hover/beer:underline group-hover/beer:decoration-amber group-hover/beer:decoration-2 group-hover/beer:underline-offset-4">

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { contentHash, type SongContent } from "../../src/server/domain/songs/import-hash";
 
 /**
  * What an import would do with each parsed song, given the club's current
@@ -22,6 +22,8 @@ import { createHash } from "node:crypto";
  *   FORÆLDRELØS        a club song whose file is gone → report only, never deleted
  */
 
+export { contentHash, type SongContent };
+
 export type ImportStatus =
   | "NY"
   | "NY?"
@@ -31,13 +33,6 @@ export type ImportStatus =
   | "TITEL OPTAGET"
   | "FEJL"
   | "FORÆLDRELØS";
-
-export type SongContent = {
-  title: string;
-  artist: string | null;
-  melody: string | null;
-  body: string;
-};
 
 /** A club song as the plan needs it. */
 export type ExistingSong = SongContent & {
@@ -72,13 +67,6 @@ export type PlanFlags = {
   /** --only: only some files were parsed, so missing files are not orphans. */
   partial: boolean;
 };
-
-/** sha256 hex of JSON [title, artist, melody, body]. */
-export function contentHash(song: SongContent): string {
-  return createHash("sha256")
-    .update(JSON.stringify([song.title, song.artist, song.melody, song.body]))
-    .digest("hex");
-}
 
 export function planSongImport(
   existing: readonly ExistingSong[],

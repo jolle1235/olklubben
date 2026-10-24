@@ -9,19 +9,11 @@
  * or a run that names an unknown id, is an error.
  */
 
+import type { PdfRun } from "../../src/server/domain/songs/chordbank/pdf-run";
+
 export type PdfFont = { family: string; size: number };
 
-/** One text run as poppler reports it (px at 1.5 × PDF points). */
-export type PdfRun = {
-  page: number;
-  top: number;
-  left: number;
-  width: number;
-  /** Family without the subset prefix ("AAAAAB+OpenSans-ExtraBold" → "OpenSans-ExtraBold"). */
-  family: string;
-  size: number;
-  text: string;
-};
+export type { PdfRun };
 
 const FONTSPEC_RE = /<fontspec\b([^>]*)>/g;
 const PAGE_OR_TEXT_RE = /<page\b([^>]*)>|<text\b([^>]*)>([\s\S]*?)<\/text>/g;

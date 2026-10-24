@@ -74,6 +74,8 @@ export type EventBeer = RatingStats & {
   name: string;
   abv: number;
   createdAt: Date;
+  /** The photo's version for beerImageHref, null without a photo (D-158). */
+  imageVersion: number | null;
 };
 
 const placeSelect = {
@@ -330,7 +332,13 @@ export async function getEventBeers(
   if (!isValidId(eventId)) return [];
   const beers = await db.beer.findMany({
     where: { clubId, eventId },
-    select: { id: true, name: true, abv: true, createdAt: true },
+    select: {
+      id: true,
+      name: true,
+      abv: true,
+      createdAt: true,
+      image: { select: { updatedAt: true } },
+    },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   if (beers.length === 0) return [];
@@ -341,6 +349,7 @@ export async function getEventBeers(
     name: beer.name,
     abv: beer.abv.toNumber(),
     createdAt: beer.createdAt,
+    imageVersion: beer.image ? beer.image.updatedAt.getTime() : null,
     ...(stats.get(beer.id) ?? NO_RATINGS),
   }));
 }

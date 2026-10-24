@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { beerHref, beersHref, newBeerHref } from "@/lib/routes";
+import { beerHref, beerImageHref, beersHref, newBeerHref } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
 import { listClubBeers } from "@/server/beers/queries";
 import {
@@ -112,7 +112,15 @@ export default async function BeersPage({ params, searchParams }: PageProps<"/c/
               <ul className="grid grid-cols-1 gap-3">
                 {shown.map((beer) => (
                   <li key={beer.id}>
-                    <BeerCard beer={beer} href={beerHref(club.id, beer.id)} />
+                    <BeerCard
+                      beer={beer}
+                      href={beerHref(club.id, beer.id)}
+                      imageUrl={
+                        beer.imageVersion === null
+                          ? null
+                          : beerImageHref(club.id, beer.id, beer.imageVersion)
+                      }
+                    />
                   </li>
                 ))}
               </ul>

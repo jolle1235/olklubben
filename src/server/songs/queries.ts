@@ -95,3 +95,21 @@ export const listSongTitles = cache(async (clubId: string): Promise<SongTitleRef
   const rows = await db.song.findMany({ where: { clubId }, select: { id: true, title: true } });
   return sortSongs(rows);
 });
+
+/**
+ * The PDF import's status (D-156): the club's song from the same source file,
+ * else one with the same title key, else null.
+ */
+export async function findSongImportMatch(
+  clubId: string,
+  { sourceKey, titleKey }: { sourceKey: string; titleKey: string },
+): Promise<{ id: string; title: string; sameSource: boolean } | null> {
+  const matches = await db.song.findMany({
+    where: { clubId, OR: [{ sourceKey }, { titleKey }] },
+    select: { id: true, title: true, sourceKey: true },
+  });
+  const match = matches.find((m) => m.sourceKey === sourceKey) ?? matches[0];
+  return match
+    ? { id: match.id, title: match.title, sameSource: match.sourceKey === sourceKey }
+    : null;
+}
