@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
 import { SongPdfImport } from "@/components/features/songs/song-pdf-import";
 import { PageHeader } from "@/components/ui/page-header";
-import { rememberActiveClub, requireMembership } from "@/server/auth/session";
-import { canManageSongs } from "@/server/domain/songs/permissions";
+import { requireSongAdminPage } from "@/server/songs/access";
 
 export const metadata: Metadata = { title: "Importér sange" };
 
@@ -15,9 +13,7 @@ export const metadata: Metadata = { title: "Importér sange" };
  */
 export default async function ImportSongsPage({ params }: PageProps<"/c/[clubId]/songs/import">) {
   const { clubId } = await params;
-  const { user, membership, club } = await requireMembership(clubId);
-  if (!canManageSongs(membership)) notFound();
-  await rememberActiveClub(user, club.id);
+  const { club } = await requireSongAdminPage(clubId);
 
   return (
     <>

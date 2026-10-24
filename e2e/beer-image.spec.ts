@@ -55,7 +55,7 @@ test("et billede tilføjes fra eventet, overlever dublet-advarslen og vises kun 
   // A duplicate only the server knows (the form loaded before it existed, F-053).
   await insertBeer({ clubId, createdByEmail: admin.email, name: "Fotobajer" });
   await fillBeerForm(page, { name: "Fotobajer", abv: "5,2" });
-  await page.getByLabel("Billede (valgfrit)").setInputFiles(await photo(2400, 1600));
+  await page.getByLabel(/^Billede/).setInputFiles(await photo(2400, 1600));
   await expect(page.getByRole("img", { name: "Billede af øllen" })).toBeVisible();
 
   // The server's duplicate warning resets the form; the photo must still be sent.
@@ -78,7 +78,11 @@ test("et billede tilføjes fra eventet, overlever dublet-advarslen og vises kun 
   const card = page.getByRole("link", { name: /Fotobajer/ });
   await expect(card.locator("img")).toBeVisible();
   const imageUrl = await card.locator("img").getAttribute("src");
-  expect(imageUrl).toMatch(new RegExp(`/c/${clubId}/beers/${beerId}/image\\?v=\\d+$`));
+  // The card loads the small copy (112 px), not the full photo.
+  expect(imageUrl).toMatch(new RegExp(`/c/${clubId}/beers/${beerId}/image\\?v=\\d+&size=thumb$`));
+  const thumb = await page.request.get(imageUrl!);
+  expect(thumb.headers()["content-type"]).toBe("image/webp");
+  expect(await sharp(await thumb.body()).metadata()).toMatchObject({ width: 112, height: 112 });
 
   // Someone outside the club gets a 404 for the photo.
   const outsider = await openPage();
@@ -100,7 +104,7 @@ test("en fil, der ikke er et billede, giver en fejl ved feltet", async ({ page }
   const clubId = await signUpWithClub(page, newUser(testInfo, "fejlfoto"), clubName(testInfo, "F"));
   await page.goto(`/c/${clubId}/beers/new`);
   await fillBeerForm(page, { name: "Ingen billedøl", abv: "4,6" });
-  await page.getByLabel("Billede (valgfrit)").setInputFiles({
+  await page.getByLabel(/^Billede/).setInputFiles({
     name: "noter.png",
     mimeType: "image/png",
     buffer: Buffer.from("ikke et billede"),

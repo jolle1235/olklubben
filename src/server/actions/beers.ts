@@ -16,9 +16,10 @@ import { beerHref, beersHref } from "@/lib/routes";
 import { beerFormSchema, beerRefSchema } from "@/lib/validation/beer";
 import { idSchema } from "@/lib/validation/id";
 import { requireMembership } from "@/server/auth/session";
-import { BeerImageError, processBeerImage, type ProcessedBeerImage } from "@/server/beers/image";
+import { BeerImageError, processBeerImage } from "@/server/beers/image";
 import { createBeer, deleteBeer, EventNotInClubError, updateBeer } from "@/server/beers/mutations";
-import { findSimilarBeers, getBeer, type SimilarBeer } from "@/server/beers/queries";
+import { requireBeer } from "@/server/beers/access";
+import { findSimilarBeers, type SimilarBeer } from "@/server/beers/queries";
 import { isSameBeerName } from "@/server/domain/beers/name";
 import { canAddBeer, canDeleteBeer, canEditBeer } from "@/server/domain/beers/permissions";
 import { revalidateClub } from "@/server/revalidate";
@@ -77,36 +78,20 @@ function readBeerForm(formData: FormData) {
 }
 
 /**
- * The photo from the form (D-158): a chosen file → processed, "Fjern billede"
- * → null, nothing chosen → undefined (unchanged). A file that cannot be read
- * is the image field's error. Runs before the duplicate check, so a bad photo
- * is reported at once.
+ * The photo chosen in the form (D-158), or null. It is processed only once
+ * the duplicate check has passed (saveBeer's write), so a duplicate warning
+ * costs no image work; a file that cannot be read is the image field's error.
  */
-async function readBeerImage(
-  formData: FormData,
-  removeImage: boolean,
-  values: BeerFormValues,
-): Promise<
-  { ok: true; image: ProcessedBeerImage | null | undefined } | { ok: false; state: BeerFormState }
-> {
+function readImageFile(formData: FormData): File | null {
   const file = formData.get("image");
-  if (file instanceof File && file.size > 0) {
-    try {
-      return { ok: true, image: await processBeerImage(file) };
-    } catch (error) {
-      if (!(error instanceof BeerImageError)) throw error;
-      return {
-        ok: false,
-        state: failed(
-          fail(ACTION_ERROR_CODES.VALIDATION, DEFAULT_ERROR_MESSAGES.VALIDATION, {
-            image: [error.message],
-          }),
-          values,
-        ),
-      };
-    }
-  }
-  return { ok: true, image: removeImage ? null : undefined };
+  return file instanceof File && file.size > 0 ? file : null;
+}
+
+function imageError(values: BeerFormValues, message: string): BeerFormState {
+  return failed(
+    fail(ACTION_ERROR_CODES.VALIDATION, DEFAULT_ERROR_MESSAGES.VALIDATION, { image: [message] }),
+    values,
+  );
 }
 
 function failed(result: { ok: false; error: ActionError }, values: BeerFormValues): BeerFormState {
@@ -145,6 +130,9 @@ async function saveBeer<T>(
     return { ok: true, result: await write() };
   } catch (error) {
     if (error instanceof EventNotInClubError) return { ok: false, state: eventNotInClub(values) };
+    if (error instanceof BeerImageError) {
+      return { ok: false, state: imageError(values, error.message) };
+    }
     console.error("[beers] saving a beer failed", error);
     return { ok: false, state: failed(unexpectedError(), values) };
   }
@@ -170,14 +158,20 @@ export async function createBeerAction(
   if (!canAddBeer(membership)) {
     return failed(fail(ACTION_ERROR_CODES.FORBIDDEN, DEFAULT_ERROR_MESSAGES.FORBIDDEN), values);
   }
-  const photo = await readBeerImage(formData, false, values);
-  if (!photo.ok) return photo.state;
+  const imageFile = readImageFile(formData);
 
   const saved = await saveBeer(
     values,
     confirmDuplicate ? null : () => findSimilarBeers(club.id, name),
-    () =>
-      createBeer({ clubId: club.id, createdById: user.id, name, abv, eventId, image: photo.image }),
+    async () =>
+      createBeer({
+        clubId: club.id,
+        createdById: user.id,
+        name,
+        abv,
+        eventId,
+        image: imageFile ? await processBeerImage(imageFile) : undefined,
+      }),
   );
   if (!saved.ok) return saved.state;
 
@@ -204,20 +198,25 @@ export async function updateBeerAction(
   if (!parsed.success) return failed(validationError(parsed.error), values);
   const { name, abv, eventId, confirmDuplicate, removeImage } = parsed.data;
 
-  const { user, membership, club } = await requireMembership(ids.data.clubId);
-  const beer = await getBeer(club.id, ids.data.beerId, user.id);
-  if (!beer) notFound();
+  const { user, membership, club, beer } = await requireBeer(ids.data.clubId, ids.data.beerId);
   if (!canEditBeer(membership, beer, user.id)) {
     return failed(fail(ACTION_ERROR_CODES.FORBIDDEN, FORBIDDEN_EDIT_MESSAGE), values);
   }
-  const photo = await readBeerImage(formData, removeImage, values);
-  if (!photo.ok) return photo.state;
+  const imageFile = readImageFile(formData);
 
   const renamed = !isSameBeerName(name, beer.name);
   const saved = await saveBeer(
     values,
     confirmDuplicate || !renamed ? null : () => findSimilarBeers(club.id, name, beer.id),
-    () => updateBeer({ clubId: club.id, beerId: beer.id, name, abv, eventId, image: photo.image }),
+    async () =>
+      updateBeer({
+        clubId: club.id,
+        beerId: beer.id,
+        name,
+        abv,
+        eventId,
+        image: imageFile ? await processBeerImage(imageFile) : removeImage ? null : undefined,
+      }),
   );
   if (!saved.ok) return saved.state;
   // Deleted by someone else meanwhile.
@@ -235,9 +234,7 @@ export async function deleteBeerAction(clubId: string, beerId: string): Promise<
   const ids = beerRefSchema.safeParse({ clubId, beerId });
   if (!ids.success) notFound();
 
-  const { user, membership, club } = await requireMembership(ids.data.clubId);
-  const beer = await getBeer(club.id, ids.data.beerId, user.id);
-  if (!beer) notFound();
+  const { user, membership, club, beer } = await requireBeer(ids.data.clubId, ids.data.beerId);
   if (!canDeleteBeer(membership, beer, user.id)) {
     return fail(ACTION_ERROR_CODES.FORBIDDEN, FORBIDDEN_DELETE_MESSAGE);
   }

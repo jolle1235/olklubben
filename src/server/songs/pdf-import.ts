@@ -1,9 +1,10 @@
 import "server-only";
 
 import { extractChordBankSong } from "@/server/domain/songs/chordbank/chordbank";
-import { roundTrip } from "@/server/domain/songs/chordbank/round-trip";
+import { chordBankDraft } from "@/server/domain/songs/chordbank/draft";
+import { withRoles } from "@/server/domain/songs/chordbank/rows";
+import { SOURCE_KEY_MAX_LENGTH, sourceKeyOf } from "@/server/domain/songs/chordbank/source-key";
 import { chooseSongTitle, fileTitle } from "@/server/domain/songs/chordbank/title";
-import { storedLines } from "@/server/domain/songs/chordbank/to-stored-text";
 import { pdfTextSong } from "@/server/domain/songs/pdf-text";
 import { cleanSongText, lyricsOnlyLines } from "@/server/domain/songs/song-text";
 
@@ -36,45 +37,38 @@ export type SongPdfDraft = {
 };
 
 /** The page limit for one song's PDF. */
-export const SONG_PDF_MAX_PAGES = 30;
-const SOURCE_KEY_MAX_LENGTH = 300;
+const MAX_PAGES = 30;
 
 /** "Øl og sang.PDF" → "Øl og sang". */
 function fileStem(fileName: string): string {
   return fileName.normalize("NFC").replace(/\.pdf$/i, "");
 }
 
-/** Stored like the CLI's sourceKeyOf (scripts/songbook/song.ts). */
+/** The shared sourceKeyOf (the CLI's key), cut to the column's limit. */
 function sourceKey(kind: SongPdfKind, fileName: string): string {
-  return `${kind === "chordbank" ? "chordbank" : "pdf"}:${fileName.normalize("NFC")}`.slice(
-    0,
-    SOURCE_KEY_MAX_LENGTH,
-  );
+  return sourceKeyOf(fileName, kind).slice(0, SOURCE_KEY_MAX_LENGTH);
 }
 
 const HAS_LOWER_RE = /\p{Ll}/u;
 
 export async function readSongPdf(fileName: string, data: Uint8Array): Promise<SongPdfDraft> {
-  const runs = await readPdfRuns(data, { maxPages: SONG_PDF_MAX_PAGES });
+  const runs = await readPdfRuns(data, { maxPages: MAX_PAGES });
   const stem = fileStem(fileName);
 
-  const chordBank = extractChordBankSong(runs);
-  if (chordBank.unknownFonts.length === 0 && chordBank.heading !== "") {
-    const lyrics = chordBank.blocks.filter((b) => b.kind === "lyric").map((b) => b.text);
-    const disagreements = roundTrip(chordBank.blocks).disagreements.length;
+  // Only ChordBank's fonts: parse it as the CLI does. Anything else skips that parse.
+  const chordBank = withRoles(runs).unknownFonts.length === 0 ? extractChordBankSong(runs) : null;
+  if (chordBank && chordBank.heading !== "") {
+    const draft = chordBankDraft(chordBank, stem);
+    const n = draft.roundTrip.disagreements.length;
     return {
       kind: "chordbank",
       sourceKey: sourceKey("chordbank", fileName),
-      title: chooseSongTitle(chordBank.heading, stem, lyrics).title,
+      title: draft.chosen.title,
       artist: chordBank.artist,
-      body: cleanSongText(storedLines(chordBank.blocks).join("\n")),
+      body: cleanSongText(draft.joined),
       notes:
-        disagreements > 0
-          ? [
-              disagreements === 1
-                ? "1 linje vises anderledes end i PDF'en. Tjek teksten."
-                : `${disagreements} linjer vises anderledes end i PDF'en. Tjek teksten.`,
-            ]
+        n > 0
+          ? [`${n === 1 ? "1 linje" : `${n} linjer`} vises anderledes end i PDF'en. Tjek teksten.`]
           : [],
     };
   }

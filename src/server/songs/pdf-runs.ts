@@ -28,11 +28,9 @@ const STYLE_SUFFIX_RE = /-(?:Regular|Roman|Book|Bold|Italic|Oblique|BoldItalic|B
 /** A run joins the one before it when the gap is under this many font sizes. */
 const MERGE_GAP = 1;
 
+/** A file that is not a readable PDF, in Danish for the import list. */
 export class PdfReadError extends Error {
-  constructor(
-    readonly reason: "invalid" | "encrypted" | "too-many-pages",
-    message: string,
-  ) {
+  constructor(message: string) {
     super(message);
     this.name = "PdfReadError";
   }
@@ -79,10 +77,174 @@ async function openDocument(data: Uint8Array) {
     });
   } catch (error) {
     if ((error as { name?: string }).name === "PasswordException") {
-      throw new PdfReadError("encrypted", "PDF'en er beskyttet med en adgangskode.");
+      throw new PdfReadError("PDF'en er beskyttet med en adgangskode.");
     }
-    throw new PdfReadError("invalid", "Filen kunne ikke læses som PDF.");
+    throw new PdfReadError("Filen kunne ikke læses som PDF.");
   }
+}
+
+type Page = Awaited<ReturnType<Awaited<ReturnType<typeof openDocument>>["getPage"]>>;
+type Ops = Awaited<ReturnType<typeof getResolvedPDFJS>>["OPS"];
+type Args = unknown[];
+
+/** The graphics and text state the runs need, as the operators change it. */
+class TextState {
+  ctm = IDENTITY;
+  private saved: Matrix[] = [];
+  textMatrix = IDENTITY;
+  private lineMatrix = IDENTITY;
+  font: LoadedFont | null = null;
+  family = "";
+  fontSize = 1;
+  charSpacing = 0;
+  wordSpacing = 0;
+  hScale = 1;
+  private leading = 0;
+
+  constructor(private readonly page: Page) {}
+
+  save() {
+    this.saved.push(this.ctm);
+  }
+  restore() {
+    this.ctm = this.saved.pop() ?? IDENTITY;
+  }
+  transform(m: Matrix) {
+    this.ctm = multiply(m, this.ctm);
+  }
+  setLine(m: Matrix) {
+    this.textMatrix = this.lineMatrix = m;
+  }
+  moveLine(x: number, y: number) {
+    this.setLine(translate(x, y, this.lineMatrix));
+  }
+  setLeading(leading: number) {
+    this.leading = leading;
+  }
+  nextLine() {
+    this.moveLine(0, -this.leading);
+  }
+  setFont(name: string, size: number) {
+    try {
+      this.font = this.page.commonObjs.get(name) as LoadedFont;
+    } catch {
+      this.font = null;
+    }
+    this.family = familyOf(this.font);
+    this.fontSize = size;
+  }
+}
+
+/** What each text-related operator does to the state; showText is handled apart. */
+function operatorHandlers(OPS: Ops): Map<number, (state: TextState, args: Args) => void> {
+  const num = (args: Args, i: number) => args[i] as number;
+  return new Map([
+    [OPS.save, (state) => state.save()],
+    [OPS.restore, (state) => state.restore()],
+    [OPS.transform, (state, args) => state.transform(args as Matrix)],
+    [OPS.beginText, (state) => state.setLine(IDENTITY)],
+    [
+      OPS.setTextMatrix,
+      (state, args) => {
+        const m = (args[0] ?? args) as number[];
+        state.setLine([m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!]);
+      },
+    ],
+    [OPS.moveText, (state, args) => state.moveLine(num(args, 0), num(args, 1))],
+    [
+      OPS.setLeadingMoveText,
+      (state, args) => {
+        state.setLeading(-num(args, 1));
+        state.moveLine(num(args, 0), num(args, 1));
+      },
+    ],
+    [OPS.nextLine, (state) => state.nextLine()],
+    [OPS.setLeading, (state, args) => state.setLeading(num(args, 0))],
+    [OPS.setFont, (state, args) => state.setFont(args[0] as string, num(args, 1))],
+    [OPS.setCharSpacing, (state, args) => (state.charSpacing = num(args, 0))],
+    [OPS.setWordSpacing, (state, args) => (state.wordSpacing = num(args, 0))],
+    [OPS.setHScale, (state, args) => (state.hScale = num(args, 0) / 100)],
+  ]);
+}
+
+/** A showText's string and its advance in text space. */
+function measure(glyphs: readonly Glyph[], state: TextState): { text: string; advance: number } {
+  const glyphScale = (state.font?.fontMatrix?.[0] ?? 0.001) * state.fontSize;
+  let advance = 0;
+  let text = "";
+  for (const glyph of glyphs) {
+    if (typeof glyph === "number") {
+      advance -= (glyph * state.fontSize) / 1000;
+    } else if (glyph) {
+      text += glyph.unicode ?? "";
+      const spacing = state.charSpacing + (glyph.isSpace ? state.wordSpacing : 0);
+      advance += ((glyph.width ?? 0) * glyphScale + spacing) * state.hScale;
+    }
+  }
+  return { text, advance };
+}
+
+/** Adds the run, or merges it into the one before as poppler does ("G" + "D" → "G D"). */
+function appendRun(runs: OpenRun[], run: OpenRun): void {
+  const previous = runs[runs.length - 1];
+  const gap = run.left - (previous?.end ?? 0);
+  const sameLine =
+    previous !== undefined &&
+    previous.family === run.family &&
+    previous.size === run.size &&
+    Math.abs(previous.baseline - run.baseline) < 0.5;
+  if (!sameLine || gap <= -1 || gap >= MERGE_GAP * run.size) {
+    runs.push(run);
+    return;
+  }
+  if (gap >= 2 && !previous.text.endsWith(" ") && !run.text.startsWith(" ")) previous.text += " ";
+  previous.text += run.text;
+  previous.end = run.end;
+  previous.width = Math.round(previous.end - previous.left);
+}
+
+async function pageRuns(page: Page, pageNumber: number, OPS: Ops): Promise<PdfRun[]> {
+  const [, bottom = 0, , top = 0] = page.view;
+  const pageHeight = top - bottom;
+  const { fnArray, argsArray } = await page.getOperatorList();
+  const handlers = operatorHandlers(OPS);
+  const state = new TextState(page);
+  const runs: OpenRun[] = [];
+
+  fnArray.forEach((fn, i) => {
+    const args = (argsArray[i] ?? []) as Args;
+    if (fn !== OPS.showText && fn !== OPS.showSpacedText) {
+      handlers.get(fn)?.(state, args);
+      return;
+    }
+    const { text, advance } = measure(args[0] as Glyph[], state);
+    const m = multiply(state.textMatrix, state.ctm);
+    const size = Math.hypot(m[2], m[3]) * state.fontSize;
+    const xScale = Math.hypot(m[0], m[1]);
+    state.textMatrix = translate(advance, 0, state.textMatrix);
+    if (text === "" || size === 0) return;
+    appendRun(runs, {
+      page: pageNumber,
+      top: Math.round((pageHeight - m[5] - (state.font?.ascent ?? 0.8) * size) * SCALE),
+      left: Math.round(m[4] * SCALE),
+      width: Math.round(advance * xScale * SCALE),
+      family: state.family,
+      size: Math.round(size * SCALE),
+      text,
+      end: (m[4] + advance * xScale) * SCALE,
+      baseline: m[5],
+    });
+  });
+  page.cleanup();
+  return runs.map(({ page: p, top: t, left, width, family, size, text }) => ({
+    page: p,
+    top: t,
+    left,
+    width,
+    family,
+    size,
+    text,
+  }));
 }
 
 /** Every text run of the PDF in reading order per page. Throws PdfReadError. */
@@ -93,148 +255,14 @@ export async function readPdfRuns(
   const doc = await openDocument(data);
   try {
     if (doc.numPages > maxPages) {
-      throw new PdfReadError("too-many-pages", `PDF'en har over ${maxPages} sider.`);
+      throw new PdfReadError(`PDF'en har over ${maxPages} sider.`);
     }
     const { OPS } = await getResolvedPDFJS();
-    const runs: OpenRun[] = [];
-
+    const runs: PdfRun[] = [];
     for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
-      const page = await doc.getPage(pageNumber);
-      const [, bottom = 0, , top = 0] = page.view;
-      const pageHeight = top - bottom;
-      const { fnArray, argsArray } = await page.getOperatorList();
-
-      let ctm = IDENTITY;
-      const saved: Matrix[] = [];
-      let textMatrix = IDENTITY;
-      let lineMatrix = IDENTITY;
-      let font: LoadedFont | null = null;
-      let fontSize = 1;
-      let charSpacing = 0;
-      let wordSpacing = 0;
-      let hScale = 1;
-      let leading = 0;
-
-      for (let i = 0; i < fnArray.length; i += 1) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pdf.js operator arguments are untyped
-        const args = argsArray[i] as any[];
-        switch (fnArray[i]) {
-          case OPS.save:
-            saved.push(ctm);
-            break;
-          case OPS.restore:
-            ctm = saved.pop() ?? IDENTITY;
-            break;
-          case OPS.transform:
-            ctm = multiply(args as Matrix, ctm);
-            break;
-          case OPS.beginText:
-            textMatrix = lineMatrix = IDENTITY;
-            break;
-          case OPS.setTextMatrix: {
-            const m = (args[0] ?? args) as number[];
-            textMatrix = lineMatrix = [m[0]!, m[1]!, m[2]!, m[3]!, m[4]!, m[5]!];
-            break;
-          }
-          case OPS.moveText:
-            textMatrix = lineMatrix = translate(args[0], args[1], lineMatrix);
-            break;
-          case OPS.setLeadingMoveText:
-            leading = -args[1];
-            textMatrix = lineMatrix = translate(args[0], args[1], lineMatrix);
-            break;
-          case OPS.nextLine:
-            textMatrix = lineMatrix = translate(0, -leading, lineMatrix);
-            break;
-          case OPS.setLeading:
-            leading = args[0];
-            break;
-          case OPS.setFont:
-            try {
-              font = page.commonObjs.get(args[0]) as LoadedFont;
-            } catch {
-              font = null;
-            }
-            fontSize = args[1];
-            break;
-          case OPS.setCharSpacing:
-            charSpacing = args[0];
-            break;
-          case OPS.setWordSpacing:
-            wordSpacing = args[0];
-            break;
-          case OPS.setHScale:
-            hScale = args[0] / 100;
-            break;
-          case OPS.showText:
-          case OPS.showSpacedText: {
-            const glyphScale = (font?.fontMatrix?.[0] ?? 0.001) * fontSize;
-            let advance = 0;
-            let text = "";
-            for (const glyph of args[0] as Glyph[]) {
-              if (typeof glyph === "number") {
-                advance -= (glyph * fontSize) / 1000;
-              } else if (glyph) {
-                text += glyph.unicode ?? "";
-                advance +=
-                  ((glyph.width ?? 0) * glyphScale +
-                    charSpacing +
-                    (glyph.isSpace ? wordSpacing : 0)) *
-                  hScale;
-              }
-            }
-            const m = multiply(textMatrix, ctm);
-            const size = Math.hypot(m[2], m[3]) * fontSize;
-            const xScale = Math.hypot(m[0], m[1]);
-            textMatrix = translate(advance, 0, textMatrix);
-            if (text === "" || size === 0) break;
-
-            const run: OpenRun = {
-              page: pageNumber,
-              top: Math.round((pageHeight - m[5] - (font?.ascent ?? 0.8) * size) * SCALE),
-              left: Math.round(m[4] * SCALE),
-              width: Math.round(advance * xScale * SCALE),
-              family: familyOf(font),
-              size: Math.round(size * SCALE),
-              text,
-              end: (m[4] + advance * xScale) * SCALE,
-              baseline: m[5],
-            };
-            const previous = runs[runs.length - 1];
-            const gap = run.left - (previous?.end ?? 0);
-            if (
-              previous &&
-              previous.page === run.page &&
-              previous.family === run.family &&
-              previous.size === run.size &&
-              Math.abs(previous.baseline - run.baseline) < 0.5 &&
-              gap > -1 &&
-              gap < MERGE_GAP * run.size
-            ) {
-              if (gap >= 2 && !previous.text.endsWith(" ") && !run.text.startsWith(" ")) {
-                previous.text += " ";
-              }
-              previous.text += run.text;
-              previous.end = run.end;
-              previous.width = Math.round(previous.end - previous.left);
-            } else {
-              runs.push(run);
-            }
-            break;
-          }
-        }
-      }
-      page.cleanup();
+      runs.push(...(await pageRuns(await doc.getPage(pageNumber), pageNumber, OPS)));
     }
-    return runs.map(({ page, top, left, width, family, size, text }) => ({
-      page,
-      top,
-      left,
-      width,
-      family,
-      size,
-      text,
-    }));
+    return runs;
   } finally {
     await doc.loadingTask.destroy();
   }

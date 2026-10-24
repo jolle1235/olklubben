@@ -12,3 +12,6 @@ import { isAdmin, type MembershipRole } from "@/server/domain/clubs/permissions"
 export function canManageSongs(membership: MembershipRole | null | undefined): boolean {
   return isAdmin(membership);
 }
+
+/** The refusal for a member who is not an admin (song form and PDF import). */
+export const SONGS_FORBIDDEN_MESSAGE = "Kun klubbens admins kan ændre sangbogen.";

@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { Prisma } from "@/generated/prisma/client";
 import { compareByDisplayName } from "@/lib/format/display-name";
 import { isValidId } from "@/lib/ids";
+import { imageVersionOf, imageVersionSelect } from "@/server/beers/queries";
 import { getRatingStats, NO_RATINGS, type RatingStats } from "@/server/beers/rating-stats";
 import { db } from "@/server/db";
 import { topRatedBeer } from "@/server/domain/events/history";
@@ -337,7 +338,7 @@ export async function getEventBeers(
       name: true,
       abv: true,
       createdAt: true,
-      image: { select: { updatedAt: true } },
+      image: imageVersionSelect,
     },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
@@ -349,7 +350,7 @@ export async function getEventBeers(
     name: beer.name,
     abv: beer.abv.toNumber(),
     createdAt: beer.createdAt,
-    imageVersion: beer.image ? beer.image.updatedAt.getTime() : null,
+    imageVersion: imageVersionOf(beer.image),
     ...(stats.get(beer.id) ?? NO_RATINGS),
   }));
 }

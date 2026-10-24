@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SOURCE_KEY_MAX_LENGTH } from "@/server/domain/songs/chordbank/source-key";
+
 import { songFieldsSchema } from "./song";
 
 /**
@@ -17,11 +19,12 @@ export const SONG_IMPORT_BATCH_SIZE = 25;
 
 /** One PDF per request; Vercel refuses request bodies over 4.5 MB. */
 export const SONG_PDF_MAX_BYTES = 4 * 1024 * 1024;
+export const SONG_PDF_TOO_LARGE = `PDF'en er for stor (højst ${SONG_PDF_MAX_BYTES / 1024 / 1024} MB).`;
 
-export const songImportItemSchema = songFieldsSchema.extend({
+const songImportItemSchema = songFieldsSchema.extend({
   sourceKey: z
     .string()
-    .max(300)
+    .max(SOURCE_KEY_MAX_LENGTH)
     .regex(/^(?:chordbank|pdf):\S/),
   importHash: z
     .string()

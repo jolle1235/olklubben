@@ -56,9 +56,7 @@ export default async function EditBeerPage({
             events={toEventChoices(events)}
             existingBeers={beerNames.filter((other) => other.id !== beer.id)}
             cancelHref={beerHref(club.id, beer.id)}
-            currentImageUrl={
-              beer.imageVersion === null ? null : beerImageHref(club.id, beer.id, beer.imageVersion)
-            }
+            currentImageUrl={beerImageHref(club.id, beer.id, beer.imageVersion)}
           />
         </CardContent>
       </Card>

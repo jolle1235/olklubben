@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { StarIcon } from "lucide-react";
 
+import { BeerPhoto } from "./beer-photo";
+
 import { formatAbv } from "@/server/domain/beers/abv";
 import {
   averageRatingAriaLabel,
@@ -26,7 +28,7 @@ export type BeerCardBeer = {
 export type BeerCardProps = {
   beer: BeerCardBeer;
   href: string;
-  /** The beer's photo (beerImageHref), shown instead of 🍺 (D-158). */
+  /** The beer's photo (beerImageHref with thumb), shown instead of 🍺 (D-158). */
   imageUrl?: string | null;
 };
 
@@ -48,12 +50,11 @@ export function BeerCard({ beer, href, imageUrl = null }: BeerCardProps) {
       className="group/beer flex gap-3 rounded-xl border border-border bg-paper px-4 py-3.5 transition-[border-color,box-shadow] hover:border-input hover:shadow-[0_10px_24px_-20px_rgb(65_68_55/0.7)] sm:gap-4 sm:px-5"
     >
       {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a member-only route; nothing to optimise
-        <img
+        <BeerPhoto
           src={imageUrl}
           alt=""
-          loading="lazy"
-          className="mt-0.5 size-14 shrink-0 rounded-lg border border-border bg-cream-deep object-cover"
+          lazy
+          className="mt-0.5 size-14 shrink-0 rounded-lg object-cover"
         />
       ) : (
         <span

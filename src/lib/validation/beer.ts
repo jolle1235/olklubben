@@ -5,6 +5,7 @@ import { ABV_ERROR_MESSAGES, parseAbvInput } from "@/server/domain/beers/abv";
 import { BEER_NAME_MAX_LENGTH, cleanBeerName } from "@/server/domain/beers/name";
 
 import { idSchema } from "./id";
+import { checkboxSchema } from "./text";
 
 /**
  * Zod schema for adding and editing a beer (SPEC §9.5), shared by the form
@@ -22,11 +23,6 @@ import { idSchema } from "./id";
  *
  * Client-safe: the domain modules are pure.
  */
-
-const flagSchema = z
-  .union([z.string(), z.boolean()])
-  .nullish()
-  .transform((value) => value === true || value === "1" || value === "true" || value === "on");
 
 export const beerFormSchema = z.object({
   name: z
@@ -55,8 +51,8 @@ export const beerFormSchema = z.object({
     .transform((value) => (value ?? "").trim())
     .refine((value) => value === "" || isValidId(value), "Vælg et event fra listen.")
     .transform((value) => (value === "" ? null : value)),
-  confirmDuplicate: flagSchema,
-  removeImage: flagSchema,
+  confirmDuplicate: checkboxSchema,
+  removeImage: checkboxSchema,
 });
 
 export type BeerFormInput = z.input<typeof beerFormSchema>;

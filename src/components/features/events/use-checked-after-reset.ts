@@ -1,6 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, type RefObject } from "react";
+import type { RefObject } from "react";
+
+import { useAfterServerAnswer } from "@/components/features/forms/use-after-server-answer";
 
 /**
  * Keeps a group of CONTROLLED radios or checkboxes (one `name`) ticked as
@@ -11,11 +13,8 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
  * falls back to how it was first rendered (React never updates its
  * defaultChecked), while the state is unchanged, so the form would show –
  * and submit – something else than the state. This layout effect runs right
- * after that reset (same commit, before paint) and puts the ticks back.
- *
- * It runs only when `resetSignal` (the action state) has changed, never on
- * mount: there the DOM may hold a choice made before hydration, which the
- * form adopts instead (TG-037).
+ * after that reset (same commit, before paint) and puts the ticks back
+ * (useAfterServerAnswer: only when `resetSignal`, the action state, changed).
  */
 export function useCheckedAfterReset(
   containerRef: RefObject<HTMLElement | null>,
@@ -23,17 +22,12 @@ export function useCheckedAfterReset(
   checkedValues: readonly string[],
   resetSignal: unknown,
 ): void {
-  const key = [...checkedValues].sort().join("\n");
-  const seen = useRef(resetSignal);
-
-  useLayoutEffect(() => {
-    if (seen.current === resetSignal) return;
-    seen.current = resetSignal;
-    const checked = new Set(key.split("\n"));
+  useAfterServerAnswer(resetSignal, () => {
+    const checked = new Set(checkedValues);
     containerRef.current
       ?.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)
       .forEach((input) => {
         input.checked = checked.has(input.value);
       });
-  }, [containerRef, name, key, resetSignal]);
+  });
 }

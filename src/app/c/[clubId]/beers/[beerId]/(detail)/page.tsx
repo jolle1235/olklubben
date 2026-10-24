@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PencilIcon, PlusIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
+import { BeerPhoto } from "@/components/features/beers/beer-photo";
 import { BeerRating } from "@/components/features/beers/beer-rating";
 import { DeleteBeerButton } from "@/components/features/beers/delete-beer-button";
 import { RatingSummary } from "@/components/features/beers/rating-summary";
@@ -44,6 +45,7 @@ export default async function BeerPage({ params }: PageProps<"/c/[clubId]/beers/
   const addHref = newBeerHref(club.id, { eventId: beer.event?.id });
   const canEdit = canEditBeer(membership, beer, user.id);
   const canDelete = canDeleteBeer(membership, beer, user.id);
+  const imageUrl = beerImageHref(club.id, beer.id, beer.imageVersion);
 
   return (
     <>
@@ -57,12 +59,11 @@ export default async function BeerPage({ params }: PageProps<"/c/[clubId]/beers/
 
       <PageHeader title={beer.name} description={formatAbv(beer.abv)} />
 
-      {beer.imageVersion !== null ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a member-only route; nothing to optimise
-        <img
-          src={beerImageHref(club.id, beer.id, beer.imageVersion)}
+      {imageUrl ? (
+        <BeerPhoto
+          src={imageUrl}
           alt={`Billede af ${beer.name}`}
-          className="mb-6 max-h-80 w-fit max-w-full rounded-2xl border border-border bg-paper object-contain md:max-h-96"
+          className="mb-6 max-h-80 w-fit max-w-full rounded-2xl bg-paper md:max-h-96"
         />
       ) : null}
 

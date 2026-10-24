@@ -37,11 +37,7 @@ export function EventBeerList({ clubId, beers, addBeerHref, emphasizeAdd }: Even
               <BeerCard
                 beer={beer}
                 href={beerHref(clubId, beer.id)}
-                imageUrl={
-                  beer.imageVersion === null
-                    ? null
-                    : beerImageHref(clubId, beer.id, beer.imageVersion)
-                }
+                imageUrl={beerImageHref(clubId, beer.id, beer.imageVersion, { thumb: true })}
               />
             </li>
           ))}

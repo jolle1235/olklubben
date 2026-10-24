@@ -46,13 +46,18 @@ export function LogoutButton({
     });
   }
 
+  const label = pending ? "Logger ud …" : "Log ud";
+  const buttonProps = {
+    type: "button" as const,
+    onClick: logOut,
+    disabled: pending,
+    "aria-busy": pending || undefined,
+  };
+
   if (variant === "sidebar") {
     return (
       <button
-        type="button"
-        onClick={logOut}
-        disabled={pending}
-        aria-busy={pending || undefined}
+        {...buttonProps}
         className={cn(
           "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-left font-semibold text-on-dark-muted transition-colors hover:bg-olive-soft/60 hover:text-cream disabled:cursor-wait",
           className,
@@ -65,18 +70,15 @@ export function LogoutButton({
             <LogOutIcon className="size-5" />
           )}
         </span>
-        {pending ? "Logger ud …" : "Log ud"}
+        {label}
       </button>
     );
   }
 
   return (
     <Button
-      type="button"
+      {...buttonProps}
       variant={variant}
-      onClick={logOut}
-      disabled={pending}
-      aria-busy={pending || undefined}
       className={cn(variant === "link" ? "min-h-11" : "w-full sm:w-auto", className)}
     >
       {pending ? (
@@ -84,7 +86,7 @@ export function LogoutButton({
       ) : variant === "outline" ? (
         <LogOutIcon aria-hidden />
       ) : null}
-      {pending ? "Logger ud …" : "Log ud"}
+      {label}
     </Button>
   );
 }

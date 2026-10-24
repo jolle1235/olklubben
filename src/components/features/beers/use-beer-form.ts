@@ -1,7 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 
+import { useAfterServerAnswer } from "@/components/features/forms/use-after-server-answer";
 import { useActionForm } from "@/components/features/forms/use-action-form";
 import { beerFormSchema } from "@/lib/validation/beer";
 import { createBeerAction, updateBeerAction } from "@/server/actions/beers";
@@ -67,15 +68,11 @@ export function useBeerForm({ mode, defaults, existingBeers }: UseBeerFormOption
   // F-053: after a server answer React 19 resets the form, and the controlled
   // event <select> falls back to its first option ("Intet event") while the
   // state keeps the choice, so "Tilføj alligevel" would save the beer without
-  // its event. Put the choice back in the same commit, before paint. Only when
-  // the action state changed, never on mount.
-  const seenState = useRef(state);
-  useLayoutEffect(() => {
-    if (seenState.current === state) return;
-    seenState.current = state;
+  // its event. Put the choice back before paint.
+  useAfterServerAnswer(state, () => {
     const select = ref.current?.elements.namedItem("eventId");
     if (select instanceof HTMLSelectElement) select.value = values.eventId;
-  }, [ref, state, values.eventId]);
+  });
 
   return {
     formProps: { ref, action, onSubmit, noValidate },

@@ -2,78 +2,93 @@
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
+import type { ActionError } from "@/lib/action-result";
 import {
+  normalizeRememberedEmail,
   parseRememberedEmails,
   REMEMBERED_EMAILS_KEY,
-  withoutRememberedEmail,
   withRememberedEmail,
 } from "@/lib/remembered-emails";
 
 /**
  * The emails used on this device (src/lib/remembered-emails.ts) for the
- * login and sign-up forms' <datalist>. The server snapshot (and hydration) is
- * empty, so nothing mismatches; the list appears right after.
+ * login and sign-up forms' suggestions. The server snapshot (and hydration)
+ * is empty, so nothing mismatches; the list appears right after.
  *
- * rememberOnSubmit(form) stores the typed email when the form is sent. If the
- * server answers with a failure (wrong password, email taken …), an email
- * that was new is taken out again, so a typo is never suggested. A success
- * redirects, and the email stays.
+ * The list lives in a module cache: read from localStorage once, then kept
+ * up to date by write() and by the `storage` event (another tab).
+ *
+ * `onValidSubmit` (for useActionForm) stores the typed email when the form is
+ * sent. If the server answers with an error (`serverError`: wrong password,
+ * email taken …), an email that was new is taken out again, so a typo is
+ * never suggested. A success redirects, and the email stays.
  */
 
 const listeners = new Set<() => void>();
 const EMPTY: string[] = [];
-let cachedRaw: string | null = null;
-let cachedList: string[] = EMPTY;
+let cache: string[] | null = null;
+
+function load(): string[] {
+  try {
+    return parseRememberedEmails(window.localStorage.getItem(REMEMBERED_EMAILS_KEY));
+  } catch {
+    return EMPTY;
+  }
+}
+
+function notify() {
+  for (const listener of listeners) listener();
+}
+
+function onStorage(event: StorageEvent) {
+  if (event.key !== REMEMBERED_EMAILS_KEY) return;
+  cache = load();
+  notify();
+}
 
 function subscribe(listener: () => void) {
+  if (listeners.size === 0) window.addEventListener("storage", onStorage);
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 }
 
 function read(): string[] {
-  let raw: string | null = null;
-  try {
-    raw = window.localStorage.getItem(REMEMBERED_EMAILS_KEY);
-  } catch {
-    return EMPTY;
-  }
-  if (raw !== cachedRaw) {
-    cachedRaw = raw;
-    cachedList = parseRememberedEmails(raw);
-  }
-  return cachedList;
+  cache ??= load();
+  return cache;
 }
 
 function write(list: string[]) {
+  cache = list;
   try {
     window.localStorage.setItem(REMEMBERED_EMAILS_KEY, JSON.stringify(list));
   } catch {
-    // Storage blocked: no suggestions on this device.
+    // Storage blocked: the list lasts until the page is reloaded.
   }
-  for (const listener of listeners) listener();
+  notify();
 }
 
-export function useRememberedEmails(failureState: unknown) {
+export function useRememberedEmails(serverError: ActionError | null) {
   const emails = useSyncExternalStore(subscribe, read, () => EMPTY);
   const pendingNew = useRef<string | null>(null);
 
-  // A failed submit: forget an email that was new.
   useEffect(() => {
-    if (!failureState || !pendingNew.current) return;
-    write(withoutRememberedEmail(read(), pendingNew.current));
+    const email = pendingNew.current;
+    if (!serverError || !email) return;
     pendingNew.current = null;
-  }, [failureState]);
+    write(read().filter((e) => e !== email));
+  }, [serverError]);
 
-  function rememberOnSubmit(form: HTMLFormElement) {
-    const email = new FormData(form).get("email");
-    if (typeof email !== "string") return;
+  function onValidSubmit(form: HTMLFormElement) {
+    const field = form.elements.namedItem("email");
+    const email = field instanceof HTMLInputElement ? normalizeRememberedEmail(field.value) : null;
+    if (!email) return;
     const before = read();
-    const after = withRememberedEmail(before, email);
-    pendingNew.current = after[0] && !before.includes(after[0]) ? after[0] : null;
-    write(after);
+    pendingNew.current = before.includes(email) ? null : email;
+    write(withRememberedEmail(before, email));
   }
 
-  return { emails, rememberOnSubmit };
+  return { emails, onValidSubmit };
 }

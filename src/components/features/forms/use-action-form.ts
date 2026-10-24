@@ -31,6 +31,8 @@ export type UseActionFormOptions = {
   schema: z.ZodType;
   /** Fields that may repeat (checkbox lists), read as lists. */
   arrayFields?: readonly string[];
+  /** Called when a submit passed the browser validation and goes to the server. */
+  onValidSubmit?: (form: HTMLFormElement) => void;
 };
 
 /**
@@ -55,7 +57,7 @@ export type UseActionFormOptions = {
 export function useActionForm<S extends ActionFormState>(
   // F-021: React types the state as Awaited<S>.
   action: (state: Awaited<S>, formData: FormData) => Promise<S>,
-  { schema, arrayFields }: UseActionFormOptions,
+  { schema, arrayFields, onValidSubmit }: UseActionFormOptions,
 ) {
   const [state, formAction, pending] = useActionState(action, null as Awaited<S>);
   // null: the browser has nothing to say (never validated, or the last submit passed).
@@ -80,7 +82,10 @@ export function useActionForm<S extends ActionFormState>(
     const form = event.currentTarget;
     const errors = validate(new FormData(form));
     setClientErrors(errors);
-    if (!errors) return;
+    if (!errors) {
+      onValidSubmit?.(form);
+      return;
+    }
     event.preventDefault();
     focusFirstInvalid(form, errors, registered.current);
   }

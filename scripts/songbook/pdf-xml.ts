@@ -13,8 +13,6 @@ import type { PdfRun } from "../../src/server/domain/songs/chordbank/pdf-run";
 
 export type PdfFont = { family: string; size: number };
 
-export type { PdfRun };
-
 const FONTSPEC_RE = /<fontspec\b([^>]*)>/g;
 const PAGE_OR_TEXT_RE = /<page\b([^>]*)>|<text\b([^>]*)>([\s\S]*?)<\/text>/g;
 const ATTRIBUTE_RE = /([A-Za-z_][\w-]*)="([^"]*)"/g;

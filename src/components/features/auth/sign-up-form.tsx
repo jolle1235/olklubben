@@ -20,28 +20,17 @@ const EMAIL_TAKEN_CODES = new Set(["USER_ALREADY_EXISTS", "USER_ALREADY_EXISTS_U
  * The new user is logged in right away and sent to ?next= or "/" (§10.1).
  */
 export function SignUpForm({ next }: { next: string | null }) {
-  const { formProps, fieldErrors, formError, values, state } = useActionForm(signUpAction, {
+  const { formProps, fieldErrors, formError, values, serverError } = useActionForm(signUpAction, {
     schema: signUpSchema,
+    // Runs on submit, after `remembered` exists.
+    onValidSubmit: (form) => remembered.onValidSubmit(form),
   });
+  const remembered = useRememberedEmails(serverError);
   const alertId = useId();
-  const emailListId = useId();
-  const remembered = useRememberedEmails(state);
   const emailTaken = formError !== null && EMAIL_TAKEN_CODES.has(formError.code);
 
   return (
-    <form
-      {...formProps}
-      onSubmit={(event) => {
-        formProps.onSubmit(event);
-        if (!event.defaultPrevented) remembered.rememberOnSubmit(event.currentTarget);
-      }}
-      className="grid gap-5"
-    >
-      <datalist id={emailListId}>
-        {remembered.emails.map((email) => (
-          <option key={email} value={email} />
-        ))}
-      </datalist>
+    <form {...formProps} className="grid gap-5">
       {next ? <input type="hidden" name="next" value={next} /> : null}
       {formError ? (
         <ActionErrorAlert id={alertId} error={formError}>
@@ -74,7 +63,7 @@ export function SignUpForm({ next }: { next: string | null }) {
       />
       <AuthField
         name="email"
-        list={remembered.emails.length > 0 ? emailListId : undefined}
+        suggestions={remembered.emails}
         label="Email"
         type="email"
         autoComplete="email"

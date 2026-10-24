@@ -115,11 +115,7 @@ export default async function BeersPage({ params, searchParams }: PageProps<"/c/
                     <BeerCard
                       beer={beer}
                       href={beerHref(club.id, beer.id)}
-                      imageUrl={
-                        beer.imageVersion === null
-                          ? null
-                          : beerImageHref(club.id, beer.id, beer.imageVersion)
-                      }
+                      imageUrl={beerImageHref(club.id, beer.id, beer.imageVersion, { thumb: true })}
                     />
                   </li>
                 ))}

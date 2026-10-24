@@ -18,6 +18,8 @@ export type AuthFieldProps = Omit<React.ComponentProps<"input">, "id" | "name"> 
   describedBy?: string;
   /** Marks the field invalid without its own message (the alert explains). */
   invalid?: boolean;
+  /** Values the browser offers in the field (a <datalist>), e.g. emails used before. */
+  suggestions?: readonly string[];
 };
 
 /**
@@ -32,6 +34,7 @@ export function AuthField({
   hint,
   describedBy,
   invalid,
+  suggestions = [],
   type = "text",
   className,
   ...inputProps
@@ -40,6 +43,7 @@ export function AuthField({
   const inputId = `${id}-input`;
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
+  const listId = `${id}-suggestions`;
   const error = errors?.[0];
 
   // The error replaces the hint ("Mindst 8 tegn." twice would be noise).
@@ -52,6 +56,7 @@ export function AuthField({
     name,
     "aria-invalid": Boolean(error) || invalid || undefined,
     "aria-describedby": describedByIds,
+    list: suggestions.length > 0 ? listId : undefined,
     ...inputProps,
   };
 
@@ -63,6 +68,7 @@ export function AuthField({
       ) : (
         <Input type={type} {...controlProps} />
       )}
+      <Suggestions id={listId} values={suggestions} />
       {showHint ? (
         <p id={hintId} className="text-sm text-muted-foreground">
           {hint}
@@ -75,5 +81,17 @@ export function AuthField({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** The field's <datalist>; nothing without values. */
+function Suggestions({ id, values }: { id: string; values: readonly string[] }) {
+  if (values.length === 0) return null;
+  return (
+    <datalist id={id}>
+      {values.map((value) => (
+        <option key={value} value={value} />
+      ))}
+    </datalist>
   );
 }

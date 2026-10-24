@@ -56,7 +56,7 @@ describe("readPdfRuns", () => {
       readPdfRuns(new Uint8Array(Buffer.from("ikke en pdf")), { maxPages: 5 }),
     ).rejects.toBeInstanceOf(PdfReadError);
     await expect(readPdfRuns(buildPdf([]), { maxPages: 0 })).rejects.toMatchObject({
-      reason: "too-many-pages",
+      message: "PDF'en har over 0 sider.",
     });
   });
 });

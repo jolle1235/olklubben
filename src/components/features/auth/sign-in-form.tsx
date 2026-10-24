@@ -3,6 +3,7 @@
 import { useId, useRef } from "react";
 
 import { useActionForm } from "@/components/features/forms/use-action-form";
+import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
 import { withNext } from "@/lib/auth-links";
@@ -20,38 +21,27 @@ import { TextLink } from "./text-link";
  * the email exists. On success the action redirects to ?next= or "/".
  */
 export function SignInForm({ next }: { next: string | null }) {
-  const { formProps, fieldErrors, formError, values, state } = useActionForm(signInAction, {
-    schema: signInSchema,
-  });
+  const { formProps, fieldErrors, formError, values, serverError, revalidate } = useActionForm(
+    signInAction,
+    // Runs on submit, after `remembered` exists.
+    { schema: signInSchema, onValidSubmit: (form) => remembered.onValidSubmit(form) },
+  );
+  const remembered = useRememberedEmails(serverError);
   const alertId = useId();
-  const emailListId = useId();
-  const remembered = useRememberedEmails(state);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   // "Forkert email eller password" concerns both fields.
   const credentialsRejected = formError?.message === AUTH_ERROR_MESSAGES.invalidCredentials;
 
   return (
-    <form
-      {...formProps}
-      onSubmit={(event) => {
-        formProps.onSubmit(event);
-        if (!event.defaultPrevented) remembered.rememberOnSubmit(event.currentTarget);
-      }}
-      className="grid gap-5"
-    >
-      <datalist id={emailListId}>
-        {remembered.emails.map((email) => (
-          <option key={email} value={email} />
-        ))}
-      </datalist>
+    <form {...formProps} className="grid gap-5">
       {next ? <input type="hidden" name="next" value={next} /> : null}
       {formError ? <ActionErrorAlert id={alertId} error={formError} /> : null}
 
       <AuthField
         name="email"
         ref={emailRef}
-        list={remembered.emails.length > 0 ? emailListId : undefined}
+        suggestions={remembered.emails}
         label="Email"
         type="email"
         autoComplete="username"
@@ -69,17 +59,20 @@ export function SignInForm({ next }: { next: string | null }) {
         <div className="-mt-2 flex flex-wrap items-center gap-2 text-[0.95rem]">
           <span className="text-muted-foreground">Brugt før:</span>
           {remembered.emails.map((email) => (
-            <button
+            <Button
               key={email}
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => {
                 if (emailRef.current) emailRef.current.value = email;
+                revalidate();
                 passwordRef.current?.focus();
               }}
-              className="min-h-9 max-w-full cursor-pointer truncate rounded-full border border-border bg-paper px-3 text-ink transition-colors hover:border-input hover:bg-cream-deep"
+              className="max-w-full rounded-full font-normal"
             >
-              {email}
-            </button>
+              <span className="truncate">{email}</span>
+            </Button>
           ))}
         </div>
       ) : null}

@@ -17,7 +17,7 @@ import { songHref, songsHref } from "@/lib/routes";
 import { idSchema } from "@/lib/validation/id";
 import { songFieldsSchema, songRefSchema } from "@/lib/validation/song";
 import { requireMembership } from "@/server/auth/session";
-import { canManageSongs } from "@/server/domain/songs/permissions";
+import { canManageSongs, SONGS_FORBIDDEN_MESSAGE } from "@/server/domain/songs/permissions";
 import { revalidateClub } from "@/server/revalidate";
 import { requireSong } from "@/server/songs/access";
 import { createSong, deleteSong, SongTitleTakenError, updateSong } from "@/server/songs/mutations";
@@ -46,8 +46,6 @@ export type ExistingSong = { id: string; title: string };
 /** null before the first submit. Success redirects, so only failures come back. */
 export type SongFormState = (FormFailure<SongFormValues> & { existing?: ExistingSong }) | null;
 
-const FORBIDDEN_MESSAGE = "Kun klubbens admins kan ændre sangbogen.";
-
 /**
  * Generous: a too long text must come back whole, so the admin can shorten it
  * (the body's raw cap is 80,000; the schema refuses more before cleaning).
@@ -72,7 +70,7 @@ function failed(
 }
 
 function forbidden(values: SongFormValues): SongFormState {
-  return failed(fail(ACTION_ERROR_CODES.FORBIDDEN, FORBIDDEN_MESSAGE), values);
+  return failed(fail(ACTION_ERROR_CODES.FORBIDDEN, SONGS_FORBIDDEN_MESSAGE), values);
 }
 
 /** SongTitleTakenError → the title field's error, plus the existing song for a link. */
@@ -157,7 +155,8 @@ export async function deleteSongAction(clubId: string, songId: string): Promise<
   if (!ids.success) notFound();
 
   const { membership, club, song } = await requireSong(ids.data.clubId, ids.data.songId);
-  if (!canManageSongs(membership)) return fail(ACTION_ERROR_CODES.FORBIDDEN, FORBIDDEN_MESSAGE);
+  if (!canManageSongs(membership))
+    return fail(ACTION_ERROR_CODES.FORBIDDEN, SONGS_FORBIDDEN_MESSAGE);
 
   let deleted: boolean;
   try {

@@ -119,12 +119,23 @@ export type SongImportSkip = { title: string; reason: "imported" | "title-taken"
  * draft whose fields did not pass the schema as read has no hash, so it gets
  * the hash of what is stored.
  */
-export async function importSongs(input: {
-  clubId: string;
-  createdById: string;
-  songs: readonly SongImportData[];
-}): Promise<{ created: number; skipped: SongImportSkip[] }> {
-  const { clubId, createdById, songs } = input;
+type SeenKeys = { titles: Set<string>; sources: Set<string> };
+
+/** Why a song cannot be imported: the club has it, or an earlier song of the batch has. */
+function skipReason(
+  song: SongImportData,
+  titleKey: string,
+  club: SeenKeys,
+  batch: SeenKeys,
+): SongImportSkip["reason"] | null {
+  if (club.sources.has(song.sourceKey)) return "imported";
+  if (club.titles.has(titleKey)) return "title-taken";
+  if (batch.titles.has(titleKey) || batch.sources.has(song.sourceKey)) return "duplicate";
+  return null;
+}
+
+/** The club's songs with any of these titles or source files. */
+async function clubKeys(clubId: string, songs: readonly SongImportData[]): Promise<SeenKeys> {
   const existing = await db.song.findMany({
     where: {
       clubId,
@@ -135,28 +146,31 @@ export async function importSongs(input: {
     },
     select: { titleKey: true, sourceKey: true },
   });
-  const takenTitles = new Set(existing.map((e) => e.titleKey));
-  const importedSources = new Set(existing.flatMap((e) => (e.sourceKey ? [e.sourceKey] : [])));
+  return {
+    titles: new Set(existing.map((e) => e.titleKey)),
+    sources: new Set(existing.flatMap((e) => (e.sourceKey ? [e.sourceKey] : []))),
+  };
+}
 
+export async function importSongs(input: {
+  clubId: string;
+  createdById: string;
+  songs: readonly SongImportData[];
+}): Promise<{ created: number; skipped: SongImportSkip[] }> {
+  const { clubId, createdById, songs } = input;
+  const club = await clubKeys(clubId, songs);
+  const batch: SeenKeys = { titles: new Set(), sources: new Set() };
   const skipped: SongImportSkip[] = [];
-  const batchTitles = new Set<string>();
-  const batchSources = new Set<string>();
   const rows = [];
   for (const song of songs) {
     const titleKey = songTitleKey(song.title);
-    const reason = importedSources.has(song.sourceKey)
-      ? "imported"
-      : takenTitles.has(titleKey)
-        ? "title-taken"
-        : batchTitles.has(titleKey) || batchSources.has(song.sourceKey)
-          ? "duplicate"
-          : null;
+    const reason = skipReason(song, titleKey, club, batch);
     if (reason) {
       skipped.push({ title: song.title, reason });
       continue;
     }
-    batchTitles.add(titleKey);
-    batchSources.add(song.sourceKey);
+    batch.titles.add(titleKey);
+    batch.sources.add(song.sourceKey);
     rows.push({
       clubId,
       createdById,
@@ -175,10 +189,8 @@ export async function importSongs(input: {
       select: { sourceKey: true },
     });
     const landedSources = new Set(landed.map((l) => l.sourceKey));
-    for (const row of rows) {
-      if (!landedSources.has(row.sourceKey))
-        skipped.push({ title: row.title, reason: "title-taken" });
-    }
+    const lost = rows.filter((row) => !landedSources.has(row.sourceKey));
+    skipped.push(...lost.map((row) => ({ title: row.title, reason: "title-taken" as const })));
   }
   return { created: count, skipped };
 }

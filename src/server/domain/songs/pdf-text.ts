@@ -19,7 +19,8 @@ import { isChordLine } from "./chords";
  * Pure: no pdf.js here (src/server/songs/pdf-runs.ts reads the runs).
  */
 
-type Line = { page: number; top: number; size: number; runs: PdfRun[] };
+/** One visual line; `text` is its runs joined (plainText), computed once. */
+type Line = { page: number; top: number; size: number; runs: PdfRun[]; text: string };
 
 export type PdfTextSong = {
   /** The first line when it is set in a larger font, else null. */
@@ -53,10 +54,13 @@ function toLines(runs: readonly PdfRun[]): Line[] {
       last.runs.push(run);
       last.size = Math.max(last.size, run.size);
     } else {
-      lines.push({ page: run.page, top: run.top, size: run.size, runs: [run] });
+      lines.push({ page: run.page, top: run.top, size: run.size, runs: [run], text: "" });
     }
   }
-  for (const line of lines) line.runs.sort((a, b) => a.left - b.left);
+  for (const line of lines) {
+    line.runs.sort((a, b) => a.left - b.left);
+    line.text = plainText(line);
+  }
   return lines;
 }
 
@@ -80,7 +84,7 @@ function plainText(line: Line): string {
 
 /** A chord line with each chord over the character of `below` at its x. */
 function alignedChords(chords: Line, below: Line): string {
-  const text = plainText(below);
+  const text = below.text;
   const left = lineLeft(below);
   const right = Math.max(...below.runs.map((r) => r.left + r.width));
   const perChar = (right - left) / Math.max(text.length, 1);
@@ -97,14 +101,14 @@ function alignedChords(chords: Line, below: Line): string {
 }
 
 export function pdfTextSong(runs: readonly PdfRun[]): PdfTextSong {
-  const lines = toLines(runs).filter((line) => !PAGE_NUMBER_RE.test(plainText(line)));
+  const lines = toLines(runs).filter((line) => !PAGE_NUMBER_RE.test(line.text));
   if (lines.length === 0) return { heading: null, lines: [] };
 
   const bodySize = median(lines.map((l) => l.size));
   let heading: string | null = null;
   const first = lines[0];
   if (first && lines.length > 1 && first.size >= bodySize * HEADING_SIZE_FACTOR) {
-    heading = plainText(first);
+    heading = first.text;
     lines.shift();
   }
 
@@ -125,13 +129,13 @@ export function pdfTextSong(runs: readonly PdfRun[]): PdfTextSong {
     ) {
       out.push("");
     }
-    const text = plainText(line);
+    const { text } = line;
     const next = lines[i + 1];
     const nextIsLyric =
       next !== undefined &&
       next.page === line.page &&
       next.top - line.top <= pitch * STANZA_GAP_FACTOR &&
-      !isChordLine(plainText(next));
+      !isChordLine(next.text);
     out.push(isChordLine(text) && nextIsLyric ? alignedChords(line, next) : text);
   });
   return { heading, lines: out };

@@ -54,10 +54,10 @@ export type BeerDetail = BeerListItem & {
 export type SimilarBeer = { id: string; name: string; abv: number };
 
 const eventRefSelect = { select: { id: true, title: true, startsAt: true } } as const;
-/** Only the photo's version, never its bytes. */
-const imageVersionSelect = { select: { updatedAt: true } } as const;
+/** Only the photo's version, never its bytes (beer lists here and in events/queries.ts). */
+export const imageVersionSelect = { select: { updatedAt: true } } as const;
 
-function imageVersionOf(image: { updatedAt: Date } | null): number | null {
+export function imageVersionOf(image: { updatedAt: Date } | null): number | null {
   return image ? image.updatedAt.getTime() : null;
 }
 
@@ -177,10 +177,10 @@ export async function getBeerImageForMember(
   clubId: string,
   beerId: string,
   userId: string,
-): Promise<{ contentType: string; data: Uint8Array; updatedAt: Date } | null> {
+): Promise<{ contentType: string; data: Uint8Array } | null> {
   if (!isValidId(clubId) || !isValidId(beerId)) return null;
   return db.beerImage.findFirst({
     where: { beerId, clubId, beer: { club: { memberships: { some: { userId } } } } },
-    select: { contentType: true, data: true, updatedAt: true },
+    select: { contentType: true, data: true },
   });
 }

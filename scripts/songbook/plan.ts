@@ -22,8 +22,6 @@ import { contentHash, type SongContent } from "../../src/server/domain/songs/imp
  *   FORÆLDRELØS        a club song whose file is gone → report only, never deleted
  */
 
-export { contentHash, type SongContent };
-
 export type ImportStatus =
   | "NY"
   | "NY?"

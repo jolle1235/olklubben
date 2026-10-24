@@ -17,12 +17,13 @@ import {
 import type { SongbookOverrides } from "./overrides";
 import { parsePdfXml } from "./pdf-xml";
 import { pdfToXml } from "./pdftohtml";
+import { chordBankDraft } from "../../src/server/domain/songs/chordbank/draft";
+import type { RoundTripDisagreement } from "../../src/server/domain/songs/chordbank/round-trip";
 import {
-  roundTrip,
-  type RoundTripDisagreement,
-} from "../../src/server/domain/songs/chordbank/round-trip";
-import { chooseSongTitle, type TitleSource } from "../../src/server/domain/songs/chordbank/title";
-import { storedLines } from "../../src/server/domain/songs/chordbank/to-stored-text";
+  SOURCE_KEY_MAX_LENGTH,
+  sourceKeyOf,
+} from "../../src/server/domain/songs/chordbank/source-key";
+import type { TitleSource } from "../../src/server/domain/songs/chordbank/title";
 
 /**
  * One PDF → the song the importer would store, with every self-check:
@@ -51,14 +52,6 @@ export type ParsedSong = {
   anomalies: Anomaly[];
   errors: string[];
 };
-
-export const SOURCE_KEY_PREFIX = "chordbank:";
-const SOURCE_KEY_MAX_LENGTH = 300;
-
-/** "chordbank:<file name NFC>": how a re-import finds its row. */
-export function sourceKeyOf(file: string): string {
-  return SOURCE_KEY_PREFIX + file.normalize("NFC");
-}
 
 function emptySong(file: string, errors: string[]): ParsedSong {
   return {
@@ -117,14 +110,11 @@ function buildSong(
   if (song.heading === "") errors.push("ingen titel (overskrift) i PDF'en");
   if (sourceKeyOf(file).length > SOURCE_KEY_MAX_LENGTH) errors.push("filnavnet er for langt");
 
-  const lyricTexts = song.blocks.filter((b) => b.kind === "lyric").map((b) => b.text);
-  const chosen = chooseSongTitle(song.heading, parsePath(file).name, lyricTexts);
+  const { chosen, roundTrip: rt, joined } = chordBankDraft(song, parsePath(file).name);
 
-  const rt = roundTrip(song.blocks);
   if (rt.disagreements.length > 0) {
     errors.push(`round trip: ${rt.disagreements.length} uenigheder mellem skrifttype og tekst`);
   }
-  const joined = storedLines(song.blocks).join("\n");
   let body = cleanSongText(joined);
   if (body !== joined) errors.push("cleanSongText ændrer den gemte tekst (round trip gælder ikke)");
 

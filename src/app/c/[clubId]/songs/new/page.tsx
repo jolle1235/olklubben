@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
 import { SongForm } from "@/components/features/songs/song-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { songsHref } from "@/lib/routes";
-import { rememberActiveClub, requireMembership } from "@/server/auth/session";
-import { canManageSongs } from "@/server/domain/songs/permissions";
+import { requireSongAdminPage } from "@/server/songs/access";
 
 export const metadata: Metadata = { title: "Tilføj sang" };
 
@@ -19,9 +17,7 @@ export const metadata: Metadata = { title: "Tilføj sang" };
  */
 export default async function NewSongPage({ params }: PageProps<"/c/[clubId]/songs/new">) {
   const { clubId } = await params;
-  const { user, membership, club } = await requireMembership(clubId);
-  if (!canManageSongs(membership)) notFound();
-  await rememberActiveClub(user, club.id);
+  const { club } = await requireSongAdminPage(clubId);
 
   return (
     <>

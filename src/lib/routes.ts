@@ -52,11 +52,18 @@ export function beerHref(clubId: string, beerId: string): string {
 }
 
 /**
- * A beer's photo (D-158). `version` (the photo's updatedAt in ms) changes the
- * URL when the photo changes, so the browser may cache each URL forever.
+ * A beer's photo (D-158), or null without one (`version` null). `version`
+ * (the photo's updatedAt in ms) changes the URL when the photo changes, so
+ * the browser may cache each URL forever. `thumb`: the list cards' small copy.
  */
-export function beerImageHref(clubId: string, beerId: string, version: number): string {
-  return `${beerHref(clubId, beerId)}/image?v=${version}`;
+export function beerImageHref(
+  clubId: string,
+  beerId: string,
+  version: number | null,
+  { thumb = false }: { thumb?: boolean } = {},
+): string | null {
+  if (version === null) return null;
+  return `${beerHref(clubId, beerId)}/image?v=${version}${thumb ? "&size=thumb" : ""}`;
 }
 
 export function editBeerHref(clubId: string, beerId: string): string {

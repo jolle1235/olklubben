@@ -1,28 +1,31 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CameraIcon, Trash2Icon } from "lucide-react";
 
+import { FieldShell } from "@/components/features/forms/form-fields";
+import { useAfterServerAnswer } from "@/components/features/forms/use-after-server-answer";
 import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/form-message";
-import { Label } from "@/components/ui/label";
+
+import { BeerPhoto } from "./beer-photo";
 
 /**
  * "Billede (valgfrit)" in the beer form (SPEC §9.5, D-158): take a photo or
- * pick one. A large photo is scaled down in the browser (longest side 2000
+ * pick one. A large photo is scaled down in the browser (longest side 1200
  * px, JPEG) before it is sent, so a phone photo fits the upload limit; the
  * server re-encodes it anyway (src/server/beers/image.ts). Without
  * JavaScript the file input works as is.
  *
  * React resets the form after every server answer (F-053), which empties a
  * file input. The chosen photo is kept in state and put back into the input
- * after each answer (`resetKey`), so "Tilføj alligevel" still sends it.
+ * after each answer (useAfterServerAnswer), so "Tilføj alligevel" still sends it.
  *
  * Editing: the current photo is shown with [Fjern billede], which sends
  * removeImage=1; choosing a new photo replaces it.
  */
 
-const MAX_SIDE = 2000;
+/** What the server keeps (src/server/beers/image.ts), so nothing larger is sent. */
+const MAX_SIDE = 1200;
 /** Below this, the file is sent as it is. */
 const RESIZE_FROM_BYTES = 1.5 * 1024 * 1024;
 
@@ -57,22 +60,19 @@ function putFile(input: HTMLInputElement | null, file: File | null) {
 export function BeerImageField({
   currentImageUrl,
   error,
-  resetKey,
+  actionState,
 }: {
   /** The saved photo when editing, else null. */
   currentImageUrl: string | null;
   error?: string;
-  /** Changes after every server answer (the action state). */
-  resetKey: unknown;
+  /** The form's action state: the photo is put back after every server answer. */
+  actionState: unknown;
 }) {
-  const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   // The chosen photo and its blob: URL for the preview, revoked when replaced.
   const [chosen, setChosen] = useState<{ file: File; url: string } | null>(null);
   const [removed, setRemoved] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const file = chosen?.file ?? null;
-  const preview = chosen?.url ?? null;
 
   useEffect(
     () => () => {
@@ -81,11 +81,7 @@ export function BeerImageField({
     [chosen],
   );
 
-  // Put the photo back after React's form reset (see above).
-  useLayoutEffect(() => {
-    putFile(inputRef.current, file);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only after a server answer
-  }, [resetKey]);
+  useAfterServerAnswer(actionState, () => putFile(inputRef.current, chosen?.file ?? null));
 
   async function choose(picked: File | undefined) {
     if (!picked) return;
@@ -103,55 +99,45 @@ export function BeerImageField({
     if (currentImageUrl) setRemoved(true);
   }
 
-  const shown = preview ?? (removed ? null : currentImageUrl);
-  const errorId = `${id}-error`;
+  const shown = chosen?.url ?? (removed ? null : currentImageUrl);
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor={`${id}-input`}>
-        Billede <span className="font-normal text-muted-foreground">(valgfrit)</span>
-      </Label>
-      {removed && !file ? <input type="hidden" name="removeImage" value="1" /> : null}
-
-      {shown ? (
-        // eslint-disable-next-line @next/next/no-img-element -- a blob: preview or a member-only route; nothing to optimise
-        <img
-          src={shown}
-          alt="Billede af øllen"
-          className="max-h-64 w-fit max-w-full rounded-xl border border-border object-contain"
-        />
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="outline">
-          <label htmlFor={`${id}-input`} className="cursor-pointer">
-            <CameraIcon aria-hidden />
-            {processing
-              ? "Gør billedet klar …"
-              : shown
-                ? "Skift billede"
-                : "Tag eller vælg billede"}
-          </label>
-        </Button>
-        {shown ? (
-          <Button type="button" variant="ghost" onClick={clear}>
-            <Trash2Icon aria-hidden />
-            Fjern billede
-          </Button>
-        ) : null}
-      </div>
-      <input
-        ref={inputRef}
-        id={`${id}-input`}
-        type="file"
-        name="image"
-        accept="image/*"
-        className="sr-only"
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        onChange={(event) => void choose(event.currentTarget.files?.[0])}
-      />
-      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
-    </div>
+    <FieldShell label="Billede" optional="valgfrit" errors={error ? [error] : undefined}>
+      {(control) => (
+        <>
+          {removed ? <input type="hidden" name="removeImage" value="1" /> : null}
+          {shown ? (
+            <BeerPhoto src={shown} alt="Billede af øllen" className="max-h-64 w-fit max-w-full" />
+          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild variant="outline">
+              <label htmlFor={control.id} className="cursor-pointer">
+                <CameraIcon aria-hidden />
+                {processing
+                  ? "Gør billedet klar …"
+                  : shown
+                    ? "Skift billede"
+                    : "Tag eller vælg billede"}
+              </label>
+            </Button>
+            {shown ? (
+              <Button type="button" variant="ghost" onClick={clear}>
+                <Trash2Icon aria-hidden />
+                Fjern billede
+              </Button>
+            ) : null}
+          </div>
+          <input
+            {...control}
+            ref={inputRef}
+            type="file"
+            name="image"
+            accept="image/*"
+            className="sr-only"
+            onChange={(event) => void choose(event.currentTarget.files?.[0])}
+          />
+        </>
+      )}
+    </FieldShell>
   );
 }
