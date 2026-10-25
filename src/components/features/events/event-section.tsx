@@ -1,4 +1,4 @@
-import { RopeDivider } from "@/components/ui/rope-divider";
+import { SectionDivider } from "@/components/ui/section-divider";
 import { cn } from "@/lib/utils";
 
 export type EventSectionProps = {
@@ -11,12 +11,12 @@ export type EventSectionProps = {
 
 /**
  * A section of the event page ("Planen", "Øl smagt til dette event", SPEC
- * §9.2): a rope line, then a centred h2, like the invitation mock.
+ * §9.2): a thin line, then a centred h2, like the invitation mock.
  */
 export function EventSection({ id, title, children, className }: EventSectionProps) {
   return (
     <section aria-labelledby={id} className={cn("grid grid-cols-1 gap-5", className)}>
-      <RopeDivider />
+      <SectionDivider />
       <h2
         id={id}
         className="text-center text-2xl leading-tight break-words hyphens-auto text-olive md:text-[1.75rem]"

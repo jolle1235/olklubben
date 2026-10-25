@@ -21,8 +21,8 @@ export type NextEventHeroProps = {
   /** The request's time; decides "om 3 dage", "I morgen!", "I aften! 🍻" or "I gang nu". */
   now: Date;
   /**
-   * Another card on the screen holds the primary action (the invitation's
-   * "Del" in a one-member club, D-057), so the hero's own buttons are quiet.
+   * Another card on the screen holds the primary action (a poll that waits
+   * for the viewer, D-057), so the hero's own buttons are quiet.
    */
   quiet?: boolean;
 };

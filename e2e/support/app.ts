@@ -120,9 +120,22 @@ export async function signUpWithClub(page: Page, user: TestUser, name: string): 
   return createClub(page, name);
 }
 
-/** The invitation link shown by InviteShare (Overblik card or club page), as a path. */
+/**
+ * The club's invitation link (InviteShare on the club page, D-163), as a path.
+ * Read from the page when it shows it; otherwise from the club page of the
+ * club in the URL, in a separate tab, so the test stays where it is.
+ */
 export async function readInvitePath(page: Page): Promise<string> {
-  const url = await page.getByLabel("Invitationslink").inputValue();
+  const field = page.getByLabel("Invitationslink");
+  let url: string;
+  if ((await field.count()) > 0) {
+    url = await field.inputValue();
+  } else {
+    const clubPage = await page.context().newPage();
+    await clubPage.goto(`/c/${clubIdFromUrl(page)}/club`);
+    url = await clubPage.getByLabel("Invitationslink").inputValue();
+    await clubPage.close();
+  }
   const { pathname } = new URL(url);
   expect(pathname).toMatch(/^\/join\/[2-9A-HJKMNP-Z]{8}$/);
   return pathname;

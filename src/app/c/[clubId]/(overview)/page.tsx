@@ -3,22 +3,18 @@ import Link from "next/link";
 import { PlusIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
-import { InviteMembersCard } from "@/components/features/overview/invite-members-card";
 import { NextEventHero } from "@/components/features/overview/next-event-hero";
 import { NoEventsState, PlanActions } from "@/components/features/overview/no-events-state";
 import { PastEvents } from "@/components/features/overview/past-events";
 import { UpcomingEvents } from "@/components/features/overview/upcoming-events";
 import { PollCard } from "@/components/features/polls/poll-card";
 import { Button } from "@/components/ui/button";
-import { inviteUrl } from "@/lib/app-url";
 import {
   newBeerHref,
   newEventHref as newEventPath,
   newPollHref as newPollPath,
 } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
-import { countClubMembers, getActiveInviteCode } from "@/server/clubs/queries";
-import { formatInviteCode } from "@/server/domain/clubs/invite-code";
 import { OVERVIEW_HISTORY_LIMIT } from "@/server/domain/events/history";
 import { heroState } from "@/server/domain/events/status";
 import { getNextEvent, listPastEvents, listUpcomingEvents } from "@/server/events/queries";
@@ -37,11 +33,10 @@ const UPCOMING_LIMIT = 4;
  * tie, "🎉 Afgjort", D-137), then "Kommende arrangementer" with [+ Opret
  * event] and [🗳 Planlæg ølsmagning]. Without an upcoming or ongoing event
  * and without an active poll: "Ingen kommende ølsmagninger endnu 🍺". Last, quietly, the
- * newest past tastings ("Tidligere ølsmagninger", §13.4.2, D-107). While the club has
- * only one member, "Inviter dine ølbrødre" comes first and its "Del" is the
- * screen's primary action (D-057). The top bar's + follows the hero, like
- * on the event page (D-080): "Tilføj øl" to the event while it is on, else
- * "Opret event".
+ * newest past tastings ("Tidligere ølsmagninger", §13.4.2, D-107). The
+ * invitation lives on the club page (D-163). The top bar's + follows the
+ * hero, like on the event page (D-080): "Tilføj øl" to the event while it is
+ * on, else "Opret event".
  *
  * The h1 "Overblik" is for screen readers only: the first thing you SEE is
  * the next event (§3.2), the club's name is already in the top bar/sidebar,
@@ -63,37 +58,28 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
   // Lazy close first (D-131): a just-created event must show in the hero below.
   await closeDuePolls(club.id, now);
 
-  const [memberCount, nextEvent, pastEvents, polls] = await Promise.all([
-    countClubMembers(club.id),
+  const [nextEvent, pastEvents, polls] = await Promise.all([
     getNextEvent(club.id, now),
     listPastEvents(club.id, now, { limit: OVERVIEW_HISTORY_LIMIT }),
     listOverviewPolls(club.id, user.id, now),
   ]);
-  // The same "active invite" rule as the club page and /join (not revoked, not expired).
-  const [inviteCode, upcoming] = await Promise.all([
-    memberCount <= 1 ? getActiveInviteCode(club.id) : null,
-    nextEvent
-      ? listUpcomingEvents(club.id, now, { excludeId: nextEvent.id, limit: UPCOMING_LIMIT })
-      : [],
-  ]);
+  const upcoming = nextEvent
+    ? await listUpcomingEvents(club.id, now, { excludeId: nextEvent.id, limit: UPCOMING_LIMIT })
+    : [];
 
   const newEventHref = newEventPath(club.id);
   const newPollHref = newPollPath(club.id);
-  // While the invitation card shows, its "Del" is the primary action (D-057).
-  const inviteFirst = inviteCode !== null;
   const pollCards = polls.map((poll) => ({
     poll,
     canManage: canManagePoll(membership, poll, user.id),
   }));
   // A poll that waits for THIS viewer (vote, or choose the winner) holds the
   // primary action, so the hero's [Se event] is quiet then (D-057).
-  const pollFirst =
-    !inviteFirst &&
-    pollCards.some(
-      ({ poll, canManage }) =>
-        (poll.status === "OPEN" && !poll.viewerHasVoted) ||
-        (poll.status === "AWAITING_DECISION" && canManage),
-    );
+  const pollFirst = pollCards.some(
+    ({ poll, canManage }) =>
+      (poll.status === "OPEN" && !poll.viewerHasVoted) ||
+      (poll.status === "AWAITING_DECISION" && canManage),
+  );
   const pollList =
     pollCards.length > 0 ? (
       <div className="grid grid-cols-1 gap-4">
@@ -105,7 +91,6 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
             viewerId={user.id}
             canManage={canManage}
             now={now}
-            quiet={inviteFirst}
           />
         ))}
       </div>
@@ -132,22 +117,9 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
       <h1 className="sr-only">Overblik</h1>
 
       <div className="flex flex-col gap-8 md:gap-10">
-        {inviteCode ? (
-          <InviteMembersCard
-            inviteUrl={inviteUrl(inviteCode)}
-            displayCode={formatInviteCode(inviteCode)}
-            clubName={club.name}
-          />
-        ) : null}
-
         {nextEvent ? (
           <>
-            <NextEventHero
-              clubId={club.id}
-              event={nextEvent}
-              now={now}
-              quiet={inviteFirst || pollFirst}
-            />
+            <NextEventHero clubId={club.id} event={nextEvent} now={now} quiet={pollFirst} />
             {pollList}
             <UpcomingEvents
               clubId={club.id}
@@ -163,11 +135,7 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
             <PlanActions newEventHref={newEventHref} newPollHref={newPollHref} />
           </>
         ) : (
-          <NoEventsState
-            newEventHref={newEventHref}
-            newPollHref={newPollHref}
-            deemphasize={inviteFirst}
-          />
+          <NoEventsState newEventHref={newEventHref} newPollHref={newPollHref} />
         )}
 
         <PastEvents clubId={club.id} events={pastEvents} now={now} />

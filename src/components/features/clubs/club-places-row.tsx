@@ -6,7 +6,7 @@ import { placesHref } from "@/lib/routes";
 import { placeCountLabel } from "./club-labels";
 
 /**
- * "Steder · N steder" on the club page (SPEC §9.8 "Steder (link)", §9.4):
+ * "N steder" under the club page's "Steder" heading (SPEC §9.8, §9.4, D-163):
  * the way to the club's places, which have no main navigation item (§8.1).
  */
 export function ClubPlacesRow({ clubId, placeCount }: { clubId: string; placeCount: number }) {
@@ -23,10 +23,10 @@ export function ClubPlacesRow({ clubId, placeCount }: { clubId: string; placeCou
       </span>
       <span className="min-w-0 flex-1">
         <span className="block font-heading text-lg leading-tight font-semibold text-olive">
-          Steder
+          {placeCountLabel(placeCount)}
         </span>
         <span className="block text-[0.95rem] text-pretty text-muted-foreground">
-          {placeCountLabel(placeCount)} · Hvor I mødes, og hvem der ejer dem
+          Hvor I mødes, og hvem der ejer dem
         </span>
       </span>
       <ChevronRightIcon

@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { formatDate, toDateKey } from "@/lib/format/date";
 import { getDisplayName, officialNameSuffix } from "@/lib/format/display-name";
+import { cn } from "@/lib/utils";
 import { memberMenu, type Roster } from "@/server/domain/clubs/membership-rules";
 import { CLUB_ROLE_LABEL, type ClubRole } from "@/server/domain/clubs/permissions";
 
@@ -30,6 +31,9 @@ export type MemberListProps = {
  * with the official name after it when a nickname is shown ("Kaptajnen
  * (Jesper Thomsen)"), "(dig)", an Admin badge and "Medlem siden …".
  *
+ * Admins come first (sortMembers); a heavier line sets them apart from the
+ * rest of the members (D-163).
+ *
  * Admins get a '⋯' menu per member (memberMenu: promote, demote, reset link,
  * remove), also on their own row ("Fjern min admin-rolle"). Members get none.
  */
@@ -38,13 +42,20 @@ export function MemberList({ clubId, clubName, members, currentUserId }: MemberL
 
   return (
     <ul className="divide-y divide-border rounded-2xl border border-border bg-paper px-4 sm:px-5">
-      {members.map((member) => {
+      {members.map((member, index) => {
+        const lastAdmin = member.role === "ADMIN" && members[index + 1]?.role === "MEMBER";
         const displayName = getDisplayName(member);
         const officialName = officialNameSuffix(member);
         const isMe = member.userId === currentUserId;
         const menu = memberMenu(currentUserId, member.userId, roster);
         return (
-          <li key={member.userId} className="flex min-h-18 items-center gap-3 py-3 sm:gap-4">
+          <li
+            key={member.userId}
+            className={cn(
+              "flex min-h-18 items-center gap-3 py-3 sm:gap-4",
+              lastAdmin && "border-b-2 border-olive/25",
+            )}
+          >
             <UserAvatar name={displayName} image={member.image} decorative className="m-1" />
             <div className="grid min-w-0 flex-1 grid-cols-1">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">

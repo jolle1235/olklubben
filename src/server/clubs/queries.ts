@@ -59,11 +59,6 @@ export async function listMemberOptions(clubId: string): Promise<PersonRef[]> {
   return memberships.map((membership) => membership.user).sort(compareByDisplayName);
 }
 
-/** How many members the club has. */
-export async function countClubMembers(clubId: string): Promise<number> {
-  return db.membership.count({ where: { clubId } });
-}
-
 /**
  * The club's current invitation code (canonical, e.g. "K7XMQ2PA"), or null if
  * it has none. Never findUnique({ where: { clubId } }): see the partial index

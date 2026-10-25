@@ -12,7 +12,7 @@ import { SongTextView } from "@/components/features/songs/song-text-view";
 import { SongViewToggle } from "@/components/features/songs/song-view-toggle";
 import { Button } from "@/components/ui/button";
 import { LinkPendingIcon } from "@/components/ui/link-pending";
-import { RopeDivider } from "@/components/ui/rope-divider";
+import { SectionDivider } from "@/components/ui/section-divider";
 import { editSongHref, songHref } from "@/lib/routes";
 import { canManageSongs } from "@/server/domain/songs/permissions";
 import { hasChords } from "@/server/domain/songs/song-text";
@@ -84,7 +84,7 @@ export default async function SongPage({ params }: PageProps<"/c/[clubId]/songs/
 
       <SongTextView body={song.body} className="max-w-[40rem]" />
 
-      <RopeDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-8 md:my-10" />
 
       <SongNeighboursNav previous={neighbour(previous)} next={neighbour(next)} />
 

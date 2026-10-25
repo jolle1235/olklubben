@@ -36,9 +36,8 @@ test.describe("Runde 1: Definition of Done", () => {
 
     const clubId = await createClub(page, name);
 
-    // Overblik of a one-member club: the invite card comes first (SPEC §9.1).
-    await expect(page.getByRole("heading", { name: "Inviter dine ølbrødre" })).toBeVisible();
-    await expect(page.getByLabel("Invitationslink")).toHaveValue(/\/join\/[2-9A-HJKMNP-Z]{8}$/);
+    // Overblik of a new club: no invite card, the invitation is on the club page (D-163).
+    await expect(page.getByRole("heading", { name: "Inviter dine ølbrødre" })).toHaveCount(0);
     await expect(
       page.getByRole("heading", { name: "Ingen kommende ølsmagninger endnu 🍺" }),
     ).toBeVisible();
@@ -53,6 +52,8 @@ test.describe("Runde 1: Definition of Done", () => {
     const me = memberRows(page).filter({ hasText: "(dig)" });
     await expect(me).toContainText(user.name);
     await expect(me.getByText("Admin", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Inviter dine ølbrødre" })).toBeVisible();
+    await expect(page.getByLabel("Invitationslink")).toHaveValue(/\/join\/[2-9A-HJKMNP-Z]{8}$/);
     await expect(page.getByRole("button", { name: "Generér ny kode" })).toBeVisible();
 
     await logOut(page);
@@ -92,8 +93,6 @@ test.describe("Runde 1: Definition of Done", () => {
 
     await friendPage.getByRole("button", { name: "Join klub" }).click();
     await expectOverview(friendPage, clubId);
-    // Two members now: no invite card on Overblik any more.
-    await expect(friendPage.getByRole("heading", { name: "Inviter dine ølbrødre" })).toHaveCount(0);
 
     // The friend is a member, not an admin.
     await friendPage.goto(`/c/${clubId}/club`);

@@ -51,11 +51,11 @@ test.describe("Overblik", () => {
     const owner = newUser(testInfo, "overblik");
     const clubId = await signUpWithClub(page, owner, clubName(testInfo, "Overblik"));
 
-    // No events yet (§9.1 empty state); the one-member club shows the invite first.
+    // No events yet (§9.1 empty state); the invitation lives on the club page (D-163).
     await expect(
       page.getByRole("heading", { name: "Ingen kommende ølsmagninger endnu 🍺" }),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Inviter dine ølbrødre" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Inviter dine ølbrødre" })).toHaveCount(0);
     await expect(hero(page)).toHaveCount(0);
 
     const heroDay = dayFromToday(3);

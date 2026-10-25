@@ -10,7 +10,7 @@ import { LeaveClubSection } from "@/components/features/clubs/leave-club-section
 import { MemberList } from "@/components/features/clubs/member-list";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { RopeDivider } from "@/components/ui/rope-divider";
+import { SectionDivider } from "@/components/ui/section-divider";
 import { inviteUrl } from "@/lib/app-url";
 import { formatDate } from "@/lib/format/date";
 import { editClubHref } from "@/lib/routes";
@@ -33,9 +33,9 @@ import {
 export const metadata: Metadata = { title: "Klubben" };
 
 /**
- * Klubbens side (SPEC §9.8, §7.4, §7.5, Q11): the members (admins get a '⋯'
- * menu per member, D-102), the club's places, the invitation link for
- * everyone, and the Farezone: "Forlad klubben" for everyone (or why not) and
+ * Klubbens side (SPEC §9.8, §7.4, §7.5, Q11, D-163), in sections split by a
+ * thin line: the members (admins first; admins get a '⋯' menu per member,
+ * D-102), the club's places, the invitation card for everyone, and the Farezone: "Forlad klubben" for everyone (or why not) and
  * "Slet klubben" for admins (D-103). Admins edit the name and description on
  * /club/edit (D-110).
  *
@@ -112,11 +112,16 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
         />
       </section>
 
-      <div className="mt-6">
-        <ClubPlacesRow clubId={club.id} placeCount={placeCount} />
-      </div>
+      <SectionDivider className="my-8 md:my-10" />
 
-      <RopeDivider className="my-8 md:my-10" />
+      <section id="steder" aria-labelledby="places-heading" className="scroll-mt-24">
+        <h2 id="places-heading" className="mb-4 text-2xl text-olive">
+          Steder
+        </h2>
+        <ClubPlacesRow clubId={club.id} placeCount={placeCount} />
+      </section>
+
+      <SectionDivider className="my-8 md:my-10" />
 
       <InviteSection
         clubId={club.id}
@@ -129,7 +134,7 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
         canRegenerate={canRegenerateInvite(membership)}
       />
 
-      <RopeDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-8 md:my-10" />
 
       <section aria-labelledby="danger-heading">
         <h2 id="danger-heading" className="mb-4 text-2xl text-olive">

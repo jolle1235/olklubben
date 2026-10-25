@@ -4,7 +4,7 @@ import { AnchorIcon, ExternalLinkIcon, MapPinIcon, PlusIcon } from "lucide-react
 import { Badge } from "@/components/ui/badge";
 import { BigDate } from "@/components/ui/big-date";
 import { Button } from "@/components/ui/button";
-import { RopeDivider } from "@/components/ui/rope-divider";
+import { SectionDivider } from "@/components/ui/section-divider";
 import { formatLongDate, formatTime, toDateKey } from "@/lib/format/date";
 import { editPlaceHref, mapsSearchUrl, placeHref } from "@/lib/routes";
 import { heroState, heroStateLabel, isHeroHighlighted } from "@/server/domain/events/status";
@@ -72,7 +72,7 @@ export function EventInvitation({
         </p>
       ) : null}
 
-      <RopeDivider className="my-7" />
+      <SectionDivider className="my-7" />
 
       {/* Decorative: the sentence below says the same for screen readers. */}
       <div aria-hidden className="text-olive">
@@ -92,7 +92,7 @@ export function EventInvitation({
         ) : null}
       </p>
 
-      <RopeDivider variant="wave" className="my-7" />
+      <SectionDivider className="my-7" />
 
       <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xl font-semibold text-ink">
         <MapPinIcon aria-hidden className="size-5 shrink-0 text-olive" />

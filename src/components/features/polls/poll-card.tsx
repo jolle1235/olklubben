@@ -22,8 +22,6 @@ export type PollCardProps = {
   /** canManagePoll for this poll (the tie card's "Vælg vinder"). */
   canManage: boolean;
   now: Date;
-  /** D-057: outline buttons while the invite card is the primary action. */
-  quiet?: boolean;
 };
 
 /** The states that ask the viewer to act get the brass button and the amber ring. */
@@ -44,20 +42,19 @@ function needsViewer(state: PollCardState): boolean {
  *
  * The heading is the card's name for screen readers; the state line follows.
  */
-export function PollCard({ clubId, poll, viewerId, canManage, now, quiet = false }: PollCardProps) {
+export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardProps) {
   void viewerId;
   const state = pollCardState(poll, canManage);
   const urgent = needsViewer(state);
   const creator = { name: poll.creatorName, isMember: poll.creatorIsMember };
   const headingId = `poll-card-${poll.id}`;
-  const primaryVariant = quiet ? "outline" : "brass";
 
   return (
     <section
       aria-labelledby={headingId}
       className={cn(
         "grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-harbor/60 bg-paper px-5 py-4 sm:px-6 sm:py-5",
-        urgent && !quiet && "ring-[3px] ring-amber ring-offset-2 ring-offset-cream",
+        urgent && "ring-[3px] ring-amber ring-offset-2 ring-offset-cream",
       )}
     >
       <h2
@@ -85,7 +82,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now, quiet = false
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         {state === "missing" ? (
-          <Button asChild variant={primaryVariant} className="w-full sm:w-auto">
+          <Button asChild variant="brass" className="w-full sm:w-auto">
             <Link href={pollVoteHref(clubId, poll.id)}>
               Stem nu
               <ArrowRightIcon aria-hidden data-icon="inline-end" />
@@ -93,7 +90,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now, quiet = false
           </Button>
         ) : null}
         {state === "tie-manager" ? (
-          <Button asChild variant={primaryVariant} className="w-full sm:w-auto">
+          <Button asChild variant="brass" className="w-full sm:w-auto">
             <Link href={pollHref(clubId, poll.id)}>
               Vælg vinder
               <ArrowRightIcon aria-hidden data-icon="inline-end" />

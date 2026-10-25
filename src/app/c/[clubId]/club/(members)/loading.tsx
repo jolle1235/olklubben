@@ -1,8 +1,9 @@
+import { SectionDivider } from "@/components/ui/section-divider";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Loading state for the club page (SPEC §13.4: skeletons): title, member rows,
- * the "Steder" row, invitation and Farezone. In the (members) group so it
+ * the "Steder" row, the invitation card and Farezone, split by thin lines. In the (members) group so it
  * does not wrap club/edit, which 404s for non-admins and must stay a real 404
  * (TG-008, D-108).
  */
@@ -25,12 +26,16 @@ export default function ClubPageLoading() {
           </div>
         ))}
       </div>
-      <Skeleton className="mt-6 h-16 w-full rounded-2xl" />
 
-      <Skeleton className="mt-12 mb-4 h-7 w-56" />
-      <Skeleton className="h-56 w-full rounded-2xl" />
+      <SectionDivider className="my-8 md:my-10" />
+      <Skeleton className="mb-4 h-7 w-24" />
+      <Skeleton className="h-16 w-full rounded-2xl" />
 
-      <Skeleton className="mt-12 mb-4 h-7 w-32" />
+      <SectionDivider className="my-8 md:my-10" />
+      <Skeleton className="h-96 w-full rounded-xl" />
+
+      <SectionDivider className="my-8 md:my-10" />
+      <Skeleton className="mb-4 h-7 w-32" />
       <Skeleton className="h-28 w-full rounded-2xl" />
     </div>
   );

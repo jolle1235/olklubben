@@ -9,7 +9,7 @@ import { FeedbackLink, ProfileLinks } from "@/components/features/profile/profil
 import { GoogleReauth, SetPasswordForm } from "@/components/features/profile/set-password-form";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { RopeDivider } from "@/components/ui/rope-divider";
+import { SectionDivider } from "@/components/ui/section-divider";
 import { isGoogleConfigured } from "@/env";
 import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
 import { getSession, getUserClubs, requireClubPage } from "@/server/auth/session";
@@ -134,7 +134,7 @@ export default async function ProfilePage({ params }: PageProps<"/c/[clubId]/pro
         <FeedbackLink />
 
         <div className="flex flex-col gap-6">
-          <RopeDivider />
+          <SectionDivider />
           <LogoutButton className="sm:self-start" />
         </div>
       </div>

@@ -7,12 +7,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 export type NoEventsStateProps = {
   newEventHref: string;
   newPollHref: string;
-  /**
-   * Show "Opret event" as a secondary (outline) button, when something else on
-   * the screen is the primary action, e.g. the invitation card's "Del" while
-   * the club has one member. One primary action per screen (SPEC §13.4, D-057).
-   */
-  deemphasize?: boolean;
 };
 
 /**
@@ -20,11 +14,7 @@ export type NoEventsStateProps = {
  * empty states, §13.5): [Opret event] and [Planlæg ølsmagning] (round 4,
  * D-137). The poll button is always the quieter one.
  */
-export function NoEventsState({
-  newEventHref,
-  newPollHref,
-  deemphasize = false,
-}: NoEventsStateProps) {
+export function NoEventsState({ newEventHref, newPollHref }: NoEventsStateProps) {
   return (
     <EmptyState
       icon={<CalendarDaysIcon />}
@@ -32,17 +22,13 @@ export function NoEventsState({
       description="Sæt en dato i kalenderen – eller lad klubben stemme om, hvornår og hvor."
       actions={
         <>
-          <Button
-            asChild
-            size={deemphasize ? "default" : "lg"}
-            variant={deemphasize ? "outline" : "default"}
-          >
+          <Button asChild size="lg">
             <Link href={newEventHref}>
               <PlusIcon aria-hidden />
               Opret event
             </Link>
           </Button>
-          <Button asChild size={deemphasize ? "default" : "lg"} variant="outline">
+          <Button asChild size="lg" variant="outline">
             <Link href={newPollHref}>
               <VoteIcon aria-hidden />
               Planlæg ølsmagning

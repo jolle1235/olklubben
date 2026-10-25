@@ -256,36 +256,6 @@
     0 0 0 5px rgb(65 68 55 / 0.2);
 }
 
-/* Snoet reb som skillelinje. Ren dekoration. */
-@utility rope-line {
-  height: 12px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='12' viewBox='0 0 7 12'%3E%3Cg stroke-linecap='round'%3E%3Cpath d='M-1.5 10.5 5 1.5M5.5 10.5 12 1.5M-8.5 10.5-2 1.5' stroke='%238f7a52' stroke-width='4.4'/%3E%3Cpath d='M-1.5 10.5 5 1.5M5.5 10.5 12 1.5M-8.5 10.5-2 1.5' stroke='%23d6c39a' stroke-width='2.4'/%3E%3Cpath d='M-.6 8.2 3.2 3M6.4 8.2 10.2 3M-7.6 8.2-3.8 3' stroke='%23efe2c2' stroke-width='.9'/%3E%3C/g%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-position: center;
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 1.5rem,
-    #000 calc(100% - 1.5rem),
-    transparent
-  );
-}
-
-/* Rolig bølgelinje. Ren dekoration. */
-@utility wave-line {
-  height: 10px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0 5q6-5 12 0t12 0' fill='none' stroke='%23c9b48a' stroke-width='1.6'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-position: center;
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 1.5rem,
-    #000 calc(100% - 1.5rem),
-    transparent
-  );
-}
-
 /* Respekter prefers-reduced-motion (SPEC §15.2). Ulaget, så det vinder over utilities. */
 @media (prefers-reduced-motion: reduce) {
   *,
