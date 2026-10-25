@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /*
- * Ølklubbens mærke: et koøje (porthole) med en ølkrus bag glasset.
+ * Ølklubbens mærke: et koøje (porthole) med to ølglas, der skåler, bag glasset.
  * Maritimt krydderi, ikke pirat (SPEC §13.1). Samme tegning ligger i src/app/icon.svg.
  */
 type LogoMarkProps = {
@@ -40,26 +40,36 @@ export function LogoMark({ className, title }: LogoMarkProps) {
         strokeWidth="1.6"
         strokeLinecap="round"
       />
-      {/* krus med skum */}
-      <g transform="translate(-1.75 0.5)">
-        <path
-          d="M30.5 22.5h2.25a3.75 3.75 0 0 1 3.75 3.75v2.5a3.75 3.75 0 0 1-3.75 3.75H30.5"
-          fill="none"
-          stroke="#D99A1E"
-          strokeWidth="2.6"
-        />
-        <rect x="14.5" y="19" width="17" height="17.5" rx="2.5" fill="#D99A1E" />
-        <path
-          d="M18.5 24v8.5M23 24v8.5M27.5 24v8.5"
-          stroke="#B67D10"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M14 20.5a3.6 3.6 0 0 1 3.4-4.4 4.6 4.6 0 0 1 8.3-1.2 3.8 3.8 0 0 1 6.3 3.1 2.6 2.6 0 0 1-.5 4.6c-.9.4-1.6-.2-2.5-.2H17.2c-1.6 0-3.2-.3-3.2-1.9Z"
-          fill="#F6F0E1"
-        />
-      </g>
+      {/* skål: gnister og to glas, der klinker (et omrids i glassets blå skiller dem) */}
+      <path
+        d="M24 9.6v3.4M19.2 11.3l1.6 2.8M28.8 11.3l-1.6 2.8"
+        fill="none"
+        stroke="#F2C46A"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      {[
+        { x: 16.4, r: 17 },
+        { x: 31.6, r: -17 },
+      ].map(({ x, r }) => (
+        <g key={x} transform={`translate(${x} 36.4) rotate(${r})`}>
+          <g stroke="#3E5568" strokeWidth="1.3" strokeLinejoin="round" paintOrder="stroke">
+            <path d="M-4.6 -13.2h9.2l-1.05 13.2h-7.1Z" fill="#D99A1E" />
+            <path
+              d="M-5.1 -12.2a1.9 1.9 0 0 1 .9-3.1 2.4 2.4 0 0 1 4.1-1 2.4 2.4 0 0 1 4.3.3 1.9 1.9 0 0 1 .9 3.2c-.4.9-1.3 1.2-2.2 1.2h-5.9c-1 0-1.8-.2-2.1-.6Z"
+              fill="#F6F0E1"
+            />
+          </g>
+          <path
+            d="M-2.7 -10.4l.45 8.3"
+            stroke="#F6F0E1"
+            strokeOpacity=".6"
+            strokeWidth="1.15"
+            strokeLinecap="round"
+          />
+          <path d="M2.5 -10.4l-.5 8.3" stroke="#B67D10" strokeWidth="1.3" strokeLinecap="round" />
+        </g>
+      ))}
     </svg>
   );
 }
