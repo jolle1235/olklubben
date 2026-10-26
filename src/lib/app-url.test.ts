@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-// app-url reads the validated env; only BETTER_AUTH_URL matters here.
-vi.mock("@/env", () => ({ env: { BETTER_AUTH_URL: "https://olklubben.example/" } }));
+// app-url reads the validated env; only the base URL matters here (parseEnv
+// derives it, see env-schema.test.ts).
+vi.mock("@/env", () => ({ appBaseUrl: "https://olklubben.example" }));
 
 const { inviteUrl, passwordResetUrl } = await import("./app-url");
 

@@ -427,7 +427,7 @@ Se SPEC §4.8 for baggrunden. Tjekliste:
 - [ ] **Preview branching:** slå preview-branches til i Neon-integrationens indstillinger (Vercel → Storage → Neon: en database-branch pr. Preview-deploy), så hvert Preview-deploy får sin egen Neon-branch med egne `DATABASE_URL`/`DATABASE_URL_UNPOOLED`. Uden det bruger previews den database, integrationen har sat for Preview-miljøet, og det kan være produktionens.
 - [ ] **Miljøvariabler** (Project → Settings → Environment Variables), pr. miljø:
   - `BETTER_AUTH_SECRET`: ny værdi pr. miljø (`openssl rand -base64 32`).
-  - `BETTER_AUTH_URL`: `https://<projekt>.vercel.app` i Production. Previews skal pege på den URL, der testes på (fx en fast branch-alias).
+  - `BETTER_AUTH_URL`: **sæt den ikke i Production.** Dér bruger appen Vercels `VERCEL_PROJECT_PRODUCTION_URL` (projektets domæne fra Settings → Domains) til invitationslinks, nulstillingslinks og login (D-164). En håndkopieret deploy-URL fik engang invitationslinks til at åbne "Deployment has failed" (F-085). Står den der og er anderledes, ignoreres den, og loggen advarer. "Automatically expose System Environment Variables" skal være slået til (standard). Previews skal stadig have `BETTER_AUTH_URL` pegende på den URL, der testes på (fx en fast branch-alias).
   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (valgfrit, se ovenfor).
   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` (valgfrit, se ovenfor).
   - `CRON_SECRET` (Production): `openssl rand -hex 32`. Vercel Cron sender den som Bearer-token (se "Afstemninger og cron").
@@ -440,5 +440,5 @@ Se SPEC §4.8 for baggrunden. Tjekliste:
   3. Gå Runde 1's, Runde 2's og Runde 4's Definition of Done igennem i hånden med testbrugere (`…@example.test`, slet dem bagefter): (a) opret konto → opret klub → du er Admin og lander i klubben efter log ud/ind, (b) en anden bruger åbner invitationslinket, opretter konto og joiner, (c) opret et event → det er på Overblik og i Kalender, (d) tilføj en øl til eventet → rate den → klubbens gennemsnit vises, (e) planlæg en ølsmagning → alle stemmer → eventet står på Overblik og i Kalender. Kald `/api/cron/close-polls` uden token (401), og tjek i Vercels Cron-fane, at jobbet findes.
   4. Tjek, at "Glemt password" viser "Kontakt en admin i din klub for at få et nulstillingslink." (ingen SMTP i produktion).
   5. Tjek, at Link-prefetch ikke skifter den huskede klub (`rememberActiveClub` i `src/server/auth/session.ts`): som en bruger med to klubber åbner du `/clubs` og venter et par sekunder, så linkene til klubberne er prefetchet. Åbn så `/`: du skal lande i den klub, du sidst åbnede, ikke den sidste i listen.
-- [ ] **Første deploy:** åbn `https://<projekt>.vercel.app/api/auth/ok` (skal svare `{"ok":true}`), opret din konto, opret klubben, og del invitationslinket.
+- [ ] **Første deploy:** åbn `https://<dit domæne fra Settings → Domains>/api/auth/ok` (gæt det ikke ud fra projektnavnet: `olklubben.vercel.app` tilhører en anden) (skal svare `{"ok":true}`), opret din konto, opret klubben, og del invitationslinket.
 - [ ] **Testdata:** kør aldrig `npm run db:seed` mod produktion.

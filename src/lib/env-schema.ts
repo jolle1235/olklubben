@@ -16,6 +16,9 @@ const postgresUrl = z.url({
 
 const emailSchema = z.email();
 
+/** A bare hostname such as "olklubben-abc.vercel.app" (no scheme, path or port). */
+const HOSTNAME = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i;
+
 /**
  * APP_ADMIN_EMAILS as a list (D-142): split on ",", trimmed, empty entries
  * dropped, lowercased (account emails are always lowercase), de-duplicated.
@@ -37,50 +40,89 @@ export function parseAppAdminEmails(raw: string | undefined): {
   return { emails, invalid };
 }
 
-export const envSchema = z.object({
-  DATABASE_URL: postgresUrl,
-  DIRECT_URL: postgresUrl.optional(),
+export const envSchema = z
+  .object({
+    DATABASE_URL: postgresUrl,
+    DIRECT_URL: postgresUrl.optional(),
 
-  BETTER_AUTH_SECRET: requiredString.min(32, "skal være mindst 32 tegn (openssl rand -base64 32)"),
-  BETTER_AUTH_URL: z.url({ protocol: /^https?$/, error: "skal være en http(s)-URL" }),
+    BETTER_AUTH_SECRET: requiredString.min(
+      32,
+      "skal være mindst 32 tegn (openssl rand -base64 32)",
+    ),
+    // Required, except on Vercel Production, where the app URL comes from
+    // VERCEL_PROJECT_PRODUCTION_URL instead (D-164, see the refinement below).
+    BETTER_AUTH_URL: z.url({ protocol: /^https?$/, error: "skal være en http(s)-URL" }).optional(),
 
-  GOOGLE_CLIENT_ID: optionalString,
-  GOOGLE_CLIENT_SECRET: optionalString,
+    // Set by Vercel (system environment variables), never by hand. On Production
+    // the project's production domain is the app URL (D-164): a hand-set
+    // BETTER_AUTH_URL once pointed invitation links at a single failed deployment.
+    VERCEL_ENV: optionalString,
+    VERCEL_PROJECT_PRODUCTION_URL: z
+      .string()
+      .regex(HOSTNAME, "skal være et domænenavn uden https:// (sættes af Vercel)")
+      .optional(),
 
-  SMTP_HOST: optionalString,
-  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
-  SMTP_USER: optionalString,
-  SMTP_PASSWORD: optionalString,
-  EMAIL_FROM: optionalString,
+    GOOGLE_CLIENT_ID: optionalString,
+    GOOGLE_CLIENT_SECRET: optionalString,
 
-  // Development/test only (D-024): directory for the dev email outbox. Relative
-  // paths are resolved from the project root. Default: .dev-outbox
-  DEV_OUTBOX_DIR: optionalString,
-  // Development/test only: "1"/"true" switches rate limiting off (E2E creates
-  // many users from one IP). Ignored when NODE_ENV=production.
-  RATE_LIMIT_DISABLED: z.stringbool({ error: "skal være 1/0 eller true/false" }).optional(),
+    SMTP_HOST: optionalString,
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
+    SMTP_USER: optionalString,
+    SMTP_PASSWORD: optionalString,
+    EMAIL_FROM: optionalString,
 
-  // Round 4 (§4.8, D-131): Vercel Cron sends it as "Authorization: Bearer …" to
-  // /api/cron/close-polls. Unset → the daily close is switched off (503).
-  CRON_SECRET: z.string().min(16, "skal være mindst 16 tegn (openssl rand -hex 32)").optional(),
+    // Development/test only (D-024): directory for the dev email outbox. Relative
+    // paths are resolved from the project root. Default: .dev-outbox
+    DEV_OUTBOX_DIR: optionalString,
+    // Development/test only: "1"/"true" switches rate limiting off (E2E creates
+    // many users from one IP). Ignored when NODE_ENV=production.
+    RATE_LIMIT_DISABLED: z.stringbool({ error: "skal være 1/0 eller true/false" }).optional(),
 
-  // Feedback (§9.9, D-142): comma-separated emails of the app-admins, who set a
-  // report's status, answer it and mark duplicates. Unset → nobody can. Every
-  // entry must be an email (a typo would silently leave the app without an admin).
-  APP_ADMIN_EMAILS: z
-    .string()
-    .optional()
-    .superRefine((value, ctx) => {
-      for (const entry of parseAppAdminEmails(value).invalid) {
-        ctx.addIssue({ code: "custom", message: `«${entry}» er ikke en gyldig email` });
+    // Round 4 (§4.8, D-131): Vercel Cron sends it as "Authorization: Bearer …" to
+    // /api/cron/close-polls. Unset → the daily close is switched off (503).
+    CRON_SECRET: z.string().min(16, "skal være mindst 16 tegn (openssl rand -hex 32)").optional(),
+
+    // Feedback (§9.9, D-142): comma-separated emails of the app-admins, who set a
+    // report's status, answer it and mark duplicates. Unset → nobody can. Every
+    // entry must be an email (a typo would silently leave the app without an admin).
+    APP_ADMIN_EMAILS: z
+      .string()
+      .optional()
+      .superRefine((value, ctx) => {
+        for (const entry of parseAppAdminEmails(value).invalid) {
+          ctx.addIssue({ code: "custom", message: `«${entry}» er ikke en gyldig email` });
+        }
+      }),
+  })
+  .superRefine(
+    (env, ctx) => {
+      if (!env.BETTER_AUTH_URL && !vercelProductionUrl(env)) {
+        ctx.addIssue({ code: "custom", path: ["BETTER_AUTH_URL"], message: "mangler" });
       }
-    }),
-});
+    },
+    // Also when other variables are invalid, so one error lists everything.
+    { when: () => true },
+  );
+
+/** https://<production domain> on Vercel Production, else undefined (D-164). */
+function vercelProductionUrl(env: {
+  VERCEL_ENV?: string;
+  VERCEL_PROJECT_PRODUCTION_URL?: string;
+}): string | undefined {
+  if (env.VERCEL_ENV !== "production" || !env.VERCEL_PROJECT_PRODUCTION_URL) return undefined;
+  return `https://${env.VERCEL_PROJECT_PRODUCTION_URL.toLowerCase()}`;
+}
 
 export type Env = z.infer<typeof envSchema>;
 
 export type ParsedEnv = {
   env: Env;
+  /**
+   * The app's own base URL, without a trailing "/" (invitation and reset links,
+   * Better Auth's baseURL): the production domain on Vercel Production (D-164),
+   * else BETTER_AUTH_URL.
+   */
+  appBaseUrl: string;
   /** Both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set. */
   isGoogleConfigured: boolean;
   /** SMTP_HOST, SMTP_USER and SMTP_PASSWORD are all set. */
@@ -127,6 +169,16 @@ export function parseEnv(source: RawEnv): ParsedEnv {
   const env = result.data;
   const warnings: string[] = [];
 
+  const productionUrl = vercelProductionUrl(env);
+  const configuredUrl = env.BETTER_AUTH_URL?.replace(/\/+$/, "");
+  // The refinement above guarantees one of them.
+  const appBaseUrl = productionUrl ?? configuredUrl ?? "";
+  if (productionUrl && configuredUrl && configuredUrl !== productionUrl) {
+    warnings.push(
+      `BETTER_AUTH_URL (${configuredUrl}) ignoreres i produktion: appen bruger ${productionUrl} (VERCEL_PROJECT_PRODUCTION_URL).`,
+    );
+  }
+
   const googleParts = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET];
   const isGoogleConfigured = googleParts.every(Boolean);
   if (!isGoogleConfigured && googleParts.some(Boolean)) {
@@ -159,6 +211,7 @@ export function parseEnv(source: RawEnv): ParsedEnv {
 
   return {
     env,
+    appBaseUrl,
     isGoogleConfigured,
     isSmtpConfigured,
     isRateLimitDisabled,

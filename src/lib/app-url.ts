@@ -1,20 +1,21 @@
 import "server-only";
 
-import { env } from "@/env";
+import { appBaseUrl } from "@/env";
 import { withNext } from "@/lib/auth-links";
 
 /**
  * Absolute URLs to the app (invitation links, reset links, emails).
  *
- * Based on BETTER_AUTH_URL, which is set per environment (SPEC §4.8):
- * http://localhost:3000 locally, https://<projekt>.vercel.app in production.
+ * Locally and on previews: BETTER_AUTH_URL (http://localhost:3000 locally).
+ * On Vercel Production: the project's production domain from Vercel's
+ * VERCEL_PROJECT_PRODUCTION_URL, never a hand-set value (SPEC §4.8, D-164).
  *
  * Server-only (reads the validated env). Pass the finished URL to client
  * components as a prop.
  */
 
 export function getAppUrl(): string {
-  return env.BETTER_AUTH_URL.replace(/\/+$/, "");
+  return appBaseUrl;
 }
 
 /** Absolute URL for a path on this app: appUrl("/login") → "https://…/login". */

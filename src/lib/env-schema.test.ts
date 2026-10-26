@@ -179,6 +179,59 @@ describe("parseEnv: APP_ADMIN_EMAILS (feedback, §9.9, D-142)", () => {
   });
 });
 
+describe("parseEnv: the app's base URL (D-164)", () => {
+  const { BETTER_AUTH_URL: _unused, ...withoutUrl } = required;
+  const vercelProduction = {
+    ...withoutUrl,
+    VERCEL_ENV: "production",
+    VERCEL_PROJECT_PRODUCTION_URL: "olklubben-abc.vercel.app",
+  };
+
+  it("is BETTER_AUTH_URL without a trailing slash outside Vercel Production", () => {
+    expect(parseEnv(required).appBaseUrl).toBe("http://localhost:3100");
+    expect(parseEnv({ ...required, BETTER_AUTH_URL: "https://x.example/" }).appBaseUrl).toBe(
+      "https://x.example",
+    );
+  });
+
+  it("is the production domain on Vercel Production, without BETTER_AUTH_URL", () => {
+    const result = parseEnv(vercelProduction);
+    expect(result.appBaseUrl).toBe("https://olklubben-abc.vercel.app");
+    expect(result.warnings).not.toContainEqual(expect.stringContaining("BETTER_AUTH_URL"));
+  });
+
+  it("ignores a different BETTER_AUTH_URL on Vercel Production, with a warning", () => {
+    const result = parseEnv({
+      ...vercelProduction,
+      BETTER_AUTH_URL: "https://olklubben-9f8e7d6c5-jespers-projects.vercel.app",
+    });
+    expect(result.appBaseUrl).toBe("https://olklubben-abc.vercel.app");
+    expect(result.warnings).toContain(
+      "BETTER_AUTH_URL (https://olklubben-9f8e7d6c5-jespers-projects.vercel.app) ignoreres i produktion: appen bruger https://olklubben-abc.vercel.app (VERCEL_PROJECT_PRODUCTION_URL).",
+    );
+    expect(
+      parseEnv({ ...vercelProduction, BETTER_AUTH_URL: "https://olklubben-abc.vercel.app/" })
+        .warnings,
+    ).not.toContainEqual(expect.stringContaining("BETTER_AUTH_URL"));
+  });
+
+  it("uses BETTER_AUTH_URL on previews, where the production domain is also set", () => {
+    const preview = { ...vercelProduction, VERCEL_ENV: "preview" };
+    expect(parseEnv({ ...preview, BETTER_AUTH_URL: "https://preview.example" }).appBaseUrl).toBe(
+      "https://preview.example",
+    );
+    expect(() => parseEnv(preview)).toThrowError(/BETTER_AUTH_URL: mangler/);
+  });
+
+  it("rejects a production domain that is not a bare hostname", () => {
+    for (const value of ["https://olklubben.vercel.app", "evil.example/path", "host:3000"]) {
+      expect(() =>
+        parseEnv({ ...vercelProduction, VERCEL_PROJECT_PRODUCTION_URL: value }),
+      ).toThrowError(/VERCEL_PROJECT_PRODUCTION_URL: skal være et domænenavn/);
+    }
+  });
+});
+
 describe("parseAppAdminEmails", () => {
   it("returns the valid emails and the invalid entries as written", () => {
     expect(parseAppAdminEmails(undefined)).toEqual({ emails: [], invalid: [] });
