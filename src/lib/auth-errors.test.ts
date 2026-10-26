@@ -82,11 +82,27 @@ describe("getOAuthErrorMessage", () => {
     expect(getOAuthErrorMessage("")).toBeNull();
   });
 
-  it("explains a Google login that could not be linked (E19)", () => {
-    expect(getOAuthErrorMessage("account_not_linked")).toContain("Log ind med email og password");
+  it("sends an existing account to its password and Profil (E19, D-165)", () => {
+    const message = getOAuthErrorMessage("account_not_linked");
+    expect(message).toContain("Log ind med email og password, og forbind Google på din profil.");
+    expect(message).toContain("Glemt password");
   });
 
-  it("has a fallback for unknown codes", () => {
-    expect(getOAuthErrorMessage("whatever")).toBe("Login med Google mislykkedes. Prøv igen.");
+  it("explains why Google could not be linked or used", () => {
+    expect(getOAuthErrorMessage("email_does_not_match")).toContain("en anden email");
+    for (const code of ["email_not_verified", "unable_to_link_account"]) {
+      expect(getOAuthErrorMessage(code)).toBe(
+        "Google har ikke bekræftet din email, så vi kan ikke bruge Google-kontoen.",
+      );
+    }
+    expect(getOAuthErrorMessage("account_already_linked_to_different_user")).toBe(
+      "Google-kontoen er allerede koblet til en anden bruger.",
+    );
+  });
+
+  it("never shows the code itself, and has a fallback for unknown codes", () => {
+    expect(getOAuthErrorMessage("<script>alert(1)</script>")).toBe(
+      "Google-login mislykkedes. Prøv igen.",
+    );
   });
 });

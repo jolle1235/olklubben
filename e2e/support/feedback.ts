@@ -34,6 +34,15 @@ export function appAdmin(testInfo: TestInfo): TestUser {
 }
 
 /**
+ * Marks the account's email as verified, as a Google login would (D-165):
+ * app-admin needs both APP_ADMIN_EMAILS and a verified email, and password
+ * sign-up never verifies it (D-029).
+ */
+export async function verifyEmail(user: TestUser): Promise<void> {
+  await sql("UPDATE users SET email_verified = true WHERE email = $1", [user.email.toLowerCase()]);
+}
+
+/**
  * Logs the user in, signing up first if the account does not exist yet (the
  * database is emptied before every run, but a retry finds the account).
  */

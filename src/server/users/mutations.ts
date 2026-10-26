@@ -67,24 +67,36 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
  * One UPDATE: the unique index users_email_key is the race-safe check, so two
  * accounts taking the same email at the same time cannot both succeed.
  * Throws EmailInUseError when another account has the email, and
- * UserNotFoundError when the user is gone. Returns the stored email.
+ * UserNotFoundError when the user is gone.
+ *
+ * In the same transaction the user's Google login is removed (D-165): it
+ * belongs to the old email, and a Google login must always be the account's
+ * own email. Otherwise someone could link their own Google, change the email
+ * to an address they do not own and keep logging in with Google after the
+ * real owner reset the password (TG-064). Google can be linked again with
+ * the new email. Returns the stored email and whether Google was removed.
  *
  * Never call it for a Google-only account or without checking the current
  * password: the Server Action (changeEmailAction) does both.
  */
-export async function changeUserEmail(userId: string, email: string): Promise<string> {
+export async function changeUserEmail(
+  userId: string,
+  email: string,
+): Promise<{ email: string; unlinkedGoogle: boolean }> {
   const normalized = email.trim().toLowerCase();
   if (normalized === "") throw new Error("changeUserEmail: emailen er tom.");
-  let count: number;
   try {
-    ({ count } = await db.user.updateMany({
-      where: { id: userId },
-      data: { email: normalized, emailVerified: false },
-    }));
+    return await db.$transaction(async (tx) => {
+      const { count } = await tx.user.updateMany({
+        where: { id: userId },
+        data: { email: normalized, emailVerified: false },
+      });
+      if (count !== 1) throw new UserNotFoundError();
+      const google = await tx.account.deleteMany({ where: { userId, providerId: "google" } });
+      return { email: normalized, unlinkedGoogle: google.count > 0 };
+    });
   } catch (error) {
     if (isUniqueConstraintError(error)) throw new EmailInUseError();
     throw error;
   }
-  if (count !== 1) throw new UserNotFoundError();
-  return normalized;
 }

@@ -22,6 +22,7 @@ import {
   setFeedbackStatus,
   signUpOrLogIn,
   submitFeedbackForm,
+  verifyEmail,
   votesRegion,
 } from "./support/feedback";
 import { hasHorizontalScroll } from "./support/places";
@@ -233,9 +234,11 @@ test.describe("Feedback", () => {
     const userAgent = (await feedbackRow(originalId))?.user_agent ?? "";
     expect(userAgent).not.toBe("");
 
-    // The app-admin (APP_ADMIN_EMAILS) sees the technical info and the status form.
+    // The app-admin (APP_ADMIN_EMAILS + a verified email, D-165) sees the
+    // technical info and the status form.
     const adminPage = await openPage();
     await signUpOrLogIn(adminPage, appAdmin(testInfo));
+    await verifyEmail(appAdmin(testInfo));
     await adminPage.goto(`/feedback/${originalId}`);
     await expectFeedbackPage(adminPage, originalTitle);
     const tech = adminPage.getByRole("region", { name: "Teknisk info (kun synlig for dig)" });

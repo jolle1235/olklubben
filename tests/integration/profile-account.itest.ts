@@ -252,7 +252,7 @@ describe("changeEmailAction (D-151)", () => {
     expect(await signInCookie(user.email, PASSWORD)).toBeNull();
   });
 
-  it("en konto med password og Google beholder sit Google-login", async () => {
+  it("en konto med password og Google mister sit Google-login, som hørte til den gamle email (D-165, TG-064)", async () => {
     const user = await signUp();
     const clubId = await createClub(user);
     await addGoogleAccount(user);
@@ -261,10 +261,25 @@ describe("changeEmailAction (D-151)", () => {
 
     await expectRedirect(
       changeEmailAction(null, emailForm(clubId, newEmail)),
-      /toast=email-changed$/,
+      /toast=email-changed-google$/,
     );
 
     expect((await storedUser(user)).email).toBe(newEmail);
+    expect(await providers(user)).toEqual(["credential"]);
+    expect(await signInCookie(newEmail, PASSWORD)).not.toBeNull();
+  });
+
+  it("en email i brug ændrer intet og beholder Google-login (transaktionen rulles tilbage)", async () => {
+    const other = await signUp();
+    const user = await signUp();
+    const clubId = await createClub(user);
+    await addGoogleAccount(user);
+    setActor(user);
+
+    const result = await changeEmailAction(null, emailForm(clubId, other.email));
+
+    expect(result).toMatchObject({ ok: false, error: { code: ACTION_ERROR_CODES.EMAIL_IN_USE } });
+    expect((await storedUser(user)).email).toBe(user.email);
     expect(await providers(user)).toEqual(["credential", "google"]);
   });
 

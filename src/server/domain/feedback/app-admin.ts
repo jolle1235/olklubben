@@ -8,6 +8,9 @@
  * Exact match after trim + lowercase (account emails are stored lowercase):
  * "xjesper@example.com" is not "jesper@example.com".
  *
+ * This only answers "is the email on the list". Rights also need a verified
+ * email (getFeedbackViewer in src/server/feedback/access.ts, D-165).
+ *
  * Pure module: the list is passed in (no env import). Client-safe.
  */
 export function isAppAdmin(

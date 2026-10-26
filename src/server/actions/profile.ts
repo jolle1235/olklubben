@@ -225,7 +225,9 @@ function readEmailValues(formData: FormData): ChangeEmailFormValues {
  *   5. An address in APP_ADMIN_EMAILS gets exactly the "in use" answer, so
  *      app-admin cannot be claimed and the list cannot be probed (D-142).
  *   6. One UPDATE (changeUserEmail); the unique index decides a race. The
- *      email is stored lowercase and unverified.
+ *      email is stored lowercase and unverified, and a Google login is
+ *      removed in the same transaction: it belonged to the old email (D-165,
+ *      TG-064). The toast then says so.
  *   7. Every other session and every outstanding reset link is revoked
  *      (D-047); this device stays logged in.
  *
@@ -284,8 +286,9 @@ export async function changeEmailAction(
   };
   if (isAppAdmin(newEmail, appAdminEmails)) return emailInUse;
 
+  let unlinkedGoogle: boolean;
   try {
-    await changeUserEmail(user.id, newEmail);
+    ({ unlinkedGoogle } = await changeUserEmail(user.id, newEmail));
   } catch (error) {
     if (error instanceof EmailInUseError) return emailInUse;
     console.error("[profile] changeUserEmail failed", error);
@@ -301,7 +304,9 @@ export async function changeEmailAction(
   }
 
   revalidateAppShell();
-  redirect(withToast(profileHref(club.id), "email-changed"));
+  redirect(
+    withToast(profileHref(club.id), unlinkedGoogle ? "email-changed-google" : "email-changed"),
+  );
 }
 
 function setPasswordFailure(result: { ok: false; error: ActionError }): SetPasswordFormState {

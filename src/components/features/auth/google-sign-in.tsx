@@ -40,6 +40,12 @@ export function GoogleSignIn({ callbackURL, errorCallbackURL }: GoogleSignInProp
 }
 
 export type GoogleSignInButtonProps = GoogleSignInProps & {
+  /**
+   * "sign-in" (default) logs in or signs up. "link" adds Google to the
+   * logged-in account ("Forbind Google" on Profil, D-165): Better Auth requires
+   * the session, a verified Google email and the account's own email.
+   */
+  intent?: "sign-in" | "link";
   /** Pre-selects this account in Google's chooser (fx "Log ind med Google igen", D-152). */
   loginHint?: string;
   className?: string;
@@ -47,14 +53,16 @@ export type GoogleSignInButtonProps = GoogleSignInProps & {
 };
 
 /**
- * A button that sends the browser to Google (Better Auth's social sign-in),
- * with Google's "G" and a spinner while it leaves. Used by "Fortsæt med
- * Google" and by Profil's "Log ind med Google igen" (D-152). Only render it
- * when Google is configured.
+ * A button that sends the browser to Google (Better Auth's social sign-in, or
+ * linkSocial with intent "link"), with Google's "G" and a spinner while it
+ * leaves. Used by "Fortsæt med Google", by Profil's "Log ind med Google igen"
+ * (D-152) and "Forbind Google" (D-165). Only render it when Google is
+ * configured.
  */
 export function GoogleSignInButton({
   callbackURL,
   errorCallbackURL,
+  intent = "sign-in",
   loginHint,
   className,
   children,
@@ -75,12 +83,16 @@ export function GoogleSignInButton({
     setPending(true);
     try {
       // On success the client sends the browser on to Google; keep the spinner.
-      const { error } = await authClient.signIn.social({
+      const request = {
         provider: "google",
         callbackURL,
         errorCallbackURL,
         ...(loginHint ? { loginHint } : {}),
-      });
+      } as const;
+      const { error } =
+        intent === "link"
+          ? await authClient.linkSocial(request)
+          : await authClient.signIn.social(request);
       if (error) {
         setPending(false);
         toast.error(getAuthErrorMessage(error));

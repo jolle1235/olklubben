@@ -19,14 +19,21 @@ import { getFeedbackRef, type FeedbackRef } from "./queries";
  * 404; only an unknown or malformed id is a 404.
  *
  *   getFeedbackViewer(user)    who is looking: the user id and whether the
- *                              email is on APP_ADMIN_EMAILS (never a club role).
+ *                              email is on APP_ADMIN_EMAILS AND verified (never
+ *                              a club role). Password sign-up does not verify
+ *                              the email (D-029), so an address on the list
+ *                              could be registered by anyone; a Google login
+ *                              verifies it (D-165).
  *   requireFeedback(id)        logged in (else /login) + the report (else
  *                              notFound()). Never writes, so it is safe in a
  *                              guard layout. Cached per request.
  */
 
 export function getFeedbackViewer(user: SessionUser): FeedbackViewer {
-  return { userId: user.id, isAppAdmin: isAppAdmin(user.email, appAdminEmails) };
+  return {
+    userId: user.id,
+    isAppAdmin: user.emailVerified && isAppAdmin(user.email, appAdminEmails),
+  };
 }
 
 export type FeedbackAccess = {

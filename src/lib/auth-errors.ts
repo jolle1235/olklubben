@@ -112,25 +112,29 @@ export function getAuthErrorMessage(
 }
 
 /**
- * Message for the `?error=` parameter Better Auth adds when Google login fails
- * (it redirects to /login?error=<code>, see onAPIError.errorURL in auth.ts).
- * Returns null when there is no error.
+ * Message for the `?error=` parameter Better Auth adds when a Google login or
+ * "Forbind Google" fails (/login?error=<code> or Profil's ?error=, see
+ * onAPIError.errorURL in auth.ts). Only fixed texts: the parameter itself is
+ * never shown. Returns null when there is no error.
  */
 export function getOAuthErrorMessage(code: string | null | undefined): string | null {
   if (!code) return null;
   switch (code) {
     case "account_not_linked":
-    case "unable_to_link_account":
+      // E19, D-165: Google is never linked implicitly onto an existing account.
+      return "Der findes allerede en konto med den email. Log ind med email og password, og forbind Google på din profil. Kender du ikke passwordet, så brug “Glemt password”.";
     case "email_does_not_match":
-      // E19: an email/password account exists, and Google did not confirm the email.
-      return "Der findes allerede en konto med den email. Log ind med email og password i stedet.";
+      return "Google-kontoen har en anden email end din konto her. Vælg den Google-konto, der har samme email.";
+    case "email_not_verified":
+    case "unable_to_link_account":
+      return "Google har ikke bekræftet din email, så vi kan ikke bruge Google-kontoen.";
     case "account_already_linked_to_different_user":
       return "Google-kontoen er allerede koblet til en anden bruger.";
     case "access_denied":
-      return "Login med Google blev afbrudt.";
+      return "Google-login blev afbrudt.";
     case "email_not_found":
-      return "Google gav os ikke din email, så vi kan ikke logge dig ind.";
+      return "Google gav os ikke din email, så vi kan ikke bruge Google-kontoen.";
     default:
-      return "Login med Google mislykkedes. Prøv igen.";
+      return "Google-login mislykkedes. Prøv igen.";
   }
 }

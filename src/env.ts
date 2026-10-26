@@ -26,6 +26,7 @@ export const isSmtpConfigured = parsed.isSmtpConfigured;
 export const isRateLimitDisabled = parsed.isRateLimitDisabled;
 /**
  * The app-admins' emails (APP_ADMIN_EMAILS, lowercase, D-142). Use
- * isAppAdmin(user.email, appAdminEmails) from src/server/domain/feedback/app-admin.ts.
+ * isAppAdmin(user.email, appAdminEmails) from src/server/domain/feedback/app-admin.ts;
+ * rights also need user.emailVerified (getFeedbackViewer, D-165).
  */
 export const appAdminEmails = parsed.appAdminEmails;

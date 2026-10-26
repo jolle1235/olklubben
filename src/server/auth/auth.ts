@@ -44,15 +44,33 @@ function runAfterResponse(promise: Promise<unknown>): void {
   }
 }
 
-/** Reads the `picture` claim from a Google id token (already verified by Better Auth). */
-function pictureFromIdToken(idToken: string | null | undefined): string | null {
+type GoogleClaims = {
+  /** Lowercase, or null when missing. */
+  email: string | null;
+  emailVerified: boolean;
+  /** Only an allowed picture (user-image.ts), else null. */
+  picture: string | null;
+};
+
+/**
+ * Reads the claims we use from a Google id token. Better Auth decodes it
+ * without checking the signature on the callback path, which is safe: the
+ * token comes straight from Google's token endpoint over TLS, in exchange for
+ * our client secret and the PKCE verifier. The id-token sign-in path, where a
+ * client could hand us any token, is switched off (disableIdTokenSignIn).
+ */
+function claimsFromIdToken(idToken: string | null | undefined): GoogleClaims | null {
   const payload = idToken?.split(".")[1];
   if (!payload) return null;
   try {
     const claims: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (typeof claims !== "object" || claims === null || !("picture" in claims)) return null;
-    const { picture } = claims as { picture: unknown };
-    return typeof picture === "string" && isAllowedUserImage(picture) ? picture : null;
+    if (typeof claims !== "object" || claims === null) return null;
+    const { email, email_verified, picture } = claims as Record<string, unknown>;
+    return {
+      email: typeof email === "string" ? email.trim().toLowerCase() : null,
+      emailVerified: email_verified === true,
+      picture: typeof picture === "string" && isAllowedUserImage(picture) ? picture : null,
+    };
   } catch {
     return null;
   }
@@ -63,6 +81,18 @@ export const auth = betterAuth({
   baseURL: getAppUrl(),
   secret: env.BETTER_AUTH_SECRET,
   telemetry: { enabled: false },
+
+  // Endpoints the app never calls, closed over HTTP (D-165); auth.api on the
+  // server still has them. /unlink-account would let a stolen session strip a
+  // login, the token endpoints hand out stored Google tokens, and /update-user
+  // accepts any image (profile changes go through our own Server Actions).
+  disabledPaths: [
+    "/unlink-account",
+    "/get-access-token",
+    "/refresh-token",
+    "/account-info",
+    "/update-user",
+  ],
 
   database: prismaAdapter(db, { provider: "postgresql", transaction: true }),
 
@@ -126,23 +156,28 @@ export const auth = betterAuth({
           clientId: env.GOOGLE_CLIENT_ID ?? "",
           clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
           prompt: "select_account",
+          // Only the redirect flow with PKCE; no sign-in with a bare id token.
+          disableIdTokenSignIn: true,
         },
       }
     : {},
 
   account: {
+    // Google's tokens are stored encrypted (the app never uses them).
+    encryptOAuthTokens: true,
     accountLinking: {
       enabled: true,
-      // SPEC §6.2 / E19: Google is linked onto an existing email/password account
-      // with the same email only when Google reports the email as verified.
-      // Google is NOT a trusted provider, so an unverified Google email never links.
+      // SPEC §6.2 / D-165: Google is never linked implicitly. Our email/password
+      // accounts never verify their email (D-029), so anyone could register
+      // someone else's address with a password; linking that address's Google
+      // to it on sign-in would hand the account to both (TG-002). "Fortsæt med
+      // Google" on an existing account gives account_not_linked; the owner logs
+      // in with the password and links Google on Profil (POST /link-social:
+      // session + verified Google email + the same email).
+      disableImplicitLinking: true,
+      // Google is NOT a trusted provider: an unverified Google email never links.
       trustedProviders: [],
       allowDifferentEmails: false,
-      // Our email/password accounts never verify their email (no verification
-      // mail in the MVP), so Better Auth's default (require a verified local
-      // email before linking) would block every link. Deprecated in 1.7 and
-      // removed in the next minor – see the note in SPEC §19.5.
-      requireLocalEmailVerified: false,
       // Keep the name the user chose; the image is adopted separately (below).
       updateUserInfoOnLink: false,
     },
@@ -166,6 +201,8 @@ export const auth = betterAuth({
       // "Fortsæt med Google": the default (3 per 10 s per IP) is too tight for a
       // club on one pub wifi.
       "/sign-in/social": { window: 60, max: 20 },
+      // "Forbind Google" on Profil (D-165).
+      "/link-social": { window: 60, max: 10 },
     },
   },
 
@@ -209,17 +246,55 @@ export const auth = betterAuth({
     },
     account: {
       create: {
+        // SPEC §6.2, D-165: a Google login always belongs to its own, verified
+        // email. Throwing (not returning false) rolls the whole sign-up back, so
+        // no user and no session is left behind; the callback redirects with the
+        // code (/login?error=…).
+        before: async (account) => {
+          if (account.providerId !== "google") return;
+          const claims = claimsFromIdToken(account.idToken);
+          if (!claims?.email || !claims.emailVerified) {
+            throw new APIError("FORBIDDEN", {
+              code: "email_not_verified",
+              message: "Google har ikke bekræftet emailen.",
+            });
+          }
+          // Linking onto an existing user: Better Auth compares with the email
+          // frozen in the OAuth state when the link started. If "Skift email"
+          // ran in between (TG-064), the account's email is now another one.
+          // A brand-new user is not visible here yet (uncommitted transaction).
+          const user = await db.user.findUnique({
+            where: { id: account.userId },
+            select: { email: true },
+          });
+          if (user && user.email !== claims.email) {
+            throw new APIError("FORBIDDEN", {
+              code: "email_does_not_match",
+              message: "Google-kontoen har en anden email end kontoen.",
+            });
+          }
+        },
         // SPEC §6.2: the profile picture comes from Google. A new Google user gets
         // it on creation; an existing email/password user gets it when Google is
-        // linked, unless they already have one.
+        // linked, unless they already have one. Linking also verifies the email
+        // (Better Auth only does that on a Google sign-in), which app-admin
+        // requires (§9.9, D-165).
         after: async (account) => {
           if (account.providerId !== "google") return;
-          const picture = pictureFromIdToken(account.idToken);
-          if (!picture) return;
-          await db.user.updateMany({
-            where: { id: account.userId, image: null },
-            data: { image: picture },
-          });
+          const claims = claimsFromIdToken(account.idToken);
+          if (!claims) return;
+          if (claims.picture) {
+            await db.user.updateMany({
+              where: { id: account.userId, image: null },
+              data: { image: claims.picture },
+            });
+          }
+          if (claims.email && claims.emailVerified) {
+            await db.user.updateMany({
+              where: { id: account.userId, email: claims.email, emailVerified: false },
+              data: { emailVerified: true },
+            });
+          }
         },
       },
     },
