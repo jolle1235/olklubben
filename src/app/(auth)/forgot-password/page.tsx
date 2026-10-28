@@ -6,7 +6,8 @@ import { ForgotPasswordForm } from "@/components/features/auth/forgot-password-f
 import { TextLink } from "@/components/features/auth/text-link";
 import { CenteredShell } from "@/components/features/centered-shell";
 import { Button } from "@/components/ui/button";
-import { isGoogleConfigured } from "@/env";
+import { externalProvider } from "@/env";
+import { EXTERNAL_PROVIDERS } from "@/lib/auth-providers";
 import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
 import { readNextParam, withNext } from "@/lib/auth-links";
 import { isEmailDeliveryAvailable } from "@/server/email/send-email";
@@ -47,8 +48,8 @@ export default async function ForgotPasswordPage({ searchParams }: PageProps<"/f
           <p className="text-muted-foreground">
             Admins kan lave et engangslink til dig fra klubbens medlemsliste. Det virker i 1 time og
             kan fx deles i gruppechatten.
-            {isGoogleConfigured
-              ? " Logger du ind med Google, behøver du slet ikke et password."
+            {externalProvider
+              ? ` Logger du ind med ${EXTERNAL_PROVIDERS[externalProvider].label}, behøver du slet ikke et password.`
               : null}
           </p>
           <Button asChild variant="outline" size="lg" className="w-full">

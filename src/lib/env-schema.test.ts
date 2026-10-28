@@ -61,6 +61,40 @@ describe("parseEnv", () => {
     ).toBe(true);
   });
 
+  it("enables Auth0 only when domain, id and secret are set, and lets it win over Google (D-166)", () => {
+    const auth0 = {
+      AUTH0_DOMAIN: "olklubben.eu.auth0.com",
+      AUTH0_CLIENT_ID: "id",
+      AUTH0_CLIENT_SECRET: "secret",
+    };
+    const google = { GOOGLE_CLIENT_ID: "gid", GOOGLE_CLIENT_SECRET: "gsecret" };
+
+    expect(parseEnv(required).externalProvider).toBeNull();
+    expect(parseEnv({ ...required, ...google }).externalProvider).toBe("google");
+    expect(parseEnv({ ...required, ...auth0 })).toMatchObject({
+      isAuth0Configured: true,
+      externalProvider: "auth0",
+      warnings: [],
+    });
+    expect(parseEnv({ ...required, ...auth0, ...google })).toMatchObject({
+      externalProvider: "auth0",
+      warnings: ["Google-login er slået fra, fordi Auth0 er sat op (Google ligger i Auth0)."],
+    });
+    expect(parseEnv({ ...required, AUTH0_DOMAIN: auth0.AUTH0_DOMAIN })).toMatchObject({
+      isAuth0Configured: false,
+      externalProvider: null,
+      warnings: [expect.stringContaining("AUTH0_CLIENT_SECRET")],
+    });
+  });
+
+  it("rejects an AUTH0_DOMAIN with a scheme or a path", () => {
+    for (const value of ["https://olklubben.eu.auth0.com", "olklubben.eu.auth0.com/", "x"]) {
+      expect(() => parseEnv({ ...required, AUTH0_DOMAIN: value })).toThrowError(
+        /AUTH0_DOMAIN: skal være et domænenavn uden https:\/\//,
+      );
+    }
+  });
+
   it("enables SMTP only when host, user and password are set", () => {
     const smtp = { SMTP_HOST: "smtp.gmail.com", SMTP_USER: "klub@gmail.com" };
 

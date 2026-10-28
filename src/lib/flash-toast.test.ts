@@ -86,9 +86,9 @@ describe("flashToastMessage", () => {
     expect(withToast("/c/abc/profile", "email-changed")).toBe("/c/abc/profile?toast=email-changed");
   });
 
-  it("explains that 'Skift email' removed the Google login (D-165)", () => {
-    expect(flashToastMessage("email-changed-google")).toContain(
-      "Google-login er koblet fra, fordi det hørte til den gamle email.",
+  it("explains that 'Skift email' removed the external login (D-165, D-166)", () => {
+    expect(flashToastMessage("email-changed-external")).toContain(
+      "Dit login med Google eller Auth0 er koblet fra, fordi det hørte til den gamle email.",
     );
   });
 

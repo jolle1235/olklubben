@@ -20,7 +20,8 @@ for (const warning of parsed.warnings) {
 export const env = parsed.env;
 /** The app's base URL without a trailing "/" (D-164). Use getAppUrl()/appUrl() from @/lib/app-url. */
 export const appBaseUrl = parsed.appBaseUrl;
-export const isGoogleConfigured = parsed.isGoogleConfigured;
+/** The one external login, "auth0" | "google" | null (D-166). */
+export const externalProvider = parsed.externalProvider;
 export const isSmtpConfigured = parsed.isSmtpConfigured;
 /** Rate limiting is off (RATE_LIMIT_DISABLED, never in production). */
 export const isRateLimitDisabled = parsed.isRateLimitDisabled;

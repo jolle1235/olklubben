@@ -18,7 +18,8 @@ vi.mock("@/server/email/send-email", () => ({
   isEmailDeliveryAvailable: emailAvailableMock,
 }));
 
-const { assertPasswordResetDeliverable, authBeforeHook } = await import("./auth-rate-limit");
+const { assertOwnExternalLoginParams, assertPasswordResetDeliverable, authBeforeHook } =
+  await import("./auth-rate-limit");
 const { toAuthActionError } = await import("./errors");
 
 function catchError(run: () => unknown): unknown {
@@ -29,6 +30,50 @@ function catchError(run: () => unknown): unknown {
   }
   throw new Error("expected an error");
 }
+
+describe("assertOwnExternalLoginParams (D-166)", () => {
+  const login = { provider: "auth0", callbackURL: "/", errorCallbackURL: "/login" };
+
+  it("afviser et id-token på alle stier", () => {
+    for (const path of ["/sign-in/social", "/link-social", "/some-future-plugin"]) {
+      expect(catchError(() => assertOwnExternalLoginParams(path, { idToken: {} }))).toMatchObject({
+        statusCode: 400,
+        body: { code: "ID_TOKEN_SIGN_IN_DISABLED" },
+      });
+    }
+  });
+
+  it("afviser scopes og fremmede additionalParams på login-endpoints", () => {
+    for (const extra of [
+      { scopes: ["offline_access"] },
+      { additionalParams: { connection: "samlp-corp" } },
+      { additionalParams: { prompt: "login", audience: "https://api" } },
+      { additionalParams: { prompt: "none" } },
+      { additionalParams: "prompt=login" },
+      { additionalParams: [] },
+    ]) {
+      for (const path of ["/sign-in/social", "/link-social"]) {
+        expect(
+          catchError(() => assertOwnExternalLoginParams(path, { ...login, ...extra })),
+          JSON.stringify(extra),
+        ).toMatchObject({ statusCode: 400, body: { code: "EXTERNAL_LOGIN_PARAMS_NOT_ALLOWED" } });
+      }
+    }
+  });
+
+  it("tillader appens egne kald, også prompt=login til 'Log ind med … igen'", () => {
+    expect(() => assertOwnExternalLoginParams("/sign-in/social", login)).not.toThrow();
+    expect(() =>
+      assertOwnExternalLoginParams("/sign-in/social", {
+        ...login,
+        loginHint: "a@example.com",
+        additionalParams: { prompt: "login" },
+      }),
+    ).not.toThrow();
+    expect(() => assertOwnExternalLoginParams("/sign-in/email", { email: "a@b.c" })).not.toThrow();
+    expect(() => assertOwnExternalLoginParams("/get-session", undefined)).not.toThrow();
+  });
+});
 
 describe("assertPasswordResetDeliverable", () => {
   it("afviser 'Glemt password', når der ikke kan sendes email", () => {

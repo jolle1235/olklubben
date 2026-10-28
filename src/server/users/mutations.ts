@@ -69,20 +69,21 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
  * Throws EmailInUseError when another account has the email, and
  * UserNotFoundError when the user is gone.
  *
- * In the same transaction the user's Google login is removed (D-165): it
- * belongs to the old email, and a Google login must always be the account's
- * own email. Otherwise someone could link their own Google, change the email
- * to an address they do not own and keep logging in with Google after the
- * real owner reset the password (TG-064). Google can be linked again with
- * the new email. Returns the stored email and whether Google was removed.
+ * In the same transaction every external login (Google, Auth0) is removed
+ * (D-165, D-166): it belongs to the old email, and an external login must
+ * always be the account's own email. Otherwise someone could link their own
+ * Google, change the email to an address they do not own and keep logging in
+ * with Google after the real owner reset the password (TG-064). It can be
+ * linked again with the new email. Returns the stored email and whether an
+ * external login was removed.
  *
- * Never call it for a Google-only account or without checking the current
- * password: the Server Action (changeEmailAction) does both.
+ * Never call it for an account without a password or without checking the
+ * current password: the Server Action (changeEmailAction) does both.
  */
 export async function changeUserEmail(
   userId: string,
   email: string,
-): Promise<{ email: string; unlinkedGoogle: boolean }> {
+): Promise<{ email: string; unlinkedExternal: boolean }> {
   const normalized = email.trim().toLowerCase();
   if (normalized === "") throw new Error("changeUserEmail: emailen er tom.");
   try {
@@ -92,8 +93,10 @@ export async function changeUserEmail(
         data: { email: normalized, emailVerified: false },
       });
       if (count !== 1) throw new UserNotFoundError();
-      const google = await tx.account.deleteMany({ where: { userId, providerId: "google" } });
-      return { email: normalized, unlinkedGoogle: google.count > 0 };
+      const external = await tx.account.deleteMany({
+        where: { userId, providerId: { not: "credential" } },
+      });
+      return { email: normalized, unlinkedExternal: external.count > 0 };
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) throw new EmailInUseError();

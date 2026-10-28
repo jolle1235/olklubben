@@ -43,8 +43,8 @@ export const FLASH_TOASTS = {
   "profile-updated": "Gemt ✓",
   "password-changed": "Dit password er skiftet. Dine andre enheder er logget ud.",
   "email-changed": "Din email er skiftet. Dine andre enheder er logget ud.",
-  "email-changed-google":
-    "Din email er skiftet. Dine andre enheder er logget ud. Google-login er koblet fra, fordi det hørte til den gamle email. Forbind Google igen på Profil.",
+  "email-changed-external":
+    "Din email er skiftet. Dine andre enheder er logget ud. Dit login med Google eller Auth0 er koblet fra, fordi det hørte til den gamle email. Forbind det igen på Profil.",
   "password-set":
     "Dit password er gemt. Nu kan du også logge ind med email og password. Dine andre enheder er logget ud.",
   "club-updated": "Gemt ✓",

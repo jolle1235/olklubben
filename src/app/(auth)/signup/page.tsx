@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { GoogleSignIn } from "@/components/features/auth/google-sign-in";
+import { ExternalSignIn } from "@/components/features/auth/external-sign-in";
 import { SignUpForm } from "@/components/features/auth/sign-up-form";
 import { TextLink } from "@/components/features/auth/text-link";
 import { CenteredShell } from "@/components/features/centered-shell";
-import { isGoogleConfigured } from "@/env";
+import { externalProvider } from "@/env";
 import { afterAuthPath, isInvitePath, readNextParam, withNext } from "@/lib/auth-links";
 import { getSession } from "@/server/auth/session";
 
@@ -36,8 +36,9 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
       }
     >
       <div className="grid gap-6">
-        {isGoogleConfigured ? (
-          <GoogleSignIn
+        {externalProvider ? (
+          <ExternalSignIn
+            provider={externalProvider}
             callbackURL={afterAuthPath(next)}
             errorCallbackURL={withNext("/login", next)}
           />

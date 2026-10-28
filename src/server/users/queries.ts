@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isExternalProvider, type ExternalProviderId } from "@/lib/auth-providers";
 import { db } from "@/server/db";
 import { homeDestinationPath, resolveHomeDestination } from "@/server/domain/routing";
 
@@ -14,23 +15,50 @@ export async function getUserName(userId: string): Promise<string | null> {
   return user?.name ?? null;
 }
 
+export type AccountLogins = {
+  hasPassword: boolean;
+  /** The external logins (Google, Auth0, D-166), in a stable order. */
+  external: ExternalProviderId[];
+};
+
 /**
  * How the user logs in (§9.8, D-106): "Skift password" needs a password login;
- * a Google-only account gets the explanation instead.
+ * an account with only an external login (Google or Auth0) gets the
+ * explanation instead.
  */
-export async function getAccountLogins(
-  userId: string,
-): Promise<{ hasPassword: boolean; hasGoogle: boolean }> {
+export async function getAccountLogins(userId: string): Promise<AccountLogins> {
   const accounts = await db.account.findMany({
     where: { userId },
     select: { providerId: true, password: true },
+    orderBy: { providerId: "asc" },
   });
+  const external: ExternalProviderId[] = [];
+  for (const { providerId } of accounts) {
+    if (isExternalProvider(providerId) && !external.includes(providerId)) external.push(providerId);
+  }
   return {
     hasPassword: accounts.some(
       (account) => account.providerId === "credential" && account.password !== null,
     ),
-    hasGoogle: accounts.some((account) => account.providerId === "google"),
+    external,
   };
+}
+
+/**
+ * The stored id token of the user's external login, for "Tilføj password"
+ * with Auth0 (D-166): its auth_time says when the user last logged in at
+ * Auth0. Better Auth replaces it on every sign-in.
+ */
+export async function getExternalIdToken(
+  userId: string,
+  providerId: ExternalProviderId,
+): Promise<string | null> {
+  const account = await db.account.findFirst({
+    where: { userId, providerId },
+    orderBy: { updatedAt: "desc" },
+    select: { idToken: true },
+  });
+  return account?.idToken ?? null;
 }
 
 /**

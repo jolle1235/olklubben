@@ -14,6 +14,9 @@ describe("@/env", () => {
     vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3100");
     vi.stubEnv("GOOGLE_CLIENT_ID", "");
     vi.stubEnv("GOOGLE_CLIENT_SECRET", "");
+    vi.stubEnv("AUTH0_DOMAIN", "");
+    vi.stubEnv("AUTH0_CLIENT_ID", "");
+    vi.stubEnv("AUTH0_CLIENT_SECRET", "");
     vi.stubEnv("SMTP_HOST", "");
     vi.stubEnv("SMTP_USER", "");
     vi.stubEnv("SMTP_PASSWORD", "");
@@ -22,10 +25,10 @@ describe("@/env", () => {
   it("validates process.env when imported", async () => {
     stubRequired();
 
-    const { env, isGoogleConfigured, isSmtpConfigured } = await import("@/env");
+    const { env, externalProvider, isSmtpConfigured } = await import("@/env");
 
     expect(env.BETTER_AUTH_URL).toBe("http://localhost:3100");
-    expect(isGoogleConfigured).toBe(false);
+    expect(externalProvider).toBeNull();
     expect(isSmtpConfigured).toBe(false);
   });
 

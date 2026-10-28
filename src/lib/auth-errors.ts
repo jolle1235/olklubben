@@ -21,7 +21,7 @@ export type AuthFlow =
   | "change-password"
   /** "Skift email" (D-151): the current password through verifyPassword. */
   | "change-email"
-  /** "Tilføj password" for a Google-only account (D-152): setPassword. */
+  /** "Tilføj password" for an account with only an external login (D-152): setPassword. */
   | "set-password"
   | "generic";
 
@@ -42,10 +42,8 @@ export const AUTH_ERROR_MESSAGES = {
   resetUnavailable: "Kontakt en admin i din klub for at få et nulstillingslink.",
   /** "Skift password" (§9.8, D-106): shown on the current-password field. */
   currentPasswordWrong: "Det nuværende password er forkert.",
-  /** "Skift password" for an account without a password login (Google only). */
-  noPasswordLogin: "Du logger ind med Google og har intet password her.",
-  /** "Skift email" for a Google-only account (D-151), also shown on Profil. */
-  emailFollowsGoogle: "Du logger ind med Google, så din email følger din Google-konto.",
+  /** "Skift password" for an account without a password login (Google or Auth0 only). */
+  noPasswordLogin: "Du logger ind med Google eller Auth0 og har intet password her.",
   /** "Tilføj password" when the account already has one (D-152, fx a second tab). */
   passwordAlreadySet: "Du har allerede et password. Brug 'Skift password'.",
   rateLimited: DEFAULT_ERROR_MESSAGES.RATE_LIMITED,
@@ -111,30 +109,42 @@ export function getAuthErrorMessage(
   }
 }
 
+/** "Skift email" for an account with only an external login (D-151), also shown on Profil. */
+export function emailFollowsExternal(label: string): string {
+  return `Du logger ind med ${label}, så din email følger din ${label}-konto.`;
+}
+
 /**
- * Message for the `?error=` parameter Better Auth adds when a Google login or
- * "Forbind Google" fails (/login?error=<code> or Profil's ?error=, see
- * onAPIError.errorURL in auth.ts). Only fixed texts: the parameter itself is
- * never shown. Returns null when there is no error.
+ * Message for the `?error=` parameter Better Auth adds when an external login
+ * (`label`: "Google" or "Auth0", D-166) or "Forbind …" fails (/login?error=<code>
+ * or Profil's ?error=, see onAPIError.errorURL in auth.ts). Only fixed texts:
+ * the parameter itself (and any error_description) is never shown. Returns
+ * null when there is no error.
  */
-export function getOAuthErrorMessage(code: string | null | undefined): string | null {
+export function getOAuthErrorMessage(
+  code: string | null | undefined,
+  label = "Google",
+): string | null {
   if (!code) return null;
   switch (code) {
     case "account_not_linked":
-      // E19, D-165: Google is never linked implicitly onto an existing account.
-      return "Der findes allerede en konto med den email. Log ind med email og password, og forbind Google på din profil. Kender du ikke passwordet, så brug “Glemt password”.";
+      // E19, D-165: an external login is never linked implicitly onto an existing account.
+      return `Der findes allerede en konto med den email. Log ind med email og password, og forbind ${label} på din profil. Kender du ikke passwordet, så brug “Glemt password”.`;
     case "email_does_not_match":
-      return "Google-kontoen har en anden email end din konto her. Vælg den Google-konto, der har samme email.";
+      return `${label}-kontoen har en anden email end din konto her. Vælg den ${label}-konto, der har samme email.`;
     case "email_not_verified":
     case "unable_to_link_account":
-      return "Google har ikke bekræftet din email, så vi kan ikke bruge Google-kontoen.";
+      return `${label} har ikke bekræftet din email, så vi kan ikke bruge ${label}-kontoen.`;
+    case "connection_not_allowed":
+      // D-166: only Google and Auth0's own database in Auth0.
+      return `Den måde at logge ind på i ${label} er ikke tilladt her. Brug Google eller email og password.`;
     case "account_already_linked_to_different_user":
-      return "Google-kontoen er allerede koblet til en anden bruger.";
+      return `${label}-kontoen er allerede koblet til en anden bruger.`;
     case "access_denied":
-      return "Google-login blev afbrudt.";
+      return `${label}-login blev afbrudt.`;
     case "email_not_found":
-      return "Google gav os ikke din email, så vi kan ikke bruge Google-kontoen.";
+      return `${label} gav os ikke din email, så vi kan ikke bruge ${label}-kontoen.`;
     default:
-      return "Google-login mislykkedes. Prøv igen.";
+      return `${label}-login mislykkedes. Prøv igen.`;
   }
 }

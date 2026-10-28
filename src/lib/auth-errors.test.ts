@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { AUTH_ERROR_MESSAGES, getAuthErrorMessage, getOAuthErrorMessage } from "./auth-errors";
+import {
+  AUTH_ERROR_MESSAGES,
+  emailFollowsExternal,
+  getAuthErrorMessage,
+  getOAuthErrorMessage,
+} from "./auth-errors";
 
 describe("getAuthErrorMessage", () => {
   it("never reveals whether an email exists on sign-in (SPEC §6.3)", () => {
@@ -33,12 +38,12 @@ describe("getAuthErrorMessage", () => {
     );
   });
 
-  it("explains a wrong current password and a Google-only account (change-password)", () => {
+  it("explains a wrong current password and an account without a password (change-password)", () => {
     expect(getAuthErrorMessage({ code: "INVALID_PASSWORD" }, "change-password")).toBe(
       "Det nuværende password er forkert.",
     );
     expect(getAuthErrorMessage({ code: "CREDENTIAL_ACCOUNT_NOT_FOUND" }, "change-password")).toBe(
-      "Du logger ind med Google og har intet password her.",
+      "Du logger ind med Google eller Auth0 og har intet password her.",
     );
     expect(getAuthErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "change-password")).toBe(
       "Password skal være mindst 8 tegn.",
@@ -97,6 +102,21 @@ describe("getOAuthErrorMessage", () => {
     }
     expect(getOAuthErrorMessage("account_already_linked_to_different_user")).toBe(
       "Google-kontoen er allerede koblet til en anden bruger.",
+    );
+  });
+
+  it("names the configured provider (D-166)", () => {
+    expect(getOAuthErrorMessage("account_not_linked", "Auth0")).toContain(
+      "og forbind Auth0 på din profil.",
+    );
+    expect(getOAuthErrorMessage("email_not_verified", "Auth0")).toBe(
+      "Auth0 har ikke bekræftet din email, så vi kan ikke bruge Auth0-kontoen.",
+    );
+    expect(getOAuthErrorMessage("connection_not_allowed", "Auth0")).toBe(
+      "Den måde at logge ind på i Auth0 er ikke tilladt her. Brug Google eller email og password.",
+    );
+    expect(emailFollowsExternal("Auth0")).toBe(
+      "Du logger ind med Auth0, så din email følger din Auth0-konto.",
     );
   });
 

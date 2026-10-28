@@ -14,7 +14,8 @@ import { hashRateLimitPart, rateLimit, type RateLimitOptions } from "@/server/ra
  *
  *   1. "Glemt password" is rejected up front when no email can be sent
  *      (production without SMTP, SPEC §6.4, D-024).
- *   2. Rate limits.
+ *   2. External login only with parameters the app itself sends (D-166).
+ *   3. Rate limits.
  *
  * Why a hook instead of Better Auth's `rateLimit.customRules`: Better Auth only
  * rate-limits requests that come through its HTTP handler (/api/auth/*). Calls
@@ -48,6 +49,47 @@ export function assertPasswordResetDeliverable(
     code: EMAIL_DELIVERY_UNAVAILABLE,
     message: AUTH_ERROR_MESSAGES.resetUnavailable,
   });
+}
+
+/** The endpoints that start an external login (Google, Auth0). */
+const EXTERNAL_LOGIN_PATHS = new Set(["/sign-in/social", "/link-social"]);
+
+/**
+ * External logins only go through the redirect flow with the parameters the
+ * app sends (D-166):
+ *
+ *   * `idToken` is refused on every path: a client-supplied id token (Auth0's
+ *     live for hours) would log in without the redirect, PKCE and nonce, and
+ *     on /link-social overwrite a stored account without the account hooks.
+ *   * `scopes` and `additionalParams` are refused on the login endpoints, so
+ *     nobody can pick another Auth0 connection, audience or organization, or
+ *     ask for offline_access. The one exception is exactly
+ *     `{ prompt: "login" }` ("Log ind med … igen"), which only makes the login
+ *     stricter.
+ */
+export function assertOwnExternalLoginParams(path: string, body: unknown): void {
+  if (typeof body !== "object" || body === null) return;
+  const fields = body as Record<string, unknown>;
+  if (fields.idToken !== undefined) {
+    throw new APIError("BAD_REQUEST", {
+      code: "ID_TOKEN_SIGN_IN_DISABLED",
+      message: "Login med et id-token er slået fra.",
+    });
+  }
+  if (!EXTERNAL_LOGIN_PATHS.has(path)) return;
+  if (fields.scopes !== undefined || !isAllowedAdditionalParams(fields.additionalParams)) {
+    throw new APIError("BAD_REQUEST", {
+      code: "EXTERNAL_LOGIN_PARAMS_NOT_ALLOWED",
+      message: "Login-parametrene er ikke tilladt.",
+    });
+  }
+}
+
+function isAllowedAdditionalParams(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const entries = Object.entries(value);
+  return entries.length === 1 && entries[0]?.[0] === "prompt" && entries[0][1] === "login";
 }
 
 type AuthRateLimitRule = RateLimitOptions & {
@@ -90,6 +132,7 @@ function readEmail(body: unknown): string | null {
 
 export const authBeforeHook = createAuthMiddleware(async (ctx) => {
   assertPasswordResetDeliverable(ctx.path, isEmailDeliveryAvailable());
+  assertOwnExternalLoginParams(ctx.path, ctx.body);
 
   const rules = AUTH_RATE_LIMIT_RULES[ctx.path];
   if (!rules) return;

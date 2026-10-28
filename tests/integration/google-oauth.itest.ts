@@ -28,7 +28,7 @@ vi.mock("@/env", async (importOriginal) => {
       GOOGLE_CLIENT_ID: "itest-client-id",
       GOOGLE_CLIENT_SECRET: "itest-secret",
     },
-    isGoogleConfigured: true,
+    externalProvider: "google",
     isRateLimitDisabled: true,
   };
 });
@@ -306,8 +306,8 @@ describe("Forbind Google på Profil (D-165)", () => {
     await callback(await start("/link-social", user.cookie), identity);
     expect(await googleAccounts(user.id)).toHaveLength(1);
 
-    const { unlinkedGoogle } = await changeUserEmail(user.id, newEmail());
-    expect(unlinkedGoogle).toBe(true);
+    const { unlinkedExternal } = await changeUserEmail(user.id, newEmail());
+    expect(unlinkedExternal).toBe(true);
     expect(await googleAccounts(user.id)).toEqual([]);
 
     // The old Google account now makes a separate user with the old address.
@@ -354,9 +354,11 @@ describe("endpoints the app does not use are closed (D-165)", () => {
       }),
     );
 
-    // Not a failed signature check (INVALID_TOKEN): the path is switched off.
-    expect(response.status).toBe(404);
-    expect(await response.json()).toMatchObject({ code: "ID_TOKEN_NOT_SUPPORTED" });
+    // Not a failed signature check (INVALID_TOKEN): the app refuses any
+    // client-supplied id token before Better Auth looks at it (authBeforeHook,
+    // D-166); google.disableIdTokenSignIn stays as a second lock.
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: "ID_TOKEN_SIGN_IN_DISABLED" });
     expect(await db.user.findUnique({ where: { email } })).toBeNull();
   });
 });
