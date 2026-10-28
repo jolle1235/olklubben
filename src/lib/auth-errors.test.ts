@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { AUTH_ERROR_MESSAGES, getAuthErrorMessage, getOAuthErrorMessage } from "./auth-errors";
+import {
+  AUTH_ERROR_MESSAGES,
+  emailFollowsExternal,
+  getAuthErrorMessage,
+  getOAuthErrorMessage,
+} from "./auth-errors";
 
 describe("getAuthErrorMessage", () => {
   it("never reveals whether an email exists on sign-in (SPEC §6.3)", () => {
@@ -33,12 +38,12 @@ describe("getAuthErrorMessage", () => {
     );
   });
 
-  it("explains a wrong current password and a Google-only account (change-password)", () => {
+  it("explains a wrong current password and an account without a password (change-password)", () => {
     expect(getAuthErrorMessage({ code: "INVALID_PASSWORD" }, "change-password")).toBe(
       "Det nuværende password er forkert.",
     );
     expect(getAuthErrorMessage({ code: "CREDENTIAL_ACCOUNT_NOT_FOUND" }, "change-password")).toBe(
-      "Du logger ind med Google og har intet password her.",
+      "Du logger ind med Google eller Auth0 og har intet password her.",
     );
     expect(getAuthErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "change-password")).toBe(
       "Password skal være mindst 8 tegn.",
@@ -82,11 +87,42 @@ describe("getOAuthErrorMessage", () => {
     expect(getOAuthErrorMessage("")).toBeNull();
   });
 
-  it("explains a Google login that could not be linked (E19)", () => {
-    expect(getOAuthErrorMessage("account_not_linked")).toContain("Log ind med email og password");
+  it("sends an existing account to its password and Profil (E19, D-165)", () => {
+    const message = getOAuthErrorMessage("account_not_linked");
+    expect(message).toContain("Log ind med email og password, og forbind Google på din profil.");
+    expect(message).toContain("Glemt password");
   });
 
-  it("has a fallback for unknown codes", () => {
-    expect(getOAuthErrorMessage("whatever")).toBe("Login med Google mislykkedes. Prøv igen.");
+  it("explains why Google could not be linked or used", () => {
+    expect(getOAuthErrorMessage("email_does_not_match")).toContain("en anden email");
+    for (const code of ["email_not_verified", "unable_to_link_account"]) {
+      expect(getOAuthErrorMessage(code)).toBe(
+        "Google har ikke bekræftet din email, så vi kan ikke bruge Google-kontoen.",
+      );
+    }
+    expect(getOAuthErrorMessage("account_already_linked_to_different_user")).toBe(
+      "Google-kontoen er allerede koblet til en anden bruger.",
+    );
+  });
+
+  it("names the configured provider (D-166)", () => {
+    expect(getOAuthErrorMessage("account_not_linked", "Auth0")).toContain(
+      "og forbind Auth0 på din profil.",
+    );
+    expect(getOAuthErrorMessage("email_not_verified", "Auth0")).toBe(
+      "Auth0 har ikke bekræftet din email, så vi kan ikke bruge Auth0-kontoen.",
+    );
+    expect(getOAuthErrorMessage("connection_not_allowed", "Auth0")).toBe(
+      "Den måde at logge ind på i Auth0 er ikke tilladt her. Brug Google eller email og password.",
+    );
+    expect(emailFollowsExternal("Auth0")).toBe(
+      "Du logger ind med Auth0, så din email følger din Auth0-konto.",
+    );
+  });
+
+  it("never shows the code itself, and has a fallback for unknown codes", () => {
+    expect(getOAuthErrorMessage("<script>alert(1)</script>")).toBe(
+      "Google-login mislykkedes. Prøv igen.",
+    );
   });
 });

@@ -11,7 +11,11 @@ import { withNext } from "@/lib/auth-links";
 import { cn } from "@/lib/utils";
 
 /**
- * "Log ud" (SPEC §9.8). Ends the session and goes to /login.
+ * "Log ud" (SPEC §9.8). Ends the session and goes to /login. An account with
+ * an Auth0 login is also logged out of Auth0 (D-166), so the next person on a
+ * shared phone cannot press "Fortsæt med Auth0" and land in this account:
+ * Better Auth returns Auth0's logout URL, the browser goes there once, and
+ * Auth0 sends it back to /login (the ?next= is lost on that path).
  * variant "outline": the button on Profil. "link": inline text, e.g. in the
  * "Logget ind som …" footer on onboarding pages. "sidebar": a row under the
  * user in the desktop sidebar, so logging out needs no trip to Profil.
@@ -35,8 +39,15 @@ export function LogoutButton({
   function logOut() {
     startTransition(async () => {
       try {
-        const { error } = await authClient.signOut();
+        // disableRedirect: we navigate ourselves, exactly once (the client's
+        // redirect plugin would otherwise follow the URL too).
+        const { data, error } = await authClient.signOut({ disableRedirect: true });
         if (error) throw error;
+        const providerLogoutUrl = data?.url;
+        if (providerLogoutUrl) {
+          window.location.assign(providerLogoutUrl);
+          return;
+        }
       } catch {
         toast.error("Kunne ikke logge dig ud. Prøv igen.");
         return;

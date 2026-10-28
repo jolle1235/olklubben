@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
 
+import { FormAlert } from "@/components/features/auth/form-alert";
+import { ExternalSignInButton } from "@/components/features/auth/external-sign-in";
 import { ChangeEmailForm } from "@/components/features/profile/change-email-form";
 import { ChangePasswordForm } from "@/components/features/profile/change-password-form";
 import { LogoutButton } from "@/components/features/profile/logout-button";
 import { ProfileForm } from "@/components/features/profile/profile-form";
 import { ProfileIdentity } from "@/components/features/profile/profile-identity";
 import { FeedbackLink, ProfileLinks } from "@/components/features/profile/profile-links";
-import { GoogleReauth, SetPasswordForm } from "@/components/features/profile/set-password-form";
+import { ExternalReauth, SetPasswordForm } from "@/components/features/profile/set-password-form";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionDivider } from "@/components/ui/section-divider";
-import { isGoogleConfigured } from "@/env";
-import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
+import { externalProvider } from "@/env";
+import { emailFollowsExternal, getOAuthErrorMessage } from "@/lib/auth-errors";
+import { firstParam } from "@/lib/auth-links";
+import { EXTERNAL_PROVIDERS } from "@/lib/auth-providers";
+import { profileHref } from "@/lib/routes";
 import { getSession, getUserClubs, requireClubPage } from "@/server/auth/session";
 import { isFreshLogin } from "@/server/domain/users/login-freshness";
 import { getAccountLogins } from "@/server/users/queries";
@@ -25,25 +30,44 @@ export const metadata: Metadata = { title: "Profil" };
  * "Feedback (fejl og ønsker)" (the app-wide reports, §9.9, D-147), and log
  * out.
  *
- *   * Email: password logins get "Skift email"; Google-only accounts are told
- *     that their email follows Google.
- *   * Password: password logins get "Skift password". Google-only accounts
- *     get "Tilføj password" while their Google login is less than 10 minutes
- *     old, else the reason and "Log ind med Google igen" (isFreshLogin on the
- *     session, cached per request).
+ *   * Email: password logins get "Skift email"; accounts with only an external
+ *     login (Google or Auth0, D-166) are told that their email follows it.
+ *   * Password: password logins get "Skift password". Accounts with only an
+ *     external login get "Tilføj password" while that login is less than 10
+ *     minutes old, else the reason and "Log ind med … igen" (isFreshLogin on
+ *     the session, cached per request; the action also checks Auth0's
+ *     auth_time).
+ *   * "{label}-login" (the configured external login, D-165, D-166): a
+ *     password account without it gets "Forbind …" (linkSocial; the external
+ *     account must have the same, verified email). It comes back with
+ *     ?external=linked (shown only when the account really has it now) or
+ *     ?error=<code>.
  *
  * Each card is a region named by its heading.
  */
-export default async function ProfilePage({ params }: PageProps<"/c/[clubId]/profile">) {
+export default async function ProfilePage({
+  params,
+  searchParams,
+}: PageProps<"/c/[clubId]/profile">) {
   const { clubId } = await params;
+  const query = await searchParams;
   const { user, club } = await requireClubPage(clubId);
   const [clubs, logins, session] = await Promise.all([
     getUserClubs(user.id),
     getAccountLogins(user.id),
     getSession(),
   ]);
-  const googleOnly = logins.hasGoogle && !logins.hasPassword;
+  // The account's own external login (for "Tilføj password" and the email text).
+  const accountProvider = logins.external[0];
+  const externalOnly = accountProvider !== undefined && !logins.hasPassword;
   const freshLogin = session !== null && isFreshLogin(session.session.createdAt, new Date());
+  // The configured external login (the "Forbind …" card).
+  const configured = externalProvider ? EXTERNAL_PROVIDERS[externalProvider] : null;
+  const hasConfigured = externalProvider !== null && logins.external.includes(externalProvider);
+  const externalError = configured
+    ? getOAuthErrorMessage(firstParam(query.error), configured.label)
+    : null;
+  const externalLinked = hasConfigured && firstParam(query.external) === "linked";
 
   return (
     <>
@@ -55,7 +79,7 @@ export default async function ProfilePage({ params }: PageProps<"/c/[clubId]/pro
           nickname={user.nickname}
           email={user.email}
           image={user.image}
-          googleAvailable={isGoogleConfigured}
+          googleAvailable={externalProvider !== null}
         />
 
         <Card>
@@ -72,7 +96,7 @@ export default async function ProfilePage({ params }: PageProps<"/c/[clubId]/pro
           </CardContent>
         </Card>
 
-        {logins.hasPassword || logins.hasGoogle ? (
+        {logins.hasPassword || accountProvider ? (
           <Card role="region" aria-labelledby="profile-email-heading">
             <CardHeader>
               <h2
@@ -89,18 +113,24 @@ export default async function ProfilePage({ params }: PageProps<"/c/[clubId]/pro
                     Du logger ind med{" "}
                     <span className="font-semibold break-all text-ink">{user.email}</span>.
                   </p>
+                  {accountProvider ? (
+                    <p className="text-[0.95rem] text-muted-foreground">
+                      Skifter du email, kobles dit {EXTERNAL_PROVIDERS[accountProvider].label}-login
+                      fra. Du kan forbinde det igen med den nye email.
+                    </p>
+                  ) : null}
                   <ChangeEmailForm key={user.email} clubId={club.id} email={user.email} />
                 </>
               ) : (
                 <p className="text-[1.05rem] text-muted-foreground">
-                  {AUTH_ERROR_MESSAGES.emailFollowsGoogle}
+                  {emailFollowsExternal(EXTERNAL_PROVIDERS[accountProvider ?? "google"].label)}
                 </p>
               )}
             </CardContent>
           </Card>
         ) : null}
 
-        {logins.hasPassword || googleOnly ? (
+        {logins.hasPassword || externalOnly ? (
           <Card role="region" aria-labelledby="profile-password-heading">
             <CardHeader>
               <h2
@@ -113,18 +143,62 @@ export default async function ProfilePage({ params }: PageProps<"/c/[clubId]/pro
             <CardContent>
               {logins.hasPassword ? (
                 <ChangePasswordForm clubId={club.id} email={user.email} />
-              ) : freshLogin ? (
+              ) : accountProvider === undefined ? null : freshLogin ? (
                 <SetPasswordForm
                   clubId={club.id}
                   email={user.email}
-                  googleAvailable={isGoogleConfigured}
+                  provider={accountProvider}
+                  available={accountProvider === externalProvider}
                 />
               ) : (
-                <GoogleReauth
+                <ExternalReauth
                   clubId={club.id}
                   email={user.email}
-                  googleAvailable={isGoogleConfigured}
+                  provider={accountProvider}
+                  available={accountProvider === externalProvider}
                 />
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {externalProvider && configured && (logins.hasPassword || hasConfigured) ? (
+          <Card role="region" aria-labelledby="profile-external-heading">
+            <CardHeader>
+              <h2
+                id="profile-external-heading"
+                className="font-heading text-xl leading-snug text-olive"
+              >
+                {configured.label}-login
+              </h2>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {externalLinked ? (
+                <FormAlert tone="success">{configured.label} er forbundet.</FormAlert>
+              ) : null}
+              {externalError ? <FormAlert>{externalError}</FormAlert> : null}
+              {hasConfigured ? (
+                <p className="text-[1.05rem] text-muted-foreground">
+                  Du kan logge ind med {configured.label}.
+                </p>
+              ) : (
+                <>
+                  <p className="text-[1.05rem] text-muted-foreground">
+                    Forbind din {configured.label}-konto, så kan du logge ind med ét tryk.{" "}
+                    {configured.label}-kontoen skal have samme email (
+                    <span className="break-all text-ink">{user.email}</span>).
+                  </p>
+                  <ExternalSignInButton
+                    provider={externalProvider}
+                    intent="link"
+                    callbackURL={`${profileHref(club.id)}?external=linked`}
+                    errorCallbackURL={profileHref(club.id)}
+                    loginHint={user.email}
+                    className="w-full sm:w-auto sm:justify-self-start"
+                  >
+                    {configured.link}
+                  </ExternalSignInButton>
+                </>
               )}
             </CardContent>
           </Card>

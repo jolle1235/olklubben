@@ -1117,9 +1117,11 @@ async function main(): Promise<void> {
           name: seedUser.name,
           nickname: seedUser.nickname,
           email: seedUser.email,
-          emailVerified: false,
+          // Verified, as after "Forbind Google": app-admin needs it (D-165), and
+          // the README makes the seed user Jesper the local app-admin.
+          emailVerified: true,
         },
-        update: { name: seedUser.name, nickname: seedUser.nickname },
+        update: { name: seedUser.name, nickname: seedUser.nickname, emailVerified: true },
         select: { id: true },
       });
       userIds.set(seedUser.key, user.id);

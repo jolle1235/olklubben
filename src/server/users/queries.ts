@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isExternalProvider, type ExternalProviderId } from "@/lib/auth-providers";
 import { db } from "@/server/db";
 import { homeDestinationPath, resolveHomeDestination } from "@/server/domain/routing";
 
@@ -14,23 +15,46 @@ export async function getUserName(userId: string): Promise<string | null> {
   return user?.name ?? null;
 }
 
+export type AccountLogins = {
+  hasPassword: boolean;
+  /** Stable order: callers use external[0]. */
+  external: ExternalProviderId[];
+};
+
 /**
  * How the user logs in (§9.8, D-106): "Skift password" needs a password login;
- * a Google-only account gets the explanation instead.
+ * an account with only an external login (Google or Auth0) gets the
+ * explanation instead.
  */
-export async function getAccountLogins(
-  userId: string,
-): Promise<{ hasPassword: boolean; hasGoogle: boolean }> {
+export async function getAccountLogins(userId: string): Promise<AccountLogins> {
   const accounts = await db.account.findMany({
     where: { userId },
     select: { providerId: true, password: true },
+    orderBy: { providerId: "asc" },
   });
+  const external: ExternalProviderId[] = [];
+  for (const { providerId } of accounts) {
+    if (isExternalProvider(providerId) && !external.includes(providerId)) external.push(providerId);
+  }
   return {
     hasPassword: accounts.some(
       (account) => account.providerId === "credential" && account.password !== null,
     ),
-    hasGoogle: accounts.some((account) => account.providerId === "google"),
+    external,
   };
+}
+
+/** The latest stored id token (replaced on every sign-in), for Auth0's auth_time (D-166). */
+export async function getExternalIdToken(
+  userId: string,
+  providerId: ExternalProviderId,
+): Promise<string | null> {
+  const account = await db.account.findFirst({
+    where: { userId, providerId },
+    orderBy: { updatedAt: "desc" },
+    select: { idToken: true },
+  });
+  return account?.idToken ?? null;
 }
 
 /**

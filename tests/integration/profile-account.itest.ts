@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ACTION_ERROR_CODES } from "@/lib/action-result";
-import { AUTH_ERROR_MESSAGES } from "@/lib/auth-errors";
+import { AUTH_ERROR_MESSAGES, emailFollowsExternal } from "@/lib/auth-errors";
 import { changeEmailAction, setPasswordAction } from "@/server/actions/profile";
 import { createPasswordResetUrl } from "@/server/auth/reset-link";
 import { db } from "@/server/db";
@@ -252,7 +252,7 @@ describe("changeEmailAction (D-151)", () => {
     expect(await signInCookie(user.email, PASSWORD)).toBeNull();
   });
 
-  it("en konto med password og Google beholder sit Google-login", async () => {
+  it("en konto med password og Google mister sit Google-login, som hørte til den gamle email (D-165, TG-064)", async () => {
     const user = await signUp();
     const clubId = await createClub(user);
     await addGoogleAccount(user);
@@ -261,10 +261,24 @@ describe("changeEmailAction (D-151)", () => {
 
     await expectRedirect(
       changeEmailAction(null, emailForm(clubId, newEmail)),
-      /toast=email-changed$/,
+      /toast=email-changed-external$/,
     );
 
     expect((await storedUser(user)).email).toBe(newEmail);
+    expect(await providers(user)).toEqual(["credential"]);
+  });
+
+  it("en email i brug ændrer intet og beholder Google-login (transaktionen rulles tilbage)", async () => {
+    const other = await signUp();
+    const user = await signUp();
+    const clubId = await createClub(user);
+    await addGoogleAccount(user);
+    setActor(user);
+
+    const result = await changeEmailAction(null, emailForm(clubId, other.email));
+
+    expect(result).toMatchObject({ ok: false, error: { code: ACTION_ERROR_CODES.EMAIL_IN_USE } });
+    expect((await storedUser(user)).email).toBe(user.email);
     expect(await providers(user)).toEqual(["credential", "google"]);
   });
 
@@ -282,7 +296,7 @@ describe("changeEmailAction (D-151)", () => {
       ok: false,
       error: {
         code: ACTION_ERROR_CODES.FORBIDDEN,
-        message: AUTH_ERROR_MESSAGES.emailFollowsGoogle,
+        message: emailFollowsExternal("Google"),
       },
     });
     expect((await storedUser(user)).email).toBe(user.email);

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { ExternalProviderId } from "@/lib/auth-providers";
+
 /**
  * Pure parsing of the server environment (SPEC §4.7–4.8).
  *
@@ -65,6 +67,13 @@ export const envSchema = z
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
 
+    AUTH0_DOMAIN: z
+      .string()
+      .regex(HOSTNAME, "skal være et domænenavn uden https:// (fx olklubben.eu.auth0.com)")
+      .optional(),
+    AUTH0_CLIENT_ID: optionalString,
+    AUTH0_CLIENT_SECRET: optionalString,
+
     SMTP_HOST: optionalString,
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
     SMTP_USER: optionalString,
@@ -125,6 +134,10 @@ export type ParsedEnv = {
   appBaseUrl: string;
   /** Both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set. */
   isGoogleConfigured: boolean;
+  /** AUTH0_DOMAIN, AUTH0_CLIENT_ID and AUTH0_CLIENT_SECRET are all set. */
+  isAuth0Configured: boolean;
+  /** The one external login (D-166): Auth0 wins over Google (Google is inside Auth0). */
+  externalProvider: ExternalProviderId | null;
   /** SMTP_HOST, SMTP_USER and SMTP_PASSWORD are all set. */
   isSmtpConfigured: boolean;
   /** RATE_LIMIT_DISABLED is set and NODE_ENV is not "production". */
@@ -187,6 +200,22 @@ export function parseEnv(source: RawEnv): ParsedEnv {
     );
   }
 
+  const auth0Parts = [env.AUTH0_DOMAIN, env.AUTH0_CLIENT_ID, env.AUTH0_CLIENT_SECRET];
+  const isAuth0Configured = auth0Parts.every(Boolean);
+  if (!isAuth0Configured && auth0Parts.some(Boolean)) {
+    warnings.push(
+      "Auth0-login er slået fra: AUTH0_DOMAIN, AUTH0_CLIENT_ID og AUTH0_CLIENT_SECRET skal alle være sat.",
+    );
+  }
+  if (isAuth0Configured && isGoogleConfigured) {
+    warnings.push("Google-login er slået fra, fordi Auth0 er sat op (Google ligger i Auth0).");
+  }
+  const externalProvider: ExternalProviderId | null = isAuth0Configured
+    ? "auth0"
+    : isGoogleConfigured
+      ? "google"
+      : null;
+
   const smtpParts = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASSWORD];
   const isSmtpConfigured = smtpParts.every(Boolean);
   if (!isSmtpConfigured && (env.SMTP_USER || env.SMTP_PASSWORD)) {
@@ -213,6 +242,8 @@ export function parseEnv(source: RawEnv): ParsedEnv {
     env,
     appBaseUrl,
     isGoogleConfigured,
+    isAuth0Configured,
+    externalProvider,
     isSmtpConfigured,
     isRateLimitDisabled,
     appAdminEmails,

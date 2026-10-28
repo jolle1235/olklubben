@@ -82,6 +82,8 @@ beforeAll(async () => {
   clubId = await createClub(clubAdmin, "Hemmelige Humlehoveder");
   // Upper case and spaces on purpose: isAppAdmin normalises both sides.
   envState.appAdminEmails = [`  ${appAdmin.email.toUpperCase()} `];
+  // App-admin also needs a verified email (D-165).
+  await db.user.update({ where: { id: appAdmin.id }, data: { emailVerified: true } });
 });
 
 beforeEach(() => {
@@ -156,6 +158,18 @@ describe("moderation: only the app-admin (§9.9, §15.3)", () => {
       expect(result).toMatchObject({ ok: false, error: { code: ACTION_ERROR_CODES.FORBIDDEN } });
     }
     expect(await row(id)).toEqual(before);
+  });
+
+  it("refuses an address on APP_ADMIN_EMAILS until the email is verified (D-165)", async () => {
+    const id = await create(author);
+    await db.user.update({ where: { id: appAdmin.id }, data: { emailVerified: false } });
+    try {
+      const result = await moderate(appAdmin, id, { status: "DONE" });
+      expect(result).toMatchObject({ ok: false, error: { code: ACTION_ERROR_CODES.FORBIDDEN } });
+      expect((await row(id))?.status).toBe("NEW");
+    } finally {
+      await db.user.update({ where: { id: appAdmin.id }, data: { emailVerified: true } });
+    }
   });
 
   it("lets the app-admin set every status and an answer", async () => {

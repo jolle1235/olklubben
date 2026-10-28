@@ -4,11 +4,13 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { auth0, genericOAuth } from "better-auth/plugins/generic-oauth";
 import { after } from "next/server";
 
-import { env, isGoogleConfigured, isRateLimitDisabled } from "@/env";
+import { env, externalProvider, isRateLimitDisabled } from "@/env";
 import { appUrl, getAppUrl, passwordResetUrl } from "@/lib/app-url";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { isExternalProvider } from "@/lib/auth-providers";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/validation/auth";
 import { db } from "@/server/db";
 import { cleanUserName, resolveNewUserName } from "@/server/domain/users/user-name";
@@ -16,12 +18,14 @@ import { sendEmail } from "@/server/email/send-email";
 import { passwordResetEmail } from "@/server/email/templates";
 
 import { AUTH_RATE_LIMITED_PATHS, authBeforeHook } from "./auth-rate-limit";
+import { claimsFromIdToken, isAllowedAuth0Subject } from "./external-claims";
 import { SESSION_REFRESH_SECONDS, SESSION_TTL_SECONDS } from "./session-refresh";
 import { isAllowedUserImage, USER_IMAGE_NOT_ALLOWED_MESSAGE } from "./user-image";
 
 /**
- * Better Auth (SPEC §6): email/password, Google, password reset, sessions in
- * Postgres via Prisma. Mounted at /api/auth/* (src/app/api/auth/[...all]).
+ * Better Auth (SPEC §6): email/password, one external login (Auth0 Universal
+ * Login or Google, D-166), password reset, sessions in Postgres via Prisma.
+ * Mounted at /api/auth/* (src/app/api/auth/[...all]).
  *
  * Server code reads the session through src/server/auth/session.ts, not
  * through this object directly.
@@ -44,18 +48,30 @@ function runAfterResponse(promise: Promise<unknown>): void {
   }
 }
 
-/** Reads the `picture` claim from a Google id token (already verified by Better Auth). */
-function pictureFromIdToken(idToken: string | null | undefined): string | null {
-  const payload = idToken?.split(".")[1];
-  if (!payload) return null;
-  try {
-    const claims: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    if (typeof claims !== "object" || claims === null || !("picture" in claims)) return null;
-    const { picture } = claims as { picture: unknown };
-    return typeof picture === "string" && isAllowedUserImage(picture) ? picture : null;
-  } catch {
-    return null;
-  }
+/**
+ * Auth0 Universal Login (D-166) on Better Auth's core social endpoints, so
+ * every account rule below applies to it too. The id token must verify
+ * against the tenant's JWKS; without a usable discovery document (fetched
+ * once per server instance) the provider is skipped, never trusted
+ * unverified. Never set overrideUserInfo: it would overwrite the account's
+ * email from Auth0 on every sign-in (D-151).
+ */
+function auth0Plugin() {
+  const domain = env.AUTH0_DOMAIN ?? "";
+  return genericOAuth({
+    config: [
+      {
+        ...auth0({
+          domain,
+          clientId: env.AUTH0_CLIENT_ID ?? "",
+          clientSecret: env.AUTH0_CLIENT_SECRET ?? "",
+          postLogoutRedirectURI: appUrl("/login"),
+          endSessionEndpoint: `https://${domain}/oidc/logout`,
+        }),
+        requireIdTokenVerification: true,
+      },
+    ],
+  });
 }
 
 export const auth = betterAuth({
@@ -63,6 +79,17 @@ export const auth = betterAuth({
   baseURL: getAppUrl(),
   secret: env.BETTER_AUTH_SECRET,
   telemetry: { enabled: false },
+
+  // Closed over HTTP (D-165; auth.api still has them): /unlink-account lets a
+  // stolen session strip a login, the token endpoints hand out stored tokens,
+  // and /update-user accepts any image (profile changes use our own actions).
+  disabledPaths: [
+    "/unlink-account",
+    "/get-access-token",
+    "/refresh-token",
+    "/account-info",
+    "/update-user",
+  ],
 
   database: prismaAdapter(db, { provider: "postgresql", transaction: true }),
 
@@ -120,29 +147,31 @@ export const auth = betterAuth({
     },
   },
 
-  socialProviders: isGoogleConfigured
-    ? {
-        google: {
-          clientId: env.GOOGLE_CLIENT_ID ?? "",
-          clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
-          prompt: "select_account",
-        },
-      }
-    : {},
+  // With Auth0 configured, Google is offered inside Auth0 instead (D-166).
+  socialProviders:
+    externalProvider === "google"
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID ?? "",
+            clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
+            prompt: "select_account",
+            disableIdTokenSignIn: true,
+          },
+        }
+      : {},
 
   account: {
+    encryptOAuthTokens: true,
     accountLinking: {
       enabled: true,
-      // SPEC §6.2 / E19: Google is linked onto an existing email/password account
-      // with the same email only when Google reports the email as verified.
-      // Google is NOT a trusted provider, so an unverified Google email never links.
+      // SPEC §6.2 / D-165: never link implicitly. Password accounts never
+      // verify their email (D-029), so anyone can register someone else's
+      // address; linking that address's Google on sign-in would hand the
+      // account to both. The owner links it on Profil instead (/link-social).
+      disableImplicitLinking: true,
+      // No trusted providers: an unverified external email never links.
       trustedProviders: [],
       allowDifferentEmails: false,
-      // Our email/password accounts never verify their email (no verification
-      // mail in the MVP), so Better Auth's default (require a verified local
-      // email before linking) would block every link. Deprecated in 1.7 and
-      // removed in the next minor – see the note in SPEC §19.5.
-      requireLocalEmailVerified: false,
       // Keep the name the user chose; the image is adopted separately (below).
       updateUserInfoOnLink: false,
     },
@@ -166,6 +195,7 @@ export const auth = betterAuth({
       // "Fortsæt med Google": the default (3 per 10 s per IP) is too tight for a
       // club on one pub wifi.
       "/sign-in/social": { window: 60, max: 20 },
+      "/link-social": { window: 60, max: 10 },
     },
   },
 
@@ -175,7 +205,7 @@ export const auth = betterAuth({
     before: authBeforeHook,
   },
 
-  // Failed Google logins land on /login?error=<code> (getOAuthErrorMessage()).
+  // Failed external logins land on /login?error=<code> (getOAuthErrorMessage()).
   onAPIError: { errorURL: appUrl("/login") },
 
   databaseHooks: {
@@ -209,24 +239,74 @@ export const auth = betterAuth({
     },
     account: {
       create: {
-        // SPEC §6.2: the profile picture comes from Google. A new Google user gets
-        // it on creation; an existing email/password user gets it when Google is
-        // linked, unless they already have one.
-        after: async (account) => {
-          if (account.providerId !== "google") return;
-          const picture = pictureFromIdToken(account.idToken);
-          if (!picture) return;
-          await db.user.updateMany({
-            where: { id: account.userId, image: null },
-            data: { image: picture },
+        // SPEC §6.2, D-165, D-166: an external login always belongs to the
+        // account's own, verified email; an unknown provider fails closed.
+        // Throwing (not returning false) rolls the whole sign-up back, and the
+        // callback redirects with the code (/login?error=…).
+        before: async (account) => {
+          if (account.providerId === "credential") return;
+          if (!isExternalProvider(account.providerId)) {
+            throw new APIError("FORBIDDEN", {
+              code: "connection_not_allowed",
+              message: "Den login-udbyder er ikke tilladt.",
+            });
+          }
+          if (account.providerId === "auth0" && !isAllowedAuth0Subject(account.accountId)) {
+            throw new APIError("FORBIDDEN", {
+              code: "connection_not_allowed",
+              message: "Den Auth0-forbindelse er ikke tilladt.",
+            });
+          }
+          const claims = claimsFromIdToken(account.idToken);
+          if (!claims?.email || !claims.emailVerified) {
+            throw new APIError("FORBIDDEN", {
+              code: "email_not_verified",
+              message: "Emailen er ikke bekræftet.",
+            });
+          }
+          // Better Auth compares a link with the email frozen in the OAuth
+          // state; "Skift email" may have run since. A brand-new user is not
+          // visible here yet (uncommitted transaction).
+          const user = await db.user.findUnique({
+            where: { id: account.userId },
+            select: { email: true },
           });
+          if (user && user.email !== claims.email) {
+            throw new APIError("FORBIDDEN", {
+              code: "email_does_not_match",
+              message: "Den eksterne konto har en anden email end kontoen.",
+            });
+          }
+        },
+        // SPEC §6.2: adopt Google's picture (also via Auth0) unless the user
+        // has one. Linking also verifies the email (Better Auth only does that
+        // on sign-in), which app-admin requires (§9.9, D-165).
+        after: async (account) => {
+          if (!isExternalProvider(account.providerId)) return;
+          const claims = claimsFromIdToken(account.idToken);
+          if (!claims) return;
+          if (claims.picture) {
+            await db.user.updateMany({
+              where: { id: account.userId, image: null },
+              data: { image: claims.picture },
+            });
+          }
+          if (claims.email && claims.emailVerified) {
+            await db.user.updateMany({
+              where: { id: account.userId, email: claims.email, emailVerified: false },
+              data: { emailVerified: true },
+            });
+          }
         },
       },
     },
   },
 
-  // nextCookies must be the last plugin: it lets Server Actions set auth cookies.
-  plugins: [nextCookies()],
+  plugins: [
+    ...(externalProvider === "auth0" ? [auth0Plugin()] : []),
+    // nextCookies must be the last plugin: it lets Server Actions set auth cookies.
+    nextCookies(),
+  ],
 });
 
 export type AuthSession = typeof auth.$Infer.Session;

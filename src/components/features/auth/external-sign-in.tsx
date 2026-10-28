@@ -1,35 +1,40 @@
 "use client";
 
-import { Loader2Icon } from "lucide-react";
+import { KeyRoundIcon, Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
+import { EXTERNAL_PROVIDERS, type ExternalProviderId } from "@/lib/auth-providers";
 
-export type GoogleSignInProps = {
-  /** Where to land after Google: the safe ?next= path or "/" (§10.1). */
+export type ExternalSignInProps = {
+  /** The configured external login (externalProvider, decided on the server, D-166). */
+  provider: ExternalProviderId;
+  /** Where to land after the login: the safe ?next= path or "/" (§10.1). */
   callbackURL: string;
-  /** Where a failed Google login lands (/login?error=…), keeping ?next=. */
+  /** Where a failed login lands (/login?error=…), keeping ?next=. */
   errorCallbackURL: string;
 };
 
 /**
- * "Fortsæt med Google" (SPEC §6.2) plus the "eller med email" divider. Only
- * rendered when Google is configured (isGoogleConfigured, decided on the server).
- * Creates the account or links it to an existing one (E19, handled by Better Auth).
+ * "Fortsæt med Google" / "Fortsæt med Auth0" (SPEC §6.2, D-166) plus the
+ * "eller med email" divider. Only rendered when an external login is
+ * configured. Creates the account; an existing account is never linked here
+ * (E19, D-165: "Forbind …" on Profil does that).
  */
-export function GoogleSignIn({ callbackURL, errorCallbackURL }: GoogleSignInProps) {
+export function ExternalSignIn({ provider, callbackURL, errorCallbackURL }: ExternalSignInProps) {
   return (
     <div className="grid gap-5">
-      <GoogleSignInButton
+      <ExternalSignInButton
+        provider={provider}
         callbackURL={callbackURL}
         errorCallbackURL={errorCallbackURL}
         className="w-full"
       >
-        Fortsæt med Google
-      </GoogleSignInButton>
+        {EXTERNAL_PROVIDERS[provider].signIn}
+      </ExternalSignInButton>
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <span aria-hidden className="h-px flex-1 bg-border" />
         eller med email
@@ -39,26 +44,42 @@ export function GoogleSignIn({ callbackURL, errorCallbackURL }: GoogleSignInProp
   );
 }
 
-export type GoogleSignInButtonProps = GoogleSignInProps & {
-  /** Pre-selects this account in Google's chooser (fx "Log ind med Google igen", D-152). */
+export type ExternalSignInButtonProps = ExternalSignInProps & {
+  /**
+   * "sign-in" (default) logs in or signs up. "link" adds the external login
+   * to the logged-in account ("Forbind …" on Profil, D-165): Better Auth
+   * requires the session, a verified email and the account's own email.
+   */
+  intent?: "sign-in" | "link";
+  /** Pre-selects this account in the provider's chooser (fx "Log ind med … igen", D-152). */
   loginHint?: string;
+  /**
+   * "Log ind med … igen" before "Tilføj password" (D-152, D-166): asks for a
+   * real login (prompt=login), so Auth0's single sign-on cannot answer
+   * silently. The server only allows exactly this extra parameter.
+   */
+  forceLogin?: boolean;
   className?: string;
   children: React.ReactNode;
 };
 
 /**
- * A button that sends the browser to Google (Better Auth's social sign-in),
- * with Google's "G" and a spinner while it leaves. Used by "Fortsæt med
- * Google" and by Profil's "Log ind med Google igen" (D-152). Only render it
- * when Google is configured.
+ * A button that sends the browser to Google or Auth0 (Better Auth's social
+ * sign-in, or linkSocial with intent "link"), with the provider's icon and a
+ * spinner while it leaves. Used by "Fortsæt med …", by Profil's "Log ind med
+ * … igen" (D-152) and "Forbind …" (D-165). Only render it for the configured
+ * provider.
  */
-export function GoogleSignInButton({
+export function ExternalSignInButton({
+  provider,
   callbackURL,
   errorCallbackURL,
+  intent = "sign-in",
   loginHint,
+  forceLogin = false,
   className,
   children,
-}: GoogleSignInButtonProps) {
+}: ExternalSignInButtonProps) {
   const [pending, setPending] = useState(false);
 
   // Coming back with the browser's back button restores this page from the
@@ -74,13 +95,18 @@ export function GoogleSignInButton({
   async function signIn() {
     setPending(true);
     try {
-      // On success the client sends the browser on to Google; keep the spinner.
-      const { error } = await authClient.signIn.social({
-        provider: "google",
+      // On success the client sends the browser on to the provider; keep the spinner.
+      const request = {
+        provider,
         callbackURL,
         errorCallbackURL,
         ...(loginHint ? { loginHint } : {}),
-      });
+        ...(forceLogin ? { additionalParams: { prompt: "login" } } : {}),
+      };
+      const { error } =
+        intent === "link"
+          ? await authClient.linkSocial(request)
+          : await authClient.signIn.social(request);
       if (error) {
         setPending(false);
         toast.error(getAuthErrorMessage(error));
@@ -101,7 +127,13 @@ export function GoogleSignInButton({
       disabled={pending}
       aria-busy={pending || undefined}
     >
-      {pending ? <Loader2Icon aria-hidden className="animate-spin" /> : <GoogleLogo />}
+      {pending ? (
+        <Loader2Icon aria-hidden className="animate-spin" />
+      ) : provider === "google" ? (
+        <GoogleLogo />
+      ) : (
+        <KeyRoundIcon aria-hidden className="size-5" />
+      )}
       {children}
     </Button>
   );

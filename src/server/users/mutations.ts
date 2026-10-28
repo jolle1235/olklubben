@@ -67,24 +67,37 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
  * One UPDATE: the unique index users_email_key is the race-safe check, so two
  * accounts taking the same email at the same time cannot both succeed.
  * Throws EmailInUseError when another account has the email, and
- * UserNotFoundError when the user is gone. Returns the stored email.
+ * UserNotFoundError when the user is gone.
  *
- * Never call it for a Google-only account or without checking the current
- * password: the Server Action (changeEmailAction) does both.
+ * In the same transaction every external login is removed (D-165, D-166): it
+ * belongs to the old email. Otherwise someone could link their Google, switch
+ * to an address they do not own and keep logging in after the real owner
+ * resets the password. Returns the stored email and whether an external login
+ * was removed.
+ *
+ * Never call it for an account without a password or without checking the
+ * current password: the Server Action (changeEmailAction) does both.
  */
-export async function changeUserEmail(userId: string, email: string): Promise<string> {
+export async function changeUserEmail(
+  userId: string,
+  email: string,
+): Promise<{ email: string; unlinkedExternal: boolean }> {
   const normalized = email.trim().toLowerCase();
   if (normalized === "") throw new Error("changeUserEmail: emailen er tom.");
-  let count: number;
   try {
-    ({ count } = await db.user.updateMany({
-      where: { id: userId },
-      data: { email: normalized, emailVerified: false },
-    }));
+    return await db.$transaction(async (tx) => {
+      const { count } = await tx.user.updateMany({
+        where: { id: userId },
+        data: { email: normalized, emailVerified: false },
+      });
+      if (count !== 1) throw new UserNotFoundError();
+      const external = await tx.account.deleteMany({
+        where: { userId, providerId: { not: "credential" } },
+      });
+      return { email: normalized, unlinkedExternal: external.count > 0 };
+    });
   } catch (error) {
     if (isUniqueConstraintError(error)) throw new EmailInUseError();
     throw error;
   }
-  if (count !== 1) throw new UserNotFoundError();
-  return normalized;
 }
