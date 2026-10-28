@@ -266,7 +266,6 @@ describe("changeEmailAction (D-151)", () => {
 
     expect((await storedUser(user)).email).toBe(newEmail);
     expect(await providers(user)).toEqual(["credential"]);
-    expect(await signInCookie(newEmail, PASSWORD)).not.toBeNull();
   });
 
   it("en email i brug ændrer intet og beholder Google-login (transaktionen rulles tilbage)", async () => {

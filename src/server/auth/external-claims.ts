@@ -1,14 +1,11 @@
 /**
- * The claims Ølklubben reads from an external login's id token (Google or
- * Auth0, SPEC §6.2, D-165, D-166), and which Auth0 connections may log in.
+ * The claims read from an external login's id token (SPEC §6.2), and which
+ * Auth0 connections may log in.
  *
- * Auth0's token was verified against the tenant's JWKS (issuer, audience,
- * nonce) before Better Auth stores it (requireIdTokenVerification). Google's
- * is decoded without a signature check on the callback path, which is safe:
- * it comes straight from Google's token endpoint over TLS, in exchange for our
- * client secret and the PKCE verifier. Sign-in with a client-supplied id token
- * is refused for every provider (authBeforeHook), so a stored token always
- * came from a callback.
+ * Decoding without a signature check is safe: a stored token always came from
+ * a callback (client-supplied id tokens are refused, authBeforeHook). Auth0's
+ * was verified against the tenant's JWKS; Google's came straight from Google's
+ * token endpoint over TLS for our client secret and PKCE verifier.
  *
  * Pure module (no Better Auth or Next.js imports).
  */
@@ -21,7 +18,6 @@ export type IdTokenClaims = {
   emailVerified: boolean;
   /** Only an allowed picture (user-image.ts), else null. */
   picture: string | null;
-  /** When the user last authenticated at the provider (auth_time), or null. */
   authTime: Date | null;
 };
 
@@ -47,10 +43,9 @@ export function claimsFromIdToken(idToken: string | null | undefined): IdTokenCl
 }
 
 /**
- * Auth0 connections allowed to log in (D-166): Google ("google-oauth2|…") and
- * Auth0's own database ("auth0|…"). Enterprise, SAML or custom connections in
- * the tenant can claim email_verified=true for any address, so they never get
- * in, even if someone enables them on the application in Auth0.
+ * Only Google and Auth0's own database (D-166): enterprise, SAML or custom
+ * connections can claim email_verified=true for any address, so they never
+ * get in, even if enabled on the application in Auth0.
  */
 const ALLOWED_AUTH0_SUBJECT_PREFIXES = ["google-oauth2|", "auth0|"] as const;
 

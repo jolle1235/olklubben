@@ -93,7 +93,6 @@ const EMAIL_IN_USE = "Den email bruges allerede af en anden konto.";
 const EMAIL_UNCHANGED = "Det er allerede din email.";
 const EMAIL_SESSIONS_NOT_REVOKED =
   "Din email er skiftet, men vi kunne ikke logge dine andre enheder ud. Prøv at skifte password.";
-/** "Tilføj password" needs a fresh external login (D-152, D-166). */
 function reauthRequired(label: string): string {
   return `Log ind med ${label} igen for at tilføje et password.`;
 }
@@ -328,9 +327,8 @@ function setPasswordFailure(result: { ok: false; error: ActionError }): SetPassw
  * with email and password. There is no current password to confirm, and
  * Better Auth's setPassword has no freshness check, so the session must come
  * from an external login less than 10 minutes ago (isFreshLogin on
- * session.createdAt) and, for Auth0, the stored id token's auth_time must be
- * too (single sign-on can create a session without a real login); otherwise
- * REAUTH_REQUIRED and Better Auth is never called. Profil then offers "Log
+ * session.createdAt), and for Auth0 so must the stored id token's auth_time;
+ * otherwise REAUTH_REQUIRED and Better Auth is never called. Profil then offers "Log
  * ind med … igen" (with prompt=login for Auth0).
  *
  * An account that already has a password (fx set in another tab) gets a form
@@ -369,9 +367,8 @@ export async function setPasswordAction(
 
   const now = new Date();
   if (!isFreshLogin(session.session.createdAt, now)) return setPasswordFailure(reauth);
-  // Auth0 (D-166): a new session can come from Auth0's single sign-on without
-  // typing anything (fx a session started in another app on the tenant). The
-  // stored id token's auth_time says when the user really logged in at Auth0.
+  // Auth0's single sign-on can create a session without a real login (fx from
+  // another app on the tenant); auth_time is when the user really logged in.
   if (logins.external.includes("auth0")) {
     const authTime = claimsFromIdToken(await getExternalIdToken(user.id, "auth0"))?.authTime;
     if (!authTime || !isFreshLogin(authTime, now)) return setPasswordFailure(reauth);

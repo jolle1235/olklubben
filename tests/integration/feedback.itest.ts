@@ -82,7 +82,7 @@ beforeAll(async () => {
   clubId = await createClub(clubAdmin, "Hemmelige Humlehoveder");
   // Upper case and spaces on purpose: isAppAdmin normalises both sides.
   envState.appAdminEmails = [`  ${appAdmin.email.toUpperCase()} `];
-  // App-admin also needs a verified email (D-165), as a Google login gives.
+  // App-admin also needs a verified email (D-165).
   await db.user.update({ where: { id: appAdmin.id }, data: { emailVerified: true } });
 });
 

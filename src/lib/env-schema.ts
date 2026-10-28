@@ -67,8 +67,6 @@ export const envSchema = z
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
 
-    // Auth0 Universal Login (D-166). AUTH0_DOMAIN is the tenant's hostname
-    // (fx olklubben.eu.auth0.com, or its custom domain), without https://.
     AUTH0_DOMAIN: z
       .string()
       .regex(HOSTNAME, "skal være et domænenavn uden https:// (fx olklubben.eu.auth0.com)")
@@ -138,11 +136,7 @@ export type ParsedEnv = {
   isGoogleConfigured: boolean;
   /** AUTH0_DOMAIN, AUTH0_CLIENT_ID and AUTH0_CLIENT_SECRET are all set. */
   isAuth0Configured: boolean;
-  /**
-   * The one external login shown and registered (D-166): "auth0" when Auth0
-   * is configured (Google is offered inside Auth0's page), else "google" when
-   * Google is, else null.
-   */
+  /** The one external login (D-166): Auth0 wins over Google (Google is inside Auth0). */
   externalProvider: ExternalProviderId | null;
   /** SMTP_HOST, SMTP_USER and SMTP_PASSWORD are all set. */
   isSmtpConfigured: boolean;

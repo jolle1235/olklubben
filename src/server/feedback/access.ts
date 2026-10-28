@@ -20,10 +20,8 @@ import { getFeedbackRef, type FeedbackRef } from "./queries";
  *
  *   getFeedbackViewer(user)    who is looking: the user id and whether the
  *                              email is on APP_ADMIN_EMAILS AND verified (never
- *                              a club role). Password sign-up does not verify
- *                              the email (D-029), so an address on the list
- *                              could be registered by anyone; a Google login
- *                              verifies it (D-165).
+ *                              a club role; password sign-up does not verify
+ *                              it, D-029, D-165).
  *   requireFeedback(id)        logged in (else /login) + the report (else
  *                              notFound()). Never writes, so it is safe in a
  *                              guard layout. Cached per request.

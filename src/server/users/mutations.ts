@@ -69,13 +69,11 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
  * Throws EmailInUseError when another account has the email, and
  * UserNotFoundError when the user is gone.
  *
- * In the same transaction every external login (Google, Auth0) is removed
- * (D-165, D-166): it belongs to the old email, and an external login must
- * always be the account's own email. Otherwise someone could link their own
- * Google, change the email to an address they do not own and keep logging in
- * with Google after the real owner reset the password (TG-064). It can be
- * linked again with the new email. Returns the stored email and whether an
- * external login was removed.
+ * In the same transaction every external login is removed (D-165, D-166): it
+ * belongs to the old email. Otherwise someone could link their Google, switch
+ * to an address they do not own and keep logging in after the real owner
+ * resets the password. Returns the stored email and whether an external login
+ * was removed.
  *
  * Never call it for an account without a password or without checking the
  * current password: the Server Action (changeEmailAction) does both.

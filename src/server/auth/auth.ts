@@ -49,15 +49,12 @@ function runAfterResponse(promise: Promise<unknown>): void {
 }
 
 /**
- * Auth0 Universal Login as an OIDC provider "auth0" (D-166) on Better Auth's
- * own endpoints (/sign-in/social, /callback/auth0, /link-social), so every
- * rule above applies to it as well. The id token must verify against the
- * tenant's JWKS (issuer, audience, nonce): without a usable discovery
- * document the provider is skipped, never trusted unverified. Discovery runs
- * once per server instance; if Auth0 is down then, email/password still work.
- * "Log ud" also ends the Auth0 session (endSessionEndpoint, back to /login).
- * Never set overrideUserInfo: it would overwrite the account's email from
- * Auth0 on every sign-in (around "Skift email", D-151).
+ * Auth0 Universal Login (D-166) on Better Auth's core social endpoints, so
+ * every account rule below applies to it too. The id token must verify
+ * against the tenant's JWKS; without a usable discovery document (fetched
+ * once per server instance) the provider is skipped, never trusted
+ * unverified. Never set overrideUserInfo: it would overwrite the account's
+ * email from Auth0 on every sign-in (D-151).
  */
 function auth0Plugin() {
   const domain = env.AUTH0_DOMAIN ?? "";
@@ -83,10 +80,9 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   telemetry: { enabled: false },
 
-  // Endpoints the app never calls, closed over HTTP (D-165); auth.api on the
-  // server still has them. /unlink-account would let a stolen session strip a
-  // login, the token endpoints hand out stored Google tokens, and /update-user
-  // accepts any image (profile changes go through our own Server Actions).
+  // Closed over HTTP (D-165; auth.api still has them): /unlink-account lets a
+  // stolen session strip a login, the token endpoints hand out stored tokens,
+  // and /update-user accepts any image (profile changes use our own actions).
   disabledPaths: [
     "/unlink-account",
     "/get-access-token",
@@ -151,8 +147,7 @@ export const auth = betterAuth({
     },
   },
 
-  // At most one external login (D-166): with Auth0 configured, Google is
-  // offered inside Auth0's page and not registered here.
+  // With Auth0 configured, Google is offered inside Auth0 instead (D-166).
   socialProviders:
     externalProvider === "google"
       ? {
@@ -160,25 +155,19 @@ export const auth = betterAuth({
             clientId: env.GOOGLE_CLIENT_ID ?? "",
             clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
             prompt: "select_account",
-            // Only the redirect flow with PKCE; no sign-in with a bare id token.
             disableIdTokenSignIn: true,
           },
         }
       : {},
 
   account: {
-    // External tokens are stored encrypted (the app never uses them).
     encryptOAuthTokens: true,
     accountLinking: {
       enabled: true,
-      // SPEC §6.2 / D-165: an external login (Google, Auth0) is never linked
-      // implicitly. Our email/password
-      // accounts never verify their email (D-029), so anyone could register
-      // someone else's address with a password; linking that address's Google
-      // to it on sign-in would hand the account to both (TG-002). "Fortsæt med
-      // Google" on an existing account gives account_not_linked; the owner logs
-      // in with the password and links Google on Profil (POST /link-social:
-      // session + verified Google email + the same email).
+      // SPEC §6.2 / D-165: never link implicitly. Password accounts never
+      // verify their email (D-029), so anyone can register someone else's
+      // address; linking that address's Google on sign-in would hand the
+      // account to both. The owner links it on Profil instead (/link-social).
       disableImplicitLinking: true,
       // No trusted providers: an unverified external email never links.
       trustedProviders: [],
@@ -206,7 +195,6 @@ export const auth = betterAuth({
       // "Fortsæt med Google": the default (3 per 10 s per IP) is too tight for a
       // club on one pub wifi.
       "/sign-in/social": { window: 60, max: 20 },
-      // "Forbind Google" / "Forbind Auth0" on Profil (D-165, D-166).
       "/link-social": { window: 60, max: 10 },
     },
   },
@@ -251,12 +239,10 @@ export const auth = betterAuth({
     },
     account: {
       create: {
-        // SPEC §6.2, D-165, D-166: an external login always belongs to its
-        // own, verified email. Every provider but "credential" (the password)
-        // is checked, so a future provider fails closed. Throwing (not
-        // returning false) rolls the whole sign-up back, so no user and no
-        // session is left behind; the callback redirects with the code
-        // (/login?error=…).
+        // SPEC §6.2, D-165, D-166: an external login always belongs to the
+        // account's own, verified email; an unknown provider fails closed.
+        // Throwing (not returning false) rolls the whole sign-up back, and the
+        // callback redirects with the code (/login?error=…).
         before: async (account) => {
           if (account.providerId === "credential") return;
           if (!isExternalProvider(account.providerId)) {
@@ -265,9 +251,6 @@ export const auth = betterAuth({
               message: "Den login-udbyder er ikke tilladt.",
             });
           }
-          // Auth0 (D-166): only Google and Auth0's own database. Enterprise,
-          // SAML or custom connections in the tenant can claim
-          // email_verified=true for any address.
           if (account.providerId === "auth0" && !isAllowedAuth0Subject(account.accountId)) {
             throw new APIError("FORBIDDEN", {
               code: "connection_not_allowed",
@@ -281,10 +264,9 @@ export const auth = betterAuth({
               message: "Emailen er ikke bekræftet.",
             });
           }
-          // Linking onto an existing user: Better Auth compares with the email
-          // frozen in the OAuth state when the link started. If "Skift email"
-          // ran in between (TG-064), the account's email is now another one.
-          // A brand-new user is not visible here yet (uncommitted transaction).
+          // Better Auth compares a link with the email frozen in the OAuth
+          // state; "Skift email" may have run since. A brand-new user is not
+          // visible here yet (uncommitted transaction).
           const user = await db.user.findUnique({
             where: { id: account.userId },
             select: { email: true },
@@ -296,12 +278,9 @@ export const auth = betterAuth({
             });
           }
         },
-        // SPEC §6.2: the profile picture comes from Google (also through
-        // Auth0's Google connection; other pictures are not allowed). A new user
-        // gets it on creation; an existing email/password user gets it when the
-        // external login is linked, unless they already have one. Linking also
-        // verifies the email (Better Auth only does that on sign-in), which
-        // app-admin requires (§9.9, D-165).
+        // SPEC §6.2: adopt Google's picture (also via Auth0) unless the user
+        // has one. Linking also verifies the email (Better Auth only does that
+        // on sign-in), which app-admin requires (§9.9, D-165).
         after: async (account) => {
           if (!isExternalProvider(account.providerId)) return;
           const claims = claimsFromIdToken(account.idToken);

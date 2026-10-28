@@ -17,7 +17,7 @@ export async function getUserName(userId: string): Promise<string | null> {
 
 export type AccountLogins = {
   hasPassword: boolean;
-  /** The external logins (Google, Auth0, D-166), in a stable order. */
+  /** Stable order: callers use external[0]. */
   external: ExternalProviderId[];
 };
 
@@ -44,11 +44,7 @@ export async function getAccountLogins(userId: string): Promise<AccountLogins> {
   };
 }
 
-/**
- * The stored id token of the user's external login, for "Tilføj password"
- * with Auth0 (D-166): its auth_time says when the user last logged in at
- * Auth0. Better Auth replaces it on every sign-in.
- */
+/** The latest stored id token (replaced on every sign-in), for Auth0's auth_time (D-166). */
 export async function getExternalIdToken(
   userId: string,
   providerId: ExternalProviderId,

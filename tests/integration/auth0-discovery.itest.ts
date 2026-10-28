@@ -5,7 +5,7 @@ import { auth } from "@/server/auth/auth";
 import { signInCookie, signUpWithPassword } from "./helpers";
 
 /**
- * Auth0 with a discovery document that has no jwks_uri (D-166, review L1/L2):
+ * Auth0 with a discovery document that has no jwks_uri (D-166):
  * requireIdTokenVerification makes Better Auth skip the provider instead of
  * trusting unverified id tokens, and email/password keep working. Its own
  * file, because discovery runs once, when auth.ts is imported.

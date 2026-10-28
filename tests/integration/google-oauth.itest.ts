@@ -92,8 +92,6 @@ beforeEach(() => {
   nextIdentity = null;
 });
 
-// ── Flow helpers ────────────────────────────────────────────────────────────
-
 /** "name=value" pairs from Set-Cookie headers, ready for a Cookie header. */
 function cookiesFrom(headers: Headers): string[] {
   return headers.getSetCookie().map((value) => value.split(";")[0] ?? "");
@@ -101,7 +99,6 @@ function cookiesFrom(headers: Headers): string[] {
 
 type Started = { state: string; cookies: string[] };
 
-/** POST /sign-in/social or /link-social; returns the OAuth state and its cookie. */
 async function start(
   path: "/sign-in/social" | "/link-social",
   sessionCookie?: string,
@@ -158,8 +155,6 @@ function newEmail(): string {
 async function passwordUser(): Promise<TestUser> {
   return signUpWithPassword("Skaal-google-12345", "Password Bruger", newEmail());
 }
-
-// ── Sign-in ─────────────────────────────────────────────────────────────────
 
 describe("Fortsæt med Google (§6.2)", () => {
   it("creates a new user with a verified email, Google's picture and a session", async () => {
@@ -229,8 +224,6 @@ describe("Fortsæt med Google (§6.2)", () => {
     expect(hasSessionCookie(replay)).toBe(false);
   });
 });
-
-// ── Link ────────────────────────────────────────────────────────────────────
 
 describe("Forbind Google på Profil (D-165)", () => {
   it("links Google with the same verified email, adopts the picture and verifies the email", async () => {
@@ -318,8 +311,6 @@ describe("Forbind Google på Profil (D-165)", () => {
   });
 });
 
-// ── Closed endpoints ────────────────────────────────────────────────────────
-
 describe("endpoints the app does not use are closed (D-165)", () => {
   it("answers 404 over HTTP", async () => {
     const user = await passwordUser();
@@ -354,9 +345,8 @@ describe("endpoints the app does not use are closed (D-165)", () => {
       }),
     );
 
-    // Not a failed signature check (INVALID_TOKEN): the app refuses any
-    // client-supplied id token before Better Auth looks at it (authBeforeHook,
-    // D-166); google.disableIdTokenSignIn stays as a second lock.
+    // The app's hook refuses it before Better Auth checks the signature
+    // (which would give INVALID_TOKEN).
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ code: "ID_TOKEN_SIGN_IN_DISABLED" });
     expect(await db.user.findUnique({ where: { email } })).toBeNull();

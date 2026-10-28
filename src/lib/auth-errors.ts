@@ -115,11 +115,10 @@ export function emailFollowsExternal(label: string): string {
 }
 
 /**
- * Message for the `?error=` parameter Better Auth adds when an external login
- * (`label`: "Google" or "Auth0", D-166) or "Forbind …" fails (/login?error=<code>
- * or Profil's ?error=, see onAPIError.errorURL in auth.ts). Only fixed texts:
- * the parameter itself (and any error_description) is never shown. Returns
- * null when there is no error.
+ * Message for the `?error=<code>` Better Auth adds when an external login
+ * (`label`: "Google" or "Auth0") or "Forbind …" fails (onAPIError.errorURL in
+ * auth.ts). Only fixed texts: the code itself is never shown. Returns null
+ * when there is no error.
  */
 export function getOAuthErrorMessage(
   code: string | null | undefined,
@@ -128,7 +127,7 @@ export function getOAuthErrorMessage(
   if (!code) return null;
   switch (code) {
     case "account_not_linked":
-      // E19, D-165: an external login is never linked implicitly onto an existing account.
+      // E19, D-165: never linked implicitly.
       return `Der findes allerede en konto med den email. Log ind med email og password, og forbind ${label} på din profil. Kender du ikke passwordet, så brug “Glemt password”.`;
     case "email_does_not_match":
       return `${label}-kontoen har en anden email end din konto her. Vælg den ${label}-konto, der har samme email.`;
@@ -136,7 +135,6 @@ export function getOAuthErrorMessage(
     case "unable_to_link_account":
       return `${label} har ikke bekræftet din email, så vi kan ikke bruge ${label}-kontoen.`;
     case "connection_not_allowed":
-      // D-166: only Google and Auth0's own database in Auth0.
       return `Den måde at logge ind på i ${label} er ikke tilladt her. Brug Google eller email og password.`;
     case "account_already_linked_to_different_user":
       return `${label}-kontoen er allerede koblet til en anden bruger.`;

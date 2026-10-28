@@ -16,7 +16,6 @@ type ReauthProps = {
   clubId: string;
   /** The account's email: the provider's chooser pre-selects it (loginHint). */
   email: string;
-  /** The account's external login (Google or Auth0). */
   provider: ExternalProviderId;
   /** Whether that login is the configured one (externalProvider), so the button works. */
   available: boolean;

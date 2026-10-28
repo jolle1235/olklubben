@@ -51,21 +51,17 @@ export function assertPasswordResetDeliverable(
   });
 }
 
-/** The endpoints that start an external login (Google, Auth0). */
 const EXTERNAL_LOGIN_PATHS = new Set(["/sign-in/social", "/link-social"]);
 
 /**
- * External logins only go through the redirect flow with the parameters the
- * app sends (D-166):
+ * External logins only via the redirect flow with the app's own parameters
+ * (D-166):
  *
- *   * `idToken` is refused on every path: a client-supplied id token (Auth0's
- *     live for hours) would log in without the redirect, PKCE and nonce, and
- *     on /link-social overwrite a stored account without the account hooks.
- *   * `scopes` and `additionalParams` are refused on the login endpoints, so
- *     nobody can pick another Auth0 connection, audience or organization, or
- *     ask for offline_access. The one exception is exactly
- *     `{ prompt: "login" }` ("Log ind med … igen"), which only makes the login
- *     stricter.
+ *   * `idToken` is refused on every path: it would log in without the
+ *     redirect, PKCE and nonce, and on /link-social skip the account hooks.
+ *   * `scopes` and `additionalParams` are refused on the login endpoints (no
+ *     other Auth0 connection, audience or offline_access), except exactly
+ *     `{ prompt: "login" }` ("Log ind med … igen"), which only adds strictness.
  */
 export function assertOwnExternalLoginParams(path: string, body: unknown): void {
   if (typeof body !== "object" || body === null) return;
