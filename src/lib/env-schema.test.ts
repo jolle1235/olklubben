@@ -180,9 +180,9 @@ describe("parseEnv: APP_ADMIN_EMAILS (feedback, §9.9, D-142)", () => {
 });
 
 describe("parseEnv: the app's base URL (D-164)", () => {
-  const { BETTER_AUTH_URL: _unused, ...withoutUrl } = required;
   const vercelProduction = {
-    ...withoutUrl,
+    ...required,
+    BETTER_AUTH_URL: undefined,
     VERCEL_ENV: "production",
     VERCEL_PROJECT_PRODUCTION_URL: "olklubben-abc.vercel.app",
   };
