@@ -203,6 +203,17 @@ describe("createMemberResetLink", () => {
     expect(await resetRowCount(other)).toBe(0);
   });
 
+  it("admin: et link til sig selv giver FORBIDDEN (D-116)", async () => {
+    const admin = await createUser();
+    const clubId = await createTestClub(admin);
+    setActor(admin);
+
+    const result = await createMemberResetLink(clubId, admin.id);
+
+    expect(result).toMatchObject({ ok: false, error: { code: ACTION_ERROR_CODES.FORBIDDEN } });
+    expect(await resetRowCount(admin)).toBe(0);
+  });
+
   it("et mål uden for klubben giver 404", async () => {
     const admin = await createUser();
     const stranger = await createUser();
