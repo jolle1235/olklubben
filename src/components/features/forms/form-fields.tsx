@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { PasswordInput } from "@/components/features/auth/password-input";
 import { FieldError } from "@/components/ui/form-message";
+import { ClearableInput } from "@/components/ui/clearable-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,6 +87,9 @@ export function FieldShell({
 type InputFieldProps = FieldShellProps &
   Omit<React.ComponentProps<"input">, "id" | "name" | "className"> & { name: string };
 
+/** Single-line text types that get the X to clear them (D-167). */
+const CLEARABLE_TYPES = new Set([undefined, "text", "email", "search", "url", "tel"]);
+
 export function InputField({
   label,
   optional,
@@ -96,7 +100,13 @@ export function InputField({
 }: InputFieldProps) {
   return (
     <FieldShell label={label} optional={optional} hint={hint} errors={errors} className={className}>
-      {(control) => <Input {...control} {...inputProps} />}
+      {(control) =>
+        CLEARABLE_TYPES.has(inputProps.type) ? (
+          <ClearableInput {...control} {...inputProps} />
+        ) : (
+          <Input {...control} {...inputProps} />
+        )
+      }
     </FieldShell>
   );
 }

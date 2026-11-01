@@ -6,7 +6,7 @@ import { Loader2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/form-message";
-import { Input } from "@/components/ui/input";
+import { ClearableInput } from "@/components/ui/clearable-input";
 import { Label } from "@/components/ui/label";
 import { INVALID_INVITE_CODE_MESSAGE, inviteCodeSchema } from "@/lib/validation/club";
 
@@ -41,7 +41,7 @@ export function JoinCodeForm() {
     <form onSubmit={handleSubmit} className="grid gap-3" noValidate>
       <div className="grid gap-2">
         <Label htmlFor={inputId}>Invitationskode</Label>
-        <Input
+        <ClearableInput
           ref={inputRef}
           id={inputId}
           name="code"

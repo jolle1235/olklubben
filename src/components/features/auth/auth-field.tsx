@@ -1,7 +1,7 @@
 import { CircleAlertIcon } from "lucide-react";
 import { useId } from "react";
 
-import { Input } from "@/components/ui/input";
+import { ClearableInput } from "@/components/ui/clearable-input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,7 @@ export function AuthField({
       {type === "password" ? (
         <PasswordInput {...controlProps} />
       ) : (
-        <Input type={type} {...controlProps} />
+        <ClearableInput type={type} {...controlProps} />
       )}
       <Suggestions id={listId} values={suggestions} />
       {showHint ? (

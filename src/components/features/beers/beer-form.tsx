@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { FieldError, FormError } from "@/components/ui/form-message";
+import { ClearableInput } from "@/components/ui/clearable-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -86,7 +87,7 @@ export function BeerForm({
 
       <div className="grid gap-2">
         <Label htmlFor={ids.name}>Navn</Label>
-        <Input
+        <ClearableInput
           ref={form.register("name")}
           id={ids.name}
           name="name"
