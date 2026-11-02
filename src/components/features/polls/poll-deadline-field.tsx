@@ -14,7 +14,8 @@ export type PollDeadlineFieldProps = {
 };
 
 /**
- * "Afstemningsfrist" (SPEC §9.7.1, §9.7.5): a date and a time side by side,
+ * "Afstemningsfrist" (SPEC §9.7.1, §9.7.5): a date and a time, stacked on a
+ * phone and side by side from sm (F-088),
  * Copenhagen wall clock. Controlled: the create form lets it follow the first
  * date until it is touched (D-135); the edit form keeps the stored one, which
  * can only move later once somebody has voted (E24, D-153; the server
@@ -32,7 +33,7 @@ export function PollDeadlineField({
       <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-ink">
         Afstemningsfrist
       </legend>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:max-w-md">
+      <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:max-w-md sm:grid-cols-2">
         <InputField
           type="date"
           name="deadlineDate"
