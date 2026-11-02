@@ -372,7 +372,7 @@ Brugeren indtaster sin email og får et link med en engangs-token (udløber efte
 * Al email-afsendelse går gennem ét interface (`server/email/sendEmail()`), så udbyderen kan skiftes uden at røre resten af koden.
 * **Midlertidig udbyder: Gmail SMTP** (via *app password* på en dedikeret Gmail-konto og `nodemailer`). Det virker uden eget domæne og har rigeligt med kapacitet til en lille klub.
 * **Fallback uden email:** Admins kan på medlemslisten generere et **engangs-nulstillingslink** til et medlem (udløber efter 1 time) og dele det fx i gruppechatten. Det er nyttigt uanset udbyder.
-  * **Begrænsning (D-046):** Kun til medlemmer, hvis klubber *alle* administreres af den admin, der laver linket, og aldrig til konti med Google-login. Afvisningen er generisk og nævner aldrig andre klubber (§3.3).
+  * **Begrænsning (D-046):** Kun til medlemmer, hvis klubber *alle* administreres af den admin, der laver linket, aldrig til konti med Google-login og aldrig til en selv (D-116, håndhæves på serveren, F-087). Afvisningen er generisk og nævner aldrig andre klubber (§3.3).
   * Et nyt link ugyldiggør det forrige, og en gennemført nulstilling ugyldiggør alle udestående links (D-047).
 * Er email ikke konfigureret (manglende miljøvariabler), viser "Glemt password"-siden: "Kontakt en admin i din klub for at få et nulstillingslink."
 * Medlemmer, der logger ind med Google, har ikke brug for nulstilling.
@@ -2023,6 +2023,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | – | – | Invitationslinket pegede på et fejlet deploy: base-URL fra Vercel i produktion (D-164, F-085) | ✅ | 2026-10-26. `parseEnv().appBaseUrl`: `https://${VERCEL_PROJECT_PRODUCTION_URL}` på Vercel Production, ellers `BETTER_AUTH_URL`. 5 nye unit tests i `env-schema.test.ts`. Jesper skal fjerne `BETTER_AUTH_URL` fra Vercel Production og redeploye (loggen advarer, hvis den står der og er anderledes). |
 | – | – | Google-login slået sikkert til uden Auth0 (D-165, F-086) | ✅ | 2026-10-26. Ingen automatisk kobling, "Forbind Google" på Profil, emailskift kobler Google fra, verificeret Google-email påkrævet, app-admin kræver bekræftet email, 5 endpoints lukket, id-token-login slået fra, tokens krypteret. Nyt: `google-oauth.itest.ts` (11 tests, rigtig Better Auth-handler, Googles token-endpoint mocket, mutationstestet). Gates: typecheck, lint, 1115 unit, 356 integration, fuld E2E. **Venter på Jesper:** Google Cloud-klienter og `GOOGLE_*` i Vercel Production (README "Google-login (OAuth)"), derefter manuel test (TG-011). |
 | – | – | Auth0 Universal Login ved siden af email/password (D-166) | ✅ | 2026-10-28. `genericOAuth` + `auth0()`, eksterne logins gjort generelle, log ud via Auth0, `auth_time` til "Tilføj password". Nyt: `auth0-oauth.itest.ts` (19 tests med RS256-signerede tokens mod mocket JWKS) og `auth0-discovery.itest.ts`; 8 mutationer fanges hver af mindst én test. Gates: typecheck, lint, 1125 unit, 376 integration, fuld E2E. Lokal Auth0-app sat op (EU-tenant): dev-serveren registrerer Auth0 (discovery og JWKS), "Fortsæt med Auth0" sender til tenantens `/authorize` med `redirect_uri` `/api/auth/callback/auth0`, nonce og PKCE, og Universal Login viser Google og database. **Venter på Jesper:** login i browseren, produktionsapp i Auth0 med egen Google-klient og `AUTH0_*` i Vercel Production (README "Auth0-login"), derefter manuel test i produktion. Kommentarer og tests strammet: Auth0's CSRF/state-test fjernet (samme kerne-callback som `google-oauth.itest.ts`). |
+| – | – | Nulstillingslink til en selv afvises på serveren (D-116, F-087) | ✅ | 2026-10-28. Fundet ved sikkerhedsreview af hele projektet. `createMemberResetLink` afviser eget id med FORBIDDEN; 1 ny integrationstest. |
 | – | – | X til at rydde tekstfelter (D-167) og afstemningsfristen under hinanden på mobil (F-088) | ✅ | 2026-11-01. X'et sidder i `src/components/ui/input.tsx` (2026-11-02: flyttet ind fra en separat `ClearableInput`, så alle enlinjede tekstfelter får det uden at vælge komponent; `clearable={false}` slår det fra). Ny E2E `clear-input.spec.ts`. Gates 2026-11-02: typecheck, lint, 52 E2E (clear-input, beers, form-focus, login-suggestions, password-reset, profile, songs-import, members). |
 
 ## 19.3 Beslutningslog
@@ -2212,7 +2213,14 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
 
-### F-088 · 2026-11-01 · Afstemningsfristens dato og klokkeslæt overlappede på mobil
+### F-087 · 2026-10-28 · Admin kunne lave nulstillingslink til sig selv
+- **Område:** Auth
+- **Symptom:** Et sikkerhedsreview af hele projektet viste, at `createMemberResetLink(clubId, egetUserId)` returnerede et gyldigt token, når admin'en kun havde password-login og var admin i alle sine klubber. Med en stjålet session kunne man så sætte et nyt password uden at kende det nuværende og derefter skifte email. Det omgik kravet om at bekræfte sig igen i "Skift password", "Skift email" og "Tilføj password".
+- **Årsag:** D-116 ("Nulstillingslink tilbydes aldrig til en selv") blev kun håndhævet i UI'et (`isMe`/`isSelf` i medlemslisten). Server-action'en tjekkede ikke `userId !== user.id`, og `getResetLinkEligibility(selv, selv)` sagde god for kontoen.
+- **Rettelse:** `src/server/actions/clubs.ts` afviser et mål lig den indloggede bruger med generisk FORBIDDEN før medlemsopslaget. Ny integrationstest i `clubs-actions.itest.ts`.
+- **Læring / forebyggelse:** En begrænsning i UI'et på en server-action skal altid gentages på serveren. Server-actions er offentlige POST-endpoints.
+
+  ### F-088 · 2026-11-01 · Afstemningsfristens dato og klokkeslæt overlappede på mobil
 - **Område:** Polls / UI
 - **Symptom:** På "Ny afstemning" og "Rediger afstemning" løb felterne Dato og Klokken ind over hinanden ved telefonbredde, lige over hint-teksten "skal ligge før den første dato …".
 - **Årsag:** `PollDeadlineField` brugte altid `grid-cols-2`. Native date/time-inputs har en minimumsbredde, der ikke kan være to af ved 375 px.

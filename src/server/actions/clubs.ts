@@ -159,8 +159,8 @@ export type MemberResetLink = {
  * (SPEC §6.4, D-017). Valid for 1 hour and one use. The admin shares it, e.g.
  * in the group chat, when email is not set up.
  *
- * Only for members whose every club the admin administers, and never for an
- * account with a Google login (canResetMemberPassword). Both refusals give the
+ * Never for yourself (D-116). Only for members whose every club the admin
+ * administers, and never for an account with a Google login (canResetMemberPassword). Both refusals give the
  * same message, so nothing reveals that the member is in other clubs (§3.3).
  */
 export async function createMemberResetLink(
@@ -172,6 +172,12 @@ export async function createMemberResetLink(
 
   const { user, membership, club } = await requireMembership(parsed.data.clubId);
   if (!canGeneratePasswordResetLink(membership)) {
+    return fail(ACTION_ERROR_CODES.FORBIDDEN, DEFAULT_ERROR_MESSAGES.FORBIDDEN);
+  }
+
+  // Never for yourself (D-116): it would skip the current-password check of
+  // "Skift password" for anyone holding a stolen session.
+  if (parsed.data.userId === user.id) {
     return fail(ACTION_ERROR_CODES.FORBIDDEN, DEFAULT_ERROR_MESSAGES.FORBIDDEN);
   }
 
