@@ -85,6 +85,7 @@ export function SongFinderBar({
             ref={inputRef}
             id={inputId}
             type="search"
+            clearable={false}
             name="q"
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}

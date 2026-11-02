@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2Icon, SearchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { ClearableInput } from "@/components/ui/clearable-input";
+import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   BEER_SORT_LABELS,
@@ -118,7 +118,7 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
             className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-slate"
           />
         )}
-        <ClearableInput
+        <Input
           id={searchId}
           type="search"
           name="q"

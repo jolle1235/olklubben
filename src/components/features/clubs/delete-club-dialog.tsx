@@ -65,6 +65,7 @@ export function DeleteClubDialog({ clubId, clubName, counts }: DeleteClubDialogP
             value={typed}
             onChange={(event) => setTyped(event.target.value)}
             placeholder={clubName}
+            clearable={false}
             autoComplete="off"
             autoCapitalize="off"
             autoCorrect="off"

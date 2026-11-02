@@ -20,6 +20,7 @@ export function PasswordInput({ className, id, ...props }: PasswordInputProps) {
       <Input
         id={id}
         type={visible ? "text" : "password"}
+        clearable={false}
         className={cn("pr-12", className)}
         {...props}
       />
