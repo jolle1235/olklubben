@@ -19,9 +19,8 @@ type InputProps = React.ComponentProps<"input"> & {
 /**
  * The X shows only while there is text: CSS (:placeholder-shown, hence the
  * " " fallback placeholder) decides, so it also follows uncontrolled fields,
- * form resets and autofill. Clearing goes through the native setter and an
- * input event, so React's onChange runs for controlled fields too. Out of the
- * tab order: Ctrl+A, Delete does the same from the keyboard.
+ * form resets and autofill. Out of the tab order: Ctrl+A, Delete does the
+ * same from the keyboard.
  */
 function Input({
   className,
@@ -55,7 +54,8 @@ function Input({
         onClick={(event) => {
           const field = event.currentTarget.previousElementSibling;
           if (!(field instanceof HTMLInputElement)) return;
-          // field.value = "" would be undone by React on a controlled field.
+          // Native setter + input event, so React's onChange runs: field.value = ""
+          // would be undone by React on a controlled field.
           Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(
             field,
             "",
