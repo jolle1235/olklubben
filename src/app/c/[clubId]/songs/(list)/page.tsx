@@ -37,7 +37,7 @@ export default async function SongsPage({ params }: PageProps<"/c/[clubId]/songs
     <>
       {canManage ? (
         <TopBarAction>
-          <Button asChild size="icon" variant="brass">
+          <Button asChild size="icon" variant="highlight">
             <Link href={addHref} aria-label="Tilføj sang">
               <PlusIcon aria-hidden />
             </Link>

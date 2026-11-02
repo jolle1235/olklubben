@@ -59,13 +59,13 @@ export function InviteShare({ inviteUrl, displayCode, clubName, className }: Inv
   return (
     <div
       className={cn(
-        "relative rounded-2xl border border-border bg-paper text-ink [--ticket-notch:var(--background)]",
+        "relative rounded-2xl border border-border bg-card text-foreground [--ticket-notch:var(--background)]",
         className,
       )}
     >
       <div className="px-5 pt-5 pb-4 text-center">
         <p className="text-sm font-semibold text-muted-foreground">Invitationskode</p>
-        <p className="mt-1.5 font-display text-[clamp(1.9rem,9.5vw,3rem)] leading-none font-bold tracking-[0.06em] whitespace-nowrap text-olive tabular-nums">
+        <p className="mt-1.5 font-display text-[clamp(1.9rem,9.5vw,3rem)] leading-none font-bold tracking-[0.06em] whitespace-nowrap text-primary-ink tabular-nums">
           <span aria-hidden>{displayCode}</span>
           <span className="sr-only">{displayCode.split("").join(" ")}</span>
         </p>
@@ -88,7 +88,7 @@ export function InviteShare({ inviteUrl, displayCode, clubName, className }: Inv
           readOnly
           value={inviteUrl}
           onFocus={(event) => event.currentTarget.select()}
-          className="h-11 w-full truncate rounded-lg bg-cream-deep px-3.5 text-[0.95rem] text-ink"
+          className="h-11 w-full truncate rounded-lg bg-muted px-3.5 text-[0.95rem] text-foreground"
         />
         <div className="grid grid-cols-2 gap-3">
           <Button type="button" variant="secondary" onClick={copyLink}>

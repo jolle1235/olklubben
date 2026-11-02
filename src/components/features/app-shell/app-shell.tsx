@@ -11,16 +11,16 @@ export type AppShellProps = {
 };
 
 /**
- * Frame for every club page (/c/[clubId]/…). Mobile: olive top bar with the club
- * name + fixed bottom navigation. Desktop (md+): olive sidebar on the left.
+ * Frame for every club page (/c/[clubId]/…). Mobile: top bar (surface-frame) with
+ * the club name + fixed bottom navigation. Desktop (md+): sidebar on the left.
  * Server Component; the interactive parts are client components.
  */
 export function AppShell({ club, clubs, user, children }: AppShellProps) {
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:bg-[linear-gradient(to_right,var(--olive)_17rem,transparent_17rem)]">
+    <div className="min-h-dvh md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:bg-[linear-gradient(to_right,var(--frame)_17rem,transparent_17rem)]">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-paper focus:px-4 focus:py-3 focus:font-semibold focus:text-olive"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-3 focus:font-semibold focus:text-primary-ink"
       >
         Spring til indhold
       </a>

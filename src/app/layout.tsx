@@ -4,8 +4,10 @@ import { Suspense } from "react";
 import { fontVariables } from "@/components/brand/fonts";
 import { FlashToast } from "@/components/features/flash-toast";
 import { SongbookPrefsScript } from "@/components/features/songs/songbook-prefs-script";
+import { ThemePrefsScript } from "@/components/features/theme/theme-prefs-script";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,9 +19,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Olive browser chrome, matching the top bar and sidebar (SPEC §13.2).
-  themeColor: "#414437",
-  colorScheme: "light",
+  // Browser chrome in the app frame's colour (top bar, sidebar), per theme (SPEC §13.2).
+  // The theme bootstrap re-points it when the choice on Profil differs from the system.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: BROWSER_THEME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: BROWSER_THEME_COLOR.dark },
+  ],
+  colorScheme: "light dark",
   // Lets env(safe-area-inset-*) work, so the bottom nav clears the iPhone home indicator.
   viewportFit: "cover",
 };
@@ -32,11 +38,13 @@ export const viewport: Viewport = {
  */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // suppressHydrationWarning: the songbook bootstrap below may set
-    // data-song-size / data-song-view on <html> before React hydrates. It
-    // covers <html>'s own attributes only.
+    // suppressHydrationWarning: the bootstraps below set data-theme,
+    // data-theme-pref, data-song-size and data-song-view on <html> before
+    // React hydrates. It covers <html>'s own attributes only.
     <html lang="da" className={`${fontVariables} h-full`} suppressHydrationWarning>
       <head>
+        {/* The colour theme, before the first paint (no flash of the wrong theme). */}
+        <ThemePrefsScript />
         {/* The songbook reader's font size and view, before the first paint. */}
         <SongbookPrefsScript />
       </head>

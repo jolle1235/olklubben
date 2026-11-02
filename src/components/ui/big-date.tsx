@@ -15,7 +15,7 @@ export type BigDateProps = {
 
 /**
  * The big date motif from SPEC §13.3: "23 / OKTOBER".
- * The color comes from the parent (currentColor), so it works on cream, olive and harbor.
+ * The color comes from the parent (currentColor), so it works on every surface.
  * Day, month and dateTime come from lib/format/date (Europe/Copenhagen, D-039),
  * so server and browser render the same text. Renders nothing for an invalid date.
  */
@@ -31,10 +31,10 @@ export function BigDate({ date, size = "md", className }: BigDateProps) {
     >
       {/* Proportional digits: Zilla Slab's tabular "11" reads as "1 1" at this size. */}
       <span className={cn("font-bold tracking-tight", s.day)}>{parts.day}</span>
-      {/* The "/" from "23 / OKTOBER", drawn as a short brass rule. */}
+      {/* The "/" from "23 / OKTOBER", drawn as a short highlight rule. */}
       <span
         aria-hidden
-        className={cn("my-[0.45em] h-[3px] w-[2.2em] rounded-full bg-amber", s.month)}
+        className={cn("my-[0.45em] h-[3px] w-[2.2em] rounded-full bg-highlight", s.month)}
       />
       <span className={cn("font-semibold uppercase", s.month)}>{parts.month}</span>
     </time>

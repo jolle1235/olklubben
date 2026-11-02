@@ -75,7 +75,7 @@ export function PlaceList({ clubId, active, archived, viewerId, newPlaceHref }: 
 
       {archived.length > 0 ? (
         <details className="group/archived grid grid-cols-1 gap-3">
-          <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-lg font-heading text-lg font-semibold text-olive [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-lg font-heading text-lg font-semibold text-primary-ink [&::-webkit-details-marker]:hidden">
             <ChevronRightIcon
               aria-hidden
               className="size-5 shrink-0 transition-transform group-open/archived:rotate-90"

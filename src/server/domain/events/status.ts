@@ -97,7 +97,7 @@ export function heroStateLabel(state: HeroState): string {
   }
 }
 
-/** Highlighted states (amber on the hero card): today and ongoing. */
+/** Highlighted states (the highlight role on the hero card): today and ongoing. */
 export function isHeroHighlighted(state: HeroState): boolean {
   return state.kind === "tonight" || state.kind === "ongoing";
 }

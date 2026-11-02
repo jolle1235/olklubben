@@ -44,7 +44,7 @@ export function VoterAvatars({
         pending ? (
           <span
             key={voter.id}
-            className="rounded-full outline-2 outline-offset-2 outline-olive outline-dashed"
+            className="rounded-full outline-2 outline-offset-2 outline-primary outline-dashed"
           >
             <UserAvatar
               name={voter.name}
@@ -66,7 +66,9 @@ export function VoterAvatars({
         ),
       )}
       {rest > 0 ? (
-        <span className="text-[0.9rem] font-semibold text-slate tabular-nums">+{rest}</span>
+        <span className="text-[0.9rem] font-semibold text-muted-foreground tabular-nums">
+          +{rest}
+        </span>
       ) : null}
     </div>
   );

@@ -146,30 +146,30 @@ function FrozenPollPlan({
     <>
       <section
         aria-labelledby="poll-edit-options-heading"
-        className="grid grid-cols-1 gap-3 rounded-xl border-2 border-dashed border-harbor/40 bg-harbor-tint/40 px-4 py-4"
+        className="grid grid-cols-1 gap-3 rounded-xl border-2 border-dashed border-info-border bg-info-subtle/40 px-4 py-4"
       >
-        <h2 id="poll-edit-options-heading" className="text-[0.95rem] font-semibold text-ink">
+        <h2 id="poll-edit-options-heading" className="text-[0.95rem] font-semibold text-foreground">
           Datoer og steder
         </h2>
         <ul className="grid grid-cols-1 gap-1.5">
           {view.dates.map((option) => (
-            <li key={option.id} className="flex min-w-0 items-start gap-2 text-ink">
-              <CalendarIcon aria-hidden className="mt-1 size-4 shrink-0 text-harbor" />
+            <li key={option.id} className="flex min-w-0 items-start gap-2 text-foreground">
+              <CalendarIcon aria-hidden className="mt-1 size-4 shrink-0 text-info-ink" />
               <span className="min-w-0 break-words first-letter:uppercase">
                 {pollDateLongLabel(option.startsAt)}
               </span>
             </li>
           ))}
           {view.places.map((option) => (
-            <li key={option.id} className="flex min-w-0 items-start gap-2 text-ink">
-              <MapPinIcon aria-hidden className="mt-1 size-4 shrink-0 text-harbor" />
+            <li key={option.id} className="flex min-w-0 items-start gap-2 text-foreground">
+              <MapPinIcon aria-hidden className="mt-1 size-4 shrink-0 text-info-ink" />
               <span className="min-w-0 break-words hyphens-auto">
                 {placeOptionLabel(option.place)}
               </span>
             </li>
           ))}
         </ul>
-        <p className="text-[0.95rem] text-slate">
+        <p className="text-[0.95rem] text-muted-foreground">
           Datoer og steder kan ikke ændres, når nogen har stemt. Er de forkerte, så annullér
           afstemningen og start en ny.
         </p>

@@ -17,15 +17,18 @@ export function ArchivedPlaceBanner({ clubId, placeId, canRestore }: ArchivedPla
   return (
     <section
       aria-labelledby="archived-place-heading"
-      className="grid grid-cols-1 gap-3 rounded-2xl border border-amber bg-amber-tint px-4 py-4 sm:px-5"
+      className="grid grid-cols-1 gap-3 rounded-2xl border border-highlight bg-highlight-subtle px-4 py-4 sm:px-5"
     >
       <div className="flex items-start gap-3">
-        <ArchiveIcon aria-hidden className="mt-0.5 size-5 shrink-0 text-amber-ink" />
+        <ArchiveIcon aria-hidden className="mt-0.5 size-5 shrink-0 text-highlight-ink" />
         <div className="grid min-w-0 gap-1">
-          <h2 id="archived-place-heading" className="font-heading text-lg leading-snug text-ink">
+          <h2
+            id="archived-place-heading"
+            className="font-heading text-lg leading-snug text-foreground"
+          >
             Arkiveret · vises ikke, når I vælger sted
           </h2>
-          <p className="text-[0.95rem] text-ink">
+          <p className="text-[0.95rem] text-foreground">
             {canRestore
               ? "De gamle events viser det stadig. Gendan det, hvis I skal bruge det igen."
               : "De gamle events viser det stadig. Stedets ejere og klubbens admins kan gendanne det."}

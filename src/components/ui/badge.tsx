@@ -10,14 +10,15 @@ const badgeVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
-        destructive: "bg-danger-tint text-destructive [a]:hover:bg-danger-tint/80",
+        destructive:
+          "bg-destructive-subtle text-destructive-ink [a]:hover:bg-destructive-subtle/80",
         outline: "border-input text-foreground [a]:hover:bg-muted",
-        /** Fremhævning, fx "I aften!" (ink på amber: 6,92:1). */
-        amber: "bg-amber text-ink [a]:hover:bg-amber-light",
-        /** Info i sekundærfarven, fx "om 3 dage" (harbor på harbor-tint). */
-        info: "bg-harbor-tint text-harbor [a]:hover:bg-harbor-tint/80",
+        /** Fremhævning, fx "I aften!" (highlight-rollen). */
+        highlight: "bg-highlight text-highlight-foreground [a]:hover:bg-highlight-hover",
+        /** Info, fx "om 3 dage" (info-rollen). */
+        info: "bg-info-subtle text-info-ink [a]:hover:bg-info-subtle/80",
         ghost: "hover:bg-muted",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-primary-ink underline-offset-4 hover:underline",
       },
     },
     defaultVariants: {

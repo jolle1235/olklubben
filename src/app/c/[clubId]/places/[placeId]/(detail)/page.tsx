@@ -68,7 +68,7 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
     <>
       {archived ? null : (
         <TopBarAction>
-          <Button asChild size="icon" variant="brass">
+          <Button asChild size="icon" variant="highlight">
             <Link href={createHref} aria-label="Opret event her">
               <PlusIcon aria-hidden />
             </Link>
@@ -78,7 +78,7 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
 
       <Link
         href={placesHref(club.id)}
-        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
+        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 hover:underline"
       >
         <ArrowLeftIcon aria-hidden className="size-4" />
         Alle steder
@@ -148,12 +148,12 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
             </div>
             {blockingPoll && !archived ? (
               <p className="flex items-start gap-2 text-[0.95rem] break-words text-muted-foreground">
-                <VoteIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-harbor" />
+                <VoteIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-info-ink" />
                 <span className="min-w-0">
                   {placeInActivePollNote(blockingPoll.title)}{" "}
                   <Link
                     href={pollHref(club.id, blockingPoll.id)}
-                    className="inline-flex min-h-11 items-center font-semibold text-olive underline underline-offset-4"
+                    className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline underline-offset-4"
                   >
                     Se afstemningen
                   </Link>

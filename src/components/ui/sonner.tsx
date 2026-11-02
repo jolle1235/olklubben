@@ -9,10 +9,12 @@ import {
   Loader2Icon,
 } from "lucide-react";
 
-// Light theme only (SPEC §13.2), so no next-themes here. Toasts are olive pills
-// with cream text (8,77:1); errors use danger with white text (6,54:1). The
-// brass border sets them off on the olive band of CenteredShell pages, where
-// "club-left"/"club-deleted" land (TG-039), as well as on cream.
+// Toasts are pills in the app frame's colours (SPEC §13.2); errors use the
+// destructive role. The colours come from the colour system's roles, so they
+// follow the light and dark theme without next-themes; contrast is tested in
+// src/styles/tokens/contrast.test.ts. The highlight border sets them off on
+// the frame band of CenteredShell pages, where "club-left"/"club-deleted"
+// land (TG-039), as well as on the page background.
 // Top-center on all screens, so toasts never hide behind the mobile bottom nav.
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
@@ -24,40 +26,40 @@ const Toaster = ({ ...props }: ToasterProps) => {
       containerAriaLabel="Beskeder"
       className="toaster group"
       icons={{
-        success: <CircleCheckIcon className="size-5 text-amber" />,
-        info: <InfoIcon className="size-5 text-on-dark-muted" />,
-        warning: <TriangleAlertIcon className="size-5 text-amber-ink" />,
+        success: <CircleCheckIcon className="size-5 text-highlight" />,
+        info: <InfoIcon className="size-5 text-frame-muted-foreground" />,
+        warning: <TriangleAlertIcon className="size-5 text-highlight-ink" />,
         error: <OctagonXIcon className="size-5" />,
-        loading: <Loader2Icon className="size-5 animate-spin text-amber" />,
+        loading: <Loader2Icon className="size-5 animate-spin text-highlight" />,
       }}
-      // Below the 64 px mobile top bar, so the olive toast stands out on cream.
+      // Below the 64 px mobile top bar, so the toast stands out on the page background.
       // Sonner applies it only up to 600 px; globals.css stretches it up to md,
       // where the top bar ends.
       mobileOffset={{ top: "calc(env(safe-area-inset-top) + 4.75rem)" }}
       style={
         {
-          "--normal-bg": "var(--olive)",
-          "--normal-text": "var(--cream)",
-          "--normal-border": "var(--amber)",
-          "--success-bg": "var(--olive)",
-          "--success-text": "var(--cream)",
-          "--success-border": "var(--amber)",
-          "--info-bg": "var(--olive)",
-          "--info-text": "var(--cream)",
-          "--info-border": "var(--amber)",
-          "--warning-bg": "var(--amber-tint)",
-          "--warning-text": "var(--ink)",
-          "--warning-border": "var(--amber)",
-          "--error-bg": "var(--danger)",
-          "--error-text": "#ffffff",
-          "--error-border": "var(--danger-deep)",
+          "--normal-bg": "var(--frame)",
+          "--normal-text": "var(--frame-foreground)",
+          "--normal-border": "var(--highlight)",
+          "--success-bg": "var(--frame)",
+          "--success-text": "var(--frame-foreground)",
+          "--success-border": "var(--highlight)",
+          "--info-bg": "var(--frame)",
+          "--info-text": "var(--frame-foreground)",
+          "--info-border": "var(--highlight)",
+          "--warning-bg": "var(--highlight-subtle)",
+          "--warning-text": "var(--foreground)",
+          "--warning-border": "var(--highlight)",
+          "--error-bg": "var(--destructive)",
+          "--error-text": "var(--destructive-foreground)",
+          "--error-border": "var(--destructive-hover)",
           "--border-radius": "calc(var(--radius) * 1.4)",
         } as React.CSSProperties
       }
       toastOptions={{
         closeButtonAriaLabel: "Luk besked",
         classNames: {
-          toast: "cn-toast font-sans text-base! shadow-[0_18px_40px_-16px_rgb(45_47_35/0.55)]!",
+          toast: "cn-toast font-sans text-base! shadow-floating!",
           description: "opacity-90",
         },
       }}

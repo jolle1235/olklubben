@@ -52,13 +52,13 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
     <>
       <TopBarAction>
         {primary === "edit" ? (
-          <Button asChild size="icon" variant="brass">
+          <Button asChild size="icon" variant="highlight">
             <Link href={editHref} aria-label="Rediger event">
               <LinkPendingIcon icon={<PencilIcon aria-hidden />} />
             </Link>
           </Button>
         ) : (
-          <Button asChild size="icon" variant="brass">
+          <Button asChild size="icon" variant="highlight">
             <Link href={addBeerHref} aria-label="Tilføj øl">
               <PlusIcon aria-hidden />
             </Link>
@@ -93,7 +93,7 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
         {event.description ? (
           <EventSection id="event-plan" title="Planen">
             {/* Plain text: React escapes it, line breaks are kept (never HTML). */}
-            <p className="mx-auto w-full max-w-[60ch] text-[1.1rem] leading-relaxed break-words hyphens-auto whitespace-pre-line text-ink">
+            <p className="mx-auto w-full max-w-[60ch] text-[1.1rem] leading-relaxed break-words hyphens-auto whitespace-pre-line text-foreground">
               {event.description}
             </p>
           </EventSection>

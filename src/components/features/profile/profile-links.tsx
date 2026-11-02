@@ -94,16 +94,16 @@ function LinkList({ label, rows }: { label: string; rows: readonly Row[] }) {
                 background), so the focus ring is drawn inside the row. */}
             <Link
               href={href}
-              className="group/row flex min-h-16 items-center gap-4 px-4 py-3 transition-colors hover:bg-cream-deep/70 focus-visible:-outline-offset-3 md:px-5"
+              className="group/row flex min-h-16 items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/70 focus-visible:-outline-offset-3 md:px-5"
             >
               <span
                 aria-hidden
-                className="grid size-10 shrink-0 place-items-center rounded-full bg-olive text-amber [&_svg]:size-5"
+                className="grid size-10 shrink-0 place-items-center rounded-full bg-frame text-highlight [&_svg]:size-5"
               >
                 <Icon strokeWidth={2.25} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-heading text-lg leading-tight font-semibold text-olive">
+                <span className="block font-heading text-lg leading-tight font-semibold text-primary-ink">
                   {title}
                 </span>
                 <span className="block text-[0.95rem] text-pretty text-muted-foreground">
@@ -112,7 +112,7 @@ function LinkList({ label, rows }: { label: string; rows: readonly Row[] }) {
               </span>
               <ChevronRightIcon
                 aria-hidden
-                className="size-5 shrink-0 text-slate transition-transform group-hover/row:translate-x-0.5"
+                className="size-5 shrink-0 text-muted-foreground transition-transform group-hover/row:translate-x-0.5"
               />
             </Link>
           </li>

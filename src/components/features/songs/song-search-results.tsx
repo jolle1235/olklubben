@@ -95,14 +95,14 @@ export function SongSearchResults({
   return (
     <div className="grid grid-cols-1 gap-4">
       {mode === "loose" ? (
-        <p className="rounded-xl bg-harbor-tint px-4 py-3 text-[0.95rem] text-ink">
+        <p className="rounded-xl bg-info-subtle px-4 py-3 text-[0.95rem] text-foreground">
           Ingen præcise træf. Her er sange, hvis man ser bort fra æ, ø og å.
         </p>
       ) : null}
       {titleHits.length > 0 ? <SongListCard>{rows(titleHits)}</SongListCard> : null}
       {lyricHits.length > 0 ? (
         <section aria-labelledby="fundet-i-teksten" className="grid grid-cols-1 gap-2">
-          <h2 id="fundet-i-teksten" className="text-xl text-olive">
+          <h2 id="fundet-i-teksten" className="text-xl text-primary-ink">
             Fundet i teksten
           </h2>
           <SongListCard>{rows(lyricHits)}</SongListCard>

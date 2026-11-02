@@ -18,7 +18,7 @@ export type PlaceEventsProps = {
 export function PlaceEvents({ clubId, events, now }: PlaceEventsProps) {
   return (
     <section aria-labelledby="place-events-heading" className="grid grid-cols-1 gap-3">
-      <h2 id="place-events-heading" className="text-2xl text-olive">
+      <h2 id="place-events-heading" className="text-2xl text-primary-ink">
         Ølsmagninger her
         {events.length > 0 ? (
           <span className="ml-2 font-sans text-lg font-normal text-muted-foreground">
@@ -41,7 +41,7 @@ export function PlaceEvents({ clubId, events, now }: PlaceEventsProps) {
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border-2 border-dashed border-border bg-paper/60 px-4 py-4 text-[1.05rem] text-muted-foreground md:px-5">
+        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-[1.05rem] text-muted-foreground md:px-5">
           Ingen ølsmagninger her endnu.
         </p>
       )}

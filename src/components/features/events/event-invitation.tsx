@@ -52,22 +52,22 @@ export function EventInvitation({
   const mapsUrl = place.address ? mapsSearchUrl(place.address) : null;
 
   return (
-    <article className="rounded-3xl border border-border bg-paper px-5 pt-8 pb-6 text-center shadow-[0_18px_40px_-30px_rgb(65_68_55/0.6)] sm:px-10 sm:pt-10">
+    <article className="rounded-3xl border border-border bg-card px-5 pt-8 pb-6 text-center shadow-raised sm:px-10 sm:pt-10">
       <div
         aria-hidden
-        className="mx-auto mb-5 grid size-12 place-items-center porthole rounded-full bg-harbor text-amber [&_svg]:size-6"
+        className="mx-auto mb-5 grid size-12 place-items-center porthole rounded-full bg-feature text-highlight [&_svg]:size-6"
       >
         <AnchorIcon />
       </div>
 
-      <Badge variant={isHeroHighlighted(state) ? "amber" : "info"} className="mb-3">
+      <Badge variant={isHeroHighlighted(state) ? "highlight" : "info"} className="mb-3">
         {heroStateLabel(state)}
       </Badge>
-      <h1 className="text-[2.25rem] leading-[1.05] font-bold tracking-tight break-words hyphens-auto text-olive md:text-[3rem]">
+      <h1 className="text-[2.25rem] leading-[1.05] font-bold tracking-tight break-words hyphens-auto text-primary-ink md:text-[3rem]">
         {event.title}
       </h1>
       {event.theme ? (
-        <p className="mx-auto mt-4 w-fit max-w-full rounded-2xl border border-amber/60 bg-amber-tint px-4 py-1.5 text-[1.05rem] break-words hyphens-auto text-ink">
+        <p className="mx-auto mt-4 w-fit max-w-full rounded-2xl border border-highlight-border bg-highlight-subtle px-4 py-1.5 text-[1.05rem] break-words hyphens-auto text-foreground">
           <span className="font-semibold">Tema:</span> {event.theme}
         </p>
       ) : null}
@@ -75,13 +75,13 @@ export function EventInvitation({
       <SectionDivider className="my-7" />
 
       {/* Decorative: the sentence below says the same for screen readers. */}
-      <div aria-hidden className="text-olive">
+      <div aria-hidden className="text-primary-ink">
         <BigDate date={event.startsAt} size="lg" className="items-center" />
       </div>
-      <p className="mt-5 text-xl font-semibold text-ink first-letter:uppercase">
+      <p className="mt-5 text-xl font-semibold text-foreground first-letter:uppercase">
         <time dateTime={toDateKey(event.startsAt)}>{formatLongDate(event.startsAt, now)}</time>
       </p>
-      <p className="mt-1 text-xl text-ink tabular-nums">
+      <p className="mt-1 text-xl text-foreground tabular-nums">
         <time dateTime={event.startsAt.toISOString()}>{formatTime(event.startsAt)}</time>
         {event.endsAt ? (
           <>
@@ -94,19 +94,19 @@ export function EventInvitation({
 
       <SectionDivider className="my-7" />
 
-      <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xl font-semibold text-ink">
-        <MapPinIcon aria-hidden className="size-5 shrink-0 text-olive" />
+      <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xl font-semibold text-foreground">
+        <MapPinIcon aria-hidden className="size-5 shrink-0 text-primary-ink" />
         <span className="sr-only">Sted: </span>
         <Link
           href={placeHref(clubId, place.id)}
-          className="inline-flex min-h-11 min-w-0 items-center break-words hyphens-auto underline decoration-amber decoration-2 underline-offset-[5px] hover:decoration-olive"
+          className="inline-flex min-h-11 min-w-0 items-center break-words hyphens-auto underline decoration-highlight decoration-2 underline-offset-[5px] hover:decoration-primary"
         >
           {place.name}
         </Link>
         {place.archived ? <Badge variant="outline">Arkiveret</Badge> : null}
       </p>
       {place.address ? (
-        <p className="mx-auto max-w-[40ch] text-[1.05rem] break-words hyphens-auto text-slate">
+        <p className="mx-auto max-w-[40ch] text-[1.05rem] break-words hyphens-auto text-muted-foreground">
           {place.address}
         </p>
       ) : null}
@@ -121,7 +121,7 @@ export function EventInvitation({
       ) : (
         <Link
           href={editPlaceHref(clubId, place.id)}
-          className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-[0.95rem] font-semibold text-olive underline decoration-2 underline-offset-4 hover:decoration-amber"
+          className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-[0.95rem] font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
         >
           <PlusIcon aria-hidden className="size-4" />
           Tilføj adresse
@@ -131,7 +131,7 @@ export function EventInvitation({
       <div className="mt-7 grid grid-cols-1 gap-2 border-t border-dashed border-border pt-4">
         <EventHosts hosts={hosts} />
         <p className="text-[0.95rem] break-words text-muted-foreground">
-          Oprettet af <span className="font-semibold text-ink">{creatorName}</span>
+          Oprettet af <span className="font-semibold text-foreground">{creatorName}</span>
         </p>
         {pollId ? <EventPollNote clubId={clubId} pollId={pollId} /> : null}
       </div>

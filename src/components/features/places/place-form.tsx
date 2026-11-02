@@ -72,7 +72,7 @@ export function PlaceForm({ clubId, placeId, defaults, cancelHref }: PlaceFormPr
         {existing ? (
           <Link
             href={placeHref(clubId, existing.id)}
-            className="inline-flex min-h-11 w-fit max-w-full items-center gap-2 font-semibold text-primary underline decoration-2 underline-offset-4 hover:decoration-amber"
+            className="inline-flex min-h-11 w-fit max-w-full items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
           >
             <span className="min-w-0 break-words hyphens-auto">Gå til «{existing.name}»</span>
             <ArrowRightIcon aria-hidden className="size-4 shrink-0" />

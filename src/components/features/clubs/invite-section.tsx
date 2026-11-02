@@ -28,9 +28,9 @@ export function InviteSection({
 }: InviteSectionProps) {
   return (
     <section id="invite" aria-labelledby="invite-heading" className={cn("scroll-mt-24", className)}>
-      <Card className="border-amber/60 shadow-[0_10px_30px_-22px_rgb(65_68_55/0.6)]">
+      <Card className="border-highlight-border shadow-raised">
         <CardHeader>
-          <h2 id="invite-heading" className="font-heading text-2xl leading-tight text-olive">
+          <h2 id="invite-heading" className="font-heading text-2xl leading-tight text-primary-ink">
             Inviter dine ølbrødre
           </h2>
           <CardDescription className="text-[1.05rem]">
@@ -46,7 +46,7 @@ export function InviteSection({
               className="[--ticket-notch:var(--card)]"
             />
           ) : (
-            <p className="rounded-2xl border-2 border-dashed border-border bg-paper/60 px-5 py-6 text-center text-[1.05rem] text-muted-foreground">
+            <p className="rounded-2xl border-2 border-dashed border-border bg-card/60 px-5 py-6 text-center text-[1.05rem] text-muted-foreground">
               {canRegenerate
                 ? "Klubben har ingen aktiv invitationskode lige nu."
                 : "Klubben har ingen aktiv invitationskode lige nu. Spørg en admin om at lave en ny."}

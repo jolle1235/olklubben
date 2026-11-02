@@ -47,7 +47,7 @@ export function BeerCard({ beer, href, imageUrl = null }: BeerCardProps) {
   return (
     <Link
       href={href}
-      className="group/beer flex gap-3 rounded-xl border border-border bg-paper px-4 py-3.5 transition-[border-color,box-shadow] hover:border-input hover:shadow-[0_10px_24px_-20px_rgb(65_68_55/0.7)] sm:gap-4 sm:px-5"
+      className="group/beer flex gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-[border-color,box-shadow] hover:border-input hover:shadow-raised sm:gap-4 sm:px-5"
     >
       {imageUrl ? (
         <BeerPhoto
@@ -59,14 +59,14 @@ export function BeerCard({ beer, href, imageUrl = null }: BeerCardProps) {
       ) : (
         <span
           aria-hidden
-          className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-cream-deep text-xl"
+          className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-muted text-xl"
         >
           🍺
         </span>
       )}
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="flex items-start justify-between gap-3">
-          <span className="min-w-0 font-heading text-lg leading-snug font-semibold break-words hyphens-auto text-olive group-hover/beer:underline group-hover/beer:decoration-amber group-hover/beer:decoration-2 group-hover/beer:underline-offset-4">
+          <span className="min-w-0 font-heading text-lg leading-snug font-semibold break-words hyphens-auto text-primary-ink group-hover/beer:underline group-hover/beer:decoration-highlight group-hover/beer:decoration-2 group-hover/beer:underline-offset-4">
             {beer.name}
           </span>
           <ClubScore averageStars={beer.averageStars} ratingCount={beer.ratingCount} />
@@ -93,9 +93,9 @@ function ClubScore({
     );
   }
   return (
-    <span className="flex shrink-0 items-center gap-1 pt-0.5 font-semibold text-ink tabular-nums">
+    <span className="flex shrink-0 items-center gap-1 pt-0.5 font-semibold text-foreground tabular-nums">
       <span aria-hidden className="flex items-center gap-1">
-        <StarIcon className="size-[1.05em] fill-current text-amber-ink" strokeWidth={1.75} />
+        <StarIcon className="size-[1.05em] fill-current text-highlight-ink" strokeWidth={1.75} />
         {formatRating(averageStars)}
         <span className="font-normal text-muted-foreground">({ratingCount})</span>
       </span>
@@ -115,8 +115,8 @@ function MyScore({ value }: { value: number | null }) {
           <span className="font-semibold">–</span>
         ) : (
           <>
-            <StarIcon className="size-[1em] fill-current text-amber-ink" strokeWidth={1.75} />
-            <span className="font-semibold text-ink">{formatStars(value)}</span>
+            <StarIcon className="size-[1em] fill-current text-highlight-ink" strokeWidth={1.75} />
+            <span className="font-semibold text-foreground">{formatStars(value)}</span>
           </>
         )}
       </span>

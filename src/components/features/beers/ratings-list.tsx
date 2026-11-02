@@ -19,20 +19,20 @@ export type RatingsListProps = {
 export function RatingsList({ ratings, currentUserId }: RatingsListProps) {
   if (ratings.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-border bg-paper/60 px-4 py-5 text-muted-foreground">
+      <p className="rounded-2xl border border-dashed border-border bg-card/60 px-4 py-5 text-muted-foreground">
         Ingen har ratet den endnu.
       </p>
     );
   }
 
   return (
-    <ul className="grid grid-cols-1 divide-y divide-border rounded-2xl border border-border bg-paper px-4 sm:px-5">
+    <ul className="grid grid-cols-1 divide-y divide-border rounded-2xl border border-border bg-card px-4 sm:px-5">
       {ratings.map((rating) => {
         const name = getDisplayName(rating.user);
         return (
           <li key={rating.user.id} className="flex min-h-15 items-center gap-3 py-2.5">
             <UserAvatar name={name} size="sm" decorative className="m-1" />
-            <p className="min-w-0 flex-1 font-semibold break-words hyphens-auto text-ink">
+            <p className="min-w-0 flex-1 font-semibold break-words hyphens-auto text-foreground">
               {name}
               {rating.user.id === currentUserId ? (
                 <span className="font-normal text-muted-foreground"> (dig)</span>
@@ -45,7 +45,7 @@ export function RatingsList({ ratings, currentUserId }: RatingsListProps) {
             />
             <span
               aria-hidden
-              className="w-7 shrink-0 text-right font-semibold text-ink tabular-nums"
+              className="w-7 shrink-0 text-right font-semibold text-foreground tabular-nums"
             >
               {formatStars(rating.value)}
             </span>

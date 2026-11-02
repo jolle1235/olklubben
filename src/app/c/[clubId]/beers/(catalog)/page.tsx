@@ -61,7 +61,7 @@ export default async function BeersPage({ params, searchParams }: PageProps<"/c/
   return (
     <>
       <TopBarAction>
-        <Button asChild size="icon" variant="brass">
+        <Button asChild size="icon" variant="highlight">
           <Link href={addHref} aria-label="Tilføj øl">
             <PlusIcon aria-hidden />
           </Link>

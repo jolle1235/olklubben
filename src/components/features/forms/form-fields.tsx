@@ -162,7 +162,7 @@ export function CheckboxField({
     <div className={cn("grid content-start gap-1", className)}>
       <label
         htmlFor={controlId}
-        className="flex min-h-11 cursor-pointer items-center gap-3 text-base leading-snug text-ink"
+        className="flex min-h-11 cursor-pointer items-center gap-3 text-base leading-snug text-foreground"
       >
         <input
           type="checkbox"
@@ -226,7 +226,7 @@ export function ChoiceFieldset({
       aria-describedby={typeof children === "function" ? undefined : describedBy}
       className={cn("grid min-w-0 content-start gap-2", className)}
     >
-      <legend className="mb-2 flex items-center gap-2 text-[0.95rem] leading-tight font-semibold text-ink">
+      <legend className="mb-2 flex items-center gap-2 text-[0.95rem] leading-tight font-semibold text-foreground">
         {legend}
         <OptionalMark optional={optional} />
       </legend>

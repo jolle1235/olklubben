@@ -2,9 +2,15 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials, pickByName } from "@/components/ui/initials";
 
-// Initial colors. Cream initials on each: olive 8,77 · harbor 6,83 · rust 6,73 ·
-// brown 6,56 · slate 5,12 (all ≥ 4,5:1).
-const FALLBACK_BACKGROUNDS = ["bg-olive", "bg-harbor", "bg-rust", "bg-brown", "bg-slate"] as const;
+// Initial colours: the avatar-1 … avatar-5 component tokens (src/styles/tokens/themes.ts),
+// with avatar-foreground initials (≥ 4,5:1 in both themes, contrast.test.ts).
+const FALLBACK_BACKGROUNDS = [
+  "bg-avatar-1",
+  "bg-avatar-2",
+  "bg-avatar-3",
+  "bg-avatar-4",
+  "bg-avatar-5",
+] as const;
 
 const SIZES = {
   sm: "size-8 text-xs",
@@ -32,7 +38,7 @@ export type UserAvatarProps = {
 /**
  * Round avatar with a porthole ring and an initials fallback.
  * The ring is drawn outside the box (box-shadow), so leave ~5 px of room around it.
- * On dark surfaces, put it inside an element with the `on-olive` or `on-harbor` utility so the
+ * On dark surfaces, put it inside an element with the `surface-frame` or `surface-feature` utility so the
  * gap in the ring matches the background.
  */
 export function UserAvatar({

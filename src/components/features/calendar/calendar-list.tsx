@@ -69,7 +69,7 @@ export function CalendarList({
         <section key={monthKey} aria-labelledby={`calendar-list-${monthKey}`}>
           <h2
             id={`calendar-list-${monthKey}`}
-            className="mb-3 flex items-center gap-3 font-display text-base font-bold tracking-[0.16em] text-olive uppercase after:h-px after:flex-1 after:bg-border"
+            className="mb-3 flex items-center gap-3 font-display text-base font-bold tracking-[0.16em] text-primary-ink uppercase after:h-px after:flex-1 after:bg-border"
           >
             {monthKeyLabel(monthKey)}
           </h2>

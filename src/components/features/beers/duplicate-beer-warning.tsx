@@ -16,22 +16,25 @@ export type DuplicateBeerWarningProps = {
 /**
  * "Den her har I vist smagt før 👀" (SPEC §9.5, E21): links to the beer(s)
  * with the same name. Only a warning – the member can still add the beer.
- * Ink (13,34:1) and olive (7,86:1) on amber-tint.
+ * Foreground and primary-ink on highlight-subtle (contrast.test.ts).
  */
 export function DuplicateBeerWarning({ id, beers, clubId, verb }: DuplicateBeerWarningProps) {
   return (
-    <div id={id} className="rounded-xl border border-amber bg-amber-tint/70 px-4 py-3 text-ink">
+    <div
+      id={id}
+      className="rounded-xl border border-highlight bg-highlight-subtle/70 px-4 py-3 text-foreground"
+    >
       <p className="font-semibold">Den her har I vist smagt før 👀</p>
       <ul className="mt-1 grid grid-cols-1 gap-0.5">
         {beers.map((beer) => (
           <li key={beer.id} className="break-words hyphens-auto">
             <Link
               href={beerHref(clubId, beer.id)}
-              className="inline-flex min-h-11 items-center font-semibold text-olive underline decoration-amber-ink decoration-2 underline-offset-4 hover:decoration-olive sm:min-h-8"
+              className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-highlight-ink decoration-2 underline-offset-4 hover:decoration-primary sm:min-h-8"
             >
               {beer.name}
             </Link>{" "}
-            <span className="text-[0.95rem] text-slate">· {formatAbv(beer.abv)}</span>
+            <span className="text-[0.95rem] text-muted-foreground">· {formatAbv(beer.abv)}</span>
           </li>
         ))}
       </ul>

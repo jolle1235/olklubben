@@ -37,7 +37,7 @@ function TitleSkeleton({
 
 function CardSkeleton() {
   return (
-    <div className="flex gap-3 rounded-xl border border-border bg-paper px-4 py-3.5 sm:gap-4 sm:px-5">
+    <div className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3.5 sm:gap-4 sm:px-5">
       <Skeleton className="size-10 shrink-0 rounded-full" />
       <div className="grid flex-1 gap-2">
         <Skeleton className="h-6 w-1/2" />
@@ -80,7 +80,7 @@ export function PlaceDetailSkeleton() {
           <div className="grid gap-3">
             <Skeleton className="h-7 w-24" />
             <Skeleton className="h-5 w-full" />
-            <div className="grid gap-3 rounded-2xl border border-border bg-paper p-4">
+            <div className="grid gap-3 rounded-2xl border border-border bg-card p-4">
               {Array.from({ length: 2 }, (_, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <Skeleton className="size-10 rounded-full" />

@@ -39,10 +39,10 @@ export function CalendarSkeleton({ view }: CalendarSkeletonProps) {
 function ListSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col gap-10 md:gap-12", className)}>
-      <CardsSkeleton cards={3} className="bg-paper" />
+      <CardsSkeleton cards={3} className="bg-card" />
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-64 max-w-full" />
-        <CardsSkeleton cards={2} withMeta className="bg-cream-deep/50" />
+        <CardsSkeleton cards={2} withMeta className="bg-muted/50" />
       </div>
     </div>
   );
@@ -94,7 +94,7 @@ function MonthSkeleton({ className }: { className?: string }) {
         <Skeleton className="h-7 w-40 md:h-9 md:w-52" />
         <Skeleton className="h-11 w-24 md:w-44" />
       </div>
-      <div className="grid grid-cols-7 md:overflow-hidden md:rounded-xl md:border md:border-border md:bg-paper">
+      <div className="grid grid-cols-7 md:overflow-hidden md:rounded-xl md:border md:border-border md:bg-card">
         {Array.from({ length: 7 * GRID_WEEKS }, (_, cell) => (
           <div
             key={cell}

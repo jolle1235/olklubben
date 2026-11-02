@@ -12,7 +12,7 @@ import { JoinClubForm } from "./join-club-form";
  * CenteredShell card, each with the page's only <h1>.
  */
 
-const headingClass = "text-[1.85rem] leading-tight font-bold tracking-tight text-olive";
+const headingClass = "text-[1.85rem] leading-tight font-bold tracking-tight text-primary-ink";
 
 /** E18: unknown, malformed, revoked or expired code. */
 export function InviteNotWorking({ loggedIn }: { loggedIn: boolean }) {
@@ -20,7 +20,7 @@ export function InviteNotWorking({ loggedIn }: { loggedIn: boolean }) {
     <div className="flex flex-col items-center text-center">
       <div
         aria-hidden
-        className="mb-5 grid size-16 place-items-center porthole rounded-full bg-cream-deep text-olive"
+        className="mb-5 grid size-16 place-items-center porthole rounded-full bg-muted text-primary-ink"
       >
         <TicketXIcon className="size-7" />
       </div>
@@ -52,7 +52,7 @@ export function LoggedOutInvite({ code, displayCode }: { code: string; displayCo
     <div className="flex flex-col items-center text-center">
       <p
         aria-hidden
-        className="mb-5 grid size-16 place-items-center porthole rounded-full bg-amber-tint text-3xl"
+        className="mb-5 grid size-16 place-items-center porthole rounded-full bg-highlight-subtle text-3xl"
       >
         🍺
       </p>
@@ -60,9 +60,11 @@ export function LoggedOutInvite({ code, displayCode }: { code: string; displayCo
       <p className="mt-2 text-[1.05rem] text-muted-foreground">
         Opret en konto eller log ind, så viser vi dig klubben, og du kan joine med det samme.
       </p>
-      <p className="mt-4 rounded-lg bg-cream-deep px-3 py-1.5 text-[0.95rem] text-ink">
+      <p className="mt-4 rounded-lg bg-muted px-3 py-1.5 text-[0.95rem] text-foreground">
         Invitationskode{" "}
-        <span className="font-display font-bold tracking-wider text-olive">{displayCode}</span>
+        <span className="font-display font-bold tracking-wider text-primary-ink">
+          {displayCode}
+        </span>
       </p>
       <div className="mt-7 grid w-full gap-3">
         <Button asChild size="lg">
@@ -89,7 +91,7 @@ export function JoinConfirmation({
   return (
     <div className="flex flex-col items-center text-center">
       <ClubBadge name={clubName} size="lg" className="mb-5" />
-      <h1 className="text-olive">
+      <h1 className="text-primary-ink">
         <span className="block text-[1.05rem] font-semibold text-muted-foreground">
           Du er inviteret til
         </span>

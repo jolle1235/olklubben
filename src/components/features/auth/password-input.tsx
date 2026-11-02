@@ -30,7 +30,7 @@ export function PasswordInput({ className, id, ...props }: PasswordInputProps) {
         aria-label="Vis password"
         aria-pressed={visible}
         aria-controls={id}
-        className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-lg text-slate transition-colors hover:text-olive"
+        className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-lg text-muted-foreground transition-colors hover:text-primary-ink"
       >
         {visible ? (
           <EyeOffIcon aria-hidden className="size-5" />

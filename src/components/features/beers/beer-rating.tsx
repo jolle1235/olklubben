@@ -126,10 +126,10 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
   return (
     <section aria-labelledby={headingId} className={cn("grid gap-3", className)}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id={headingId} className="font-heading text-xl leading-snug text-olive">
+        <h2 id={headingId} className="font-heading text-xl leading-snug text-primary-ink">
           Din rating
         </h2>
-        <p aria-live="polite" className="text-[0.95rem] font-semibold text-olive">
+        <p aria-live="polite" className="text-[0.95rem] font-semibold text-primary-ink">
           {status === "saved" ? "Gemt ✓" : status === "removed" ? "Rating fjernet" : ""}
         </p>
       </div>
@@ -167,7 +167,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
             "Tryk på en stjerne. Venstre halvdel giver en halv."
           ) : (
             <>
-              <span className="font-semibold text-ink">{formatStars(current)}</span> ud af{" "}
+              <span className="font-semibold text-foreground">{formatStars(current)}</span> ud af{" "}
               {MAX_STARS} · tryk for at ændre
             </>
           )}
@@ -176,7 +176,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
           <button
             type="button"
             onClick={() => save(null)}
-            className="inline-flex items-center text-[0.95rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-ink pointer-coarse:min-h-11"
+            className="inline-flex items-center text-[0.95rem] text-muted-foreground underline decoration-1 underline-offset-4 hover:text-foreground pointer-coarse:min-h-11"
           >
             Fjern min rating
           </button>

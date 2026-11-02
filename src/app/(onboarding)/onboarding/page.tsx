@@ -39,7 +39,7 @@ export default async function OnboardingPage() {
           {hasClubs ? (
             <Link
               href={backLink.href}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 hover:underline"
             >
               <ArrowLeftIcon aria-hidden className="size-4" />
               {backLink.label}
@@ -50,7 +50,7 @@ export default async function OnboardingPage() {
       }
     >
       <section aria-labelledby="create-club-heading">
-        <h2 id="create-club-heading" className="mb-1 text-xl text-olive">
+        <h2 id="create-club-heading" className="mb-1 text-xl text-primary-ink">
           Opret ølklub
         </h2>
         <p className="mb-4 text-[0.95rem] text-muted-foreground">
@@ -68,7 +68,7 @@ export default async function OnboardingPage() {
       </div>
 
       <section aria-labelledby="join-club-heading">
-        <h2 id="join-club-heading" className="mb-1 text-xl text-olive">
+        <h2 id="join-club-heading" className="mb-1 text-xl text-primary-ink">
           Join en ølklub
         </h2>
         <p className="mb-4 text-[0.95rem] text-muted-foreground">

@@ -39,7 +39,7 @@ export function RemovePlaceButton({
   return (
     <ConfirmDialog
       trigger={
-        <Button variant="outline" className="text-danger hover:bg-danger-tint">
+        <Button variant="outline" className="text-destructive-ink hover:bg-destructive-subtle">
           <Icon aria-hidden />
           {copy.label}
         </Button>

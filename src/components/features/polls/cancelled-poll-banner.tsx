@@ -19,14 +19,14 @@ export function CancelledPollBanner({ view, now }: CancelledPollBannerProps) {
   return (
     <section
       aria-labelledby="poll-cancelled-heading"
-      className="flex items-start gap-3 rounded-2xl border-2 border-dashed border-slate/50 bg-cream-deep/70 px-5 py-4"
+      className="flex items-start gap-3 rounded-2xl border-2 border-dashed border-border-strong bg-muted/70 px-5 py-4"
     >
-      <BanIcon aria-hidden className="mt-1 size-5 shrink-0 text-slate" />
+      <BanIcon aria-hidden className="mt-1 size-5 shrink-0 text-muted-foreground" />
       <div className="grid min-w-0 grid-cols-1 gap-1">
-        <h2 id="poll-cancelled-heading" className="text-xl leading-tight font-bold text-ink">
+        <h2 id="poll-cancelled-heading" className="text-xl leading-tight font-bold text-foreground">
           Afstemningen er annulleret
         </h2>
-        <p className="text-[1.05rem] break-words text-slate">
+        <p className="text-[1.05rem] break-words text-muted-foreground">
           {view.cancelledAt
             ? cancelledLabel(getDisplayName(view.cancelledBy), view.cancelledAt, now)
             : "Der blev ikke oprettet et event."}

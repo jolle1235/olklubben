@@ -21,7 +21,7 @@ export function BottomNav({ clubId, className }: BottomNavProps) {
     <nav
       aria-label="Hovednavigation"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 border-t border-white/10 on-olive pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_-18px_rgb(45_47_35/0.7)] md:hidden",
+        "fixed inset-x-0 bottom-0 z-40 border-t border-frame-border surface-frame pb-[env(safe-area-inset-bottom)] shadow-bar md:hidden",
         className,
       )}
     >
@@ -36,14 +36,16 @@ export function BottomNav({ clubId, className }: BottomNavProps) {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 pt-2 pb-1.5 text-[0.8125rem] leading-none font-semibold transition-colors",
-                  active ? "text-cream" : "text-on-dark-muted hover:text-cream",
+                  active
+                    ? "text-frame-foreground"
+                    : "text-frame-muted-foreground hover:text-frame-foreground",
                 )}
               >
                 <span
                   aria-hidden
                   className={cn(
                     "grid size-8 place-items-center rounded-full transition-colors [&_svg]:size-[1.2rem]",
-                    active && "porthole bg-amber text-olive-deep",
+                    active && "porthole bg-highlight text-highlight-foreground",
                   )}
                 >
                   <Icon strokeWidth={2.25} />

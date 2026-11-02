@@ -15,7 +15,7 @@ export default function ClubPageLoading() {
       <Skeleton className="mt-3 mb-6 h-5 w-56 max-w-full md:mb-8" />
 
       <Skeleton className="mb-4 h-7 w-36" />
-      <div className="divide-y divide-border rounded-2xl border border-border bg-paper px-4 sm:px-5">
+      <div className="divide-y divide-border rounded-2xl border border-border bg-card px-4 sm:px-5">
         {[0, 1, 2].map((row) => (
           <div key={row} className="flex min-h-18 items-center gap-3 py-3 sm:gap-4">
             <Skeleton className="m-1 size-10 rounded-full" />

@@ -23,7 +23,7 @@ export function BeerPhoto({
       src={src}
       alt={alt}
       loading={lazy ? "lazy" : undefined}
-      className={cn("rounded-xl border border-border bg-cream-deep object-contain", className)}
+      className={cn("rounded-xl border border-border bg-muted object-contain", className)}
     />
   );
 }

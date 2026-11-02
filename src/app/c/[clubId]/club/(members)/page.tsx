@@ -66,7 +66,7 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
   return (
     <>
       <TopBarAction>
-        <Button asChild size="icon" variant="brass">
+        <Button asChild size="icon" variant="highlight">
           {inviteAction}
         </Button>
       </TopBarAction>
@@ -76,7 +76,9 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
         description={
           <>
             {club.description ? (
-              <span className="mb-1 block whitespace-pre-line text-ink">{club.description}</span>
+              <span className="mb-1 block whitespace-pre-line text-foreground">
+                {club.description}
+              </span>
             ) : null}
             <span className="block">
               {memberCountLabel(members.length)} · Oprettet {formatDate(club.createdAt)}
@@ -101,7 +103,7 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
       />
 
       <section id="medlemmer" aria-labelledby="members-heading" className="scroll-mt-24">
-        <h2 id="members-heading" className="mb-4 text-2xl text-olive">
+        <h2 id="members-heading" className="mb-4 text-2xl text-primary-ink">
           Medlemmer
         </h2>
         <MemberList
@@ -115,7 +117,7 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
       <SectionDivider className="my-8 md:my-10" />
 
       <section id="steder" aria-labelledby="places-heading" className="scroll-mt-24">
-        <h2 id="places-heading" className="mb-4 text-2xl text-olive">
+        <h2 id="places-heading" className="mb-4 text-2xl text-primary-ink">
           Steder
         </h2>
         <ClubPlacesRow clubId={club.id} placeCount={placeCount} />
@@ -137,10 +139,10 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
       <SectionDivider className="my-8 md:my-10" />
 
       <section aria-labelledby="danger-heading">
-        <h2 id="danger-heading" className="mb-4 text-2xl text-olive">
+        <h2 id="danger-heading" className="mb-4 text-2xl text-primary-ink">
           Farezone
         </h2>
-        <div className="divide-y divide-border rounded-2xl border border-border bg-paper px-4 *:py-5 sm:px-5">
+        <div className="divide-y divide-border rounded-2xl border border-border bg-card px-4 *:py-5 sm:px-5">
           <LeaveClubSection
             clubId={club.id}
             clubName={club.name}

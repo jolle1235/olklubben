@@ -76,8 +76,8 @@ export function LogoMark({ className, title }: LogoMarkProps) {
 
 type LogoProps = {
   className?: string;
-  /** "cream" på mørke flader (olive/harbor), "olive" på lyse flader. */
-  tone?: "cream" | "olive";
+  /** "frame" på app-rammen og andre mørke flader, "page" på lyse flader. */
+  tone?: "frame" | "page";
   size?: "sm" | "md" | "lg";
 };
 
@@ -88,13 +88,13 @@ const sizes = {
 } as const;
 
 /** Mærke + ordmærke "Ølklubben". Wrap selv i et link, hvis det skal være klikbart. */
-export function Logo({ className, tone = "olive", size = "md" }: LogoProps) {
+export function Logo({ className, tone = "page", size = "md" }: LogoProps) {
   const s = sizes[size];
   return (
     <span
       className={cn(
         "inline-flex items-center gap-2.5",
-        tone === "cream" ? "text-cream" : "text-olive",
+        tone === "frame" ? "text-frame-foreground" : "text-primary-ink",
         className,
       )}
     >

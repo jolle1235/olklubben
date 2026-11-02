@@ -33,7 +33,7 @@ export function SongAlphabetList({ clubId, groups, onOpen }: SongAlphabetListPro
           <h2
             id={letterAnchorId(letter)}
             tabIndex={-1}
-            className="scroll-mt-[calc(8.5rem+env(safe-area-inset-top))] px-1 font-heading text-2xl leading-none text-amber-ink outline-offset-4 md:scroll-mt-24"
+            className="scroll-mt-[calc(8.5rem+env(safe-area-inset-top))] px-1 font-heading text-2xl leading-none text-highlight-ink outline-offset-4 md:scroll-mt-24"
           >
             {letter === "#" ? (
               <>

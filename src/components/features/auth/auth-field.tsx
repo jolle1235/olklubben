@@ -75,7 +75,10 @@ export function AuthField({
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="flex items-start gap-1.5 text-sm font-semibold text-danger">
+        <p
+          id={errorId}
+          className="flex items-start gap-1.5 text-sm font-semibold text-destructive-ink"
+        >
           <CircleAlertIcon aria-hidden className="mt-px size-4 shrink-0" />
           {error}
         </p>

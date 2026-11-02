@@ -134,7 +134,7 @@ export function PollForm({ clubId, places, defaults, today }: PollFormProps) {
 
       <div className="grid grid-cols-1 gap-3 border-t border-border pt-5">
         {summary ? (
-          <p aria-live="polite" className="font-semibold break-words text-ink">
+          <p aria-live="polite" className="font-semibold break-words text-foreground">
             {summary}
           </p>
         ) : null}

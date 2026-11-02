@@ -28,11 +28,11 @@ export function PastEvents({ clubId, events, now }: PastEventsProps) {
     <section aria-labelledby="past-events-heading">
       <h2
         id="past-events-heading"
-        className="mb-3 text-2xl leading-tight font-bold text-olive md:text-[1.75rem]"
+        className="mb-3 text-2xl leading-tight font-bold text-primary-ink md:text-[1.75rem]"
       >
         Tidligere ølsmagninger
       </h2>
-      <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-cream-deep/40">
+      <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-muted/40">
         {events.map((event) => (
           <li key={event.id} className="first:*:rounded-t-xl last:*:rounded-b-xl">
             <EventListItem

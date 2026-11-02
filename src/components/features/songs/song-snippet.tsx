@@ -13,7 +13,7 @@ export function Highlighted({ text, marks }: { text: string; marks?: readonly Hi
     if (start < at || end <= start) continue;
     if (start > at) parts.push(text.slice(at, start));
     parts.push(
-      <mark key={start} className="rounded-sm bg-amber-tint text-ink">
+      <mark key={start} className="rounded-sm bg-highlight-subtle text-foreground">
         {text.slice(start, end)}
       </mark>,
     );
@@ -23,10 +23,10 @@ export function Highlighted({ text, marks }: { text: string; marks?: readonly Hi
   return parts;
 }
 
-/** A lyric line under a search hit: „… line …“ in italic slate, at most two lines. */
+/** A lyric line under a search hit: „… line …“ in italic muted-foreground, at most two lines. */
 export function SongSnippet({ text, marks }: { text: string; marks: readonly HighlightRange[] }) {
   return (
-    <span className="mt-1 line-clamp-2 text-[0.95rem] break-words text-slate italic">
+    <span className="mt-1 line-clamp-2 text-[0.95rem] break-words text-muted-foreground italic">
       „<Highlighted text={text} marks={marks} />“
     </span>
   );

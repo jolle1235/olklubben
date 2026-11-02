@@ -27,17 +27,17 @@ export function ErrorState({
     <section
       role="alert"
       className={cn(
-        "flex flex-col items-center rounded-2xl border border-danger/25 bg-paper px-6 py-10 text-center md:px-10",
+        "flex flex-col items-center rounded-2xl border border-destructive-border bg-card px-6 py-10 text-center md:px-10",
         className,
       )}
     >
       <div
         aria-hidden
-        className="mb-6 grid size-16 place-items-center porthole rounded-full bg-danger-tint text-danger [&_svg]:size-7"
+        className="mb-6 grid size-16 place-items-center porthole rounded-full bg-destructive-subtle text-destructive-ink [&_svg]:size-7"
       >
         <BeerOffIcon />
       </div>
-      <Heading className="max-w-[26ch] text-2xl leading-tight font-bold text-olive">
+      <Heading className="max-w-[26ch] text-2xl leading-tight font-bold text-primary-ink">
         {title}
       </Heading>
       {description ? (

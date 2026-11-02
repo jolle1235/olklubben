@@ -11,17 +11,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-[inset_0_-2px_0_rgb(0_0_0/0.22)] hover:bg-olive-deep",
+        default: "bg-primary text-primary-foreground shadow-press hover:bg-primary-hover",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--olive)_8%)] aria-expanded:bg-[color-mix(in_oklch,var(--secondary),var(--olive)_8%)]",
-        outline: "border-input bg-paper text-ink hover:bg-cream-deep aria-expanded:bg-cream-deep",
-        ghost: "text-ink hover:bg-cream-deep aria-expanded:bg-cream-deep",
+          "bg-secondary text-secondary-foreground hover:bg-secondary-hover aria-expanded:bg-secondary-hover",
+        outline: "border-input bg-card text-foreground hover:bg-muted aria-expanded:bg-muted",
+        ghost: "text-foreground hover:bg-muted aria-expanded:bg-muted",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-[inset_0_-2px_0_rgb(0_0_0/0.22)] hover:bg-danger-deep",
-        /** Messing-knap til mørke flader (top bar, hero). ink på amber: 6,92:1 (olive ville kun give 4,08:1). */
-        brass: "bg-amber text-ink shadow-[inset_0_-2px_0_rgb(0_0_0/0.18)] hover:bg-amber-light",
-        link: "h-auto! px-0! text-primary underline decoration-2 underline-offset-4 hover:decoration-amber",
+          "bg-destructive text-destructive-foreground shadow-press hover:bg-destructive-hover",
+        /** Fremhævet knap, også på mørke flader (top bar, hero): highlight-rollen. */
+        highlight: "bg-highlight text-highlight-foreground shadow-press hover:bg-highlight-hover",
+        link: "h-auto! px-0! text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight",
       },
       size: {
         default:

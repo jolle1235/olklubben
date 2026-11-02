@@ -124,7 +124,7 @@ export default async function CalendarPage({
   return (
     <>
       <TopBarAction>
-        <Button asChild size="icon" variant="brass">
+        <Button asChild size="icon" variant="highlight">
           <Link href={newEventHref} aria-label="Opret event">
             <PlusIcon aria-hidden />
           </Link>

@@ -3,14 +3,15 @@
 import { AArrowDownIcon, AArrowUpIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { MAX_SONG_FONT_STEP } from "@/lib/songbook-prefs";
 import { cn } from "@/lib/utils";
 
-import { setSongFontStep, useHydrated, useSongFontStep } from "./use-songbook-prefs";
+import { setSongFontStep, useSongFontStep } from "./use-songbook-prefs";
 
 export type SongFontStepperProps = {
   /**
-   * "topbar": two cream icon buttons in the mobile top bar (TopBarAction).
+   * "topbar": two icon buttons in the frame colours in the mobile top bar (TopBarAction).
    * "toolbar": outline buttons in the reader's toolbar (md and up).
    */
   variant: "topbar" | "toolbar";
@@ -26,8 +27,8 @@ export function SongFontStepper({ variant, className }: SongFontStepperProps) {
   const hydrated = useHydrated();
   const buttonClass =
     variant === "topbar"
-      ? "text-cream hover:bg-olive-soft hover:text-cream"
-      : "border-input bg-paper text-ink hover:bg-cream-deep";
+      ? "text-frame-foreground hover:bg-frame-hover hover:text-frame-foreground"
+      : "border-input bg-card text-foreground hover:bg-muted";
 
   return (
     <div role="group" aria-label="Skriftstørrelse" className={cn("flex gap-1", className)}>

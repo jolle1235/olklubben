@@ -18,7 +18,7 @@ export function PageHeader({ title, description, action, className }: PageHeader
       )}
     >
       <div className="min-w-0 flex-1 basis-64">
-        <h1 className="text-[2rem] leading-[1.1] font-bold tracking-tight break-words hyphens-auto text-olive md:text-[2.5rem]">
+        <h1 className="text-[2rem] leading-[1.1] font-bold tracking-tight break-words hyphens-auto text-primary-ink md:text-[2.5rem]">
           {title}
         </h1>
         {description ? (

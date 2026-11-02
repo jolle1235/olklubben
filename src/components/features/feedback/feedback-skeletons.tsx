@@ -51,7 +51,7 @@ export function FeedbackListSkeleton() {
         {Array.from({ length: 4 }, (_, index) => (
           <div
             key={index}
-            className="flex gap-3 rounded-xl border border-border bg-paper px-4 py-3.5 sm:gap-4 sm:px-5"
+            className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3.5 sm:gap-4 sm:px-5"
           >
             <Skeleton className="size-10 shrink-0 rounded-full" />
             <div className="grid flex-1 gap-2">
@@ -79,7 +79,7 @@ export function FeedbackDetailSkeleton() {
           <Skeleton className="h-6 w-40" />
           <Skeleton className="h-5 w-56" />
         </div>
-        <div className="grid gap-2 rounded-xl border border-border bg-paper p-5">
+        <div className="grid gap-2 rounded-xl border border-border bg-card p-5">
           <Skeleton className="h-5 w-full" />
           <Skeleton className="h-5 w-full" />
           <Skeleton className="h-5 w-2/3" />

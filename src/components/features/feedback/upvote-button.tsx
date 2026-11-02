@@ -56,7 +56,7 @@ export function UpvoteButton({ feedbackId, type, voted, voteCount }: UpvoteButto
       <p
         aria-live="polite"
         aria-atomic="true"
-        className="font-heading text-2xl leading-none font-bold whitespace-nowrap text-olive"
+        className="font-heading text-2xl leading-none font-bold whitespace-nowrap text-primary-ink"
       >
         <span aria-hidden>👍 </span>
         {shown.voteCount}

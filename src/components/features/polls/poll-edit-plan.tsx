@@ -87,7 +87,7 @@ export function PollEditPlan({
         resetSignal={resetSignal}
       />
       {summary ? (
-        <p aria-live="polite" className="font-semibold break-words text-ink">
+        <p aria-live="polite" className="font-semibold break-words text-foreground">
           {summary}
         </p>
       ) : null}

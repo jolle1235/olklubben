@@ -62,14 +62,3 @@ export function useSongFontStep(): number {
 export function useSongView(): SongView {
   return useSyncExternalStore(subscribe, readView, () => DEFAULT_SONG_VIEW);
 }
-
-const noopSubscribe = () => () => {};
-
-/** False on the server and during hydration: the controls stay disabled until then (TG-020). */
-export function useHydrated(): boolean {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
-  );
-}

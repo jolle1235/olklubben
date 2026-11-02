@@ -11,7 +11,7 @@ import { feedbackFilterGroups, type FeedbackFilterChip } from "./feedback-labels
  * "Lukkede", "Alle"), the "Mine rapporter" toggle and the sort. Plain links
  * (feedbackListHref, defaults left out), so they work without JavaScript and a
  * filtered list can be shared. The chosen chip has aria-current="true" and is
- * filled olive; every chip is a 44 px touch target.
+ * filled primary; every chip is a 44 px touch target.
  */
 export function FeedbackFilters({ params }: { params: FeedbackListParams }) {
   const groups = feedbackFilterGroups(params);
@@ -40,7 +40,10 @@ function ChipGroup({
   const labelId = useId();
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <span id={labelId} className="w-14 shrink-0 text-[0.95rem] font-semibold text-slate">
+      <span
+        id={labelId}
+        className="w-14 shrink-0 text-[0.95rem] font-semibold text-muted-foreground"
+      >
         {label}
       </span>
       <ul aria-labelledby={labelId} className="flex min-w-0 flex-wrap gap-2">
@@ -52,8 +55,8 @@ function ChipGroup({
               className={cn(
                 "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 font-semibold whitespace-nowrap transition-colors",
                 chip.current
-                  ? "border-primary bg-primary text-primary-foreground hover:bg-olive-deep"
-                  : "border-border bg-paper text-ink hover:border-input hover:bg-cream-deep",
+                  ? "border-primary bg-primary text-primary-foreground hover:bg-primary-hover"
+                  : "border-border bg-card text-foreground hover:border-input hover:bg-muted",
               )}
             >
               {toggle && chip.current ? <span aria-hidden>✓</span> : null}

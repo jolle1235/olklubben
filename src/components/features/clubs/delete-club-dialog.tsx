@@ -34,7 +34,9 @@ export function DeleteClubDialog({ clubId, clubName, counts }: DeleteClubDialogP
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6">
       <div className="min-w-0">
-        <h3 className="font-heading text-lg leading-tight font-semibold text-ink">Slet klubben</h3>
+        <h3 className="font-heading text-lg leading-tight font-semibold text-foreground">
+          Slet klubben
+        </h3>
         <p className="mt-1 text-[0.95rem] text-pretty text-muted-foreground">
           Sletter klubben og alt i den for alle medlemmer. Det kan ikke fortrydes.
         </p>
@@ -73,7 +75,7 @@ export function DeleteClubDialog({ clubId, clubName, counts }: DeleteClubDialogP
             aria-describedby={hintId}
           />
           <p id={hintId} className="text-[0.95rem] break-words hyphens-auto text-muted-foreground">
-            Skriv <span className="font-semibold text-ink">{clubName}</span>
+            Skriv <span className="font-semibold text-foreground">{clubName}</span>
           </p>
         </div>
       </ConfirmDialog>

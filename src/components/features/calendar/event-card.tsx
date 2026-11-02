@@ -26,7 +26,7 @@ export type EventCardProps = {
 /**
  * A confirmed event as a big, readable card (SPEC §9.3 list view, §13.4):
  * the day number and short weekday on the left, title, "Hos Mads · 18:30" and
- * the theme on the right. Filled card with an olive accent (§9.3 "Bekræftet
+ * the theme on the right. Filled card with a primary accent (§9.3 "Bekræftet
  * event"); a past event is muted, today's and an ongoing one get "I aften! 🍻"
  * / "I gang nu". The whole card links to the event.
  *
@@ -43,8 +43,8 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
       className={cn(
         "group flex min-h-20 items-center gap-4 rounded-xl border border-l-4 border-border px-4 py-3 transition-colors",
         past
-          ? "border-l-slate/60 bg-cream-deep/50 hover:bg-cream-deep"
-          : "border-l-olive bg-paper shadow-[0_8px_24px_-20px_rgb(65_68_55/0.55)] hover:bg-cream-deep/60",
+          ? "border-l-border-strong bg-muted/50 hover:bg-muted"
+          : "border-l-primary bg-card shadow-raised hover:bg-muted/60",
         className,
       )}
     >
@@ -52,38 +52,38 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
         <span
           className={cn(
             "font-display text-[2rem] leading-none font-bold",
-            past ? "text-slate" : "text-olive",
+            past ? "text-muted-foreground" : "text-primary-ink",
           )}
         >
           {formatDayMonthParts(event.startsAt)?.day}
         </span>
-        <span className="mt-1.5 text-xs font-bold tracking-[0.14em] text-slate uppercase">
+        <span className="mt-1.5 text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">
           {formatWeekdayShort(event.startsAt)}
         </span>
       </span>
 
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="min-w-0 font-heading text-xl leading-snug font-semibold break-words hyphens-auto text-olive">
+          <span className="min-w-0 font-heading text-xl leading-snug font-semibold break-words hyphens-auto text-primary-ink">
             {event.title}
           </span>
           {badge ? (
-            <span className="rounded-full bg-amber-tint px-2.5 py-0.5 text-[0.85rem] font-bold whitespace-nowrap text-amber-ink">
+            <span className="rounded-full bg-highlight-subtle px-2.5 py-0.5 text-[0.85rem] font-bold whitespace-nowrap text-highlight-ink">
               {badge}
             </span>
           ) : null}
         </span>
         <span className="sr-only">, {formatLongDate(event.startsAt, now)}, </span>
-        <span className="block text-[0.95rem] break-words text-slate">
+        <span className="block text-[0.95rem] break-words text-muted-foreground">
           {eventPlaceAndTime(event)}
         </span>
         {event.theme ? (
-          <span className="mt-0.5 block text-[0.95rem] break-words text-ink">
-            <span className="text-slate">Tema:</span> {event.theme}
+          <span className="mt-0.5 block text-[0.95rem] break-words text-foreground">
+            <span className="text-muted-foreground">Tema:</span> {event.theme}
           </span>
         ) : null}
         {meta ? (
-          <span className="mt-0.5 block text-[0.95rem] break-words hyphens-auto text-ink">
+          <span className="mt-0.5 block text-[0.95rem] break-words hyphens-auto text-foreground">
             {meta}
           </span>
         ) : null}
@@ -91,7 +91,7 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
 
       <ChevronRightIcon
         aria-hidden
-        className="size-5 shrink-0 text-slate transition-transform group-hover:translate-x-0.5"
+        className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
       />
     </Link>
   );

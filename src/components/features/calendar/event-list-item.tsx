@@ -42,14 +42,14 @@ export function EventListItem({
   return (
     <Link
       href={eventHref(clubId, event.id)}
-      className="group/row flex min-h-16 items-center gap-4 px-4 py-3 transition-colors hover:bg-cream-deep/70 focus-visible:-outline-offset-3 md:px-5"
+      className="group/row flex min-h-16 items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/70 focus-visible:-outline-offset-3 md:px-5"
     >
       <time
         aria-hidden
         dateTime={toDateKey(event.startsAt)}
         className={cn(
           "w-14 shrink-0 font-display text-xl font-bold",
-          muted ? "text-slate" : "text-olive",
+          muted ? "text-muted-foreground" : "text-primary-ink",
         )}
       >
         {formatShortDate(event.startsAt)}
@@ -58,24 +58,24 @@ export function EventListItem({
         <span
           className={cn(
             "block font-heading text-lg leading-snug font-semibold break-words hyphens-auto",
-            muted ? "text-ink" : "text-olive",
+            muted ? "text-foreground" : "text-primary-ink",
           )}
         >
           {event.title}
         </span>
         <span className="sr-only">, {formatLongDate(event.startsAt, now)}, </span>
-        <span className="block text-[0.95rem] break-words text-slate">
+        <span className="block text-[0.95rem] break-words text-muted-foreground">
           {showPlace ? eventPlaceAndTime(event) : eventWeekdayAndTime(event)}
         </span>
         {meta ? (
-          <span className="mt-0.5 block text-[0.95rem] break-words hyphens-auto text-ink">
+          <span className="mt-0.5 block text-[0.95rem] break-words hyphens-auto text-foreground">
             {meta}
           </span>
         ) : null}
       </span>
       <ChevronRightIcon
         aria-hidden
-        className="size-5 shrink-0 text-slate transition-transform group-hover/row:translate-x-0.5"
+        className="size-5 shrink-0 text-muted-foreground transition-transform group-hover/row:translate-x-0.5"
       />
     </Link>
   );

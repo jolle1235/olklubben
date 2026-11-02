@@ -97,7 +97,7 @@ export function MemberResetLinkDialog({
 
         {link ? (
           <div className="grid gap-2">
-            <label htmlFor={linkId} className="text-[0.95rem] font-semibold text-ink">
+            <label htmlFor={linkId} className="text-[0.95rem] font-semibold text-foreground">
               Nulstillingslink
             </label>
             {/* autoFocus: the new link gets focus (and is selected) as soon as it appears,
@@ -109,7 +109,7 @@ export function MemberResetLinkDialog({
               readOnly
               value={link}
               onFocus={(event) => event.currentTarget.select()}
-              className="h-11 w-full truncate rounded-lg bg-cream-deep px-3.5 text-[0.95rem] text-ink"
+              className="h-11 w-full truncate rounded-lg bg-muted px-3.5 text-[0.95rem] text-foreground"
             />
           </div>
         ) : null}

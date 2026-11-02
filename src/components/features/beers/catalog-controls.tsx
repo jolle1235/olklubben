@@ -110,12 +110,12 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
         {isPending ? (
           <Loader2Icon
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 animate-spin text-slate"
+            className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 animate-spin text-muted-foreground"
           />
         ) : (
           <SearchIcon
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-slate"
+            className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground"
           />
         )}
         <Input
@@ -140,7 +140,10 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
 
       <div className="grid grid-cols-2 gap-3 md:contents">
         <div className="grid min-w-0 gap-1.5">
-          <label htmlFor={sortId} className="text-[0.95rem] leading-tight font-semibold text-ink">
+          <label
+            htmlFor={sortId}
+            className="text-[0.95rem] leading-tight font-semibold text-foreground"
+          >
             Sorter
           </label>
           <NativeSelect
@@ -161,7 +164,10 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
           </NativeSelect>
         </div>
         <div className="grid min-w-0 gap-1.5">
-          <label htmlFor={eventId} className="text-[0.95rem] leading-tight font-semibold text-ink">
+          <label
+            htmlFor={eventId}
+            className="text-[0.95rem] leading-tight font-semibold text-foreground"
+          >
             Event
           </label>
           <NativeSelect

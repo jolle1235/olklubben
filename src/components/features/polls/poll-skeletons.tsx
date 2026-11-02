@@ -32,7 +32,7 @@ export function PollFormSkeleton() {
     <div aria-busy="true" aria-live="polite" className="max-w-2xl">
       <span className="sr-only">Henter …</span>
       <Skeleton className="mb-6 h-10 w-64 max-w-full md:mb-8 md:h-12" />
-      <div className="grid gap-7 rounded-xl border border-border bg-paper p-5">
+      <div className="grid gap-7 rounded-xl border border-border bg-card p-5">
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-28 w-full" />
         <Skeleton className="h-40 w-full" />

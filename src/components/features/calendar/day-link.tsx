@@ -10,8 +10,8 @@ import type { DateKey } from "@/server/domain/events/time";
 import { parseSelectedDay } from "./calendar-params";
 
 /**
- * One dot per item (at most three): upcoming events in olive, past ones in
- * slate, a poll's possible date as a hollow harbor ring (D-137).
+ * One dot per item (at most three): upcoming events in primary, past ones in
+ * muted-foreground, a poll's possible date as a hollow info ring (D-137).
  */
 export type DayDot = "upcoming" | "past" | "poll";
 
@@ -70,22 +70,22 @@ export function DayLink({
       }
       className={cn(
         "flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-xl transition-colors",
-        selected ? "bg-olive text-cream" : "hover:bg-cream-deep",
+        selected ? "bg-primary text-primary-foreground" : "hover:bg-muted",
       )}
     >
       <span
         className={cn(
           "grid size-7 place-items-center rounded-full text-base tabular-nums",
           inMonth ? "font-semibold" : "font-normal",
-          // Today is marked in harbor blue (the secondary colour); a cream ring
-          // keeps the circle visible on the selected day's olive tile.
+          // Today is marked in the info role; a ring in the page colour keeps
+          // the circle visible on the selected day's primary tile.
           isToday
-            ? cn("bg-harbor text-paper", selected && "ring-2 ring-cream")
+            ? cn("bg-info text-info-foreground", selected && "ring-2 ring-background")
             : selected
-              ? "text-cream"
+              ? "text-primary-foreground"
               : inMonth
-                ? "text-olive"
-                : "text-slate",
+                ? "text-primary-ink"
+                : "text-muted-foreground",
         )}
       >
         {day}
@@ -97,12 +97,12 @@ export function DayLink({
             className={cn(
               "size-1.5 rounded-full",
               dot === "poll"
-                ? cn("border", selected ? "border-amber" : "border-harbor")
+                ? cn("border", selected ? "border-primary-foreground" : "border-info")
                 : selected
-                  ? "bg-amber"
+                  ? "bg-primary-foreground"
                   : dot === "past"
-                    ? "bg-slate"
-                    : "bg-olive",
+                    ? "bg-muted-foreground"
+                    : "bg-primary",
             )}
           />
         ))}

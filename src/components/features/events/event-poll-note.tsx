@@ -16,7 +16,7 @@ export function EventPollNote({ clubId, pollId }: EventPollNoteProps) {
     <p className="text-[0.95rem]">
       <Link
         href={pollHref(clubId, pollId)}
-        className="inline-flex min-h-11 items-center font-semibold text-harbor underline decoration-2 underline-offset-4 hover:decoration-amber"
+        className="inline-flex min-h-11 items-center font-semibold text-info-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
       >
         Valgt ved afstemning 🗳
       </Link>

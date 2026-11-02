@@ -33,7 +33,7 @@ function ticks(options: readonly PollOptionView[]): Set<string> {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-lg font-bold tracking-tight text-olive">{children}</h3>;
+  return <h3 className="text-lg font-bold tracking-tight text-primary-ink">{children}</h3>;
 }
 
 /**
@@ -78,12 +78,12 @@ export function PollResults({ view, now }: PollResultsProps) {
 
   return (
     <section aria-labelledby="poll-results-heading" className="grid grid-cols-1 gap-6">
-      <h2 id="poll-results-heading" className="text-xl font-bold tracking-tight text-olive">
+      <h2 id="poll-results-heading" className="text-xl font-bold tracking-tight text-primary-ink">
         {view.status === "OPEN" ? "Stemmerne indtil nu" : "Resultatet"}
       </h2>
 
       {expired ? (
-        <p className="flex items-start gap-2 rounded-xl border-2 border-amber bg-amber-tint px-4 py-3 font-semibold text-ink">
+        <p className="flex items-start gap-2 rounded-xl border-2 border-highlight bg-highlight-subtle px-4 py-3 font-semibold text-foreground">
           <LockIcon aria-hidden className="mt-0.5 size-5 shrink-0" />
           <span className="min-w-0">Fristen er udløbet – afstemningen lukkes 🔒</span>
         </p>

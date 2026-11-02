@@ -11,12 +11,12 @@ const RULES = [
 /** The song-text format in five lines (SPEC §9.6), under the "Tekst og akkorder" field. */
 export function SongFormatHelp() {
   return (
-    <details className="group rounded-xl border border-border bg-cream/60">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2 font-semibold text-olive [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-xl border border-border bg-background/60">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2 font-semibold text-primary-ink [&::-webkit-details-marker]:hidden">
         <CircleHelpIcon aria-hidden className="size-5 shrink-0" />
         <span className="min-w-0">Sådan skriver du vers, akkorder og omkvæd</span>
       </summary>
-      <ul className="grid list-disc gap-1.5 px-4 pt-1 pb-4 pl-9 text-[0.95rem] text-ink">
+      <ul className="grid list-disc gap-1.5 px-4 pt-1 pb-4 pl-9 text-[0.95rem] text-foreground">
         {RULES.map((rule) => (
           <li key={rule} className="break-words">
             {rule}

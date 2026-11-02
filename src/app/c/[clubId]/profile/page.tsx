@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { FormAlert } from "@/components/features/auth/form-alert";
+import { AppearanceControl } from "@/components/features/profile/appearance-control";
 import { ExternalSignInButton } from "@/components/features/auth/external-sign-in";
 import { ChangeEmailForm } from "@/components/features/profile/change-email-form";
 import { ChangePasswordForm } from "@/components/features/profile/change-password-form";
@@ -27,8 +28,8 @@ export const metadata: Metadata = { title: "Profil" };
  * Profil (D-023, SPEC §8.1, §9.8, D-105, D-106, D-151, D-152): who you are
  * (with the official name when a nickname is set), name and nickname, the
  * email, the password, the way to the club page, its places and other clubs,
- * "Feedback (fejl og ønsker)" (the app-wide reports, §9.9, D-147), and log
- * out.
+ * "Udseende" (System | Lyst | Mørkt, per device, §13.2), "Feedback (fejl og
+ * ønsker)" (the app-wide reports, §9.9, D-147), and log out.
  *
  *   * Email: password logins get "Skift email"; accounts with only an external
  *     login (Google or Auth0, D-166) are told that their email follows it.
@@ -84,7 +85,7 @@ export default async function ProfilePage({
 
         <Card>
           <CardHeader>
-            <h2 className="font-heading text-xl leading-snug text-olive">Navn og kælenavn</h2>
+            <h2 className="font-heading text-xl leading-snug text-primary-ink">Navn og kælenavn</h2>
           </CardHeader>
           <CardContent>
             <ProfileForm
@@ -101,7 +102,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-email-heading"
-                className="font-heading text-xl leading-snug text-olive"
+                className="font-heading text-xl leading-snug text-primary-ink"
               >
                 Email
               </h2>
@@ -111,7 +112,7 @@ export default async function ProfilePage({
                 <>
                   <p className="text-[1.05rem] text-muted-foreground">
                     Du logger ind med{" "}
-                    <span className="font-semibold break-all text-ink">{user.email}</span>.
+                    <span className="font-semibold break-all text-foreground">{user.email}</span>.
                   </p>
                   {accountProvider ? (
                     <p className="text-[0.95rem] text-muted-foreground">
@@ -135,7 +136,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-password-heading"
-                className="font-heading text-xl leading-snug text-olive"
+                className="font-heading text-xl leading-snug text-primary-ink"
               >
                 {logins.hasPassword ? "Skift password" : "Tilføj password"}
               </h2>
@@ -167,7 +168,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-external-heading"
-                className="font-heading text-xl leading-snug text-olive"
+                className="font-heading text-xl leading-snug text-primary-ink"
               >
                 {configured.label}-login
               </h2>
@@ -186,7 +187,7 @@ export default async function ProfilePage({
                   <p className="text-[1.05rem] text-muted-foreground">
                     Forbind din {configured.label}-konto, så kan du logge ind med ét tryk.{" "}
                     {configured.label}-kontoen skal have samme email (
-                    <span className="break-all text-ink">{user.email}</span>).
+                    <span className="break-all text-foreground">{user.email}</span>).
                   </p>
                   <ExternalSignInButton
                     provider={externalProvider}
@@ -203,6 +204,23 @@ export default async function ProfilePage({
             </CardContent>
           </Card>
         ) : null}
+
+        <Card role="region" aria-labelledby="profile-appearance-heading">
+          <CardHeader>
+            <h2
+              id="profile-appearance-heading"
+              className="font-heading text-xl leading-snug text-primary-ink"
+            >
+              Udseende
+            </h2>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <p className="text-[1.05rem] text-muted-foreground">
+              System følger din telefon eller computer. Valget gælder kun på denne enhed.
+            </p>
+            <AppearanceControl />
+          </CardContent>
+        </Card>
 
         <ProfileLinks clubId={club.id} clubCount={clubs.length} />
         <FeedbackLink />

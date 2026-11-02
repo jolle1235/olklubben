@@ -40,7 +40,7 @@ export function BeerCatalogSkeleton() {
         {Array.from({ length: 4 }, (_, index) => (
           <div
             key={index}
-            className="flex gap-3 rounded-xl border border-border bg-paper px-4 py-3.5 sm:gap-4 sm:px-5"
+            className="flex gap-3 rounded-xl border border-border bg-card px-4 py-3.5 sm:gap-4 sm:px-5"
           >
             <Skeleton className="size-10 shrink-0 rounded-full" />
             <div className="grid flex-1 gap-2">
@@ -66,15 +66,15 @@ export function BeerDetailSkeleton() {
     <Busy label="Henter øllen …">
       <TitleSkeleton />
       <div className="grid gap-4 md:grid-cols-2">
-        <Skeleton className="h-36 rounded-2xl bg-harbor/15" />
-        <div className="grid content-start gap-3 rounded-2xl border border-border bg-paper p-5">
+        <Skeleton className="h-36 rounded-2xl bg-info/15" />
+        <div className="grid content-start gap-3 rounded-2xl border border-border bg-card p-5">
           <Skeleton className="h-6 w-28" />
           <Skeleton className="h-14 w-72 max-w-full" />
           <Skeleton className="h-5 w-48" />
         </div>
       </div>
       <Skeleton className="mt-8 mb-3 h-7 w-28" />
-      <div className="grid gap-3 rounded-2xl border border-border bg-paper p-4">
+      <div className="grid gap-3 rounded-2xl border border-border bg-card p-4">
         {Array.from({ length: 3 }, (_, index) => (
           <div key={index} className="flex items-center gap-3">
             <Skeleton className="size-8 rounded-full" />

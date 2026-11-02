@@ -15,7 +15,7 @@ const getServerSlot = () => null;
  * top bar is hidden from md and up, so also show the action in the page (e.g. in
  * PageHeader with `className="hidden md:inline-flex"`).
  *
- * Use an olive-friendly button: <Button size="icon" variant="brass" aria-label="Opret event">.
+ * Use a button that works on the frame: <Button size="icon" variant="highlight" aria-label="Opret event">.
  */
 export function TopBarAction({ children }: { children: React.ReactNode }) {
   const slot = useSyncExternalStore(subscribe, getSlot, getServerSlot);

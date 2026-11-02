@@ -58,9 +58,9 @@ export function FeedbackTypeChoice({ defaultType, onChange, errors }: FeedbackTy
                 <label
                   htmlFor={id}
                   className={cn(
-                    "flex min-h-14 items-center gap-2.5 rounded-xl border-2 border-border bg-paper px-3 py-3 font-semibold text-ink transition-colors peer-hover:border-olive/50 peer-hover:bg-cream-deep/40 sm:px-3.5",
-                    "before:size-5 before:shrink-0 before:rounded-full before:border-2 before:border-slate before:bg-paper before:content-['']",
-                    "peer-checked:border-olive peer-checked:bg-olive-tint peer-checked:before:border-[6px] peer-checked:before:border-olive",
+                    "flex min-h-14 items-center gap-2.5 rounded-xl border-2 border-border bg-card px-3 py-3 font-semibold text-foreground transition-colors peer-hover:border-primary-border peer-hover:bg-muted/40 sm:px-3.5",
+                    "before:size-5 before:shrink-0 before:rounded-full before:border-2 before:border-border-strong before:bg-card before:content-['']",
+                    "peer-checked:border-primary peer-checked:bg-primary-subtle peer-checked:before:border-[6px] peer-checked:before:border-primary",
                     "peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
                   )}
                 >

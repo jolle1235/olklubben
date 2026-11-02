@@ -68,7 +68,7 @@ export function CalendarMonth({
     <section aria-labelledby={HEADING_ID}>
       <CalendarMonthNav clubId={clubId} monthKey={monthKey} view={view} headingId={HEADING_ID} />
 
-      <div className="md:overflow-hidden md:rounded-xl md:border md:border-border md:bg-paper">
+      <div className="md:overflow-hidden md:rounded-xl md:border md:border-border md:bg-card">
         <table className="w-full table-fixed border-collapse">
           <caption className="sr-only">Kalender for {monthKeyLabel(monthKey)}</caption>
           <thead>
@@ -77,7 +77,7 @@ export function CalendarMonth({
                 <th
                   key={weekday.short}
                   scope="col"
-                  className="pb-1.5 text-center text-xs font-bold tracking-[0.12em] text-slate uppercase md:bg-cream-deep/50 md:px-2.5 md:py-2 md:text-left"
+                  className="pb-1.5 text-center text-xs font-bold tracking-[0.12em] text-muted-foreground uppercase md:bg-muted/50 md:px-2.5 md:py-2 md:text-left"
                 >
                   <span aria-hidden>{weekday.short}</span>
                   <span className="sr-only">{weekday.long}</span>
@@ -141,7 +141,7 @@ function DayCell({
       data-date={day.dateKey}
       className={cn(
         "p-0.5 align-top md:border-t md:border-l md:border-border md:p-0 md:first:border-l-0",
-        !day.inMonth && "md:bg-cream-deep/60",
+        !day.inMonth && "md:bg-muted/60",
       )}
     >
       {/* Mobile: the date is a link that selects the day (dots, no text). */}
@@ -168,7 +168,11 @@ function DayCell({
           aria-current={day.isToday ? "date" : undefined}
           className={cn(
             "grid size-7 place-items-center rounded-full text-sm font-semibold tabular-nums",
-            day.isToday ? "bg-harbor text-paper" : day.inMonth ? "text-olive" : "text-slate",
+            day.isToday
+              ? "bg-info text-info-foreground"
+              : day.inMonth
+                ? "text-primary-ink"
+                : "text-muted-foreground",
           )}
         >
           {day.day}

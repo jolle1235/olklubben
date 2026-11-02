@@ -1,14 +1,15 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useHydrated } from "@/hooks/use-hydrated";
 import type { SongView } from "@/lib/songbook-prefs";
 
-import { setSongView, useHydrated, useSongView } from "./use-songbook-prefs";
+import { setSongView, useSongView } from "./use-songbook-prefs";
 
-const VIEWS: { view: SongView; label: string }[] = [
-  { view: "lyrics", label: "Tekst" },
-  { view: "chords", label: "Akkorder" },
-];
+const VIEWS = [
+  { value: "lyrics", label: "Tekst" },
+  { value: "chords", label: "Akkorder" },
+] as const satisfies readonly { value: SongView; label: string }[];
 
 /**
  * Tekst | Akkorder (SPEC §9.6). Remembered per device. Both views are already
@@ -20,32 +21,13 @@ export function SongViewToggle({ className }: { className?: string }) {
   const hydrated = useHydrated();
 
   return (
-    <div
-      role="group"
-      aria-label="Visning"
-      className={cn(
-        "inline-flex h-11 shrink-0 overflow-hidden rounded-lg border border-olive bg-paper",
-        className,
-      )}
-    >
-      {VIEWS.map((option) => {
-        const pressed = hydrated && option.view === view;
-        return (
-          <button
-            key={option.view}
-            type="button"
-            aria-pressed={pressed}
-            disabled={!hydrated}
-            onClick={() => setSongView(option.view)}
-            className={cn(
-              "min-w-11 cursor-pointer px-4 text-base font-semibold transition-colors focus-visible:-outline-offset-4 disabled:cursor-default",
-              pressed ? "bg-olive text-cream" : "text-olive hover:bg-olive-tint",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedControl
+      label="Visning"
+      options={VIEWS}
+      value={hydrated ? view : null}
+      disabled={!hydrated}
+      onChange={setSongView}
+      className={className}
+    />
   );
 }

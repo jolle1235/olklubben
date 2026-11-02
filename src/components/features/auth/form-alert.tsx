@@ -6,21 +6,21 @@ import { cn } from "@/lib/utils";
 type FormAlertTone = "error" | "success" | "info";
 
 const TONES = {
-  // danger-deep on danger-tint 6,95:1, olive-deep on olive-tint 10,83:1, harbor on harbor-tint 6,14:1.
+  // {role}-ink on {role}-subtle: WCAG AA in both themes (src/styles/tokens/contrast.test.ts).
   error: {
     role: "alert",
     Icon: CircleAlertIcon,
-    className: "border-danger/30 bg-danger-tint text-danger-deep",
+    className: "border-destructive-border bg-destructive-subtle text-destructive-ink",
   },
   success: {
     role: "status",
     Icon: CircleCheckIcon,
-    className: "border-olive/25 bg-olive-tint text-olive-deep",
+    className: "border-success-border bg-success-subtle text-success-ink",
   },
   info: {
     role: "status",
     Icon: InfoIcon,
-    className: "border-harbor/25 bg-harbor-tint text-harbor",
+    className: "border-info-border bg-info-subtle text-info-ink",
   },
 } as const;
 

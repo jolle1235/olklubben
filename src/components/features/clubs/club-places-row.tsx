@@ -13,16 +13,16 @@ export function ClubPlacesRow({ clubId, placeCount }: { clubId: string; placeCou
   return (
     <Link
       href={placesHref(clubId)}
-      className="group/row flex min-h-16 items-center gap-4 rounded-2xl border border-border bg-paper px-4 py-3 transition-colors hover:bg-cream-deep/70 sm:px-5"
+      className="group/row flex min-h-16 items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/70 sm:px-5"
     >
       <span
         aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-olive text-amber [&_svg]:size-5"
+        className="grid size-10 shrink-0 place-items-center rounded-full bg-frame text-highlight [&_svg]:size-5"
       >
         <MapPinIcon strokeWidth={2.25} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-heading text-lg leading-tight font-semibold text-olive">
+        <span className="block font-heading text-lg leading-tight font-semibold text-primary-ink">
           {placeCountLabel(placeCount)}
         </span>
         <span className="block text-[0.95rem] text-pretty text-muted-foreground">
@@ -31,7 +31,7 @@ export function ClubPlacesRow({ clubId, placeCount }: { clubId: string; placeCou
       </span>
       <ChevronRightIcon
         aria-hidden
-        className="size-5 shrink-0 text-slate transition-transform group-hover/row:translate-x-0.5"
+        className="size-5 shrink-0 text-muted-foreground transition-transform group-hover/row:translate-x-0.5"
       />
     </Link>
   );

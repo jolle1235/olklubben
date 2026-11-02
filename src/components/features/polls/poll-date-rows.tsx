@@ -59,7 +59,7 @@ export function PollDateRows({
       className="grid min-w-0 grid-cols-1 gap-3"
       aria-describedby={error ? errorId : hintId}
     >
-      <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-ink">
+      <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-foreground">
         Hvornår? <span className="font-normal text-muted-foreground">(mindst én)</span>
       </legend>
       {error ? <FieldError id={errorId}>{error}</FieldError> : null}
@@ -89,7 +89,7 @@ export function PollDateRows({
                 {weekday ? (
                   <span
                     aria-hidden
-                    className="min-w-0 pl-1 text-[0.95rem] break-words text-slate first-letter:uppercase sm:pl-0"
+                    className="min-w-0 pl-1 text-[0.95rem] break-words text-muted-foreground first-letter:uppercase sm:pl-0"
                   >
                     {weekday}
                   </span>
@@ -102,7 +102,7 @@ export function PollDateRows({
                 onClick={() => onRemove(row.key)}
                 disabled={!canRemove}
                 aria-label={removeDateLabel(index, row.date)}
-                className="shrink-0 self-start text-slate hover:text-danger sm:self-center"
+                className="shrink-0 self-start text-muted-foreground hover:text-destructive-ink sm:self-center"
               >
                 <XIcon aria-hidden />
               </Button>

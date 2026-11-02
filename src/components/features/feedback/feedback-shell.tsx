@@ -12,7 +12,7 @@ export type FeedbackShellProps = {
 
 /**
  * Frame for /feedback for a user WITHOUT clubs (D-147): there is no club for
- * the AppShell, so the pages get CenteredShell's look instead (the olive band
+ * the AppShell, so the pages get CenteredShell's look instead (the frame band
  * with the logo linking to "/" and the wave edge) and a wider content column
  * (max-w-2xl) for the list and the forms, "← Tilbage" to "/" (which routes to
  * onboarding) and "Logget ind som … · Log ud" at the bottom, which also slides
@@ -23,17 +23,17 @@ export function FeedbackShell({ email, children }: FeedbackShellProps) {
     <div className="flex min-h-dvh flex-col">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-paper focus:px-4 focus:py-3 focus:font-semibold focus:text-olive"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-3 focus:font-semibold focus:text-primary-ink"
       >
         Spring til indhold
       </a>
-      <div className="relative overflow-hidden on-olive pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-12">
+      <div className="relative overflow-hidden surface-frame pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-12">
         <div className="mx-auto flex w-full max-w-2xl px-4">
           <Link href="/" className="rounded-lg">
-            <Logo tone="cream" />
+            <Logo tone="frame" />
           </Link>
         </div>
-        {/* Wave edge between the olive band and the cream page (as CenteredShell). */}
+        {/* Wave edge between the frame band and the page background (as CenteredShell). */}
         <svg
           aria-hidden
           viewBox="0 0 1440 48"
@@ -54,7 +54,7 @@ export function FeedbackShell({ email, children }: FeedbackShellProps) {
       >
         <Link
           href="/"
-          className="mb-3 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
+          className="mb-3 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 hover:underline"
         >
           <ArrowLeftIcon aria-hidden className="size-4" />
           Tilbage

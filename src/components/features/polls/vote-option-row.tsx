@@ -106,7 +106,7 @@ export function VoteOptionRow({
         />
       ) : null}
       <span className="grid min-w-0 flex-1 grid-cols-1 gap-0.5">
-        <span className="text-[1.05rem] leading-snug font-semibold break-words hyphens-auto text-ink">
+        <span className="text-[1.05rem] leading-snug font-semibold break-words hyphens-auto text-foreground">
           {srLabel ? (
             <>
               <span aria-hidden>{label}</span>
@@ -120,7 +120,7 @@ export function VoteOptionRow({
           <span
             id={metaId}
             aria-hidden={input ? true : undefined}
-            className="text-[0.95rem] break-words hyphens-auto text-slate"
+            className="text-[0.95rem] break-words hyphens-auto text-muted-foreground"
           >
             {meta}
           </span>
@@ -131,13 +131,15 @@ export function VoteOptionRow({
           <span
             className={cn(
               "rounded-full px-2 py-0.5 text-[0.8rem] font-semibold whitespace-nowrap",
-              marker === "tied" ? "bg-harbor-tint text-harbor" : "bg-amber text-ink",
+              marker === "tied"
+                ? "bg-info-subtle text-info-ink"
+                : "bg-highlight text-highlight-foreground",
             )}
           >
             {MARKER_TEXT[marker]}
           </span>
         ) : null}
-        <span className="min-w-6 text-right text-xl leading-none font-bold text-ink tabular-nums">
+        <span className="min-w-6 text-right text-xl leading-none font-bold text-foreground tabular-nums">
           {row.count}
         </span>
       </span>
@@ -147,10 +149,10 @@ export function VoteOptionRow({
   return (
     <div
       className={cn(
-        "grid min-w-0 grid-cols-1 rounded-xl border-2 border-border bg-paper transition-colors",
+        "grid min-w-0 grid-cols-1 rounded-xl border-2 border-border bg-card transition-colors",
         input &&
-          "hover:border-olive/50 has-[input:checked]:border-olive has-[input:checked]:bg-olive-tint has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ring",
-        !input && (marker === "winner" ? "border-amber bg-amber-tint/60" : null),
+          "hover:border-primary-border has-[input:checked]:border-primary has-[input:checked]:bg-primary-subtle has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ring",
+        !input && (marker === "winner" ? "border-highlight bg-highlight-subtle/60" : null),
         className,
       )}
     >
@@ -167,7 +169,7 @@ export function VoteOptionRow({
             <CheckIcon
               role="img"
               aria-label="Din stemme"
-              className="mt-1 size-5 shrink-0 text-olive"
+              className="mt-1 size-5 shrink-0 text-primary-ink"
             />
           ) : null}
           {top}
@@ -188,12 +190,15 @@ export function VoteOptionRow({
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <VoterAvatars others={row.others} viewer={viewer} viewerMark={row.viewer} />
             {names.length <= INLINE_NAMES_MAX ? (
-              <span aria-hidden className="min-w-0 text-[0.95rem] break-words text-slate">
+              <span
+                aria-hidden
+                className="min-w-0 text-[0.95rem] break-words text-muted-foreground"
+              >
                 {formatDanishList(names)}
               </span>
             ) : (
-              <details className="min-w-0 text-[0.95rem] text-slate">
-                <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-olive underline decoration-2 underline-offset-4 hover:decoration-amber">
+              <details className="min-w-0 text-[0.95rem] text-muted-foreground">
+                <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight">
                   Se alle ({everyone.length})
                 </summary>
                 <ul className="grid grid-cols-1 gap-0.5 pb-1 break-words">

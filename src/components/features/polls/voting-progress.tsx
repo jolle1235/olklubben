@@ -39,23 +39,23 @@ export function VotingProgress({ view }: VotingProgressProps) {
                 key={member.id}
                 className={cn(
                   "h-full flex-1 rounded-full",
-                  index < voted ? "bg-olive" : "bg-cream-deep",
+                  index < voted ? "bg-primary" : "bg-muted",
                 )}
               />
             ))}
           </div>
         ) : (
-          <div aria-hidden className="h-2.5 overflow-hidden rounded-full bg-cream-deep">
+          <div aria-hidden className="h-2.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-olive"
+              className="h-full rounded-full bg-primary"
               style={{ width: `${Math.round((voted / total) * 100)}%` }}
             />
           </div>
         )
       ) : null}
-      <p className="text-[1.05rem] break-words text-ink">
+      <p className="text-[1.05rem] break-words text-foreground">
         <span className="font-semibold">{everyone && open ? "Alle har stemt 🎉" : summary}</span>
-        {missing ? <span className="text-slate"> · {missing}</span> : null}
+        {missing ? <span className="text-muted-foreground"> · {missing}</span> : null}
       </p>
       {missing ? (
         <div aria-hidden className="flex flex-wrap gap-2.5 p-1">

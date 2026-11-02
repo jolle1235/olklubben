@@ -85,7 +85,7 @@ export function PlaceOwners({
         id="place-owners-heading"
         ref={headingRef}
         tabIndex={-1}
-        className="text-2xl text-olive focus:outline-none"
+        className="text-2xl text-primary-ink focus:outline-none"
       >
         Ejere
       </h2>
@@ -95,7 +95,7 @@ export function PlaceOwners({
       </p>
 
       {shown.length > 0 ? (
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-paper px-4 sm:px-5">
+        <ul className="divide-y divide-border rounded-2xl border border-border bg-card px-4 sm:px-5">
           {shown.map((owner) => {
             const name = getDisplayName(owner);
             const isMe = owner.id === viewer.id;
@@ -103,7 +103,7 @@ export function PlaceOwners({
               <li key={owner.id} className="flex min-h-16 items-center gap-3 py-2.5">
                 <UserAvatar name={name} image={owner.image} decorative className="m-1" />
                 <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
-                  <span className="min-w-0 font-semibold break-words hyphens-auto text-ink">
+                  <span className="min-w-0 font-semibold break-words hyphens-auto text-foreground">
                     {name}
                   </span>
                   {isMe ? <span className="text-muted-foreground">(dig)</span> : null}
@@ -123,7 +123,7 @@ export function PlaceOwners({
           })}
         </ul>
       ) : (
-        <p className="rounded-xl border border-dashed border-border bg-paper/60 px-4 py-4 text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border bg-card/60 px-4 py-4 text-muted-foreground">
           Ingen ejere. Så bliver den, der opretter smagningen, vært.
         </p>
       )}
@@ -133,7 +133,7 @@ export function PlaceOwners({
           {owned ? <UserMinusIcon aria-hidden /> : <HouseIcon aria-hidden />}
           {owned ? "Fjern mig som ejer" : "Det er mit sted"}
         </Button>
-        <p role="status" className="text-[0.95rem] font-semibold text-olive">
+        <p role="status" className="text-[0.95rem] font-semibold text-primary-ink">
           {status}
         </p>
       </div>

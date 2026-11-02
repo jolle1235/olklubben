@@ -31,7 +31,7 @@ export function SignedInFooter({
   return (
     <p className="flex flex-wrap items-center justify-center gap-x-2">
       <span className="min-w-0">
-        Logget ind som <span className="font-semibold break-all text-ink">{email}</span>.
+        Logget ind som <span className="font-semibold break-all text-foreground">{email}</span>.
       </span>
       <LogoutButton variant="link" next={next} />
       {showFeedbackLink ? (
@@ -39,7 +39,7 @@ export function SignedInFooter({
           <span aria-hidden>·</span>
           <Link
             href={feedbackListHref()}
-            className="inline-flex min-h-11 items-center font-semibold text-primary underline decoration-2 underline-offset-4 hover:decoration-amber"
+            className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
           >
             Feedback
           </Link>

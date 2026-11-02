@@ -24,17 +24,17 @@ export type PollCardProps = {
   now: Date;
 };
 
-/** The states that ask the viewer to act get the brass button and the amber ring. */
+/** The states that ask the viewer to act get the highlight button and ring. */
 function needsViewer(state: PollCardState): boolean {
   return state === "missing" || state === "tie-manager";
 }
 
 /**
  * One poll on Overblik (SPEC §9.1 "Aktive afstemninger", D-137), right under
- * the hero: a dashed harbor card (polls are dashed everywhere, confirmed
+ * the hero: a dashed info card (polls are dashed everywhere, confirmed
  * events are filled) with the poll's title and one of five states –
  *
- *   missing      "Du mangler at stemme" (amber ring) · frist · N af M · [Stem nu]
+ *   missing      "Du mangler at stemme" (highlight ring) · frist · N af M · [Stem nu]
  *   voted        "Du har stemt ✓" · frist · N af M · "Fører lige nu: …"
  *   tie-manager  "Uafgjort 🤝 – du skal vælge vinderen" · [Vælg vinder]
  *   tie-waiting  "Uafgjort 🤝 – Mads eller en admin vælger"
@@ -53,13 +53,13 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
     <section
       aria-labelledby={headingId}
       className={cn(
-        "grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-harbor/60 bg-paper px-5 py-4 sm:px-6 sm:py-5",
-        urgent && "ring-[3px] ring-amber ring-offset-2 ring-offset-cream",
+        "grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-info-border bg-card px-5 py-4 sm:px-6 sm:py-5",
+        urgent && "ring-[3px] ring-highlight ring-offset-2 ring-offset-background",
       )}
     >
       <h2
         id={headingId}
-        className="flex items-start gap-2 text-[0.85rem] font-bold tracking-[0.12em] text-harbor uppercase"
+        className="flex items-start gap-2 text-[0.85rem] font-bold tracking-[0.12em] text-info-ink uppercase"
       >
         <VoteIcon aria-hidden className="mt-px size-4 shrink-0" />
         <span className="min-w-0 break-words hyphens-auto">
@@ -72,7 +72,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
         <p
           className={cn(
             "text-xl leading-snug font-bold break-words hyphens-auto",
-            urgent ? "text-amber-ink" : "text-ink",
+            urgent ? "text-highlight-ink" : "text-foreground",
           )}
         >
           {pollCardHeadline(state, creator, poll.event, now)}
@@ -82,7 +82,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         {state === "missing" ? (
-          <Button asChild variant="brass" className="w-full sm:w-auto">
+          <Button asChild variant="highlight" className="w-full sm:w-auto">
             <Link href={pollVoteHref(clubId, poll.id)}>
               Stem nu
               <ArrowRightIcon aria-hidden data-icon="inline-end" />
@@ -90,7 +90,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
           </Button>
         ) : null}
         {state === "tie-manager" ? (
-          <Button asChild variant="brass" className="w-full sm:w-auto">
+          <Button asChild variant="highlight" className="w-full sm:w-auto">
             <Link href={pollHref(clubId, poll.id)}>
               Vælg vinder
               <ArrowRightIcon aria-hidden data-icon="inline-end" />
@@ -112,7 +112,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
             </Button>
             <Link
               href={pollHref(clubId, poll.id)}
-              className="inline-flex min-h-11 items-center self-center px-2 text-[0.95rem] font-semibold text-primary underline decoration-2 underline-offset-4 hover:decoration-amber"
+              className="inline-flex min-h-11 items-center self-center px-2 text-[0.95rem] font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
             >
               Se afstemningen
             </Link>
@@ -132,7 +132,7 @@ function CardMeta({
   state: PollCardState;
   now: Date;
 }) {
-  const line = "text-[1.05rem] break-words hyphens-auto text-slate";
+  const line = "text-[1.05rem] break-words hyphens-auto text-muted-foreground";
   switch (state) {
     case "missing":
       return <p className={line}>{pollCardMeta(poll, now)}</p>;
@@ -140,7 +140,7 @@ function CardMeta({
       return (
         <>
           <p className={line}>{pollCardMeta(poll, now)}</p>
-          <p className="text-[1.05rem] font-semibold break-words hyphens-auto text-ink">
+          <p className="text-[1.05rem] font-semibold break-words hyphens-auto text-foreground">
             {leaderLabel(poll.leader)}
           </p>
         </>

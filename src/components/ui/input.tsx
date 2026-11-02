@@ -35,7 +35,7 @@ function Input({
       data-slot="input"
       placeholder={clearable ? (placeholder ?? " ") : placeholder}
       className={cn(
-        "h-11 w-full min-w-0 rounded-lg border border-input bg-paper px-3.5 py-2 text-base text-ink outline-offset-1 transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-semibold file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-cream-deep disabled:opacity-60 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/25",
+        "h-11 w-full min-w-0 rounded-lg border border-input bg-card px-3.5 py-2 text-base text-foreground outline-offset-1 transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-semibold file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/25",
         clearable && "peer pr-12 [&::-webkit-search-cancel-button]:appearance-none",
         className,
       )}
@@ -63,7 +63,7 @@ function Input({
           field.dispatchEvent(new Event("input", { bubbles: true }));
           field.focus();
         }}
-        className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-slate peer-placeholder-shown:hidden peer-read-only:hidden peer-disabled:hidden hover:text-ink"
+        className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-muted-foreground peer-placeholder-shown:hidden peer-read-only:hidden peer-disabled:hidden hover:text-foreground"
       >
         <XIcon aria-hidden className="size-5" />
       </button>

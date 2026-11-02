@@ -101,7 +101,7 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
   return (
     <>
       <TopBarAction>
-        <Button asChild size="icon" variant="brass">
+        <Button asChild size="icon" variant="highlight">
           {ongoing ? (
             <Link href={newBeerHref(club.id, { eventId: nextEvent.id })} aria-label="Tilføj øl">
               <PlusIcon aria-hidden />

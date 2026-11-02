@@ -1103,6 +1103,7 @@ Eventet kan derefter redigeres som ethvert andet event. Eventsiden viser "Valgt 
 * **Email** (kortet "Email", D-151): konti med password-login ser "Du logger ind med {email}." og **"Skift email"**: "Ny email", "Gentag ny email" og "Nuværende password". Emailen gemmes trimmet, med små bogstaver og som uverificeret. Ved feltet: et forkert password ("Det nuværende password er forkert."), ens egen email ("Det er allerede din email.") og en email, en anden konto har, eller en adresse i `APP_ADMIN_EMAILS` (samme tekst: "Den email bruges allerede af en anden konto."). Denne enhed forbliver logget ind, alle andre enheder logges ud, og udestående nulstillingslinks holder op med at virke ("Din email er skiftet. Dine andre enheder er logget ud."). Der sendes ingen bekræftelsesmail og ingen besked til den gamle adresse endnu (TG-033). Rene Google-konti ser "Du logger ind med Google, så din email følger din Google-konto."
 * **Password** (skift: nuværende + nyt + gentag nyt, D-106). Denne enhed forbliver logget ind, alle andre enheder logges ud, og udestående nulstillingslinks holder op med at virke. Et forkert nuværende password vises ved feltet. Kun for konti med password-login. Rene Google-konti har i stedet **"Tilføj password"** (D-152): "Nyt password" + "Gentag nyt password", men kun mens Google-login'et er under 10 minutter gammelt (sessionens oprettelsestid). Ellers "Af sikkerhedshensyn skal du have logget ind med Google for nylig, før du kan tilføje et password." og [Log ind med Google igen] (Google-vælgeren foreslår kontoens email og sender tilbage til Profil). Bagefter kan kontoen også logge ind med email og password, andre enheder logges ud, og kortet bliver "Skift password". Google-login'et bevares.
 * **"{Auth0|Google}-login"** (kortet hedder efter den udbyder, der er sat op, D-165, D-166; nedenfor med Google som eksempel, for Auth0 står der "Forbind Auth0" osv.): en konto med password og uden Google ser "Forbind din Google-konto, så kan du logge ind med ét tryk. Google-kontoen skal have samme email ({email})." og **[Forbind Google]** (Google-vælgeren foreslår kontoens email). Tilbage på Profil: "Google er forbundet." (kun når kontoen nu har Google) eller en fast fejltekst (anden email, ubekræftet email, Google-kontoen er koblet til en anden). En konto med Google ser "Du kan logge ind med Google." Har kontoen Google, står der under "Skift email": "Skifter du email, kobles dit Google-login fra. Du kan forbinde Google igen med den nye email." Et emailskift sletter Google-login'et i samme transaction (toast: "… Google-login er koblet fra, fordi det hørte til den gamle email. Forbind Google igen på Profil.").
+* **Udseende** (kortet "Udseende", D-168): System | Lyst | Mørkt som en knaprække. Valget gælder med det samme og gemmes pr. enhed, ikke på kontoen: "System følger din telefon eller computer. Valget gælder kun på denne enhed." Se §13.2 "Lyst og mørkt tema".
 * **Profilbillede** (fra Google i MVP. [SENERE] upload.)
 * Links til Klubben, Steder, Mine klubber (fra to klubber) og "Opret eller join ny klub"
 * Log ud
@@ -1629,33 +1630,140 @@ FeedbackVote
 * **Ikke** en piratside. Temaet er krydderi, ikke hovedret.
 * **Ingen lilla** som primær- eller accentfarve.
 
-## 13.2 Farver [BESLUTNING, D-092]
+## 13.2 Farvesystem [BESLUTNING, D-168]
 
-| Token | Rolle | Værdi |
+Farverne er bygget som et lagdelt token-system, som i Radix Colors, GitHub Primer og shadcn/ui. Paletten skiftes ét sted, lyst og mørkt tema hænger altid sammen, og en test fanger kontrastfejl.
+
+```
+src/styles/tokens/palette.ts   LAG 1 · primitiver: 12-trins farveskalaer. ENESTE sted med farveværdier.
+src/styles/tokens/themes.ts    LAG 2 · roller (lyst + mørkt)  ·  LAG 3 · komponent-tokens
+        │  npm run tokens
+src/styles/tokens/tokens.css   GENERERET: CSS-variabler + Tailwind-utilities. Redigeres ikke i hånden.
+```
+
+**Regler**
+
+* Komponenter bruger kun roller (lag 2–3): `bg-card`, `text-muted-foreground`, `bg-primary`, `text-highlight-ink`, `surface-frame`, `shadow-raised` … De bruger aldrig hex, `rgb()`, primitiver (`var(--olive-9)`) eller `dark:`. Temaet skifter, fordi skalaerne under rollerne skifter.
+* Farvet tekst bruger altid `{rolle}-ink` (`text-primary-ink`, `text-destructive-ink` …), aldrig den solide farve (`text-primary`). Kun `-ink` er kontrasttestet som tekst på lyse flader i begge temaer.
+* Tailwinds standardpalet er slået fra (D-032). Kun rollerne findes som farver, så der kan ikke snige sig lilla ind.
+* `npm run check:tokens` håndhæver reglerne og er en del af `npm run check`. Kun logoet (D-162), Googles logo og e-mailskabelonerne må have faste farver.
+
+### Lag 1: skalaer (`palette.ts`)
+
+Hver skala har 12 trin i en lys og en mørk udgave. Trinnene har faste opgaver:
+
+| Trin | Opgave |
+|---|---|
+| 1–2 | App-baggrund, subtil baggrund |
+| 3–5 | Komponent-flade: normal, hover, aktiv/valgt |
+| 6–8 | Subtil kant, kant, stærk kant/fokus |
+| 9–10 | Solid farve, solid hover |
+| 11–12 | Farvet tekst, tekst med høj kontrast |
+
+En skala laves ud fra **én basisfarve** (trin 9), som `build.ts` udbygger i OKLCH. Enkelte trin kan låses. Skalaerne er `olive`, `harbor`, `amber`, `sand` (varm neutral), `red`, `rust` og `brown` (avatarer).
+
+D-092's farver ligger nu som baser og låste trin:
+
+| Skala | Base og låste trin |
+|---|---|
+| `olive` | Oliven `#414437` (Jespers farve). Tint `#E3E8CE`, hover `#2D2F23`. |
+| `harbor` | Havneblå `#3E5568`. Tint `#DCE6EE`. |
+| `amber` | Messing `#D99A1E`. Tint `#F6E3B4`, lys `#F2C46A`, tekst `#8A5A00`. |
+| `sand` | Paper `#FFFBF3`, cream `#F6F0E1`, cream-deep `#EDE5D2`, sand `#E6DBC1`, kant `#DDD0B3`, input-kant `#8C7F66`, slate `#5E6670`, ink `#1A1D21`. |
+| `red` | Fare `#B3261E`. Tint `#F6DEDA`, hover `#8F1D17`. |
+
+### Lag 2: roller (`themes.ts`)
+
+Hvilken skala en rolle bruger, står ét sted (`roles`). Primærfarven skiftes altså ved at rette én linje.
+
+| Rolle | Skala | Bruges til |
 |---|---|---|
-| `olive` (`--primary`) | Primærfarve (Jespers valg): app-rammen (sidebar, top bar, bundnavigation, login/onboarding-båndet, toasts) og handlinger (primærknapper, links, aktive og valgte tilstande, bekræftede events i kalenderen). Overskrifter. | `#414437` |
-| `olive-soft` | Hover og aktivt punkt på app-rammen | `#525742` |
-| `olive-deep` | Hover på primærknap, klubbadge, succes-tekst | `#2D2F23` |
-| `olive-tint` | Lys oliven: events i månedsgitteret, succes-beskeder | `#E3E8CE` |
-| `on-dark-muted` | Dæmpet tekst på olive- og harbor-flader | `#CECFC4` |
-| `harbor` | Sekundærfarve (havneblå) i en støtterolle: Overblikkets hero-kort, "Klubbens rating", eventsidens anker, "i dag" i kalenderen, info-badges og info-beskeder | `#3E5568` |
-| `harbor-soft` / `harbor-tint` | Flader på harbor-kort / lys info-baggrund | `#4E6679` / `#DCE6EE` |
-| `cream` | Baggrund, varm off-white | `#F6F0E1` |
-| `paper` | Kort og felter | `#FFFBF3` |
-| `amber` | Accent: stjerner, highlights, "I aften!", messingknap, fokusring på mørke flader | `#D99A1E` |
-| `amber-ink` / `brass` | Amber som tekst/stjerner på lyse flader / fokusring på lyse flader | `#8A5A00` / `#A06A0A` |
-| `ink` | Tekst | `#1A1D21` |
-| `slate` | Sekundær tekst | `#5E6670` |
-| `danger` | Destruktive handlinger | `#B3261E` |
+| `neutral` | sand | Baggrund, kort, kanter, tekst |
+| `frame` | olive | App-rammen: top bar, sidebar, bundnavigation, login-båndet, toasts, tooltips, små ikon-skiver |
+| `feature` | harbor | Fremhævede kort: Overblikkets hero, "Klubbens rating", afstemningens resultat |
+| `primary` | olive | Handlinger: primærknapper, links, overskrifter, aktive og valgte tilstande, bekræftede events |
+| `highlight` | amber | Accent: stjerner, "I aften!", den fremhævede knap (`variant="highlight"`), fokusring |
+| `info` | harbor | Info-badges, info-beskeder, "i dag" i kalenderen, afstemninger |
+| `success` | olive | Succes-beskeder |
+| `destructive` | red | Destruktive handlinger og fejl |
 
-Afledte nuancer (`cream-deep`, `sand`, `amber-light`, `amber-tint`, `danger-deep`, `danger-tint`) og avatarfarverne (olive, harbor, rust `#8A3B2E`, brown `#7A4A12`, slate) står i `src/app/globals.css`.
+**Farvefamilier.** `primary`, `highlight`, `info`, `success` og `destructive` har præcis samme sæt tokens:
 
-* Alle tekst/baggrund-kombinationer opfylder **WCAG AA** (4,5:1 for tekst, 3:1 for ikoner, UI-kanter og fokus).
-* Amber giver kun 4,08:1 på olive og 3,18:1 på harbor. Den bruges derfor kun til ikke-tekst på mørke flader (ikoner, stjerner, fokusring). Tekst på amber er `ink` (6,92:1), og amber-tekst på harbor er `amber-light` (4,76:1).
-* **Ingen lilla.** Tailwinds standardpalet er slået fra (D-032).
-* [SENERE] Mørkt tema (oliven baggrund), som passer naturligt til universet og til dårligt lys under smagninger.
+| Token | Trin | Bruges til |
+|---|---|---|
+| `{rolle}` | 9 | Solid flade (knap, badge) |
+| `{rolle}-hover` | 10 | Hover på den solide flade |
+| `{rolle}-foreground` | – | Tekst/ikon på den solide flade. Lys eller mørk vælges automatisk efter kontrast. |
+| `{rolle}-subtle` | 3 | Lys flade (info-boks, valgt række, event-chip) |
+| `{rolle}-subtle-hover` | 4 | Hover på den lyse flade |
+| `{rolle}-border` | 7 | Kant |
+| `{rolle}-ink` | 11 | Farvet tekst/ikon på neutrale og lyse flader |
 
-> v1 af paletten (navy `#13233F` + flaskegrøn `#0B6B3A`, "fra øltrøjen") er erstattet af D-092.
+**Neutrale tokens.**
+
+| Token | Bruges til |
+|---|---|
+| `background` | App-baggrunden |
+| `card` | Kort og felter |
+| `popover` | Popovers og dialoger |
+| `muted` | Nedsænkede flader |
+| `foreground` | Brødtekst |
+| `muted-foreground` | Dæmpet tekst |
+| `border` | Almindelige kanter |
+| `border-strong` / `input` | Kanter, der skal ses (≥ 3:1) |
+| `ring` | Fokusring |
+| `scrim` | Overlay bag dialoger |
+
+**Mørke flader med egen tekst.** `frame` og `feature` har hver sit sæt:
+
+| Token | Bruges til |
+|---|---|
+| `{flade}` | Selve fladen |
+| `{flade}-hover` | Hover og aktivt punkt: fladen med 8 % tekstfarve |
+| `{flade}-sunken` | Ikon-skiver og klubbadgen: fladen med 30 % sort |
+| `{flade}-foreground` | Tekst |
+| `{flade}-muted-foreground` | Dæmpet tekst |
+| `{flade}-border` | Skillelinjer: tekstfarven med 10 % |
+| `{flade}-ring` | Fokusring |
+
+Utilities'ne `surface-frame` og `surface-feature` sætter baggrund, tekst, fokusring og porthole-spalte på én gang.
+
+**Elevation.** `shadow-raised` (kort), `shadow-floating` (dropdown, toast), `shadow-overlay` (dialog, sheet, login-kortet), `shadow-hero`, `shadow-bar` (bundnav) og `shadow-press` (knappers kant forneden). Farven kommer fra `shadow-color`.
+
+### Lag 3: komponent-tokens
+
+| Token | Bruges til |
+|---|---|
+| `avatar-1` … `avatar-5` + `avatar-foreground` | Initialerne |
+| `porthole-ring` / `porthole-gap` | Porthole-ringen |
+| `chart-1` … `chart-5` | Diagrammer |
+| `sidebar-*` | shadcn-aliaser for `frame` |
+
+### Lyst og mørkt tema
+
+* På Profil vælges **Udseende: System / Lyst / Mørkt** (§9.8). Valget gemmes pr. enhed. "System" følger telefonens eller computerens indstilling, også mens appen er åben.
+* `data-theme` på `<html>` sættes af et script i `<head>` før første maling, så siden aldrig blinker i det forkerte tema (`src/lib/theme-prefs.ts`).
+* Mørkt tema bruger skalaernes mørke udgaver med samme trin. Kun få roller peger på et andet trin, fx baggrund/kort og app-rammen. Det står som `{ light, dark }` i `themes.ts`.
+* Browserens statusbar følger app-rammen: `viewport.themeColor` pr. `prefers-color-scheme` og en ekstra `theme-color`, når valget på Profil afviger fra systemet. Farverne genereres i `browser-colors.ts`.
+* Mørkt tema er indtil videre afledt af D-092-paletten. Det får sit eget design med det nye look (TG-066).
+
+### Kontrast
+
+`src/styles/tokens/contrast.test.ts` tjekker alle par i **begge temaer**:
+
+* Tekst skal have mindst 4,5:1, ikoner, kanter og fokus mindst 3:1 (WCAG AA).
+* Testen dækker hver farvefamilie, de mørke flader, neutralerne og avatarerne.
+* Tallene står derfor ikke længere i dokumentationen.
+
+### Sådan ændrer du en farve
+
+1. Ret `base` i `palette.ts`, eller ret hvilken skala en rolle bruger i `themes.ts`. Har skalaen låste trin (`light`/`dark`), følger de ikke med en ny base. Fjern dem, når hele skalaen skal skifte, eller ret dem.
+2. Kør `npm run tokens`.
+3. Kør `npm test`. Kontrasttesten melder par under AA, og `build.test.ts` fejler, hvis `tokens.css` ikke er genereret igen.
+
+Ingen komponent skal røres.
+
+> v1 af paletten (navy `#13233F` + flaskegrøn `#0B6B3A`, "fra øltrøjen") blev erstattet af D-092. D-092's håndplukkede tokens (`olive-soft`, `cream-deep`, `on-dark-muted` …) blev erstattet af farvesystemet (D-168).
 
 ## 13.3 Typografi (forslag)
 
@@ -1722,7 +1830,12 @@ Afledte nuancer (`cream-deep`, `sand`, `amber-light`, `amber-tint`, `danger-deep
 Genanvendelige og generiske nok til flere steder. Navne på engelsk.
 
 **Primitiver (`components/ui`)**
-`Button`, `IconButton`, `Input`, `Textarea`, `Select`, `DateTimePicker`, `Card`, `Modal`, `ConfirmDialog`, `Toast`, `Skeleton`, `EmptyState`, `ErrorState`, `Avatar`, `Badge`, `Tabs`
+`Button`, `IconButton`, `Input`, `Textarea`, `Select`, `DateTimePicker`, `Card`, `Modal`, `ConfirmDialog`, `Toast`, `Skeleton`, `EmptyState`, `ErrorState`, `Avatar`, `Badge`, `Tabs`, `SegmentedControl` (én valgt blandt få knapper: Tekst | Akkorder, System | Lyst | Mørkt)
+
+Farver kommer kun fra farvesystemets roller (§13.2): `bg-card`, `text-primary-ink`, `surface-frame`, `shadow-raised` … `Button` og `Badge` har varianten `highlight` (før `brass`/`amber`).
+
+**Hooks (`src/hooks`)**
+`useHydrated` (falsk på serveren og under hydrering; indstillinger pr. enhed er slået fra indtil da, TG-020)
 
 **Feature-komponenter (`components/features`)**
 
@@ -1759,6 +1872,7 @@ Genanvendelige og generiske nok til flere steder. Navne på engelsk.
 | `FeedbackForm` (`FeedbackTypeChoice`, `SimilarFeedback` med lignende rapporter), `FeedbackCard`, `FeedbackStatusBadge`, `FeedbackFilters`, `UpvoteButton`, `DeleteFeedbackButton`, `FeedbackModerationForm`, `FeedbackMeta`/`FeedbackTechInfo`/`FeedbackAdminResponse` (`feedback-detail.tsx`), `FeedbackShell` (0 klubber), feedback-skeletons | Feedback (`src/components/features/feedback/`) |
 | `ReportErrorLink` ("Rapportér denne fejl") | Fejlgrænserne (`error.tsx` i roden, klubben og feedback; `global-error.tsx` har et almindeligt `<a>`) |
 | `FeedbackLink` (i `profile-links.tsx`) | Profil |
+| `AppearanceControl` (Udseende: System \| Lyst \| Mørkt), `useThemePref` / `setThemePref`, `ThemePrefsScript` (rodlayoutet) | Profil, rodlayoutet (§13.2) |
 
 ---
 
@@ -2025,6 +2139,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | – | – | Auth0 Universal Login ved siden af email/password (D-166) | ✅ | 2026-10-28. `genericOAuth` + `auth0()`, eksterne logins gjort generelle, log ud via Auth0, `auth_time` til "Tilføj password". Nyt: `auth0-oauth.itest.ts` (19 tests med RS256-signerede tokens mod mocket JWKS) og `auth0-discovery.itest.ts`; 8 mutationer fanges hver af mindst én test. Gates: typecheck, lint, 1125 unit, 376 integration, fuld E2E. Lokal Auth0-app sat op (EU-tenant): dev-serveren registrerer Auth0 (discovery og JWKS), "Fortsæt med Auth0" sender til tenantens `/authorize` med `redirect_uri` `/api/auth/callback/auth0`, nonce og PKCE, og Universal Login viser Google og database. **Venter på Jesper:** login i browseren, produktionsapp i Auth0 med egen Google-klient og `AUTH0_*` i Vercel Production (README "Auth0-login"), derefter manuel test i produktion. Kommentarer og tests strammet: Auth0's CSRF/state-test fjernet (samme kerne-callback som `google-oauth.itest.ts`). |
 | – | – | X til at rydde tekstfelter (D-167) og afstemningsfristen under hinanden på mobil (F-088) | ✅ | 2026-11-01. X'et sidder i `src/components/ui/input.tsx` (2026-11-02: flyttet ind fra en separat `ClearableInput`, så alle enlinjede tekstfelter får det uden at vælge komponent; `clearable={false}` slår det fra). Ny E2E `clear-input.spec.ts`. Gates 2026-11-02: typecheck, lint, 52 E2E (clear-input, beers, form-focus, login-suggestions, password-reset, profile, songs-import, members). Oprydning samme dag: `clear-input.spec.ts` venter på hydrering (`expectHydrated`), før der klikkes på X'et. |
 | – | – | Nulstillingslink til en selv afvises på serveren (D-116, F-087) | ✅ | 2026-10-28. Fundet ved sikkerhedsreview af hele projektet. `createMemberResetLink` afviser eget id med FORBIDDEN; 1 ny integrationstest. |
+| – | – | Farvesystem (tokens i tre lag) + mørkt tema (§13.2, D-168) | ✅ | 2026-11-02. `src/styles/tokens/` (palette, themes, build, genereret `tokens.css`/`browser-colors.ts`), `npm run tokens`, `npm run check:tokens` i `check`. 160 filer flyttet fra brandnavne til roller (codemod + hånd for ramme/hero/succes). Udseende (System/Lyst/Mørkt) på Profil, tema-bootstrap før første maling. Tests: `contrast.test.ts` (alle par, begge temaer), `build.test.ts`, `theme-prefs.test.ts`; 1144 unit grønne. Lyst tema pixel-sammenlignet med `master` på 22 skærme × 375 px/desktop: under 1 % ændret undtagen bevidste ændringer (skygger samlet i 6 niveauer, gennemsigtige kanter → `{rolle}-border`, login-knappens kant; Profil har kortet Udseende). Mørkt tema gennemgået på samme skærme. Mørkt tema er afledt, ikke designet (TG-066). Første fase af det nye look; derefter tre retninger på Overblik. |
 
 ## 19.3 Beslutningslog
 
@@ -2123,7 +2238,7 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-089 | 2026-10-09 | Redigeringssider kalder `requireEvent`/`requireBeer` → `canEdit*` → husk aktiv klub, så en rettigheds-404 heller ikke skifter aktiv klub | Konsekvens af D-066's begrundelse. | Præciserer D-066 |
 | D-090 | 2026-10-09 | Fælles hjælpere til nye runder: `src/lib/search-params.ts` (`firstParam`), `src/server/revalidate.ts` (`revalidateClub`, server-only, bevidst ikke i en "use server"-fil), ressource-ref-schemas i `src/lib/validation/*` (fx `beerRefSchema`), `averageFromSum` som eneste gennemsnitsformel. **Alle fritekst-schemas bruger `stripNul` (`src/lib/text.ts`), og alle felter, der parses før auth, har et længdeloft før parsing.** Runde 3: `optionalText` sætter loftet på det rå input før rensning (`rawTextLimit`), og `cleanOptionalText` er den eneste rensning af valgfri tekster. | Fjerner kopier mellem runde 2-agenterne. Postgres `text` afviser U+0000 (F-046), og ReDoS (F-044). | – |
 | ~~D-091~~ | 2026-10-09 | ~~Sangbogen (opgave 3.1) springes over i runde 3 og bygges, når den eksisterende sangbog ligger i `data/sangbog/` (Q5). "Sangbog" forbliver en "kommer snart"-side i navigationen.~~ | Jespers ønske: sangbogsfilen er ikke klar, og import-formatet afhænger af den. Erstattet af D-118. | – |
-| D-092 | 2026-10-09 | Ny palet (Jespers ønske): primærfarven er oliven `#414437` (den eneste af de tre tilbudte farver, der reelt er grøn) og bruges både til app-rammen og som handlingsfarve. Afledt: `olive-soft #525742`, `olive-deep #2D2F23`, `olive-tint #E3E8CE`, `on-dark-muted #CECFC4`. Sekundærfarven er havneblå `harbor #3E5568` (+ `harbor-soft #4E6679`, `harbor-tint #DCE6EE`) til hero-kort, "Klubbens rating", "i dag" og info. Navy, bottle, mist og steel er fjernet. `on-navy` er erstattet af `on-olive`/`on-harbor`. Tekst på messingknappen er `ink`. Dialog-baggrunden er neutral `ink/50`. Se §13.2. | Jesper ville have grøn som primær og en blå, der passer til. `#3E5568` blev valgt efter screenshots frem for `#4A6274` (fejler AA: dæmpet tekst 3,65, stjerner 2,61) og `#2F4858` (samme lyshed som olive, så hero'en ikke skiller sig ud fra top-baren). | §13.2 v1 (navy/bottle) |
+| D-092 | 2026-10-09 | Ny palet (Jespers ønske): primærfarven er oliven `#414437` (den eneste af de tre tilbudte farver, der reelt er grøn) og bruges både til app-rammen og som handlingsfarve. Afledt: `olive-soft #525742`, `olive-deep #2D2F23`, `olive-tint #E3E8CE`, `on-dark-muted #CECFC4`. Sekundærfarven er havneblå `harbor #3E5568` (+ `harbor-soft #4E6679`, `harbor-tint #DCE6EE`) til hero-kort, "Klubbens rating", "i dag" og info. Navy, bottle, mist og steel er fjernet. `on-navy` er erstattet af `on-olive`/`on-harbor`. Tekst på messingknappen er `ink`. Dialog-baggrunden er neutral `ink/50`. Se §13.2. *(Tokennavnene og den håndskrevne kontrasttabel er afløst af farvesystemet, D-168. Farveværdierne gælder stadig som baser og låste trin.)* | Jesper ville have grøn som primær og en blå, der passer til. `#3E5568` blev valgt efter screenshots frem for `#4A6274` (fejler AA: dæmpet tekst 3,65, stjerner 2,61) og `#2F4858` (samme lyshed som olive, så hero'en ikke skiller sig ud fra top-baren). | §13.2 v1 (navy/bottle) |
 | D-093 | 2026-10-09 | Desktop-sidebaren viser ikke "Profil" i listen. Brugerrækken nederst (avatar, navn, email) ligger i hovednavigationen, har det tilgængelige navn "Profil: <navn> <email>" og er markeret aktiv (`aria-current`, olive-soft + messingring) på `/c/{id}/profile` og `/c/{id}/club`. Mobilens bundnavigation beholder alle fem punkter. Én kilde: `sidebar: "list" \| "user-row"` på punkterne i `nav-items.ts` + `getSidebarNav`. | Jespers ønske: Profil stod to gange i sidebaren. Mobil har ingen brugerrække. | Afviger fra §8.1 v1 ("de samme punkter") |
 | D-094 | 2026-10-09 | Runde 3 leveres i faser: først TG-021 (F0) bag en formular- og auth-E2E-gate, så ét fundament (skema, migrering, domæne, validering, datalag, interim-eventformular, alle nye rutefiler med endelige guards, seed), så tre parallelle agenter med eksklusivt filejerskab (A profil og medlemmer, B steder, C events med steder og historik), en integrator og til sidst et adversarial review. Hver agent har sin egen `_itest`-database og kører kun sine egne E2E-specs, serialiseret med `flock`. SPEC.md har én skribent. | Datamodellen ligger under alle tre features. En fast kontrakt fra fundamentet gør det sikkert at bygge UI'et parallelt. | – |
 | D-095 | 2026-10-09 | Steder: navn 1–120 tegn, adresse ≤ 200, beskrivelse ≤ 1000 (CHECKs). `name_key` = `placeNameKey(name)` (D-086-reglen) og er unik blandt klubbens aktive steder via et partielt unikt index (`partialIndexes` som D-027, aldrig `findUnique` på det). Skrivninger af navne serialiseres pr. klub med `pg_advisory_xact_lock` og et forhåndstjek. En dublet giver en feltfejl med link til stedet (`PLACE_NAME_TAKEN`). `createPlace` låser opretterens medlemskab (FOR SHARE), før ejerrækken skrives. | Runde 2's fritekst kunne være 120 tegn, så migreringen er tabsfri. Et forhåndstjek under lås undgår at fange P2002/P2003 i en interaktiv transaction, som Postgres afbryder. | §11 Place.name (1–80) |
@@ -2199,6 +2314,7 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-165 | 2026-10-26 | Google-login slås sikkert til (Jesper: "nemt og hurtigt og SIKKERT"), **uden Auth0**. (a) Ingen automatisk kobling: `disableImplicitLinking: true`, `requireLocalEmailVerified` fjernet; en eksisterende konto får `account_not_linked` og forbinder Google på Profil (`authClient.linkSocial`, kortet "Google-login", §9.8). (b) `databaseHooks.account.create.before` for Google: tokenets email skal være bekræftet (`email_not_verified`) og være kontoens nuværende email (`email_does_not_match`); hooket kaster, så hele oprettelsen rulles tilbage. (c) "Skift email" sletter Google-login'et i samme transaction (`changeUserEmail` → `{ email, unlinkedGoogle }`, toast `email-changed-google`); dele af D-151 ("Google-login bevares") er forældede. (d) `account.create.after` bekræfter emailen ved eksplicit kobling. (e) App-admin kræver en bekræftet email (`getFeedbackViewer`). (f) `disabledPaths` (5 ubrugte endpoints), `disableIdTokenSignIn`, `encryptOAuthTokens`, rate limit `/link-social` 10/min. (g) Faste fejltekster pr. kode i `getOAuthErrorMessage`. | Auth0 kræver alligevel en egen Google OAuth-klient i produktion og ville være et ekstra led, der ser alle logins. Password-konti verificerer ikke email (D-029), så automatisk kobling (TG-002) og "forbind Google, skift så email" (TG-064, fundet af et uafhængigt sikkerhedsreview af planen) ville lade en angriber beholde adgangen til en konto på offerets adresse. Kun et bekræftet ejerskab af emailen må give Google-login og app-admin. | §4.7, §6.2–6.4, §9.8, §9.9, E19, D-029, D-151, TG-002, TG-003, TG-060, TG-064 |
 | D-166 | 2026-10-28 | **Auth0 Universal Login** (Jesper: "universal login, de samme folk som andre steder", knaptekst "Fortsæt med Auth0", kun Auth0-knappen, log ud også fra Auth0). (a) Better Auth `genericOAuth` med `auth0()` + `requireIdTokenVerification: true` (uden brugbar discovery registreres udbyderen ikke) og `endSessionEndpoint` `/oidc/logout`; Auth0 bruger de samme kerne-endpoints som Google, så D-165 gælder uændret. **Fravalgt: `@auth0/nextjs-auth0`** (Auth0-skillens standard): eget sessionssystem og egne `/auth/*`-ruter ved siden af Better Auth, som al autorisation, club isolation og rate limits bygger på. (b) `externalProvider` = `auth0` › `google` › `null`; Google registreres ikke, når Auth0 er sat op. (c) Account-hooks gælder alle udbydere undtagen `credential` (ukendte fejler lukket); for Auth0 kun `sub` med `google-oauth2|` eller `auth0|` (`connection_not_allowed`). (d) `authBeforeHook`: id-token fra klienten afvises på alle stier, `scopes`/`additionalParams` på login-endpoints undtagen `{ prompt: "login" }`. (e) Generelle eksterne logins: `getAccountLogins → { hasPassword, external }`, `changeUserEmail` sletter alle ikke-`credential`-konti (`email-changed-external`), tekster med udbyderens navn (`EXTERNAL_PROVIDERS`, `emailFollowsExternal`, `getOAuthErrorMessage(code, label)`). (f) "Tilføj password" for Auth0 kræver også, at `auth_time` i det gemte id-token er under 10 minutter; "Log ind med Auth0 igen" sender `prompt=login`. (g) "Log ud" følger Auth0's logout-URL én gang (`disableRedirect`). | Én Auth0-identitet på tværs af Jespers apps, uden at åbne nye veje ind: en delt tenant kan have forbindelser og M2M-klienter, der påstår `email_verified`, og Auth0's SSO og lange id-tokens må hverken erstatte et rigtigt login eller kunne genbruges. Sikkerhedsreview af planen (uafhængig agent mod better-auth 1.7.7) fandt M1 og L1–L7; alle er indarbejdet. | §4.1, §4.7, §4.8, §6.2, §9.8, D-165 |
 | D-167 | 2026-11-01 | Enlinjede tekstfelter (text, email, search, url, tel) har et X, der rydder feltet. Det sidder i `Input` selv og er slået til for de typer som standard; `clearable={false}` slår det fra. X'et vises kun, når der står noget (CSS `:placeholder-shown`, derfor pladsholderen " " som standard), og aldrig på deaktiverede eller skrivebeskyttede felter. Det står uden for tab-rækkefølgen og hedder "Ryd feltet" for skærmlæsere. Ikke på tekstområder, password (har "Vis password"; skifter type, så det er slået fra eksplicit), dato, tid, tal, alkoholprocent eller "skriv klubnavnet" i slet-dialogen. Sangbogens søgning beholder sit eget X. | Jesper: hurtigt at fjerne det, man har skrevet forkert, især på telefonen. CSS-styret synlighed følger også ukontrollerede felter, form-reset efter server actions og autofill uden React-state. Rydningen går gennem den native setter og en input-hændelse, så `onChange` og klientvalidering kører. | – |
+| D-168 | 2026-11-02 | **Farvesystem i tre lag** (Jesper: "lav et ordentligt color token design system, som de professionelle apps, så det er nemt at ændre på sigt … gør det struktureret"). (a) Lag 1 `palette.ts`: 12-trins skalaer (Radix-trin) genereret i OKLCH fra én base pr. skala, lyst + mørkt, låste trin holder D-092-værdierne; det eneste sted med farveværdier. (b) Lag 2 `themes.ts`: roller valgt ét sted (`roles`), ensartede familier (`{rolle}`, `-hover`, `-foreground` (auto efter kontrast), `-subtle`, `-subtle-hover`, `-border`, `-ink`), mørke flader `frame`/`feature` med `-hover`/`-sunken`/`-foreground`/`-muted-foreground`/`-border`/`-ring`, 6 elevation-niveauer; shadcn-navnene bevares som roller. (c) Lag 3: avatarer, porthole, chart, sidebar-aliaser. (d) `npm run tokens` genererer `tokens.css` (inkl. `@theme inline` og nulstillingen af Tailwinds palet) og `browser-colors.ts`; `culori` 4.0.2 som devDependency (kun build/test). (e) Værn: `contrast.test.ts` (WCAG AA i begge temaer), `build.test.ts` (genereret fil = kilde), `check:tokens` (ingen farveværdier, primitiver, gamle navne, solide familiefarver som tekst eller `dark:` i app-koden) i `npm run check`. (f) Mørkt tema fra start (Jesper valgte det): `data-theme` + `data-theme-pref` på `<html>`, bootstrap før første maling efter songbook-mønstret, Udseende System/Lyst/Mørkt pr. enhed på Profil, `theme-color` pr. tema. (g) `Button`/`Badge`-varianterne `brass`/`amber` hedder `highlight`; `Logo tone` er `frame`/`page`; `SegmentedControl` deles af sangbogens visning og Udseende; `useHydrated` flyttet til `src/hooks`. (h) `.agents/` (installerede skills) i `.prettierignore`: de fik `format:check` til at fejle allerede på `master`. Første fase af det nye look (kun logoet bliver, D-162); næste fase er tre retninger på Overblik. | Én ændring ét sted i stedet for 800 klassenavne; mørkt tema kræver roller, ikke farvenavne; kontrasten testes i stedet for at regnes i hånden. | §13.2, §9.8, §14 |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -2212,6 +2328,20 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-090 · 2026-11-02 · Rettede theme-color-tags gav dubletter efter hydrering
+- **Område:** UI / Tema
+- **Symptom:** Efter et eksplicit valg (Mørkt) og en genindlæsning var der tre `theme-color`-tags i `<head>`, og en af dem havde den forkerte farve.
+- **Årsag:** Tema-scriptet ændrede `content` på de to tags fra `viewport.themeColor`. Dem hydrerer React selv, og ved forskellen indsatte React en ny tag i stedet for at rette den gamle. React hejser desuden sine egne meta-tags forrest i `<head>`.
+- **Rettelse:** Scriptet rører aldrig layoutets tags. Ved Lyst/Mørkt lægger det sin egen `<meta name="theme-color" data-theme-override>` forrest, og ved System fjerner det den. `ThemePrefsScript` flytter den forrest igen efter hydrering (`syncBrowserThemeColor`). React 19 springer ukendte tags i `<head>` over.
+- **Læring / forebyggelse:** Ændr aldrig elementer, som React har renderet, i et script før hydrering. Læg et eget element ved siden af.
+
+### F-089 · 2026-11-02 · Farvesystemets utilities fandtes ikke: `--color-*: initial` stod efter importen
+- **Område:** UI / Tailwind
+- **Symptom:** `Cannot apply unknown utility class border-border` (Tailwind og Prettier-pluginet). Efter rettelsen leverede dev-serveren stadig den gamle CSS (`--background: var(--cream)`), så rammen, hero'en og stjernerne var farveløse i screenshots.
+- **Årsag:** (1) `@theme { --color-*: initial; }` i `globals.css` nulstiller alle farver, der er defineret før den, også dem fra den netop importerede `tokens.css`. (2) Turbopack opfangede ikke ændringen i den importerede CSS-fil, efter at den havde fejlet.
+- **Rettelse:** Nulstillingen står nu øverst i den genererede `@theme inline` i `tokens.css`, før rollerne. Dev-serveren blev genstartet med en tom `.next-e2e/dev`.
+- **Læring / forebyggelse:** Står "kun disse farver findes" i flere filer, skal nulstillingen ligge sammen med definitionerne. Ser CSS'en forældet ud efter en CSS-fejl, så genstart dev-serveren, før du fejlsøger videre. Screenshot-scripts, der logger ind mange gange, rammer login-rate-limitet ("Rolig nu 🍺"): genbrug sessionen, eller vent.
 
 ### F-087 · 2026-10-28 · Admin kunne lave nulstillingslink til sig selv
 - **Område:** Auth
@@ -2837,6 +2967,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | TG-063 | 2026-10-18 | 👍-knappen og "Slet rapport" virker kun med JavaScript (TG-020-klassen, som ejer-toggle og alle `ConfirmDialog`). Formularerne (ny, ret, status) og filtrene virker uden. | Uden JS kan man ikke give 👍 eller slette | Accepteret som for ejer-toggle (D-115). En `<form>`-fallback, hvis det bliver et problem |
 | ~~TG-064~~ | 2026-10-18 | ~~"Skift email" kan pege på en andens adresse, som ingen konto har (D-151). Logger ejeren af adressen senere ind med Google, kobles Google på kontoen (samme klasse som TG-002)~~ | ~~Lav i en privat klub-app: kræver en konto med password og et bevidst valg af en andens email~~ | ~~Verificér den nye email (TG-033), før den gemmes eller kobles~~ ✅ Løst 2026-10-26 af D-165: ingen automatisk kobling, "Skift email" kobler Google fra, og en kobling afvises, hvis kontoens email er skiftet undervejs. |
 | TG-065 | 2026-10-18 | To ting har ingen E2E: "Log ind med Google igen" (`GoogleSignInButton` med `loginHint`, D-152), fordi Google ikke er sat op i dev og E2E, og linket "Rapportér denne fejl" i `global-error.tsx` (D-150), fordi testene ikke fremtvinger en fejl i rodlayoutet. | En fejl i Googles round trip efter "Tilføj password" eller i den globale fejlsides link opdages først i brug | Google-delen testes manuelt sammen med TG-011, når `GOOGLE_*` er sat op. Den globale fejlside er dækket af kodegennemgang og unit tests af `newFeedbackHref` |
+| TG-066 | 2026-11-02 | Mørkt tema er afledt af D-092-paletten (genererede mørke skalaer + få `{ light, dark }`-roller), ikke designet | Læsbart og AA-testet, men ikke gennemtænkt visuelt: fx er primærknapper lys oliven med mørk tekst | Designes sammen med det nye look (tre retninger på Overblik, D-168). Rettes i `palette.ts`/`themes.ts`, ikke i komponenter |
 
 ## 19.6 Dokumenthistorik
 
