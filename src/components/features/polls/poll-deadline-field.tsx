@@ -33,7 +33,7 @@ export function PollDeadlineField({
       <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-ink">
         Afstemningsfrist
       </legend>
-      <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:max-w-md sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:max-w-md sm:grid-cols-2">
         <InputField
           type="date"
           name="deadlineDate"

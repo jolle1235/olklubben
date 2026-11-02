@@ -1,7 +1,7 @@
 import type { Locator } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
-import { newUser, signUp } from "./support/app";
+import { expectHydrated, newUser, signUp } from "./support/app";
 
 /**
  * The X that empties a single-line text field (D-167): only shown while the
@@ -26,6 +26,8 @@ test.describe("Ryd feltet", () => {
 
       await field.fill("Forkert tekst");
       await expect(clear).toBeVisible();
+      // CSS shows the X before React has hydrated; a click then does nothing.
+      await expectHydrated(clear);
       await clear.click();
 
       await expect(field).toHaveValue("");
