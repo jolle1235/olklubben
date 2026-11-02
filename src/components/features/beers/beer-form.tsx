@@ -123,6 +123,7 @@ export function BeerForm({
             value={form.values.abv}
             onChange={(event) => form.setValue("abv", event.target.value)}
             inputMode="decimal"
+            clearable={false}
             maxLength={ABV_INPUT_MAX_LENGTH}
             autoComplete="off"
             placeholder="fx 5,2"
