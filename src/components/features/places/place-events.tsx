@@ -41,7 +41,7 @@ export function PlaceEvents({ clubId, events, now }: PlaceEventsProps) {
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-lead text-muted-foreground md:px-5">
+        <p className="rounded-xl border-2 border-dashed border-border bg-card-faint px-4 py-4 text-lead text-muted-foreground md:px-5">
           Ingen ølsmagninger her endnu.
         </p>
       )}

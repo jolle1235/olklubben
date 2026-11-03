@@ -90,7 +90,9 @@ export function TieResolver({ clubId, pollId, groups, hint }: TieResolverProps) 
       })}
 
       {hint ? (
-        <p className="rounded-lg bg-card/70 px-3.5 py-2.5 text-body-sm text-foreground">{hint}</p>
+        <p className="rounded-lg bg-card-faint px-3.5 py-2.5 text-body-sm text-foreground">
+          {hint}
+        </p>
       ) : null}
 
       <SubmitButton size="lg" className="w-full sm:w-fit" pendingLabel="Opretter eventet …">
@@ -132,7 +134,7 @@ function TieOptionCard({
       <label
         htmlFor={id}
         className={cn(
-          "flex min-h-14 pressable items-center gap-3 rounded-xl border-2 border-border bg-card px-3.5 py-3 text-foreground peer-hover:border-primary-border peer-hover:bg-muted/40",
+          "flex min-h-14 pressable items-center gap-3 rounded-xl border-2 border-border bg-card px-3.5 py-3 text-foreground peer-hover:border-primary-border peer-hover:bg-card-hover",
           "before:size-5 before:shrink-0 before:rounded-full before:border-2 before:border-border-strong before:bg-card before:content-['']",
           "peer-checked:border-primary peer-checked:bg-primary-subtle peer-checked:before:border-[6px] peer-checked:before:border-primary",
           "peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",

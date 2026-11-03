@@ -146,7 +146,7 @@ function FrozenPollPlan({
     <>
       <section
         aria-labelledby="poll-edit-options-heading"
-        className="grid grid-cols-1 gap-3 rounded-xl border-2 border-dashed border-info-border bg-info-subtle/40 px-4 py-4"
+        className="grid grid-cols-1 gap-3 rounded-xl border-2 border-dashed border-info-border bg-info-faint px-4 py-4"
       >
         <h2 id="poll-edit-options-heading" className="text-body-sm font-semibold text-foreground">
           Datoer og steder

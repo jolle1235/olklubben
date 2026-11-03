@@ -19,7 +19,7 @@ export type RatingsListProps = {
 export function RatingsList({ ratings, currentUserId }: RatingsListProps) {
   if (ratings.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-border bg-card/60 px-4 py-5 text-muted-foreground">
+      <p className="rounded-2xl border border-dashed border-border bg-card-faint px-4 py-5 text-muted-foreground">
         Ingen har ratet den endnu.
       </p>
     );

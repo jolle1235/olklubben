@@ -1638,7 +1638,7 @@ Farverne er bygget som et lagdelt token-system, som i Radix Colors, GitHub Prime
 ```
 src/styles/tokens/palette.ts   LAG 1 · primitiver: 12-trins farveskalaer. ENESTE sted med farveværdier.
 src/styles/tokens/themes.ts    LAG 2 · roller (lyst + mørkt)  ·  LAG 3 · komponent-tokens
-        │  npm run tokens
+        │  npm run tokens: scales.ts (trinnene) → resolve.ts (rollerne) → css.ts (filerne)
 src/styles/tokens/tokens.css   GENERERET: CSS-variabler + Tailwind-utilities. Redigeres ikke i hånden.
 ```
 
@@ -1646,7 +1646,8 @@ src/styles/tokens/tokens.css   GENERERET: CSS-variabler + Tailwind-utilities. Re
 
 * Komponenter bruger kun roller (lag 2–3): `bg-card`, `text-muted-foreground`, `bg-primary`, `text-highlight-ink`, `surface-frame`, `shadow-raised` … De bruger aldrig hex, `rgb()`, primitiver (`var(--olive-9)`) eller `dark:`, heller ikke shadcn's primitiver. Temaet skifter, fordi skalaerne under rollerne skifter.
 * Farvet tekst bruger altid `{rolle}-ink` (`text-primary-ink`, `text-destructive-ink` …), aldrig den solide farve (`text-primary`). Kun `-ink` er kontrasttestet som tekst på lyse flader i begge temaer.
-* Tailwinds standardpalet er slået fra (D-032). Kun rollerne findes som farver, så der kan ikke snige sig lilla ind.
+* Tailwinds standardpalet er slået fra (D-032). Kun rollerne findes som farver, så der kan ikke snige sig lilla ind. Det samme gælder Tailwinds skygger: kun elevationerne findes (D-172).
+* Ingen modifier på en rolle (`bg-muted/60`, `text-body-md/6`). Gennemsigtighed er selv en rolle (`-faint`), og linjehøjden hører til tekst-rollen (D-172).
 * `npm run check:tokens` håndhæver reglerne og er en del af `npm run check`. Kun logoet (D-162), Googles logo og e-mailskabelonerne må have faste farver.
 
 ### Lag 1: skalaer (`palette.ts`)
@@ -1661,7 +1662,7 @@ Hver skala har 12 trin i en lys og en mørk udgave. Trinnene har faste opgaver:
 | 9–10 | Solid farve, solid hover |
 | 11–12 | Farvet tekst, tekst med høj kontrast |
 
-En skala laves ud fra **én basisfarve** (trin 9), som `build.ts` udbygger i OKLCH. Enkelte trin kan låses. Skalaerne er `olive`, `harbor`, `amber`, `sand` (varm neutral), `red`, `rust` og `brown` (avatarer).
+En skala laves ud fra **én basisfarve** (trin 9), som `scales.ts` udbygger i OKLCH. Enkelte trin kan låses. Skalaerne er `olive`, `harbor`, `amber`, `sand` (varm neutral), `red`, `rust` og `brown` (avatarer).
 
 D-092's farver ligger nu som baser og låste trin:
 
@@ -1697,6 +1698,7 @@ Hvilken skala en rolle bruger, står ét sted (`roles`). Primærfarven skiftes a
 | `{rolle}-foreground` | – | Tekst/ikon på den solide flade. Lys eller mørk vælges automatisk efter kontrast. |
 | `{rolle}-subtle` | 3 | Lys flade (info-boks, valgt række, event-chip) |
 | `{rolle}-subtle-hover` | 4 | Hover på den lyse flade |
+| `{rolle}-faint` | – | Den lyse flade med 60 %: notitser og hover på kort |
 | `{rolle}-border` | 7 | Kant |
 | `{rolle}-ink` | 11 | Farvet tekst/ikon på neutrale og lyse flader |
 
@@ -1708,6 +1710,10 @@ Hvilken skala en rolle bruger, står ét sted (`roles`). Primærfarven skiftes a
 | `card` | Kort og felter |
 | `popover` | Popovers og dialoger |
 | `muted` | Nedsænkede flader |
+| `muted-hover` | Hover på en nedsænket flade (trin 4). Kun brødtekst holder AA, så dæmpet tekst skifter til `foreground`. |
+| `muted-faint` | Nedsænkede felter med 60 %: dialogens fod, ugedagene, tidligere events |
+| `card-hover` | Hover på et kort eller en række på et kort |
+| `card-faint` | Tomme tilstande og dæmpede kort (stiplet kant) |
 | `foreground` | Brødtekst |
 | `muted-foreground` | Dæmpet tekst |
 | `border` | Almindelige kanter |
@@ -1721,22 +1727,28 @@ Hvilken skala en rolle bruger, står ét sted (`roles`). Primærfarven skiftes a
 |---|---|
 | `{flade}` | Selve fladen |
 | `{flade}-hover` | Hover og aktivt punkt: fladen med 8 % tekstfarve |
+| `{flade}-faint` | Hover på et punkt og klubboksen: hover-tonen med 60 % |
 | `{flade}-sunken` | Ikon-skiver og klubbadgen: fladen med 30 % sort |
 | `{flade}-foreground` | Tekst |
 | `{flade}-muted-foreground` | Dæmpet tekst |
 | `{flade}-border` | Skillelinjer: tekstfarven med 10 % |
+| `{flade}-border-strong` | Kanter på knapper og chips: 45 % dæmpet tekst blandet i fladen |
 | `{flade}-ring` | Fokusring |
 
 Utilities'ne `surface-frame` og `surface-feature` sætter baggrund, tekst, fokusring og porthole-spalte på én gang.
 
-**Elevation.** `shadow-raised` (kort), `shadow-floating` (dropdown, toast), `shadow-overlay` (dialog, sheet, login-kortet), `shadow-hero`, `shadow-bar` (bundnav) og `shadow-press` (knappers kant forneden). Farven kommer fra `shadow-color`.
+**Elevation.** `shadow-raised` (kort), `shadow-floating` (dropdown, toast, popover), `shadow-overlay` (dialog, sheet, login-kortet), `shadow-hero`, `shadow-bar` (bundnav) og `shadow-press` (knappers kant forneden). Farven kommer fra `shadow-color`. Tailwinds egne skygger (`shadow-lg` …) findes ikke.
+
+**`-faint`** er én regel: en flades lyse tone med 60 % dækkeevne (`{rolle}-subtle`, `muted`, `card`, `{flade}-hover`). Den ligger altid mellem fladen under og tonen selv, som begge er kontrasttestet.
 
 ### Lag 3: komponent-tokens
 
 | Token | Bruges til |
 |---|---|
 | `avatar-1` … `avatar-5` + `avatar-foreground` | Initialerne |
-| `porthole-ring` / `porthole-gap` | Porthole-ringen |
+| `porthole-ring` / `porthole-gap` / `porthole-shadow` | Porthole-ringen |
+| `skeleton` | Skeletterne, mens en side indlæses |
+| `invalid-ring` | Ringen om et felt med en fejl (`aria-invalid`) |
 | `chart-1` … `chart-5` | Diagrammer |
 | `sidebar-*` | shadcn-aliaser for `frame` |
 
@@ -1773,7 +1785,7 @@ Der er ingen knap for det i appen. Det følger systemet.
 
 1. Ret `base` i `palette.ts`, eller ret hvilken skala en rolle bruger i `themes.ts`. Har skalaen låste trin (`light`/`dark`), følger de ikke med en ny base. Fjern dem, når hele skalaen skal skifte, eller ret dem.
 2. Kør `npm run tokens`.
-3. Kør `npm test`. Kontrasttesten melder par under AA, og `build.test.ts` fejler, hvis `tokens.css` ikke er genereret igen.
+3. Kør `npm test`. Kontrasttesten melder par under AA, og `render.test.ts` fejler, hvis `tokens.css` ikke er genereret igen. En ukendt rolle, et ukendt trin eller en cirkulær henvisning fejler allerede i `npm run tokens`.
 
 Ingen komponent skal røres.
 
@@ -2212,6 +2224,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | – | – | Farvesystem (tokens i tre lag) + mørkt tema (§13.2, D-168) | ✅ | 2026-11-02. `src/styles/tokens/` (palette, themes, build, genereret `tokens.css`/`browser-colors.ts`), `npm run tokens`, `npm run check:tokens` i `check`. 160 filer flyttet fra brandnavne til roller (codemod + hånd for ramme/hero/succes). Udseende (System/Lyst/Mørkt) på Profil, tema-bootstrap før første maling. Tests: `contrast.test.ts` (alle par, begge temaer), `build.test.ts`, `theme-prefs.test.ts`; 1144 unit grønne. Lyst tema pixel-sammenlignet med `master` på 22 skærme × 375 px/desktop: under 1 % ændret undtagen bevidste ændringer (skygger samlet i 6 niveauer, gennemsigtige kanter → `{rolle}-border`, login-knappens kant; Profil har kortet Udseende). Mørkt tema gennemgået på samme skærme. Mørkt tema er afledt, ikke designet (TG-066). Første fase af det nye look; derefter tre retninger på Overblik. |
 | – | – | Apple-polish: trykfeedback, temaskift, træk på stjernerne, SegmentedControl, høj kontrast og typeskala (§13.3, §13.4, D-169) | ✅ | 2026-11-03. `pressable`/`pressable-row`/`pressable-dim` på ca. 60 tryk-flader og 26 tekstlinks. Temaskift med View Transitions. `BeerRating` med træk (`ratingAtX`). `SegmentedControl` med lige brede segmenter og et valg, der glider. `highContrast` i `themes.ts` → `@media (prefers-contrast: more)`. Typeskala i `typography.ts`: 17 roller + `invite-code`, ca. 370 størrelser i 140 filer flyttet med codemod, `caps` til versaler, `cn` via `createCn`. Tests: `typography.test.ts`, `utils.test.ts`, `ratingAtX`, `withHighContrast`, kontrasttesten med høj kontrast; 1161 unit grønne. Ny E2E: træk hen over stjernerne (desktop + 375 px). Fuld E2E 232/232. Screenshots af 22 skærme × 375 px/desktop × lyst/mørkt mod før: kun højden flytter sig 1–12 px (linjehøjder), sidetitler og heroens titel har negativ tracking, SegmentedControl er lige bred. Prøvet i Chromium: kort giver efter (0,97) og glider tilbage, fanerne dæmpes, valget glider, temaskiftet bruger en view transition, touch-træk på stjernerne gemmer, og et lodret swipe på stjernerne scroller stadig. Titel-grep 0 fund. Linjehøjden er bagefter flyttet helt ind i rollerne (D-170): `-tight`/`-loose`-varianter, 68 klassesæt flyttet, `check:tokens` afviser lokale linjehøjder, 1164 unit grønne. |
 | – | – | Review-opfølgning 1/3: temaet som én attribut, fælles lager for indstillinger pr. enhed (§13.2, §14, D-171) | ✅ | 2026-11-03. `data-theme` er valget, og `tokens.css` følger System med `prefers-color-scheme`. `applyThemePref` indlejres i `THEME_BOOTSTRAP` med `toString()`. `createHtmlPref`/`useHtmlPref` bruges af temaet og sangbogen, `HeadScript` af begge scripts. Ingen `dark:` nogen steder. Tests: `theme-prefs.test.ts` (`applyThemePref` og bootstrap'en mod en falsk side), E2E `theme.spec.ts` måler det viste tema med computed `color-scheme` (desktop + 375 px); 1164 unit grønne. Produktions-build: det serverede, minificerede script er kørt mod en falsk side for tom, `dark`, `light`, `system` og ugyldig værdi. |
+| – | – | Review-opfølgning 2/3: token-motoren i tre moduler, skygger og gennemsigtighed som roller (§13.2, D-172) | ✅ | 2026-11-03. `build.ts` → `scales.ts`/`resolve.ts`/`css.ts`; `tokens.css` var byte for byte uændret efter omstruktureringen. `createResolver` tjekker alle roller ved oprettelsen (test for cyklus uden for kontrasttestens par). Tailwinds skygger nulstillet. Ca. 75 modifiers i 50 filer er blevet til `-faint`, `card-hover`, `muted-hover`, `{flade}-border-strong`, `skeleton`, `invalid-ring` og `porthole-shadow`. `check:tokens` afviser modifiers og Tailwind-skygger. Kontrasttesten dækker de nye uigennemsigtige roller og fandt F-093. Tests: `scales.test.ts`, `resolve.test.ts`, `render.test.ts`, `contrast.test.ts`. Screenshots af Overblik, Kalender, Profil og Steder i lyst og mørkt (desktop): kun den bevidste ændring på ikon-skiverne. |
 
 ## 19.3 Beslutningslog
 
@@ -2390,6 +2403,7 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-169 | 2026-11-03 | **Apple-polish: tryk, typeskala og høj kontrast** (Jesper: "lav 1-6 i denne PR" efter en gennemgang med apple-design-skillen). (a) Trykfeedback: `pressable`, `pressable-row` og `pressable-dim` (§13.4) på alle kort, rækker, links og menupunkter. Før havde kun `Button` en `active:`-tilstand, og på en telefon skete der intet ved tryk, fordi `hover:` kun gælder med mus, og tap-highlight er slået fra. (b) Temaskiftet på Profil toner over med View Transitions, ikke ved reduceret bevægelse. (c) `BeerRating`: man kan trække hen over stjernerne (pointer capture, 8 px tærskel, `touch-action: pan-y`), og værdien gemmes, når man slipper. `ratingAtX` er unit-testet. (d) `SegmentedControl`: lige brede segmenter og et valg, der glider (én `translate`, ingen måling, rigtig fra serveren). (e) Høj kontrast: `highContrast` i `themes.ts` bliver til `@media (prefers-contrast: more)` i `tokens.css`. Kontrasttesten kører også med høj kontrast (dæmpet tekst ≥ 7:1, kanter ≥ 3:1). (f) Typeskala i `typography.ts`: 17 roller + `invite-code`, genereret til `text-<rolle>` med linjehøjde og tracking. Tailwinds størrelser er nulstillet, versaler bruger `caps`/`caps-wide`, og `check:tokens` afviser Tailwind-størrelser og vilkårlige størrelser, linjehøjder og tracking. `cn` kender rollerne (`createCn`), og ESLint kræver `@/lib/utils`. 37 størrelser blev til 17 roller. Skærmene flytter sig 1–12 px i højden, og sidetitler og heroens titel har nu negativ tracking. Logoets ordmærke står uden for skalaen (D-162). | Hver del er et af Apples principper fra gennemgangen: respons ved tryk, ingen pludselige lysskift, direkte manipulation, rumlig sammenhæng, tilgængelighed og typografi, der følger størrelsen. Typografien er bygget som farvesystemet (D-168), så den nye skrift i næste fase er én ændring. | §13.3 (forslag) |
 | D-170 | 2026-11-03 | **Linjehøjden bor i tekst-rollen** (Jesper: "fix det med linjehøjderne også her", TG-067). Som Apples tekst-stilarter har roller en tæt og en luftig variant (`text-body-sm-tight`, `text-body-lg-loose`), genereret fra `tight`/`loose` i `typography.ts`. 68 klassesæt med `leading-tight`/`snug`/`relaxed` er flyttet: på overskrifter blev de fjernet, fordi rollen har samme linjehøjde (`title-md` 1,3 → 1,25 og `title-sm` 1,4 → 1,375, så de passer), og ellers blev de til rollens variant. `clubNameSize` giver de tætte varianter. `check:tokens` afviser linjehøjder i komponenter; kun `leading-none` er tilladt til ét tal eller tegn i en boks. Skærmene flytter sig 1–5 px. | Linjehøjden stod to steder, og en ændring af en rolle nåede ikke de elementer, der havde deres egen. Nu er der ét sted, og "tæt" og "luftig" er rollens egne værdier i stedet for Tailwinds faste tal. | TG-067, reglen om lokale `leading-*` i §13.3 (D-169) |
 | D-171 | 2026-11-03 | **Temaet er én attribut, og CSS følger System** (thermo-nuclear-review af PR #6; Jesper: "vil have 1-6 med"). (a) `data-theme` på `<html>` er selve valget: `light` eller `dark`, og ingen ved System. `tokens.css` skriver det mørke tema både under `[data-theme="dark"]` og under `@media (prefers-color-scheme: dark)` for `:root:where(:not([data-theme="light"]))`. Begge har samme specificitet som `:root`, så høj kontrast til sidst stadig vinder. `data-theme-pref` og systemlytteren i bootstrap'en er væk, og System virker også før scriptet har kørt. (b) `applyThemePref` (attributten og `theme-color`-overriden, F-090) er én selvstændig funktion i `theme-prefs.ts`. `THEME_BOOTSTRAP` indlejrer den og `parseThemePref` med `toString()`, som next-themes gør, så scriptet i `<head>`, `setThemePref` og efter-hydreringen kører samme kode. Funktionerne må kun bruge deres parametre. (c) `createHtmlPref`/`useHtmlPref` (`src/hooks/use-html-pref.ts`) er det fælles lager for indstillinger pr. enhed på `<html>`: sangbogens størrelse og visning og temaet. Hooket giver `null` på serveren og under hydrering, så kontrollerne ikke længere bruger `useHydrated` til det. `HeadScript` erstatter `SongbookPrefsScript` og har F-071-tricket ét sted. (d) Ingen `dark:` nogen steder. De sidste to i `components/ui` var død kode: Avatar's `after:`-kant, som `UserAvatar` altid skjulte, og Badge's `aria-invalid`. Tailwinds `dark`-variant er ikke længere omdefineret, og `check:tokens` har ikke længere en undtagelse for `components/ui`. | Halvdelen af tema-koden fandtes kun for at holde to attributter og en lytter i sync. CSS'en er genereret, så den mørke blok koster ingenting at skrive to gange, og så forsvinder lytteren. Samme regel stod før tre steder (scriptet, `syncBrowserThemeColor` og `setThemePref`), og lageret var kopieret fra sangbogen. | D-168 (f), §13.2, §14 |
+| D-172 | 2026-11-03 | **Token-motoren i tre moduler, og kun rollerne findes, også for skygger og gennemsigtighed** (thermo-nuclear-review af PR #6). (a) `build.ts` er delt i `scales.ts` (lag 1), `resolve.ts` og `css.ts`. `createResolver(definition, scales)` giver hver værdi som farve og som CSS, så de to fortolkere og de tre parametre, der før blev sendt gennem ti funktioner, er væk. Resolveren tjekker alle roller og skygger i begge temaer, når den oprettes, så en cyklus mellem to roller, som kontrasttesten ikke nævner, ikke længere kan give cykliske `var()` i `tokens.css`. `render.ts` sender typografien eksplicit ind (før halvt injiceret). Typeskalaens CSS bor i `css.ts`, ikke i `typography.ts`, fordi `typography.ts` er med i appen (`cn`). (b) Tailwinds skygger er nulstillet (`--shadow-*`, `--inset-shadow-*`, `--drop-shadow-*`). Bogstavgitterets popover bruger `shadow-floating`, og PDF-importens bjælke bruger `shadow-raised`. (c) De ca. 75 modifiers på roller er blevet til navngivne roller: `-faint` (60 % af `{rolle}-subtle`, `muted`, `card`, `{flade}-hover`), `card-hover`, `muted-hover`, `{flade}-border-strong`, `skeleton`, `invalid-ring` og `porthole-shadow`. Badges bruger familiernes `-hover`. Sidebarens inaktive ikon-skiver bruger `frame-sunken`, som tabellen allerede sagde. De bogstaver i sangbogen, der ikke har sange, er dæmpet med `opacity-45` som andre slåede-fra-elementer. (d) `check:tokens` afviser modifiers på roller og Tailwinds skygger. | Gennemsigtighed fandtes i fire niveauer (40/50/60/70) uden betydning og uden for kontrasttesten. Nu er det én regel med et navn, og testen fandt med det samme et par under AA (F-093). | D-168, §13.2 |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -2403,6 +2417,13 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-093 · 2026-11-03 · Tidligere events i månedsgitteret havde dæmpet tekst under AA ved hover
+- **Område:** UI / Farvesystem
+- **Symptom:** Da `hover:bg-secondary/70` på et tidligere event-chip blev til rollen `muted-hover`, fejlede kontrasttesten: `muted-foreground` på `muted-hover` er 4,23:1 i lyst tema (krav 4,5).
+- **Årsag:** Alfa-modifiers lå uden for kontrasttesten. Chippens hover-flade lå mellem `muted` (4,64) og `secondary` (4,23), så teksten var allerede under AA før, uden at noget fangede det.
+- **Rettelse:** Ved hover skifter chippens titel og tidspunkt til `foreground`. Kontrasttesten tjekker `foreground` på `muted-hover`.
+- **Læring / forebyggelse:** En gennemsigtig flade skal være en navngiven rolle, så den kan kontrasttestes. `check:tokens` afviser nu modifiers på roller.
 
 ### F-092 · 2026-11-03 · E2E-serveren slettede screenshot-serverens build-mappe
 - **Område:** Værktøj / E2E

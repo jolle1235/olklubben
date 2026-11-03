@@ -42,7 +42,7 @@ function ListSkeleton({ className }: { className?: string }) {
       <CardsSkeleton cards={3} className="bg-card" />
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-64 max-w-full" />
-        <CardsSkeleton cards={2} withMeta className="bg-muted/50" />
+        <CardsSkeleton cards={2} withMeta className="bg-muted-faint" />
       </div>
     </div>
   );

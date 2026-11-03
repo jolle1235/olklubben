@@ -19,7 +19,7 @@ export function CancelledPollBanner({ view, now }: CancelledPollBannerProps) {
   return (
     <section
       aria-labelledby="poll-cancelled-heading"
-      className="flex items-start gap-3 rounded-2xl border-2 border-dashed border-border-strong bg-muted/70 px-5 py-4"
+      className="flex items-start gap-3 rounded-2xl border-2 border-dashed border-border-strong bg-muted-faint px-5 py-4"
     >
       <BanIcon aria-hidden className="mt-1 size-5 shrink-0 text-muted-foreground" />
       <div className="grid min-w-0 grid-cols-1 gap-1">

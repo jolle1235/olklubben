@@ -43,8 +43,8 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
       className={cn(
         "group flex min-h-20 pressable items-center gap-4 rounded-xl border border-l-4 border-border px-4 py-3",
         past
-          ? "border-l-border-strong bg-muted/50 hover:bg-muted"
-          : "border-l-primary bg-card shadow-raised hover:bg-muted/60",
+          ? "border-l-border-strong bg-muted-faint hover:bg-muted"
+          : "border-l-primary bg-card shadow-raised hover:bg-card-hover",
         className,
       )}
     >

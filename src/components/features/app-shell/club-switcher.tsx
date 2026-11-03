@@ -43,7 +43,7 @@ export function ClubSwitcher({ club, clubs, variant = "topbar", className }: Clu
 
   const triggerClass = cn(
     "group/club flex min-h-11 min-w-0 items-center rounded-xl pressable-row text-left text-frame-foreground hover:bg-frame-hover",
-    isSidebar ? "w-full gap-2.5 bg-frame-hover/60 p-2.5 pr-2" : "max-w-full gap-3 px-2 py-1.5",
+    isSidebar ? "w-full gap-2.5 bg-frame-faint p-2.5 pr-2" : "max-w-full gap-3 px-2 py-1.5",
     hasMany && "data-[state=open]:bg-frame-hover",
     className,
   );

@@ -26,7 +26,7 @@ export function PollOptionChip({ clubId, option, now }: PollOptionChipProps) {
       href={pollHref(clubId, option.pollId)}
       title={`${option.pollTitle} (afstemning)`}
       aria-label={pollDateAccessibleName(option, now)}
-      className="block pressable rounded-md border-[1.5px] border-dashed border-info-border bg-transparent px-1.5 py-1 text-info-ink hover:bg-info-subtle/60 focus-visible:-outline-offset-3"
+      className="block pressable rounded-md border-[1.5px] border-dashed border-info-border bg-transparent px-1.5 py-1 text-info-ink hover:bg-info-faint focus-visible:-outline-offset-3"
     >
       <span className="flex items-start gap-1">
         <VoteIcon aria-hidden className="mt-px size-3.5 shrink-0" />

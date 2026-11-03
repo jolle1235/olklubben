@@ -1,4 +1,4 @@
-import type { ColorValue, Ref, ShadowLayer, ThemeDefinition, ThemedValue } from "./build";
+import type { ColorValue, Ref, ShadowLayer, ThemeDefinition, ThemedValue } from "./resolve";
 import type { Hue, Step } from "./palette";
 
 /**
@@ -37,6 +37,14 @@ const neutral = (step: Step): Ref => at(roles.neutral, step);
 const token = (name: string): ColorValue => ({ token: name });
 
 /**
+ * `-faint`: en flades lyse tone med 60 % dækkeevne, til store områder, der
+ * kun skal antydes (tomme tilstande, nedsænkede felter, notitser, en hover på
+ * et listepunkt). Den ligger altid mellem fladen under og tonen selv, som
+ * begge er kontrasttestet, så teksten på den holder også.
+ */
+const faint = (tone: string): ColorValue => ({ alpha: 0.6, of: token(tone) });
+
+/**
  * En farvefamilie. Alle handlings- og statusroller har præcis det samme sæt:
  *
  *   {rolle}             trin 9   solid flade (knap, badge)
@@ -44,6 +52,7 @@ const token = (name: string): ColorValue => ({ token: name });
  *   {rolle}-foreground  –        tekst/ikon på den solide flade (vælges efter kontrast)
  *   {rolle}-subtle      trin 3   lys flade (info-boks, valgt række)
  *   {rolle}-subtle-hover trin 4  hover på den lyse flade
+ *   {rolle}-faint       –        den lyse flade med 60 % (notitser, hover på kort)
  *   {rolle}-border      trin 7   kant
  *   {rolle}-ink         trin 11  farvet tekst/ikon på neutrale og subtile flader
  */
@@ -54,6 +63,7 @@ function family(name: string, hue: Hue): Record<string, ThemedValue> {
     [`${name}-foreground`]: { auto: at(hue, 9) },
     [`${name}-subtle`]: at(hue, 3),
     [`${name}-subtle-hover`]: at(hue, 4),
+    [`${name}-faint`]: faint(`${name}-subtle`),
     [`${name}-border`]: at(hue, 7),
     [`${name}-ink`]: at(hue, 11),
   };
@@ -65,10 +75,12 @@ function family(name: string, hue: Hue): Record<string, ThemedValue> {
  *
  *   {flade}                   fladen
  *   {flade}-hover             hover og aktivt punkt: 8 % tekstfarve blandet i fladen
+ *   {flade}-faint             hover på et punkt og klubboksen: hover-tonen med 60 %
  *   {flade}-sunken            nedsænket i fladen (ikon-skiver, klubbadgen): 30 % sort
  *   {flade}-foreground        tekst (vælges efter kontrast)
  *   {flade}-muted-foreground  dæmpet tekst: 18 % flade blandet i teksten
  *   {flade}-border            skillelinjer: tekstfarven med 10 % dækkeevne
+ *   {flade}-border-strong     kanter på knapper og chips: 45 % dæmpet tekst blandet i fladen
  *   {flade}-ring              fokusring på fladen
  */
 function surface(name: string, base: ThemedValue): Record<string, ThemedValue> {
@@ -76,10 +88,15 @@ function surface(name: string, base: ThemedValue): Record<string, ThemedValue> {
   return {
     [name]: base,
     [`${name}-hover`]: { mix: [token(name), foreground], amount: 0.08 },
+    [`${name}-faint`]: faint(`${name}-hover`),
     [`${name}-sunken`]: { mix: [token(name), "black"], amount: 0.3 },
     [`${name}-foreground`]: { auto: token(name) },
     [`${name}-muted-foreground`]: { mix: [foreground, token(name)], amount: 0.18 },
     [`${name}-border`]: { alpha: 0.1, of: foreground },
+    [`${name}-border-strong`]: {
+      mix: [token(name), token(`${name}-muted-foreground`)],
+      amount: 0.45,
+    },
     [`${name}-ring`]: at(roles.highlight, 9),
   };
 }
@@ -126,10 +143,18 @@ export const themeDefinition: ThemeDefinition = {
     background: { light: neutral(2), dark: neutral(1) },
     foreground: neutral(12),
     card: { light: neutral(1), dark: neutral(2) },
+    /** Hover på et kort eller en række på et kort. */
+    "card-hover": { mix: [token("card"), token("muted")], amount: 0.6 },
+    /** Tomme tilstande og dæmpede kort (stiplet kant). */
+    "card-faint": faint("card"),
     "card-foreground": neutral(12),
     popover: { light: neutral(1), dark: neutral(3) },
     "popover-foreground": neutral(12),
     muted: neutral(3),
+    /** Hover på en nedsænket flade. Kun brødtekst holder AA her: dæmpet tekst skifter til foreground. */
+    "muted-hover": neutral(4),
+    /** Nedsænkede felter: dialogens fod, ugedagene, tidligere events. */
+    "muted-faint": faint("muted"),
     "muted-foreground": neutral(11),
     border: neutral(6),
     /** Input-kanter og andre kanter, der skal ses (≥ 3:1). */
@@ -180,12 +205,17 @@ export const themeDefinition: ThemeDefinition = {
     "chart-3": at(roles.info, 9),
     "chart-4": at("rust", 9),
     "chart-5": at("brown", 9),
+    /** Skeletterne, mens en side indlæses (Skeleton). */
+    skeleton: { alpha: 0.7, of: token("secondary") },
+    /** Ringen om et felt med en fejl (aria-invalid). */
+    "invalid-ring": { alpha: 0.25, of: token("destructive") },
   },
 
   vars: {
     /** Porthole-ringen (SPEC §13.1): ringens farve og spalten mellem ring og indhold. */
     "porthole-ring": at(roles.highlight, 9),
     "porthole-gap": token("card"),
+    "porthole-shadow": { alpha: 0.2, of: token("shadow-color") },
     /** Farven i alle skygger. */
     "shadow-color": { light: at(roles.frame, 10), dark: "black" },
   },

@@ -16,7 +16,7 @@ export type FixedOptionRowProps = {
 export function FixedOptionRow({ category, label, meta }: FixedOptionRowProps) {
   const Icon = category === "DATE" ? CalendarIcon : MapPinIcon;
   return (
-    <div className="flex min-w-0 items-start gap-3 rounded-xl border-2 border-dashed border-info-border bg-info-subtle/50 px-3.5 py-3">
+    <div className="flex min-w-0 items-start gap-3 rounded-xl border-2 border-dashed border-info-border bg-info-faint px-3.5 py-3">
       <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-info-ink" />
       <p className="grid min-w-0 grid-cols-1 gap-0.5">
         <span className="break-words hyphens-auto text-foreground">

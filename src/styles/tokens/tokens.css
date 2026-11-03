@@ -7,20 +7,27 @@
 
 /*
  * Utilities: bg-*, text-*, border-* … for hver rolle i `colors`, shadow-* for hver
- * elevation og text-* for hver tekst-rolle. Tailwinds standardpalet og
- * -skriftstørrelser nulstilles først, så KUN rollerne findes (ingen tilfældige
- * farver, fx lilla, eller størrelser kan snige sig ind).
+ * elevation og text-* for hver tekst-rolle. Tailwinds standardpalet,
+ * -skriftstørrelser og -skygger nulstilles først, så KUN rollerne findes (ingen
+ * tilfældige farver, fx lilla, størrelser eller sorte skygger kan snige sig ind).
  */
 @theme inline {
   --color-*: initial;
   --text-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-card-faint: var(--card-faint);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-muted: var(--muted);
+  --color-muted-hover: var(--muted-hover);
+  --color-muted-faint: var(--muted-faint);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
@@ -29,17 +36,21 @@
   --color-scrim: var(--scrim);
   --color-frame: var(--frame);
   --color-frame-hover: var(--frame-hover);
+  --color-frame-faint: var(--frame-faint);
   --color-frame-sunken: var(--frame-sunken);
   --color-frame-foreground: var(--frame-foreground);
   --color-frame-muted-foreground: var(--frame-muted-foreground);
   --color-frame-border: var(--frame-border);
+  --color-frame-border-strong: var(--frame-border-strong);
   --color-frame-ring: var(--frame-ring);
   --color-feature: var(--feature);
   --color-feature-hover: var(--feature-hover);
+  --color-feature-faint: var(--feature-faint);
   --color-feature-sunken: var(--feature-sunken);
   --color-feature-foreground: var(--feature-foreground);
   --color-feature-muted-foreground: var(--feature-muted-foreground);
   --color-feature-border: var(--feature-border);
+  --color-feature-border-strong: var(--feature-border-strong);
   --color-feature-ring: var(--feature-ring);
   --color-feature-highlight: var(--feature-highlight);
   --color-primary: var(--primary);
@@ -47,6 +58,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-subtle: var(--primary-subtle);
   --color-primary-subtle-hover: var(--primary-subtle-hover);
+  --color-primary-faint: var(--primary-faint);
   --color-primary-border: var(--primary-border);
   --color-primary-ink: var(--primary-ink);
   --color-highlight: var(--highlight);
@@ -54,6 +66,7 @@
   --color-highlight-foreground: var(--highlight-foreground);
   --color-highlight-subtle: var(--highlight-subtle);
   --color-highlight-subtle-hover: var(--highlight-subtle-hover);
+  --color-highlight-faint: var(--highlight-faint);
   --color-highlight-border: var(--highlight-border);
   --color-highlight-ink: var(--highlight-ink);
   --color-info: var(--info);
@@ -61,6 +74,7 @@
   --color-info-foreground: var(--info-foreground);
   --color-info-subtle: var(--info-subtle);
   --color-info-subtle-hover: var(--info-subtle-hover);
+  --color-info-faint: var(--info-faint);
   --color-info-border: var(--info-border);
   --color-info-ink: var(--info-ink);
   --color-success: var(--success);
@@ -68,6 +82,7 @@
   --color-success-foreground: var(--success-foreground);
   --color-success-subtle: var(--success-subtle);
   --color-success-subtle-hover: var(--success-subtle-hover);
+  --color-success-faint: var(--success-faint);
   --color-success-border: var(--success-border);
   --color-success-ink: var(--success-ink);
   --color-destructive: var(--destructive);
@@ -75,6 +90,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-subtle: var(--destructive-subtle);
   --color-destructive-subtle-hover: var(--destructive-subtle-hover);
+  --color-destructive-faint: var(--destructive-faint);
   --color-destructive-border: var(--destructive-border);
   --color-destructive-ink: var(--destructive-ink);
   --color-secondary: var(--secondary);
@@ -101,6 +117,8 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-skeleton: var(--skeleton);
+  --color-invalid-ring: var(--invalid-ring);
   --shadow-raised: var(--elevation-raised);
   --shadow-floating: var(--elevation-floating);
   --shadow-overlay: var(--elevation-overlay);
@@ -308,10 +326,14 @@
   --background: var(--sand-2);
   --foreground: var(--sand-12);
   --card: var(--sand-1);
+  --card-hover: color-mix(in oklab, var(--card), var(--muted) 60%);
+  --card-faint: color-mix(in oklab, var(--card) 60%, transparent);
   --card-foreground: var(--sand-12);
   --popover: var(--sand-1);
   --popover-foreground: var(--sand-12);
   --muted: var(--sand-3);
+  --muted-hover: var(--sand-4);
+  --muted-faint: color-mix(in oklab, var(--muted) 60%, transparent);
   --muted-foreground: var(--sand-11);
   --border: var(--sand-6);
   --border-strong: var(--sand-8);
@@ -320,17 +342,21 @@
   --scrim: color-mix(in oklab, var(--fixed-dark) 50%, transparent);
   --frame: var(--olive-9);
   --frame-hover: color-mix(in oklab, var(--frame), var(--frame-foreground) 8%);
+  --frame-faint: color-mix(in oklab, var(--frame-hover) 60%, transparent);
   --frame-sunken: color-mix(in oklab, var(--frame), var(--black) 30%);
   --frame-foreground: var(--fixed-light);
   --frame-muted-foreground: color-mix(in oklab, var(--frame-foreground), var(--frame) 18%);
   --frame-border: color-mix(in oklab, var(--frame-foreground) 10%, transparent);
+  --frame-border-strong: color-mix(in oklab, var(--frame), var(--frame-muted-foreground) 45%);
   --frame-ring: var(--amber-9);
   --feature: var(--harbor-9);
   --feature-hover: color-mix(in oklab, var(--feature), var(--feature-foreground) 8%);
+  --feature-faint: color-mix(in oklab, var(--feature-hover) 60%, transparent);
   --feature-sunken: color-mix(in oklab, var(--feature), var(--black) 30%);
   --feature-foreground: var(--fixed-light);
   --feature-muted-foreground: color-mix(in oklab, var(--feature-foreground), var(--feature) 18%);
   --feature-border: color-mix(in oklab, var(--feature-foreground) 10%, transparent);
+  --feature-border-strong: color-mix(in oklab, var(--feature), var(--feature-muted-foreground) 45%);
   --feature-ring: var(--amber-9);
   --feature-highlight: var(--amber-10);
   --primary: var(--olive-9);
@@ -338,6 +364,7 @@
   --primary-foreground: var(--fixed-light);
   --primary-subtle: var(--olive-3);
   --primary-subtle-hover: var(--olive-4);
+  --primary-faint: color-mix(in oklab, var(--primary-subtle) 60%, transparent);
   --primary-border: var(--olive-7);
   --primary-ink: var(--olive-11);
   --highlight: var(--amber-9);
@@ -345,6 +372,7 @@
   --highlight-foreground: var(--fixed-dark);
   --highlight-subtle: var(--amber-3);
   --highlight-subtle-hover: var(--amber-4);
+  --highlight-faint: color-mix(in oklab, var(--highlight-subtle) 60%, transparent);
   --highlight-border: var(--amber-7);
   --highlight-ink: var(--amber-11);
   --info: var(--harbor-9);
@@ -352,6 +380,7 @@
   --info-foreground: var(--fixed-light);
   --info-subtle: var(--harbor-3);
   --info-subtle-hover: var(--harbor-4);
+  --info-faint: color-mix(in oklab, var(--info-subtle) 60%, transparent);
   --info-border: var(--harbor-7);
   --info-ink: var(--harbor-11);
   --success: var(--olive-9);
@@ -359,6 +388,7 @@
   --success-foreground: var(--fixed-light);
   --success-subtle: var(--olive-3);
   --success-subtle-hover: var(--olive-4);
+  --success-faint: color-mix(in oklab, var(--success-subtle) 60%, transparent);
   --success-border: var(--olive-7);
   --success-ink: var(--olive-11);
   --destructive: var(--red-9);
@@ -366,6 +396,7 @@
   --destructive-foreground: var(--fixed-light);
   --destructive-subtle: var(--red-3);
   --destructive-subtle-hover: var(--red-4);
+  --destructive-faint: color-mix(in oklab, var(--destructive-subtle) 60%, transparent);
   --destructive-border: var(--red-7);
   --destructive-ink: var(--red-11);
   --secondary: var(--sand-4);
@@ -392,8 +423,11 @@
   --chart-3: var(--harbor-9);
   --chart-4: var(--rust-9);
   --chart-5: var(--brown-9);
+  --skeleton: color-mix(in oklab, var(--secondary) 70%, transparent);
+  --invalid-ring: color-mix(in oklab, var(--destructive) 25%, transparent);
   --porthole-ring: var(--amber-9);
   --porthole-gap: var(--card);
+  --porthole-shadow: color-mix(in oklab, var(--shadow-color) 20%, transparent);
   --shadow-color: var(--olive-10);
 
   /* Elevation */

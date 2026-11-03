@@ -77,7 +77,7 @@ export function CalendarMonth({
                 <th
                   key={weekday.short}
                   scope="col"
-                  className="pb-1.5 text-center text-label-sm font-bold caps text-muted-foreground md:bg-muted/50 md:px-2.5 md:py-2 md:text-left"
+                  className="pb-1.5 text-center text-label-sm font-bold caps text-muted-foreground md:bg-muted-faint md:px-2.5 md:py-2 md:text-left"
                 >
                   <span aria-hidden>{weekday.short}</span>
                   <span className="sr-only">{weekday.long}</span>
@@ -141,7 +141,7 @@ function DayCell({
       data-date={day.dateKey}
       className={cn(
         "p-0.5 align-top md:border-t md:border-l md:border-border md:p-0 md:first:border-l-0",
-        !day.inMonth && "md:bg-muted/60",
+        !day.inMonth && "md:bg-muted-faint",
       )}
     >
       {/* Mobile: the date is a link that selects the day (dots, no text). */}

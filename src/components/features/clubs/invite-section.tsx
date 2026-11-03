@@ -46,7 +46,7 @@ export function InviteSection({
               className="[--ticket-notch:var(--card)]"
             />
           ) : (
-            <p className="rounded-2xl border-2 border-dashed border-border bg-card/60 px-5 py-6 text-center text-lead text-muted-foreground">
+            <p className="rounded-2xl border-2 border-dashed border-border bg-card-faint px-5 py-6 text-center text-lead text-muted-foreground">
               {canRegenerate
                 ? "Klubben har ingen aktiv invitationskode lige nu."
                 : "Klubben har ingen aktiv invitationskode lige nu. Spørg en admin om at lave en ny."}

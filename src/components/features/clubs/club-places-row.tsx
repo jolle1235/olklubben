@@ -13,7 +13,7 @@ export function ClubPlacesRow({ clubId, placeCount }: { clubId: string; placeCou
   return (
     <Link
       href={placesHref(clubId)}
-      className="group/row flex min-h-16 pressable items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3 hover:bg-muted/70 sm:px-5"
+      className="group/row flex min-h-16 pressable items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3 hover:bg-card-hover sm:px-5"
     >
       <span
         aria-hidden

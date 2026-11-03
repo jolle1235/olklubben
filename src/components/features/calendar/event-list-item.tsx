@@ -42,7 +42,7 @@ export function EventListItem({
   return (
     <Link
       href={eventHref(clubId, event.id)}
-      className="group/row flex min-h-16 items-center gap-4 pressable-row px-4 py-3 hover:bg-muted/70 focus-visible:-outline-offset-3 md:px-5"
+      className="group/row flex min-h-16 items-center gap-4 pressable-row px-4 py-3 hover:bg-card-hover focus-visible:-outline-offset-3 md:px-5"
     >
       <time
         aria-hidden

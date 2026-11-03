@@ -152,7 +152,7 @@ export function VoteOptionRow({
         "grid min-w-0 grid-cols-1 rounded-xl border-2 border-border bg-card",
         input &&
           "pressable hover:border-primary-border has-[input:checked]:border-primary has-[input:checked]:bg-primary-subtle has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ring",
-        !input && (marker === "winner" ? "border-highlight bg-highlight-subtle/60" : null),
+        !input && (marker === "winner" ? "border-highlight bg-highlight-faint" : null),
         className,
       )}
     >

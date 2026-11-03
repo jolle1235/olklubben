@@ -12,7 +12,7 @@
  *    9–10  solid farve, solid hover
  *   11–12  farvet tekst, tekst med høj kontrast
  *
- * En skala genereres ud fra ÉN basisfarve (trin 9) i OKLCH (build.ts). `light`
+ * En skala genereres ud fra ÉN basisfarve (trin 9) i OKLCH (scales.ts). `light`
  * og `dark` kan låse enkelte trin. Låsene her holder appen på D-092-farverne
  * (cream, paper, ink, slate …); de kan fjernes, når paletten skiftes.
  *

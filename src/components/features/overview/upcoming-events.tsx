@@ -48,7 +48,7 @@ export function UpcomingEvents({
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-lead text-muted-foreground md:px-5">
+        <p className="rounded-xl border-2 border-dashed border-border bg-card-faint px-4 py-4 text-lead text-muted-foreground md:px-5">
           Ikke flere ølsmagninger i kalenderen endnu.
         </p>
       )}

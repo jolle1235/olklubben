@@ -19,7 +19,7 @@ export function SongPreview({
   return (
     <section
       aria-label="Forhåndsvisning"
-      className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-background/50 px-4 py-4 sm:px-5"
+      className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-background px-4 py-4 sm:px-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-body-sm font-semibold text-muted-foreground">

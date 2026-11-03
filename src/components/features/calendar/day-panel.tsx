@@ -114,7 +114,7 @@ export function CalendarDayPanel({
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-lead text-muted-foreground">
+        <p className="rounded-xl border-2 border-dashed border-border bg-card-faint px-4 py-4 text-lead text-muted-foreground">
           {day ? "Ingen events denne dag." : "Ingen events i denne måned."}
         </p>
       )}

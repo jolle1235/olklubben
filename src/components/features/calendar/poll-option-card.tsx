@@ -30,7 +30,7 @@ export function PollOptionCard({ clubId, option, now, className }: PollOptionCar
     <Link
       href={pollHref(clubId, option.pollId)}
       className={cn(
-        "group flex min-h-20 pressable items-center gap-4 rounded-xl border-2 border-dashed border-info-border bg-transparent px-4 py-3 hover:bg-info-subtle/50",
+        "group flex min-h-20 pressable items-center gap-4 rounded-xl border-2 border-dashed border-info-border bg-transparent px-4 py-3 hover:bg-info-faint",
         className,
       )}
     >

@@ -115,7 +115,7 @@ export function PlaceSelector({
               describedBy={control["aria-describedby"]}
               className="sm:col-span-2"
             >
-              <div className="mt-3 hidden grid-cols-1 gap-5 rounded-xl border border-dashed border-border bg-muted/40 px-4 py-4 group-has-[.place-radio:checked]/choice:grid">
+              <div className="mt-3 hidden grid-cols-1 gap-5 rounded-xl border border-dashed border-border bg-muted-faint px-4 py-4 group-has-[.place-radio:checked]/choice:grid">
                 <div className="grid grid-cols-1 gap-2">
                   <InputField
                     name="newPlaceName"
@@ -129,7 +129,7 @@ export function PlaceSelector({
                   />
                   <div aria-live="polite">
                     {existing ? (
-                      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-highlight bg-highlight-subtle/70 px-3.5 py-2 text-foreground">
+                      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-highlight bg-highlight-faint px-3.5 py-2 text-foreground">
                         <span className="min-w-0 break-words hyphens-auto">
                           «{existing.name}» findes allerede.
                         </span>

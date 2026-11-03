@@ -66,7 +66,7 @@ export function BeerDetailSkeleton() {
     <Busy label="Henter øllen …">
       <TitleSkeleton />
       <div className="grid gap-4 md:grid-cols-2">
-        <Skeleton className="h-36 rounded-2xl bg-info/15" />
+        <Skeleton className="h-36 rounded-2xl bg-info-subtle" />
         <div className="grid content-start gap-3 rounded-2xl border border-border bg-card p-5">
           <Skeleton className="h-6 w-28" />
           <Skeleton className="h-14 w-72 max-w-full" />

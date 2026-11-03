@@ -241,7 +241,7 @@ function DraftEditor({
       {preview ? (
         <section
           aria-label="Forhåndsvisning"
-          className="rounded-xl border border-border bg-background/50 px-4 py-4"
+          className="rounded-xl border border-border bg-background px-4 py-4"
         >
           <SongTextView body={cleanSongText(fields.body)} mode="chords" />
         </section>

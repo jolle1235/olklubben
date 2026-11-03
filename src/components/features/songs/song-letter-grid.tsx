@@ -71,7 +71,7 @@ export function SongLetterGrid({ available }: SongLetterGridProps) {
       >
         A–Å
       </summary>
-      <div className="absolute top-full right-0 z-30 mt-2 w-max rounded-xl border border-border bg-card p-2 shadow-lg">
+      <div className="absolute top-full right-0 z-30 mt-2 w-max rounded-xl border border-border bg-card p-2 shadow-floating">
         <ul className="grid grid-cols-[repeat(6,3rem)] gap-1">
           {SONGBOOK_LETTERS.map((letter) => (
             <li key={letter}>
@@ -92,7 +92,7 @@ export function SongLetterGrid({ available }: SongLetterGridProps) {
                   role="link"
                   aria-disabled="true"
                   aria-label={letter === "#" ? "Tal og tegn" : undefined}
-                  className={cn(TILE, "text-muted-foreground/45")}
+                  className={cn(TILE, "text-muted-foreground opacity-45")}
                 >
                   {letter}
                 </span>

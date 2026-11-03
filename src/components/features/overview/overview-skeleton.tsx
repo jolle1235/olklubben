@@ -40,7 +40,7 @@ export function OverviewSkeleton() {
       </div>
 
       <RowsSkeleton rows={3} className="bg-card" />
-      <RowsSkeleton rows={2} withMeta className="bg-muted/40" />
+      <RowsSkeleton rows={2} withMeta className="bg-muted-faint" />
     </div>
   );
 }

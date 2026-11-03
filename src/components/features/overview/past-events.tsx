@@ -32,7 +32,7 @@ export function PastEvents({ clubId, events, now }: PastEventsProps) {
       >
         Tidligere ølsmagninger
       </h2>
-      <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-muted/40">
+      <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-muted-faint">
         {events.map((event) => (
           <li key={event.id} className="first:*:rounded-t-xl last:*:rounded-b-xl">
             <EventListItem

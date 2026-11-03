@@ -41,7 +41,7 @@ export function PlaceCard({ place, href, isMine, muted = false }: PlaceCardProps
       href={href}
       className={cn(
         "group/place flex pressable gap-3 rounded-xl border border-border px-4 py-3.5 hover:border-input hover:shadow-raised sm:gap-4 sm:px-5",
-        muted ? "bg-card/60" : "bg-card",
+        muted ? "bg-card-faint" : "bg-card",
       )}
     >
       <span

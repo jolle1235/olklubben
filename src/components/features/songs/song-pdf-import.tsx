@@ -94,7 +94,7 @@ function ImportFooter({ state }: { state: ReturnType<typeof useSongPdfImport> })
       ? "Vælg de sange, der skal med"
       : `Importér ${songsLabel(selectedCount)}`;
   return (
-    <div className="sticky bottom-20 z-10 grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:bottom-4">
+    <div className="sticky bottom-20 z-10 grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-raised md:bottom-4">
       {state.importError ? <FormError>{state.importError}</FormError> : null}
       {hasDuplicates ? (
         <p className="text-body-sm font-semibold text-destructive-ink">
@@ -131,7 +131,7 @@ function PdfDropzone({ onFiles }: { onFiles: (files: FileList | null) => void })
         onFiles(event.dataTransfer.files);
       }}
       className={cn(
-        "flex pressable cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-10 text-center focus-within:border-primary hover:border-primary",
+        "flex pressable cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card-faint px-6 py-10 text-center focus-within:border-primary hover:border-primary",
         dragging && "border-primary bg-background",
       )}
     >
@@ -159,7 +159,7 @@ function ImportSummary({ clubId, result }: { clubId: string; result: ImportResul
   return (
     <section
       role="status"
-      className="grid gap-2 rounded-2xl border border-border bg-info-subtle/50 p-4"
+      className="grid gap-2 rounded-2xl border border-border bg-info-faint p-4"
     >
       <p className="font-semibold text-foreground">{`${songsLabel(result.created)} er importeret 🎵`}</p>
       {result.skipped.length > 0 ? (

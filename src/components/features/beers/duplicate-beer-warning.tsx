@@ -22,7 +22,7 @@ export function DuplicateBeerWarning({ id, beers, clubId, verb }: DuplicateBeerW
   return (
     <div
       id={id}
-      className="rounded-xl border border-highlight bg-highlight-subtle/70 px-4 py-3 text-foreground"
+      className="rounded-xl border border-highlight bg-highlight-faint px-4 py-3 text-foreground"
     >
       <p className="font-semibold">Den her har I vist smagt før 👀</p>
       <ul className="mt-1 grid grid-cols-1 gap-0.5">

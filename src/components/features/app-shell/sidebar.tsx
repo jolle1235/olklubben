@@ -61,7 +61,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
                     "group/nav flex min-h-12 items-center gap-3.5 rounded-xl pressable-row px-3 text-lead font-semibold",
                     active
                       ? "bg-frame-hover text-frame-foreground [--porthole-gap:var(--frame-hover)]"
-                      : "text-frame-muted-foreground hover:bg-frame-hover/60 hover:text-frame-foreground",
+                      : "text-frame-muted-foreground hover:bg-frame-faint hover:text-frame-foreground",
                   )}
                 >
                   <span
@@ -70,7 +70,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
                       "grid size-8 shrink-0 place-items-center rounded-full transition-colors [&_svg]:size-[1.15rem]",
                       active
                         ? "porthole bg-highlight text-highlight-foreground"
-                        : "bg-frame-sunken/60",
+                        : "bg-frame-sunken",
                     )}
                   >
                     <Icon strokeWidth={2.25} />
@@ -93,7 +93,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
               "flex min-h-14 items-center gap-3 rounded-xl pressable-row px-2.5 py-2",
               userRowActive
                 ? "bg-frame-hover [--porthole-gap:var(--frame-hover)]"
-                : "[--porthole-ring:var(--frame-hover)] hover:bg-frame-hover/60",
+                : "[--porthole-ring:var(--frame-hover)] hover:bg-frame-faint",
             )}
           >
             <span className="sr-only">{userRow.label}: </span>

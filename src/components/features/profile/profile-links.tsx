@@ -94,7 +94,7 @@ function LinkList({ label, rows }: { label: string; rows: readonly Row[] }) {
                 background), so the focus ring is drawn inside the row. */}
             <Link
               href={href}
-              className="group/row flex min-h-16 items-center gap-4 pressable-row px-4 py-3 hover:bg-muted/70 focus-visible:-outline-offset-3 md:px-5"
+              className="group/row flex min-h-16 items-center gap-4 pressable-row px-4 py-3 hover:bg-card-hover focus-visible:-outline-offset-3 md:px-5"
             >
               <span
                 aria-hidden

@@ -35,7 +35,7 @@ function Input({
       data-slot="input"
       placeholder={clearable ? (placeholder ?? " ") : placeholder}
       className={cn(
-        "h-11 w-full min-w-0 rounded-lg border border-input bg-card px-3.5 py-2 text-body-md text-foreground outline-offset-1 transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-label-lg file:font-semibold file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/25",
+        "h-11 w-full min-w-0 rounded-lg border border-input bg-card px-3.5 py-2 text-body-md text-foreground outline-offset-1 transition-colors file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-label-lg file:font-semibold file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-invalid-ring",
         clearable && "peer pr-12 [&::-webkit-search-cancel-button]:appearance-none",
         className,
       )}

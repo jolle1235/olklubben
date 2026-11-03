@@ -26,7 +26,7 @@ export function TastedAt({ clubId, event, newBeerHref }: TastedAtProps) {
       {event ? (
         <Link
           href={eventHref(clubId, event.id)}
-          className="group/event flex min-h-16 pressable items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 hover:bg-muted/70 md:px-5"
+          className="group/event flex min-h-16 pressable items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 hover:bg-card-hover md:px-5"
         >
           <span
             aria-hidden
@@ -51,7 +51,7 @@ export function TastedAt({ clubId, event, newBeerHref }: TastedAtProps) {
           />
         </Link>
       ) : (
-        <p className="rounded-xl border border-dashed border-border bg-card/60 px-4 py-4 text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border bg-card-faint px-4 py-4 text-muted-foreground">
           Ikke knyttet til et event
         </p>
       )}

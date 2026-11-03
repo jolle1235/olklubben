@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  contrastOf,
-  generateScales,
-  THEMES,
-  withHighContrast,
-  type ColorValue,
-  type ThemeDefinition,
-} from "./build";
+import { createResolver, withHighContrast, type ColorValue, type Resolver } from "./resolve";
+import { generateScales, THEMES, type Theme } from "./scales";
 import { themeDefinition } from "./themes";
 
 /**
@@ -28,7 +22,7 @@ type Pair = { fg: string; bg: string; min: number };
 
 const FAMILIES = ["primary", "highlight", "info", "success", "destructive"] as const;
 const SURFACES = ["frame", "feature"] as const;
-const NEUTRAL_SURFACES = ["background", "card", "popover", "muted"] as const;
+const NEUTRAL_SURFACES = ["background", "card", "card-hover", "popover", "muted"] as const;
 
 const pairs: Pair[] = [
   // Brødtekst og dæmpet tekst på alle neutrale flader
@@ -37,6 +31,8 @@ const pairs: Pair[] = [
     { fg: "muted-foreground", bg, min: TEXT },
   ]),
   { fg: "card-foreground", bg: "card", min: TEXT },
+  // Hover på en nedsænket flade: kun brødtekst (dæmpet tekst skifter til foreground)
+  { fg: "foreground", bg: "muted-hover", min: TEXT },
   { fg: "popover-foreground", bg: "popover", min: TEXT },
 
   // Hver farvefamilie: tekst på den solide flade og farvet tekst på lyse flader
@@ -60,6 +56,8 @@ const pairs: Pair[] = [
       { fg: `${s}-muted-foreground`, bg, min: TEXT },
     ]),
     { fg: `${s}-ring`, bg: s, min: NON_TEXT },
+    // Kanten på en knap med tekst på fladen (hero'ens knapper)
+    { fg: `${s}-border-strong`, bg: s, min: 2 },
   ]),
   { fg: "feature-highlight", bg: "feature", min: TEXT },
   // Messing-ikoner og stjerner på mørke flader (det aktive nav-punkt, hero'ens ikoner, ikon-skiver)
@@ -92,22 +90,20 @@ const highContrastPairs: Pair[] = [
   ...["background", "card"].map((bg) => ({ fg: "border", bg, min: NON_TEXT })),
 ];
 
-const highContrast = withHighContrast(themeDefinition);
+const scales = generateScales();
+const normal = createResolver(themeDefinition, scales);
+const highContrast = createResolver(withHighContrast(themeDefinition), scales);
 
-function failures(list: Pair[], theme: (typeof THEMES)[number], definition: ThemeDefinition) {
-  const scales = generateScales();
+function failures(list: Pair[], theme: Theme, resolver: Resolver) {
   return list
-    .map((pair) => ({
-      ...pair,
-      ratio: contrastOf(t(pair.fg), t(pair.bg), theme, definition, scales),
-    }))
+    .map((pair) => ({ ...pair, ratio: resolver.contrast(t(pair.fg), t(pair.bg), theme) }))
     .filter(({ ratio, min }) => ratio < min)
     .map(({ fg, bg, ratio, min }) => `${fg} på ${bg}: ${ratio.toFixed(2)} < ${min}`);
 }
 
 describe("farvesystemets kontrast (WCAG AA)", () => {
   it.each(THEMES)("alle par holder i %s tema", (theme) => {
-    expect(failures(pairs, theme, themeDefinition)).toEqual([]);
+    expect(failures(pairs, theme, normal)).toEqual([]);
   });
 
   it.each(THEMES)("alle par holder i %s tema med høj kontrast", (theme) => {

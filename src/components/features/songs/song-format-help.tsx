@@ -11,7 +11,7 @@ const RULES = [
 /** The song-text format in five lines (SPEC §9.6), under the "Tekst og akkorder" field. */
 export function SongFormatHelp() {
   return (
-    <details className="group rounded-xl border border-border bg-background/60">
+    <details className="group rounded-xl border border-border bg-background">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2 font-semibold text-primary-ink [&::-webkit-details-marker]:hidden">
         <CircleHelpIcon aria-hidden className="size-5 shrink-0" />
         <span className="min-w-0">Sådan skriver du vers, akkorder og omkvæd</span>

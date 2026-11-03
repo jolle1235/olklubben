@@ -79,7 +79,7 @@ export function PlaceChoiceCard({
         <label
           htmlFor={id}
           className={cn(
-            "flex min-h-14 pressable items-start gap-3 rounded-xl border-2 border-border bg-card px-3.5 py-3 text-foreground peer-hover:border-primary-border peer-hover:bg-muted/40",
+            "flex min-h-14 pressable items-start gap-3 rounded-xl border-2 border-border bg-card px-3.5 py-3 text-foreground peer-hover:border-primary-border peer-hover:bg-card-hover",
             "before:mt-0.5 before:size-5 before:shrink-0 before:border-2 before:border-border-strong before:bg-card before:content-['']",
             "peer-checked:border-primary peer-checked:bg-primary-subtle",
             type === "radio"

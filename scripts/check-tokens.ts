@@ -21,10 +21,13 @@ import { constants, palette } from "../src/styles/tokens/palette";
  *   * linjehøjder i komponenten (leading-tight …): rollen har sin egen, og
  *     ellers en -tight/-loose-variant (text-body-sm-tight). Kun leading-none
  *     er tilladt, til ét tal eller tegn i en boks
+ *   * en modifier på en rolle (bg-muted/60, text-body-md/6): gennemsigtighed
+ *     er en rolle selv (-faint, -hover …), linjehøjden hører til tekst-rollen
+ *   * Tailwinds egne skygger (shadow-lg …): brug en elevation fra themes.ts
  *
- * Tailwind fejler ikke selv ved ukendte utilities (`--color-*: initial`,
- * `--text-*: initial`), så et gammelt navn ville ellers bare give ingen farve
- * eller størrelse.
+ * Tailwind fejler ikke selv ved ukendte utilities (`--color-*`, `--text-*` og
+ * `--shadow-*` er nulstillet), så et gammelt navn ville ellers bare give ingen
+ * farve, størrelse eller skygge.
  */
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -126,6 +129,17 @@ const RULES: Rule[] = [
   {
     name: "linjehøjde i komponenten (brug rollen eller dens -tight/-loose-variant)",
     pattern: /(?<![\w-])leading-(?:tight|snug|normal|relaxed|loose|\d+)(?![\w-])/g,
+  },
+  {
+    name: "modifier på en rolle (brug en rolle som -faint eller -hover fra themes.ts)",
+    pattern: new RegExp(
+      `(?<![\\w-])(?:${UTILITY_PREFIXES})-[a-z][a-z0-9-]*/(?:\\d+|\\[[^\\]]*\\]|\\([^)]*\\))(?![\\w-])`,
+      "g",
+    ),
+  },
+  {
+    name: "Tailwind-skygge (brug en elevation fra themes.ts)",
+    pattern: /(?<![\w-])(?:shadow|inset-shadow|drop-shadow)-(?:2xs|xs|sm|md|lg|xl|2xl)(?![\w-])/g,
   },
 ];
 

@@ -123,7 +123,7 @@ export function PlaceOwners({
           })}
         </ul>
       ) : (
-        <p className="rounded-xl border border-dashed border-border bg-card/60 px-4 py-4 text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border bg-card-faint px-4 py-4 text-muted-foreground">
           Ingen ejere. Så bliver den, der opretter smagningen, vært.
         </p>
       )}

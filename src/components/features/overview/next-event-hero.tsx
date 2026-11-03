@@ -114,7 +114,7 @@ function HeroBadge({ state }: { state: HeroState }) {
         "inline-flex min-h-8 items-center gap-2 rounded-full px-3.5 py-1 text-body-sm-tight font-bold",
         highlighted
           ? "bg-highlight text-highlight-foreground"
-          : "border border-feature-muted-foreground/40 bg-feature-hover text-feature-foreground",
+          : "border border-feature-border-strong bg-feature-hover text-feature-foreground",
       )}
     >
       {state.kind === "ongoing" ? (

@@ -46,7 +46,7 @@ export function SimilarFeedback({ title, candidates }: SimilarFeedbackProps) {
       {similar.length > 0 ? (
         <section
           aria-labelledby={headingId}
-          className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-highlight bg-highlight-subtle/60 px-4 py-3"
+          className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-highlight bg-highlight-faint px-4 py-3"
         >
           <h2 id={headingId} className="text-body-lg-tight text-primary-ink">
             Findes den allerede?

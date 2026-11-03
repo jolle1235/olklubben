@@ -8,15 +8,15 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+        default: "bg-primary text-primary-foreground [a]:hover:bg-primary-hover",
+        secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary-hover",
         destructive:
-          "bg-destructive-subtle text-destructive-ink [a]:hover:bg-destructive-subtle/80",
+          "bg-destructive-subtle text-destructive-ink [a]:hover:bg-destructive-subtle-hover",
         outline: "border-input text-foreground [a]:hover:bg-muted",
         /** Fremhævning, fx "I aften!" (highlight-rollen). */
         highlight: "bg-highlight text-highlight-foreground [a]:hover:bg-highlight-hover",
         /** Info, fx "om 3 dage" (info-rollen). */
-        info: "bg-info-subtle text-info-ink [a]:hover:bg-info-subtle/80",
+        info: "bg-info-subtle text-info-ink [a]:hover:bg-info-subtle-hover",
         ghost: "hover:bg-muted",
         link: "text-primary-ink underline-offset-4 hover:underline",
       },
