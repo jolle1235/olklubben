@@ -59,9 +59,7 @@ export function CenteredShell({
           {title || subtitle ? (
             <header className="mb-6">
               {title ? (
-                <h1 className="text-headline-sm leading-tight font-bold text-primary-ink">
-                  {title}
-                </h1>
+                <h1 className="text-headline-sm font-bold text-primary-ink">{title}</h1>
               ) : null}
               {subtitle ? <p className="mt-2 text-lead text-muted-foreground">{subtitle}</p> : null}
             </header>

@@ -36,7 +36,7 @@ export function EmptyState({
           {icon}
         </div>
       ) : null}
-      <Heading className="max-w-[24ch] text-title-md leading-tight font-bold text-primary-ink md:text-title-lg">
+      <Heading className="max-w-[24ch] text-title-md font-bold text-primary-ink md:text-title-lg">
         {title}
       </Heading>
       {description ? (

@@ -17,7 +17,7 @@ import {
   type ScaleInput,
   type Step,
 } from "./palette";
-import { capsTracking, componentTextStyles, textStyles, type TextStyle } from "./typography";
+import { capsTracking, textUtilities, type TextStyle } from "./typography";
 
 /**
  * Farvesystemets motor (SPEC §13.2): genererer skalaerne i palette.ts,
@@ -351,7 +351,8 @@ function themeVariables(theme: Theme, definition: ThemeDefinition, scales: Scale
 // Typografi
 
 export type Typography = {
-  textStyles: Record<string, TextStyle>;
+  /** Hver `text-*`-utility (roller og deres -tight/-loose-varianter). */
+  textStyles: Record<string, Omit<TextStyle, "tight" | "loose">>;
   capsTracking: Record<string, number>;
 };
 
@@ -420,7 +421,7 @@ export function buildCss(
   definition: ThemeDefinition,
   scales: Scales = generateScales(),
   typography: Typography = {
-    textStyles: { ...textStyles, ...componentTextStyles },
+    textStyles: textUtilities(),
     capsTracking,
   },
 ): string {

@@ -19,6 +19,9 @@ import { constants, palette } from "../src/styles/tokens/palette";
  *   * Tailwinds egne skriftstørrelser (text-lg …) og vilkårlige størrelser,
  *     linjehøjder og tracking (text-[0.95rem], leading-[1.1], tracking-[0.1em]):
  *     brug en tekst-rolle (text-body-sm …) og `caps` til versaler
+ *   * linjehøjder i komponenten (leading-tight …): rollen har sin egen, og
+ *     ellers en -tight/-loose-variant (text-body-sm-tight). Kun leading-none
+ *     er tilladt, til ét tal eller tegn i en boks
  *
  * Tailwind fejler ikke selv ved ukendte utilities (`--color-*: initial`,
  * `--text-*: initial`), så et gammelt navn ville ellers bare give ingen farve
@@ -122,6 +125,10 @@ const RULES: Rule[] = [
   {
     name: "vilkårlig linjehøjde eller tracking (tekst-rollen har dem; versaler: caps)",
     pattern: /(?<![\w-])(?:leading|tracking)-\[[^\]]*\]/g,
+  },
+  {
+    name: "linjehøjde i komponenten (brug rollen eller dens -tight/-loose-variant)",
+    pattern: /(?<![\w-])leading-(?:tight|snug|normal|relaxed|loose|\d+)(?![\w-])/g,
   },
 ];
 

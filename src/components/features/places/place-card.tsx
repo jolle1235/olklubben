@@ -57,7 +57,7 @@ export function PlaceCard({ place, href, isMine, muted = false }: PlaceCardProps
         <span className="flex items-start justify-between gap-3">
           <span
             className={cn(
-              "min-w-0 font-heading text-body-lg leading-snug font-semibold break-words hyphens-auto group-hover/place:underline group-hover/place:decoration-highlight group-hover/place:decoration-2 group-hover/place:underline-offset-4",
+              "min-w-0 font-heading text-body-lg-tight font-semibold break-words hyphens-auto group-hover/place:underline group-hover/place:decoration-highlight group-hover/place:decoration-2 group-hover/place:underline-offset-4",
               muted ? "text-muted-foreground" : "text-primary-ink",
             )}
           >

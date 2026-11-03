@@ -12,7 +12,7 @@ import { JoinClubForm } from "./join-club-form";
  * CenteredShell card, each with the page's only <h1>.
  */
 
-const headingClass = "text-headline-sm leading-tight font-bold text-primary-ink";
+const headingClass = "text-headline-sm font-bold text-primary-ink";
 
 /** E18: unknown, malformed, revoked or expired code. */
 export function InviteNotWorking({ loggedIn }: { loggedIn: boolean }) {
@@ -95,9 +95,7 @@ export function JoinConfirmation({
         <span className="block text-lead font-semibold text-muted-foreground">
           Du er inviteret til
         </span>
-        <span className="mt-1 block text-headline-md leading-tight font-bold break-words">
-          {clubName}
-        </span>
+        <span className="mt-1 block text-headline-md font-bold break-words">{clubName}</span>
       </h1>
       <p className="mt-2 text-lead text-muted-foreground">({memberCountText})</p>
       <div className="mt-7 grid w-full gap-3">

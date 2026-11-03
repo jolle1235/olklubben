@@ -61,7 +61,7 @@ function ResetLinkSent({ email, next }: { email: string; next: string | null }) 
           <MailCheckIcon className="size-6" />
         </span>
         <div className="grid min-w-0 gap-1.5">
-          <h2 className="text-title-sm leading-tight font-bold text-primary-ink">
+          <h2 className="text-title-sm-tight font-bold text-primary-ink">
             Hvis emailen findes, har vi sendt et link{"\u00a0"}📬
           </h2>
           <p className="text-muted-foreground">

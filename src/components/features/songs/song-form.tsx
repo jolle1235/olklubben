@@ -152,7 +152,7 @@ export function SongForm({ clubId, songId, defaults, cancelHref }: SongFormProps
                 autoCapitalize="off"
                 autoCorrect="off"
                 required
-                className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm leading-relaxed whitespace-pre"
+                className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm-loose whitespace-pre"
               />
             )}
           </FieldShell>

@@ -53,7 +53,7 @@ export function PlaceAbout({ address, description, editHref }: PlaceAboutProps) 
       )}
 
       {description ? (
-        <p className="max-w-[60ch] text-lead leading-relaxed break-words hyphens-auto whitespace-pre-line text-foreground">
+        <p className="max-w-[60ch] text-lead-loose break-words hyphens-auto whitespace-pre-line text-foreground">
           {description}
         </p>
       ) : null}

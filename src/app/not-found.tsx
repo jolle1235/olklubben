@@ -16,7 +16,7 @@ export default function NotFound() {
         >
           404
         </p>
-        <h1 className="mt-4 text-headline-sm leading-tight font-bold text-primary-ink">
+        <h1 className="mt-4 text-headline-sm font-bold text-primary-ink">
           Den her øl er vist drukket.
         </h1>
         <p className="mt-2 text-lead text-muted-foreground">

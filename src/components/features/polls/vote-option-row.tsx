@@ -106,7 +106,7 @@ export function VoteOptionRow({
         />
       ) : null}
       <span className="grid min-w-0 flex-1 grid-cols-1 gap-0.5">
-        <span className="text-lead leading-snug font-semibold break-words hyphens-auto text-foreground">
+        <span className="text-lead-tight font-semibold break-words hyphens-auto text-foreground">
           {srLabel ? (
             <>
               <span aria-hidden>{label}</span>

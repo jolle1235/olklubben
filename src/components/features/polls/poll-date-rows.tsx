@@ -59,7 +59,7 @@ export function PollDateRows({
       className="grid min-w-0 grid-cols-1 gap-3"
       aria-describedby={error ? errorId : hintId}
     >
-      <legend className="mb-2 text-body-sm leading-tight font-semibold text-foreground">
+      <legend className="mb-2 text-body-sm-tight font-semibold text-foreground">
         Hvornår? <span className="font-normal text-muted-foreground">(mindst én)</span>
       </legend>
       {error ? <FieldError id={errorId}>{error}</FieldError> : null}

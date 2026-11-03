@@ -50,7 +50,7 @@ export function PollOutcome({ clubId, view, now }: PollOutcomeProps) {
     >
       <h2
         id="poll-outcome-heading"
-        className="text-title-md leading-tight font-bold break-words text-feature-foreground md:text-headline-sm"
+        className="text-title-md font-bold break-words text-feature-foreground md:text-headline-sm"
       >
         🎉 Afstemningen er afsluttet!
       </h2>

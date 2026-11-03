@@ -35,7 +35,7 @@ export function TastedAt({ clubId, event, newBeerHref }: TastedAtProps) {
             <CalendarDaysIcon strokeWidth={2.25} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-heading text-body-lg leading-tight font-semibold break-words hyphens-auto text-primary-ink">
+            <span className="block font-heading text-body-lg-tight font-semibold break-words hyphens-auto text-primary-ink">
               {event.title}
             </span>
             <time

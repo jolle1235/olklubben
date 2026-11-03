@@ -89,7 +89,7 @@ function ChordsView({ stanzas, chords }: { stanzas: SongStanza[]; chords: string
             {chords.map((chord) => (
               <li
                 key={chord}
-                className="rounded-md bg-info-subtle px-2 py-0.5 text-body-md leading-snug font-semibold text-info-ink"
+                className="rounded-md bg-info-subtle px-2 py-0.5 text-body-md-tight font-semibold text-info-ink"
               >
                 {chord}
               </li>

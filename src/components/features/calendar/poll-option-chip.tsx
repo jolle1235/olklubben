@@ -30,11 +30,11 @@ export function PollOptionChip({ clubId, option, now }: PollOptionChipProps) {
     >
       <span className="flex items-start gap-1">
         <VoteIcon aria-hidden className="mt-px size-3.5 shrink-0" />
-        <span className="line-clamp-3 min-w-0 text-label-lg leading-tight font-semibold break-words hyphens-auto">
+        <span className="line-clamp-3 min-w-0 text-label-lg-tight font-semibold break-words hyphens-auto">
           {option.pollTitle}
         </span>
       </span>
-      <span className="mt-0.5 block text-label-md leading-tight text-muted-foreground tabular-nums">
+      <span className="mt-0.5 block text-label-md-tight text-muted-foreground tabular-nums">
         {formatTime(option.startsAt)}
         {option.viewerTicked ? " · Du kan ✓" : ""}
       </span>

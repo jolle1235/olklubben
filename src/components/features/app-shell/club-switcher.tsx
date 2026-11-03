@@ -57,9 +57,7 @@ export function ClubSwitcher({ club, clubs, variant = "topbar", className }: Clu
             "block font-display font-bold",
             isSidebar
               ? cn("line-clamp-2 break-words hyphens-auto", clubNameSize(club.name))
-              : "truncate text-title-sm",
-            // After the size: Tailwind's text-* sizes carry their own line height.
-            "leading-tight",
+              : "truncate text-title-sm-tight",
           )}
         >
           {club.name}

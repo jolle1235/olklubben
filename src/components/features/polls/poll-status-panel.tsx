@@ -111,7 +111,7 @@ function TieCard({
       className="grid grid-cols-1 gap-4 rounded-2xl border-2 border-highlight bg-highlight-subtle/60 px-5 py-5 sm:px-6"
     >
       <div className="grid grid-cols-1 gap-1.5">
-        <h2 id="poll-tie-heading" className="text-title-md leading-tight font-bold text-foreground">
+        <h2 id="poll-tie-heading" className="text-title-md font-bold text-foreground">
           {tieHeadline(tied)}
         </h2>
         {view.ballotCount === 0 ? (

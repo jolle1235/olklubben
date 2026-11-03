@@ -45,7 +45,7 @@ export function ProfileIdentity({
         className="m-1.5 shrink-0"
       />
       <div className="grid max-w-full min-w-0 grid-cols-1">
-        <p className="font-display text-title-md leading-tight font-semibold break-words hyphens-auto text-primary-ink md:text-title-lg">
+        <p className="font-display text-title-md font-semibold break-words hyphens-auto text-primary-ink md:text-title-lg">
           {displayName}
         </p>
         {officialName ? (

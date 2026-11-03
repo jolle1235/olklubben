@@ -40,7 +40,7 @@ export function FormAlert({ tone = "error", title, children, id, className }: Fo
       id={id}
       role={role}
       className={cn(
-        "flex gap-3 rounded-xl border px-4 py-3 text-body-md leading-snug",
+        "flex gap-3 rounded-xl border px-4 py-3 text-body-md-tight",
         toneClassName,
         className,
       )}

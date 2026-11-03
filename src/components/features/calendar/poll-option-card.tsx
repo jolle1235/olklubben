@@ -45,7 +45,7 @@ export function PollOptionCard({ clubId, option, now, className }: PollOptionCar
 
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="min-w-0 font-heading text-title-sm leading-snug font-semibold break-words hyphens-auto text-info-ink">
+          <span className="min-w-0 font-heading text-title-sm font-semibold break-words hyphens-auto text-info-ink">
             {pollDateTitle(option)}
           </span>
           {option.viewerTicked ? (

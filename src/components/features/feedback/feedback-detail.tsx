@@ -58,7 +58,7 @@ export function FeedbackAdminResponse({ text }: { text: string }) {
     >
       <h2
         id="feedback-response-heading"
-        className="flex items-center gap-2 text-title-sm leading-tight text-info-ink"
+        className="flex items-center gap-2 text-title-sm-tight text-info-ink"
       >
         <MessageSquareReplyIcon aria-hidden className="size-5 shrink-0" />
         Svar fra app-admin
@@ -101,7 +101,7 @@ export function FeedbackTechInfo({ info }: { info: FeedbackTechnicalInfo }) {
     >
       <h2
         id="feedback-tech-heading"
-        className="flex items-center gap-2 text-title-sm leading-tight text-primary-ink"
+        className="flex items-center gap-2 text-title-sm-tight text-primary-ink"
       >
         <MonitorSmartphoneIcon aria-hidden className="size-5 shrink-0" />
         Teknisk info (kun synlig for dig)

@@ -257,7 +257,7 @@ function DraftEditor({
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
-              className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm leading-relaxed whitespace-pre"
+              className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm-loose whitespace-pre"
             />
           )}
         </FieldShell>

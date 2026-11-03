@@ -88,7 +88,7 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
           {event.theme ? (
             <p className="mt-4 text-body-lg break-words text-feature-muted-foreground">
               Tema:{" "}
-              <span className="font-heading text-title-sm leading-snug font-semibold text-feature-highlight">
+              <span className="font-heading text-title-sm font-semibold text-feature-highlight">
                 {event.theme}
               </span>
             </p>
@@ -111,7 +111,7 @@ function HeroBadge({ state }: { state: HeroState }) {
   return (
     <span
       className={cn(
-        "inline-flex min-h-8 items-center gap-2 rounded-full px-3.5 py-1 text-body-sm leading-tight font-bold",
+        "inline-flex min-h-8 items-center gap-2 rounded-full px-3.5 py-1 text-body-sm-tight font-bold",
         highlighted
           ? "bg-highlight text-highlight-foreground"
           : "border border-feature-muted-foreground/40 bg-feature-hover text-feature-foreground",

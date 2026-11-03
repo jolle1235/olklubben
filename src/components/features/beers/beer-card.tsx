@@ -66,7 +66,7 @@ export function BeerCard({ beer, href, imageUrl = null }: BeerCardProps) {
       )}
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="flex items-start justify-between gap-3">
-          <span className="min-w-0 font-heading text-body-lg leading-snug font-semibold break-words hyphens-auto text-primary-ink group-hover/beer:underline group-hover/beer:decoration-highlight group-hover/beer:decoration-2 group-hover/beer:underline-offset-4">
+          <span className="min-w-0 font-heading text-body-lg-tight font-semibold break-words hyphens-auto text-primary-ink group-hover/beer:underline group-hover/beer:decoration-highlight group-hover/beer:decoration-2 group-hover/beer:underline-offset-4">
             {beer.name}
           </span>
           <ClubScore averageStars={beer.averageStars} ratingCount={beer.ratingCount} />

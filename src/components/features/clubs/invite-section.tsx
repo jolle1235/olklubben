@@ -30,10 +30,7 @@ export function InviteSection({
     <section id="invite" aria-labelledby="invite-heading" className={cn("scroll-mt-24", className)}>
       <Card className="border-highlight-border shadow-raised">
         <CardHeader>
-          <h2
-            id="invite-heading"
-            className="font-heading text-title-md leading-tight text-primary-ink"
-          >
+          <h2 id="invite-heading" className="font-heading text-title-md text-primary-ink">
             Inviter dine ølbrødre
           </h2>
           <CardDescription className="text-lead">

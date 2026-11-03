@@ -140,10 +140,7 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
 
       <div className="grid grid-cols-2 gap-3 md:contents">
         <div className="grid min-w-0 gap-1.5">
-          <label
-            htmlFor={sortId}
-            className="text-body-sm leading-tight font-semibold text-foreground"
-          >
+          <label htmlFor={sortId} className="text-body-sm-tight font-semibold text-foreground">
             Sorter
           </label>
           <NativeSelect
@@ -164,10 +161,7 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
           </NativeSelect>
         </div>
         <div className="grid min-w-0 gap-1.5">
-          <label
-            htmlFor={eventId}
-            className="text-body-sm leading-tight font-semibold text-foreground"
-          >
+          <label htmlFor={eventId} className="text-body-sm-tight font-semibold text-foreground">
             Event
           </label>
           <NativeSelect

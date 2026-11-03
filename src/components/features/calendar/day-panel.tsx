@@ -74,7 +74,7 @@ export function CalendarDayPanel({
           ref={headingRef}
           id="calendar-day-heading"
           tabIndex={-1}
-          className="text-title-sm leading-tight font-bold text-primary-ink"
+          className="text-title-sm-tight font-bold text-primary-ink"
         >
           {heading}
         </h3>

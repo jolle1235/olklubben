@@ -129,9 +129,7 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
         {canModerate ? (
           <Card>
             <CardHeader>
-              <h2 className="font-heading text-title-sm leading-snug text-primary-ink">
-                Status og svar
-              </h2>
+              <h2 className="font-heading text-title-sm text-primary-ink">Status og svar</h2>
               <p className="text-body-sm text-muted-foreground">
                 Kun app-admins kan ændre status, svare og markere dubletter.
               </p>

@@ -64,7 +64,7 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
 
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="min-w-0 font-heading text-title-sm leading-snug font-semibold break-words hyphens-auto text-primary-ink">
+          <span className="min-w-0 font-heading text-title-sm font-semibold break-words hyphens-auto text-primary-ink">
             {event.title}
           </span>
           {badge ? (

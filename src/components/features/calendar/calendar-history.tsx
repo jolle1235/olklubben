@@ -43,10 +43,7 @@ export function CalendarHistory({ clubId, events, total, now }: CalendarHistoryP
       className="flex scroll-mt-24 flex-col gap-6"
     >
       <ScrollToHash key={events.length} targetId={CALENDAR_HISTORY_ID} />
-      <h2
-        id={HEADING_ID}
-        className="text-title-md leading-tight font-bold text-primary-ink md:text-title-lg"
-      >
+      <h2 id={HEADING_ID} className="text-title-md font-bold text-primary-ink md:text-title-lg">
         Tidligere ølsmagninger
       </h2>
 

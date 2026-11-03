@@ -37,9 +37,7 @@ export function ErrorState({
       >
         <BeerOffIcon />
       </div>
-      <Heading className="max-w-[26ch] text-title-md leading-tight font-bold text-primary-ink">
-        {title}
-      </Heading>
+      <Heading className="max-w-[26ch] text-title-md font-bold text-primary-ink">{title}</Heading>
       {description ? (
         <div className="mt-2 max-w-[44ch] text-lead text-muted-foreground">{description}</div>
       ) : null}

@@ -34,7 +34,7 @@ export function DeleteClubDialog({ clubId, clubName, counts }: DeleteClubDialogP
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6">
       <div className="min-w-0">
-        <h3 className="font-heading text-body-lg leading-tight font-semibold text-foreground">
+        <h3 className="font-heading text-body-lg-tight font-semibold text-foreground">
           Slet klubben
         </h3>
         <p className="mt-1 text-body-sm text-pretty text-muted-foreground">

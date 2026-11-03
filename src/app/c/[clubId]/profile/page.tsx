@@ -85,9 +85,7 @@ export default async function ProfilePage({
 
         <Card>
           <CardHeader>
-            <h2 className="font-heading text-title-sm leading-snug text-primary-ink">
-              Navn og kælenavn
-            </h2>
+            <h2 className="font-heading text-title-sm text-primary-ink">Navn og kælenavn</h2>
           </CardHeader>
           <CardContent>
             <ProfileForm
@@ -104,7 +102,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-email-heading"
-                className="font-heading text-title-sm leading-snug text-primary-ink"
+                className="font-heading text-title-sm text-primary-ink"
               >
                 Email
               </h2>
@@ -138,7 +136,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-password-heading"
-                className="font-heading text-title-sm leading-snug text-primary-ink"
+                className="font-heading text-title-sm text-primary-ink"
               >
                 {logins.hasPassword ? "Skift password" : "Tilføj password"}
               </h2>
@@ -170,7 +168,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-external-heading"
-                className="font-heading text-title-sm leading-snug text-primary-ink"
+                className="font-heading text-title-sm text-primary-ink"
               >
                 {configured.label}-login
               </h2>
@@ -211,7 +209,7 @@ export default async function ProfilePage({
           <CardHeader>
             <h2
               id="profile-appearance-heading"
-              className="font-heading text-title-sm leading-snug text-primary-ink"
+              className="font-heading text-title-sm text-primary-ink"
             >
               Udseende
             </h2>

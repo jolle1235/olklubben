@@ -33,7 +33,7 @@ export function ClubPickerList({ clubs }: { clubs: ClubPickerItem[] }) {
           >
             <ClubBadge name={club.name} className="m-1" />
             <span className="min-w-0 flex-1">
-              <span className="line-clamp-3 font-display text-body-lg leading-snug font-semibold break-words hyphens-auto text-primary-ink">
+              <span className="line-clamp-3 font-display text-body-lg-tight font-semibold break-words hyphens-auto text-primary-ink">
                 {club.name}
               </span>
               <span className="block text-body-sm text-muted-foreground">

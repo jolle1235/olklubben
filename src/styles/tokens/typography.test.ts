@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { componentTextStyles, textStyles, type TextStyle } from "./typography";
+import { componentTextStyles, textStyles, textUtilities, type TextStyle } from "./typography";
 
 /**
  * Typeskalaens regler (SPEC §13.3), efter Apples "The Details of UI
  * Typography": linjehøjde og tracking hører til størrelsen. Jo større
  * tekst, jo tættere linjer og jo strammere tracking; overskrifter strammes,
- * brødtekst får luft. Ændres en værdi i typography.ts, siger testen til her.
+ * brødtekst får luft. De tætte og luftige varianter ligger på hver sin side
+ * af rollens linjehøjde. Ændres en værdi i typography.ts, siger testen til her.
  */
 
 const rem = (style: TextStyle) => {
@@ -44,6 +45,20 @@ describe("typeskalaen", () => {
       if (style.rem >= 1.25) expect(style.tracking, style.name).toBeLessThan(0);
       else expect(style.tracking, style.name).toBe(0);
     }
+  });
+
+  it("har en tæt variant under og en luftig over rollens egen linjehøjde", () => {
+    for (const [name, style] of Object.entries(textStyles) as [string, TextStyle][]) {
+      if (style.tight !== undefined) expect(style.tight, name).toBeLessThan(style.leading);
+      if (style.loose !== undefined) expect(style.loose, name).toBeGreaterThan(style.leading);
+    }
+  });
+
+  it("giver varianterne rollens størrelse og tracking og kun en anden linjehøjde", () => {
+    const utilities = textUtilities();
+    expect(utilities["body-sm-tight"]).toEqual({ size: "0.95rem", leading: 1.3, tracking: 0 });
+    expect(utilities["body-lg-loose"]).toEqual({ size: "1.125rem", leading: 1.625, tracking: 0 });
+    expect(utilities["display-xl-tight"]).toBeUndefined();
   });
 
   it("har unikke størrelser: to roller med samme størrelse er én rolle", () => {

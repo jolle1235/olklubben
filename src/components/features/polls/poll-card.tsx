@@ -73,7 +73,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
       <div className="grid grid-cols-1 gap-1">
         <p
           className={cn(
-            "text-title-sm leading-snug font-bold break-words hyphens-auto",
+            "text-title-sm font-bold break-words hyphens-auto",
             urgent ? "text-highlight-ink" : "text-foreground",
           )}
         >

@@ -201,7 +201,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
   return (
     <section aria-labelledby={headingId} className={cn("grid gap-3", className)}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id={headingId} className="font-heading text-title-sm leading-snug text-primary-ink">
+        <h2 id={headingId} className="font-heading text-title-sm text-primary-ink">
           Din rating
         </h2>
         <p aria-live="polite" className="text-body-sm font-semibold text-primary-ink">

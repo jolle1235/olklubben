@@ -57,7 +57,7 @@ export function EventListItem({
       <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "block font-heading text-body-lg leading-snug font-semibold break-words hyphens-auto",
+            "block font-heading text-body-lg-tight font-semibold break-words hyphens-auto",
             muted ? "text-foreground" : "text-primary-ink",
           )}
         >

@@ -35,13 +35,13 @@ export function EventChip({ clubId, event, now }: EventChipProps) {
           : "border-l-primary bg-primary-subtle text-foreground hover:bg-primary-subtle-hover",
       )}
     >
-      <span className="line-clamp-3 text-label-lg leading-tight font-semibold break-words hyphens-auto">
+      <span className="line-clamp-3 text-label-lg-tight font-semibold break-words hyphens-auto">
         {event.title}
       </span>
       <span className="sr-only">, {formatLongDate(event.startsAt, now)} kl. </span>
       <span
         className={cn(
-          "mt-0.5 block text-label-md leading-tight tabular-nums",
+          "mt-0.5 block text-label-md-tight tabular-nums",
           past ? "text-muted-foreground" : "text-primary-ink",
         )}
       >

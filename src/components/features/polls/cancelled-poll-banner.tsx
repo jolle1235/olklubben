@@ -23,10 +23,7 @@ export function CancelledPollBanner({ view, now }: CancelledPollBannerProps) {
     >
       <BanIcon aria-hidden className="mt-1 size-5 shrink-0 text-muted-foreground" />
       <div className="grid min-w-0 grid-cols-1 gap-1">
-        <h2
-          id="poll-cancelled-heading"
-          className="text-title-sm leading-tight font-bold text-foreground"
-        >
+        <h2 id="poll-cancelled-heading" className="text-title-sm-tight font-bold text-foreground">
           Afstemningen er annulleret
         </h2>
         <p className="text-lead break-words text-muted-foreground">
