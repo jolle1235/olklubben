@@ -13,12 +13,11 @@
  * bg-primary, shadow-raised …). Kontrasten testes i contrast.test.ts.
  * tokens.css slår også Tailwinds standardpalet fra: kun rollerne findes som farver.
  *
- * Lyst og mørkt tema: data-theme på <html> (src/lib/theme-prefs.ts), sat før
- * første maling. Komponenter bruger ikke `dark:`; temaet skifter, fordi
- * skalaerne under rollerne skifter. Varianten nedenfor findes kun, så
- * shadcn-komponenternes dark:-klasser følger temaet.
+ * Lyst og mørkt tema: tokens.css skifter skalaerne under rollerne, når
+ * data-theme="dark" er valgt på Profil, eller når valget er System og
+ * enheden er i mørk tilstand (src/lib/theme-prefs.ts). Ingen komponent
+ * bruger Tailwinds dark-variant.
  */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   /* Typografi: next/font sætter --font-zilla-slab og --font-source-sans på <html>. */

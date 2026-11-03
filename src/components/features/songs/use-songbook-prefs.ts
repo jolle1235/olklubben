@@ -1,11 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-
+import { createHtmlPref, useHtmlPref } from "@/hooks/use-html-pref";
 import {
   clampFontStep,
-  DEFAULT_SONG_FONT_STEP,
-  DEFAULT_SONG_VIEW,
   parseFontStep,
   parseSongView,
   SONG_FONT_STEP_KEY,
@@ -16,49 +13,35 @@ import {
 } from "@/lib/songbook-prefs";
 
 /**
- * The reader's font step and view (src/lib/songbook-prefs.ts), read from and
- * written to the <html> data attributes the head bootstrap set before the
- * first paint. useSyncExternalStore: the server snapshot (and the hydration
- * render) is the default, so the controls never mismatch; the text itself is
- * sized by CSS from the attribute, so it never jumps. A write also goes to
- * localStorage (try/catch: private mode keeps it for this page only).
+ * The reader's font step and view (src/lib/songbook-prefs.ts) as per-device
+ * settings on <html>, which the head bootstrap set before the first paint.
+ * The text itself is sized by CSS from the attribute, so it never jumps; the
+ * controls get null until hydrated.
  */
+const fontStep = createHtmlPref({
+  attribute: SONG_SIZE_ATTRIBUTE,
+  storageKey: SONG_FONT_STEP_KEY,
+  parse: parseFontStep,
+});
 
-const listeners = new Set<() => void>();
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function write(attribute: string, key: string, value: string) {
-  document.documentElement.setAttribute(attribute, value);
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Storage blocked: the attribute still applies until the next hard load.
-  }
-  for (const listener of listeners) listener();
-}
-
-const readFontStep = () =>
-  parseFontStep(document.documentElement.getAttribute(SONG_SIZE_ATTRIBUTE));
-const readView = () => parseSongView(document.documentElement.getAttribute(SONG_VIEW_ATTRIBUTE));
+const view = createHtmlPref({
+  attribute: SONG_VIEW_ATTRIBUTE,
+  storageKey: SONG_VIEW_KEY,
+  parse: parseSongView,
+});
 
 export function setSongFontStep(step: number) {
-  write(SONG_SIZE_ATTRIBUTE, SONG_FONT_STEP_KEY, String(clampFontStep(step)));
+  fontStep.set(clampFontStep(step));
 }
 
-export function setSongView(view: SongView) {
-  write(SONG_VIEW_ATTRIBUTE, SONG_VIEW_KEY, view);
+export function setSongView(next: SongView) {
+  view.set(next);
 }
 
-export function useSongFontStep(): number {
-  return useSyncExternalStore(subscribe, readFontStep, () => DEFAULT_SONG_FONT_STEP);
+export function useSongFontStep(): number | null {
+  return useHtmlPref(fontStep);
 }
 
-export function useSongView(): SongView {
-  return useSyncExternalStore(subscribe, readView, () => DEFAULT_SONG_VIEW);
+export function useSongView(): SongView | null {
+  return useHtmlPref(view);
 }

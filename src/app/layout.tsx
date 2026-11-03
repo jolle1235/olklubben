@@ -3,10 +3,11 @@ import { Suspense } from "react";
 
 import { fontVariables } from "@/components/brand/fonts";
 import { FlashToast } from "@/components/features/flash-toast";
-import { SongbookPrefsScript } from "@/components/features/songs/songbook-prefs-script";
+import { HeadScript } from "@/components/features/head-script";
 import { ThemePrefsScript } from "@/components/features/theme/theme-prefs-script";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SONGBOOK_PREFS_BOOTSTRAP } from "@/lib/songbook-prefs";
 import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
 import "./globals.css";
 
@@ -39,14 +40,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // suppressHydrationWarning: the bootstraps below set data-theme,
-    // data-theme-pref, data-song-size and data-song-view on <html> before
-    // React hydrates. It covers <html>'s own attributes only.
+    // data-song-size and data-song-view on <html> before React hydrates. It
+    // covers <html>'s own attributes only.
     <html lang="da" className={`${fontVariables} h-full`} suppressHydrationWarning>
       <head>
         {/* The colour theme, before the first paint (no flash of the wrong theme). */}
         <ThemePrefsScript />
         {/* The songbook reader's font size and view, before the first paint. */}
-        <SongbookPrefsScript />
+        <HeadScript code={SONGBOOK_PREFS_BOOTSTRAP} />
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>

@@ -1,11 +1,9 @@
 "use client";
 
-import { SONGBOOK_PREFS_BOOTSTRAP } from "@/lib/songbook-prefs";
-
 /**
- * The songbook reader's font size and view on <html> before the first paint
- * (src/lib/songbook-prefs.ts). A constant string: the songbook's only
- * dangerouslySetInnerHTML.
+ * A constant inline script in the root layout's <head> that runs before the
+ * first paint: the per-device settings on <html> (the colour theme, §13.2,
+ * and the song reader, D-124). `code` must be a constant string.
  *
  * In the server HTML it is a normal inline script, so the browser runs it
  * while parsing <head>. React never runs a script it creates itself, and it
@@ -15,13 +13,13 @@ import { SONGBOOK_PREFS_BOOTSTRAP } from "@/lib/songbook-prefs";
  * (suppressHydrationWarning covers the type attribute only), and a client
  * render creates an inert element without the warning.
  */
-export function SongbookPrefsScript() {
+export function HeadScript({ code }: { code: string }) {
   const isServer = typeof window === "undefined";
   return (
     <script
       type={isServer ? undefined : "text/plain"}
       suppressHydrationWarning
-      dangerouslySetInnerHTML={{ __html: SONGBOOK_PREFS_BOOTSTRAP }}
+      dangerouslySetInnerHTML={{ __html: code }}
     />
   );
 }

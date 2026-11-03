@@ -51,7 +51,7 @@ export function UserAvatar({
 }: UserAvatarProps) {
   return (
     <Avatar
-      className={cn(SIZES[size], "after:hidden", porthole && "porthole", className)}
+      className={cn(SIZES[size], porthole && "porthole", className)}
       role={decorative ? undefined : "img"}
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative ? true : undefined}

@@ -389,6 +389,35 @@ const HEADER = `/*
  * \`npm run tokens\`. SPEC §13.2, §13.3.
  */`;
 
+/**
+ * Mørkt tema slår til på to måder (SPEC §13.2): valgt på Profil
+ * (data-theme="dark"), eller System (ingen data-theme) på en enhed i mørk
+ * tilstand. Begge selektorer har samme specificitet som :root, så
+ * rækkefølgen i filen afgør, og høj kontrast til sidst vinder.
+ */
+const DARK_CHOSEN = '[data-theme="dark"]';
+const DARK_SYSTEM = ':root:where(:not([data-theme="light"]))';
+const DARK_SYSTEM_QUERY = "(prefers-color-scheme: dark)";
+
+function rule(selector: string, body: string, indent = ""): string {
+  const inner = body
+    .split("\n")
+    .map((line) => (line ? `${indent}${line}` : line))
+    .join("\n");
+  return `${indent}${selector} {\n${inner}\n${indent}}`;
+}
+
+/** Samme erklæringer for begge veje til mørkt tema; `media` er en evt. ydre betingelse. */
+function darkRules(body: string, media?: string): string {
+  const system = media ? `${media} and ${DARK_SYSTEM_QUERY}` : DARK_SYSTEM_QUERY;
+  const chosen = rule(DARK_CHOSEN, body, media ? "  " : "");
+  return `${media ? `@media ${media} {\n${chosen}\n}` : chosen}
+
+@media ${system} {
+${rule(DARK_SYSTEM, body, "  ")}
+}`;
+}
+
 /** Høj kontrast: de ændrede roller pr. tema, i en media query til sidst i tokens.css. */
 function highContrastCss(definition: ThemeDefinition, scales: Scales): string {
   const names = Object.keys(definition.highContrast ?? {});
@@ -400,20 +429,21 @@ function highContrastCss(definition: ThemeDefinition, scales: Scales): string {
       name,
       cssValue(valueFor(tokens[name]!, theme), theme, contrast, scales),
     ]);
+  const declarations = (entries: [string, string][]) =>
+    entries.map(([name, value]) => `  --${name}: ${value};`).join("\n");
   const light = values("light");
   const lightByName = new Map(light);
   const dark = values("dark").filter(([name, value]) => lightByName.get(name) !== value);
-  const block = (selector: string, entries: [string, string][]) =>
-    `  ${selector} {\n${entries.map(([name, value]) => `    --${name}: ${value};`).join("\n")}\n  }`;
+  const media = "(prefers-contrast: more)";
   return `
 /*
  * Høj kontrast (prefers-contrast: more): de roller, der står i
  * \`highContrast\` i themes.ts. Står sidst, så de vinder over begge temaer.
  */
-@media (prefers-contrast: more) {
-${block(":root", light)}${dark.length > 0 ? `\n\n${block('[data-theme="dark"]', dark)}` : ""}
+@media ${media} {
+${rule(":root", declarations(light), "  ")}
 }
-`;
+${dark.length > 0 ? `\n${darkRules(declarations(dark), media)}\n` : ""}`;
 }
 
 /** tokens.css (uformateret; build-tokens.ts kører den gennem Prettier). */
@@ -472,8 +502,8 @@ ${declarations(light.roles)}
 ${declarations(light.shadows)}
 }
 
-[data-theme="dark"] {
-  color-scheme: dark;
+/* Mørkt tema: valgt på Profil, eller System på en enhed i mørk tilstand */
+${darkRules(`  color-scheme: dark;
 
   /* Lag 1 · primitiver */
 ${declarations(dark.primitives)}
@@ -482,8 +512,7 @@ ${declarations(dark.primitives)}
 ${declarations([
   ...dark.roles.filter(([name, value]) => lightRoles.get(name) !== value),
   ...dark.shadows.filter(([name, value]) => lightShadows.get(name) !== value),
-])}
-}
+])}`)}
 ${highContrastCss(definition, scales)}`;
 }
 

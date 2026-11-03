@@ -2,36 +2,22 @@
 
 import { useEffect } from "react";
 
-import {
-  parseThemePref,
-  syncBrowserThemeColor,
-  THEME_BOOTSTRAP,
-  THEME_PREF_ATTRIBUTE,
-} from "@/lib/theme-prefs";
+import { HeadScript } from "@/components/features/head-script";
+import { applyThemePref, THEME_BOOTSTRAP, THEME_DOM } from "@/lib/theme-prefs";
+
+import { themePref } from "./use-theme-pref";
 
 /**
  * The colour theme on <html> before the first paint (src/lib/theme-prefs.ts),
- * so a page never flashes in the wrong theme. A constant string, rendered
- * like SongbookPrefsScript: a normal inline script in the server HTML, an
- * inert data block on the client (F-071).
+ * so a page never flashes in the wrong theme.
  *
- * After hydration it puts the theme-color override first in <head> again:
- * React hoists the layout's own theme-color metas in front of it.
+ * After hydration it applies the choice once more: React hoists the layout's
+ * own theme-color metas in front of the override (F-090).
  */
 export function ThemePrefsScript() {
-  const isServer = typeof window === "undefined";
-
   useEffect(() => {
-    syncBrowserThemeColor(
-      parseThemePref(document.documentElement.getAttribute(THEME_PREF_ATTRIBUTE)),
-    );
+    applyThemePref(themePref.read(), THEME_DOM);
   }, []);
 
-  return (
-    <script
-      type={isServer ? undefined : "text/plain"}
-      suppressHydrationWarning
-      dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }}
-    />
-  );
+  return <HeadScript code={THEME_BOOTSTRAP} />;
 }

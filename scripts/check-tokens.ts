@@ -14,8 +14,7 @@ import { constants, palette } from "../src/styles/tokens/palette";
  *     var(--cream), on-olive …)
  *   * en solid familiefarve som tekst (text-primary …): farvet tekst er
  *     {rolle}-ink, som er kontrasttestet på lyse flader i begge temaer
- *   * `dark:` i app- og feature-kode (temaet skifter via tokens; kun shadcn's
- *     primitiver i components/ui har dem)
+ *   * `dark:` (temaet skifter via tokens.css, også for System)
  *   * Tailwinds egne skriftstørrelser (text-lg …) og vilkårlige størrelser,
  *     linjehøjder og tracking (text-[0.95rem], leading-[1.1], tracking-[0.1em]):
  *     brug en tekst-rolle (text-body-sm …) og `caps` til versaler
@@ -86,8 +85,6 @@ type Rule = {
   colorValue?: boolean;
   /** Gælder ikke ALLOWED_TYPE_FILES. */
   typeValue?: boolean;
-  /** Kun TS/TSX uden for components/ui (shadcn's primitiver). */
-  appCodeOnly?: boolean;
 };
 
 const RULES: Rule[] = [
@@ -112,7 +109,7 @@ const RULES: Rule[] = [
     name: "solid familiefarve som tekst (brug {rolle}-ink)",
     pattern: /(?<![\w-])text-(?:primary|destructive|info|success)(?![\w-])/g,
   },
-  { name: "dark: (temaet skifter via tokens)", pattern: /(?<![\w-])dark:/g, appCodeOnly: true },
+  { name: "dark: (temaet skifter via tokens)", pattern: /(?<![\w-])dark:/g },
   {
     name: "Tailwind-skriftstørrelse (brug en tekst-rolle fra typography.ts)",
     pattern: /(?<![\w-])text-(?:xs|sm|base|lg|xl|[2-9]xl)(?![\w-])/g,
@@ -149,9 +146,6 @@ for (const file of SCAN.flatMap((dir) => files(path.join(ROOT, dir)))) {
   for (const rule of RULES) {
     if (rule.colorValue && ALLOWED_COLOR_FILES.includes(rel)) continue;
     if (rule.typeValue && ALLOWED_TYPE_FILES.includes(rel)) continue;
-    if (rule.appCodeOnly && (rel.startsWith("src/components/ui/") || rel.endsWith(".css"))) {
-      continue;
-    }
     lines.forEach((line, index) => {
       for (const match of line.matchAll(rule.pattern)) {
         problems.push(`${rel}:${index + 1}  ${rule.name}: ${match[0]}`);

@@ -3,13 +3,15 @@ import { describe, expect, it } from "vitest";
 import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
 
 import {
+  applyThemePref,
   parseThemePref,
   resolveTheme,
   THEME_ATTRIBUTE,
   THEME_BOOTSTRAP,
   THEME_COLOR_OVERRIDE_ATTRIBUTE,
-  THEME_PREF_ATTRIBUTE,
+  THEME_DOM,
   THEME_PREF_KEY,
+  type ThemePref,
 } from "./theme-prefs";
 
 describe("parseThemePref", () => {
@@ -27,7 +29,7 @@ describe("parseThemePref", () => {
 });
 
 describe("resolveTheme", () => {
-  it("follows the system only for system", () => {
+  it("follows the device only for system", () => {
     expect(resolveTheme("system", true)).toBe("dark");
     expect(resolveTheme("system", false)).toBe("light");
     expect(resolveTheme("light", true)).toBe("light");
@@ -35,114 +37,108 @@ describe("resolveTheme", () => {
   });
 });
 
-/** Runs THEME_BOOTSTRAP against a minimal fake browser. */
-function runBootstrap(options: {
-  stored?: string | null;
-  systemDark?: boolean;
-  storageThrows?: boolean;
-}) {
+/** A minimal fake page: <html>'s attributes and the override metas in <head>. */
+function fakePage() {
   const attributes = new Map<string, string>();
-  /** The override metas the script put in <head> (first = what the browser uses). */
+  /** The override metas in <head> (first = what the browser uses). */
   const head: Map<string, string>[] = [];
-  const schemeListeners: (() => void)[] = [];
-  const query = { matches: options.systemDark ?? false };
-  const fakeWindow = {
-    matchMedia: () => ({
-      get matches() {
-        return query.matches;
-      },
-      addEventListener: (_: string, listener: () => void) => schemeListeners.push(listener),
-    }),
-    addEventListener: () => {},
-  };
-  const fakeDocument = {
+  const element = (meta: Map<string, string>) => ({
+    meta,
+    setAttribute: (name: string, value: string) => meta.set(name, value),
+    remove: () => {
+      const index = head.indexOf(meta);
+      if (index >= 0) head.splice(index, 1);
+    },
+  });
+  const document = {
     documentElement: {
       getAttribute: (name: string) => attributes.get(name) ?? null,
       setAttribute: (name: string, value: string) => attributes.set(name, value),
+      removeAttribute: (name: string) => attributes.delete(name),
     },
-    createElement: () => {
-      const meta = new Map<string, string>();
-      return {
-        meta,
-        setAttribute: (name: string, value: string) => meta.set(name, value),
-        remove: () => head.splice(head.indexOf(meta), 1),
-      };
+    createElement: () => element(new Map()),
+    head: {
+      prepend: ({ meta }: { meta: Map<string, string> }) => {
+        const index = head.indexOf(meta);
+        if (index >= 0) head.splice(index, 1);
+        head.unshift(meta);
+      },
     },
-    head: { prepend: (element: { meta: Map<string, string> }) => head.unshift(element.meta) },
     querySelector: (selector: string) => {
       const meta = head.find(
         (m) =>
           selector === `meta[${THEME_COLOR_OVERRIDE_ATTRIBUTE}]` &&
           m.has(THEME_COLOR_OVERRIDE_ATTRIBUTE),
       );
-      return meta
-        ? {
-            setAttribute: (name: string, value: string) => meta.set(name, value),
-            remove: () => head.splice(head.indexOf(meta), 1),
-          }
-        : null;
+      return meta ? element(meta) : null;
     },
   };
-  const fakeStorage = {
+  return {
+    document,
+    theme: () => attributes.get(THEME_ATTRIBUTE),
+    overrideColors: () => head.map((meta) => meta.get("content")),
+    /** applyThemePref against this page (it reads the global document). */
+    apply: (pref: ThemePref) => {
+      const previous = globalThis.document;
+      globalThis.document = document as unknown as Document;
+      try {
+        applyThemePref(pref, THEME_DOM);
+      } finally {
+        globalThis.document = previous;
+      }
+    },
+  };
+}
+
+describe("applyThemePref", () => {
+  it("sets data-theme and its own theme-color for an explicit choice", () => {
+    const page = fakePage();
+    page.apply("dark");
+    expect(page.theme()).toBe("dark");
+    expect(page.overrideColors()).toEqual([BROWSER_THEME_COLOR.dark]);
+
+    page.apply("light");
+    expect(page.theme()).toBe("light");
+    expect(page.overrideColors()).toEqual([BROWSER_THEME_COLOR.light]);
+  });
+
+  it("removes both for system, so the CSS and the layout's metas follow the device", () => {
+    const page = fakePage();
+    page.apply("dark");
+    page.apply("system");
+    expect(page.theme()).toBeUndefined();
+    expect(page.overrideColors()).toEqual([]);
+  });
+});
+
+/** Runs THEME_BOOTSTRAP (the inlined source) against a fake page and storage. */
+function runBootstrap(options: { stored?: string | null; storageThrows?: boolean }) {
+  const page = fakePage();
+  const localStorage = {
     getItem: (key: string) => {
       if (options.storageThrows) throw new Error("blocked");
       return key === THEME_PREF_KEY ? (options.stored ?? null) : null;
     },
   };
-  new Function("window", "document", "localStorage", THEME_BOOTSTRAP)(
-    fakeWindow,
-    fakeDocument,
-    fakeStorage,
-  );
-  return {
-    theme: () => attributes.get(THEME_ATTRIBUTE),
-    pref: () => attributes.get(THEME_PREF_ATTRIBUTE),
-    setPref: (pref: string) => attributes.set(THEME_PREF_ATTRIBUTE, pref),
-    overrideColors: () => head.map((meta) => meta.get("content")),
-    setSystemDark: (dark: boolean) => {
-      query.matches = dark;
-      for (const listener of schemeListeners) listener();
-    },
-  };
+  new Function("document", "localStorage", THEME_BOOTSTRAP)(page.document, localStorage);
+  return page;
 }
 
 describe("THEME_BOOTSTRAP", () => {
-  it("follows the system when nothing is stored", () => {
-    expect(runBootstrap({ systemDark: true }).theme()).toBe("dark");
-    const light = runBootstrap({ systemDark: false });
-    expect(light.theme()).toBe("light");
-    expect(light.pref()).toBe("system");
+  it("leaves the page to the device when nothing is stored", () => {
+    const page = runBootstrap({});
+    expect(page.theme()).toBeUndefined();
+    expect(page.overrideColors()).toEqual([]);
   });
 
-  it("uses a stored choice over the system", () => {
-    const page = runBootstrap({ stored: "dark", systemDark: false });
+  it("applies a stored choice", () => {
+    const page = runBootstrap({ stored: "dark" });
     expect(page.theme()).toBe("dark");
-    expect(page.pref()).toBe("dark");
+    expect(page.overrideColors()).toEqual([BROWSER_THEME_COLOR.dark]);
   });
 
   it("ignores invalid values and blocked storage", () => {
-    expect(runBootstrap({ stored: "purple", systemDark: true }).pref()).toBe("system");
-    expect(runBootstrap({ storageThrows: true, systemDark: true }).theme()).toBe("dark");
-  });
-
-  it("follows a system change only while the choice is system", () => {
-    const page = runBootstrap({ systemDark: false });
-    page.setSystemDark(true);
-    expect(page.theme()).toBe("dark");
-
-    page.setPref("light");
-    page.setSystemDark(false);
-    page.setSystemDark(true);
-    expect(page.theme()).toBe("light");
-  });
-
-  it("adds its own theme-color only for an explicit choice", () => {
-    expect(runBootstrap({ systemDark: true }).overrideColors()).toEqual([]);
-    const dark = runBootstrap({ stored: "dark", systemDark: false });
-    expect(dark.overrideColors()).toEqual([BROWSER_THEME_COLOR.dark]);
-
-    dark.setPref("system");
-    dark.setSystemDark(false);
-    expect(dark.overrideColors()).toEqual([]);
+    expect(runBootstrap({ stored: "purple" }).theme()).toBeUndefined();
+    expect(runBootstrap({ storageThrows: true }).theme()).toBeUndefined();
   });
 });

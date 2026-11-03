@@ -3,7 +3,6 @@
 import { AArrowDownIcon, AArrowUpIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useHydrated } from "@/hooks/use-hydrated";
 import { MAX_SONG_FONT_STEP } from "@/lib/songbook-prefs";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +22,8 @@ export type SongFontStepperProps = {
  * remembered per device. Disabled at the ends and until hydrated (TG-020).
  */
 export function SongFontStepper({ variant, className }: SongFontStepperProps) {
+  // Null until hydrated (TG-020).
   const step = useSongFontStep();
-  const hydrated = useHydrated();
   const buttonClass =
     variant === "topbar"
       ? "text-frame-foreground hover:bg-frame-hover hover:text-frame-foreground"
@@ -37,8 +36,8 @@ export function SongFontStepper({ variant, className }: SongFontStepperProps) {
         size="icon"
         variant={variant === "topbar" ? "ghost" : "outline"}
         aria-label="Mindre skrift"
-        disabled={!hydrated || step <= 0}
-        onClick={() => setSongFontStep(step - 1)}
+        disabled={step === null || step <= 0}
+        onClick={() => step !== null && setSongFontStep(step - 1)}
         className={buttonClass}
       >
         <AArrowDownIcon aria-hidden className="size-6" />
@@ -48,8 +47,8 @@ export function SongFontStepper({ variant, className }: SongFontStepperProps) {
         size="icon"
         variant={variant === "topbar" ? "ghost" : "outline"}
         aria-label="Større skrift"
-        disabled={!hydrated || step >= MAX_SONG_FONT_STEP}
-        onClick={() => setSongFontStep(step + 1)}
+        disabled={step === null || step >= MAX_SONG_FONT_STEP}
+        onClick={() => step !== null && setSongFontStep(step + 1)}
         className={buttonClass}
       >
         <AArrowUpIcon aria-hidden className="size-6" />

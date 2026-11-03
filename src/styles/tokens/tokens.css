@@ -405,6 +405,7 @@
   --elevation-press: inset 0 -2px 0 color-mix(in oklab, var(--black) 20%, transparent);
 }
 
+/* Mørkt tema: valgt på Profil, eller System på en enhed i mørk tilstand */
 [data-theme="dark"] {
   color-scheme: dark;
 
@@ -509,6 +510,112 @@
   --shadow-color: var(--black);
 }
 
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+
+    /* Lag 1 · primitiver */
+    --olive-1: #0f100a;
+    --olive-2: #171811;
+    --olive-3: #202216;
+    --olive-4: #27291b;
+    --olive-5: #2f3121;
+    --olive-6: #393b29;
+    --olive-7: #484b36;
+    --olive-8: #686c51;
+    --olive-9: #a4a985;
+    --olive-10: #b0b691;
+    --olive-11: #bdc1a7;
+    --olive-12: #ebece1;
+    --harbor-1: #0c1013;
+    --harbor-2: #13181c;
+    --harbor-3: #192228;
+    --harbor-4: #1f2931;
+    --harbor-5: #25313a;
+    --harbor-6: #2e3b45;
+    --harbor-7: #3c4b57;
+    --harbor-8: #586c7b;
+    --harbor-9: #4e6679;
+    --harbor-10: #597285;
+    --harbor-11: #aec0cf;
+    --harbor-12: #e4ecf3;
+    --amber-1: #170d01;
+    --amber-2: #211401;
+    --amber-3: #301c00;
+    --amber-4: #3b2200;
+    --amber-5: #452800;
+    --amber-6: #513200;
+    --amber-7: #664000;
+    --amber-8: #8d5e00;
+    --amber-9: #d99a1e;
+    --amber-10: #f2c46a;
+    --amber-11: #e2b670;
+    --amber-12: #fce8cb;
+    --sand-1: #110f0b;
+    --sand-2: #1a1711;
+    --sand-3: #242017;
+    --sand-4: #2c271c;
+    --sand-5: #342e22;
+    --sand-6: #3f382b;
+    --sand-7: #504838;
+    --sand-8: #726853;
+    --sand-9: #9c8f74;
+    --sand-10: #a89b80;
+    --sand-11: #c6bda9;
+    --sand-12: #efebe2;
+    --red-1: #1e0806;
+    --red-2: #2a0d09;
+    --red-3: #3d0e0a;
+    --red-4: #4a100b;
+    --red-5: #56140f;
+    --red-6: #661c15;
+    --red-7: #7e271f;
+    --red-8: #ac4136;
+    --red-9: #b3261e;
+    --red-10: #c1352b;
+    --red-11: #ff9e8f;
+    --red-12: #ffdfd7;
+    --rust-1: #190b09;
+    --rust-2: #24120e;
+    --rust-3: #331712;
+    --rust-4: #3f1c16;
+    --rust-5: #49221b;
+    --rust-6: #572b23;
+    --rust-7: #6c382f;
+    --rust-8: #955449;
+    --rust-9: #8a3b2e;
+    --rust-10: #974739;
+    --rust-11: #ebac9f;
+    --rust-12: #ffe4de;
+    --brown-1: #160d06;
+    --brown-2: #20150a;
+    --brown-3: #2d1c0b;
+    --brown-4: #37220d;
+    --brown-5: #412911;
+    --brown-6: #4d3317;
+    --brown-7: #614122;
+    --brown-8: #876039;
+    --brown-9: #7a4a12;
+    --brown-10: #865520;
+    --brown-11: #dcb692;
+    --brown-12: #f9e8d8;
+
+    /* Roller, der peger på et andet trin i mørkt tema */
+    --background: var(--sand-1);
+    --card: var(--sand-2);
+    --popover: var(--sand-3);
+    --ring: var(--amber-9);
+    --scrim: color-mix(in oklab, var(--black) 65%, transparent);
+    --frame: var(--olive-3);
+    --feature: var(--harbor-4);
+    --primary-foreground: var(--fixed-dark);
+    --success-foreground: var(--fixed-dark);
+    --avatar-1: var(--olive-7);
+    --avatar-5: var(--sand-8);
+    --shadow-color: var(--black);
+  }
+}
+
 /*
  * Høj kontrast (prefers-contrast: more): de roller, der står i
  * `highContrast` i themes.ts. Står sidst, så de vinder over begge temaer.
@@ -528,8 +635,16 @@
     --success-border: var(--olive-8);
     --destructive-border: var(--red-8);
   }
+}
 
+@media (prefers-contrast: more) {
   [data-theme="dark"] {
+    --scrim: color-mix(in oklab, var(--black) 80%, transparent);
+  }
+}
+
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
     --scrim: color-mix(in oklab, var(--black) 80%, transparent);
   }
 }
