@@ -669,16 +669,14 @@
     --success-border: var(--olive-8);
     --destructive-border: var(--red-8);
   }
-}
 
-@media (prefers-contrast: more) {
   [data-theme="dark"] {
     --scrim: color-mix(in oklab, var(--black) 80%, transparent);
   }
-}
 
-@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) {
-    --scrim: color-mix(in oklab, var(--black) 80%, transparent);
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      --scrim: color-mix(in oklab, var(--black) 80%, transparent);
+    }
   }
 }

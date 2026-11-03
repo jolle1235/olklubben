@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { HeadScript } from "@/components/features/head-script";
-import { applyThemePref, THEME_BOOTSTRAP, THEME_DOM } from "@/lib/theme-prefs";
+import { applyThemePref, THEME_BOOTSTRAP } from "@/lib/theme-prefs";
 
 import { themePref } from "./use-theme-pref";
 
@@ -16,7 +16,7 @@ import { themePref } from "./use-theme-pref";
  */
 export function ThemePrefsScript() {
   useEffect(() => {
-    applyThemePref(themePref.read(), THEME_DOM);
+    applyThemePref(themePref.read());
   }, []);
 
   return <HeadScript code={THEME_BOOTSTRAP} />;

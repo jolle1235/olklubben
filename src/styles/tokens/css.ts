@@ -1,16 +1,10 @@
 import { formatHex } from "culori";
 
 import { constants, palette, STEPS, type Hue } from "./palette";
-import {
-  createResolver,
-  tokensOf,
-  valueFor,
-  withHighContrast,
-  type Resolver,
-  type ThemeDefinition,
-} from "./resolve";
+import { createResolver, withHighContrast, type Resolver, type ThemeDefinition } from "./resolve";
 import type { Scales, Theme } from "./scales";
-import type { TextStyle } from "./typography";
+import { DARK_SCHEME_QUERY, THEME_ATTRIBUTE } from "./theme-attribute";
+import type { capsTracking, textUtilities } from "./typography";
 
 /**
  * Skriver de genererede filer (SPEC §13.2, §13.3): tokens.css ud fra
@@ -18,16 +12,10 @@ import type { TextStyle } from "./typography";
  * kilderne; `npm run tokens` skriver filerne.
  */
 
-export type Typography = {
+type Typography = {
   /** Hver `text-*`-utility (roller og deres -tight/-loose-varianter). */
-  textStyles: Record<string, Omit<TextStyle, "tight" | "loose">>;
-  capsTracking: Record<string, number>;
-};
-
-export type TokenSources = {
-  definition: ThemeDefinition;
-  scales: Scales;
-  typography: Typography;
+  textStyles: ReturnType<typeof textUtilities>;
+  capsTracking: typeof capsTracking;
 };
 
 type Declaration = [name: string, value: string];
@@ -45,9 +33,8 @@ const HEADER = `/*
  * tilstand. Begge selektorer har samme specificitet som :root, så
  * rækkefølgen i filen afgør, og høj kontrast til sidst vinder.
  */
-const DARK_CHOSEN = '[data-theme="dark"]';
-const DARK_SYSTEM = ':root:where(:not([data-theme="light"]))';
-const DARK_SYSTEM_QUERY = "(prefers-color-scheme: dark)";
+const DARK_CHOSEN = `[${THEME_ATTRIBUTE}="dark"]`;
+const DARK_SYSTEM = `:root:where(:not([${THEME_ATTRIBUTE}="light"]))`;
 const HIGH_CONTRAST_QUERY = "(prefers-contrast: more)";
 
 const em = (value: number) => `${value}em`;
@@ -62,22 +49,23 @@ function changed(dark: readonly Declaration[], light: readonly Declaration[]): D
   return dark.filter(([name, value]) => lightByName.get(name) !== value);
 }
 
-function rule(selector: string, body: string, indent = ""): string {
-  const inner = body
+function indent(text: string): string {
+  return text
     .split("\n")
-    .map((line) => (line ? `${indent}${line}` : line))
+    .map((line) => (line ? `  ${line}` : line))
     .join("\n");
-  return `${indent}${selector} {\n${inner}\n${indent}}`;
 }
 
-/** Samme erklæringer for begge veje til mørkt tema; `media` er en evt. ydre betingelse. */
-function darkRules(body: string, media?: string): string {
-  const system = media ? `${media} and ${DARK_SYSTEM_QUERY}` : DARK_SYSTEM_QUERY;
-  const chosen = rule(DARK_CHOSEN, body, media ? "  " : "");
-  return `${media ? `@media ${media} {\n${chosen}\n}` : chosen}
+function rule(selector: string, body: string): string {
+  return `${selector} {\n${body}\n}`;
+}
 
-@media ${system} {
-${rule(DARK_SYSTEM, body, "  ")}
+/** Samme erklæringer for begge veje til mørkt tema. */
+function darkRules(body: string): string {
+  return `${rule(DARK_CHOSEN, body)}
+
+@media ${DARK_SCHEME_QUERY} {
+${indent(rule(DARK_SYSTEM, body))}
 }`;
 }
 
@@ -92,15 +80,9 @@ function primitives(scales: Scales, theme: Theme): Declaration[] {
   ];
 }
 
-/** Rollerne (colors + vars) i et tema, evt. kun de nævnte. */
-function roles(
-  definition: ThemeDefinition,
-  resolver: Resolver,
-  theme: Theme,
-  names: readonly string[] = Object.keys(tokensOf(definition)),
-): Declaration[] {
-  const tokens = tokensOf(definition);
-  return names.map((name) => [name, resolver.css(valueFor(tokens[name]!, theme), theme)]);
+/** Rollerne med de navne i et tema. */
+function roles(resolver: Resolver, theme: Theme, names: readonly string[]): Declaration[] {
+  return names.map((name) => [name, resolver.roleCss(name, theme)]);
 }
 
 function shadows(definition: ThemeDefinition, resolver: Resolver, theme: Theme): Declaration[] {
@@ -138,25 +120,30 @@ function capsUtilities(tracking: Typography["capsTracking"]): string {
 function highContrastCss(definition: ThemeDefinition, scales: Scales): string {
   const names = Object.keys(definition.highContrast ?? {});
   if (names.length === 0) return "";
-  const contrast = withHighContrast(definition);
-  const resolver = createResolver(contrast, scales);
-  const light = roles(contrast, resolver, "light", names);
-  const dark = changed(roles(contrast, resolver, "dark", names), light);
+  const resolver = createResolver(withHighContrast(definition), scales);
+  const light = roles(resolver, "light", names);
+  const dark = changed(roles(resolver, "dark", names), light);
+  const body = dark.length > 0 ? `\n\n${darkRules(declarations(dark))}` : "";
   return `
 /*
  * Høj kontrast (prefers-contrast: more): de roller, der står i
  * \`highContrast\` i themes.ts. Står sidst, så de vinder over begge temaer.
  */
 @media ${HIGH_CONTRAST_QUERY} {
-${rule(":root", declarations(light), "  ")}
+${indent(rule(":root", declarations(light)) + body)}
 }
-${dark.length > 0 ? `\n${darkRules(declarations(dark), HIGH_CONTRAST_QUERY)}\n` : ""}`;
+`;
 }
 
 /** tokens.css, som den skrives (filen står i .prettierignore). */
-export function buildCss({ definition, scales, typography }: TokenSources): string {
+export function buildCss(
+  definition: ThemeDefinition,
+  scales: Scales,
+  typography: Typography,
+): string {
   const resolver = createResolver(definition, scales);
-  const lightRoles = roles(definition, resolver, "light");
+  const roleNames = [...Object.keys(definition.colors), ...Object.keys(definition.vars)];
+  const lightRoles = roles(resolver, "light", roleNames);
   const lightShadows = shadows(definition, resolver, "light");
 
   const utilities = [
@@ -210,17 +197,14 @@ ${declarations(primitives(scales, "dark"))}
 
   /* Roller, der peger på et andet trin i mørkt tema */
 ${declarations([
-  ...changed(roles(definition, resolver, "dark"), lightRoles),
+  ...changed(roles(resolver, "dark", roleNames), lightRoles),
   ...changed(shadows(definition, resolver, "dark"), lightShadows),
 ])}`)}
 ${highContrastCss(definition, scales)}`;
 }
 
 /** browser-colors.ts: browserens statusbar/adresselinje pr. tema (viewport.themeColor). */
-export function buildBrowserColors({
-  definition,
-  scales,
-}: Pick<TokenSources, "definition" | "scales">): string {
+export function buildBrowserColors(definition: ThemeDefinition, scales: Scales): string {
   const resolver = createResolver(definition, scales);
   const hex = (theme: Theme) => formatHex(resolver.color({ token: "frame" }, theme));
   return `// GENERERET af \`npm run tokens\` ud fra rollen \`frame\` (src/styles/tokens/themes.ts). Redigér ikke her.

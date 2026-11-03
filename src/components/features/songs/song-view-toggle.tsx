@@ -23,7 +23,6 @@ export function SongViewToggle({ className }: { className?: string }) {
       label="Visning"
       options={VIEWS}
       value={view}
-      disabled={view === null}
       onChange={setSongView}
       className={className}
     />

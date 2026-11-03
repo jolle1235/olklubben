@@ -8,7 +8,7 @@ const DRAG_THRESHOLD_PX = 8;
 /** A press on the stars that may turn into a drag (pointer id and where it started). */
 type Press = { pointerId: number; startX: number; startY: number; dragging: boolean };
 
-export type StarDragOptions = {
+type StarDragOptions = {
   /** The value under the finger while pressing or dragging; null goes back to the saved one. */
   onPreview: (value: number | null) => void;
   /** A drag ended over this value. */

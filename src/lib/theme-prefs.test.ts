@@ -9,7 +9,6 @@ import {
   THEME_ATTRIBUTE,
   THEME_BOOTSTRAP,
   THEME_COLOR_OVERRIDE_ATTRIBUTE,
-  THEME_DOM,
   THEME_PREF_KEY,
   type ThemePref,
 } from "./theme-prefs";
@@ -82,7 +81,7 @@ function fakePage() {
       const previous = globalThis.document;
       globalThis.document = document as unknown as Document;
       try {
-        applyThemePref(pref, THEME_DOM);
+        applyThemePref(pref);
       } finally {
         globalThis.document = previous;
       }

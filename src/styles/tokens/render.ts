@@ -11,13 +11,10 @@ export const GENERATED_TOKEN_FILES = {
 
 /** Indholdet af de genererede filer ud fra palette.ts, themes.ts og typography.ts. */
 export function renderTokenFiles(): Record<string, string> {
-  const sources = {
-    definition: themeDefinition,
-    scales: generateScales(),
-    typography: { textStyles: textUtilities(), capsTracking },
-  };
+  const scales = generateScales();
+  const typography = { textStyles: textUtilities(), capsTracking };
   return {
-    [GENERATED_TOKEN_FILES.css]: buildCss(sources),
-    [GENERATED_TOKEN_FILES.browserColors]: buildBrowserColors(sources),
+    [GENERATED_TOKEN_FILES.css]: buildCss(themeDefinition, scales, typography),
+    [GENERATED_TOKEN_FILES.browserColors]: buildBrowserColors(themeDefinition, scales),
   };
 }

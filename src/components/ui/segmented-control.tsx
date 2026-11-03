@@ -11,6 +11,7 @@ export type SegmentedControlProps<T extends string> = {
   /** The chosen option; null shows none as chosen (e.g. before hydration). */
   value: T | null;
   onChange: (value: T) => void;
+  /** Default: while no option is chosen (value null). */
   disabled?: boolean;
   className?: string;
 };
@@ -31,7 +32,7 @@ export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
-  disabled = false,
+  disabled = value === null,
   className,
 }: SegmentedControlProps<T>) {
   const chosen = options.findIndex((option) => option.value === value);

@@ -7,7 +7,6 @@ import {
   parseThemePref,
   resolveTheme,
   THEME_ATTRIBUTE,
-  THEME_DOM,
   THEME_PREF_KEY,
   type ThemePref,
 } from "@/lib/theme-prefs";
@@ -20,7 +19,7 @@ export const themePref = createHtmlPref({
   attribute: THEME_ATTRIBUTE,
   storageKey: THEME_PREF_KEY,
   parse: parseThemePref,
-  apply: (pref) => applyThemePref(pref, THEME_DOM),
+  apply: applyThemePref,
 });
 
 /** The choice, or null until hydrated. */

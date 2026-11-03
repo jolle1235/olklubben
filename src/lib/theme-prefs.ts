@@ -1,4 +1,7 @@
 import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
+import { DARK_SCHEME_QUERY, THEME_ATTRIBUTE } from "@/styles/tokens/theme-attribute";
+
+export { DARK_SCHEME_QUERY, THEME_ATTRIBUTE };
 
 /**
  * The colour theme (SPEC §13.2, §9.8 "Udseende"): System, Lyst or Mørkt,
@@ -10,7 +13,7 @@ import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
  * script and follows the device also while the app is open.
  *
  * applyThemePref puts a choice on the page. THEME_BOOTSTRAP runs the same
- * function in the root layout's <head> before the first paint, so the page
+ * code in the root layout's <head> before the first paint, so the page
  * never flashes in the wrong theme; the hook in
  * components/features/theme/use-theme-pref.ts runs it on a change. Every
  * storage access is wrapped in try/catch (private mode, blocked storage):
@@ -24,8 +27,6 @@ export type ThemePref = (typeof THEME_PREFS)[number];
 export type ResolvedTheme = Exclude<ThemePref, "system">;
 
 export const THEME_PREF_KEY = "olklubben.theme";
-export const THEME_ATTRIBUTE = "data-theme";
-export const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 
 /**
  * Marks the theme-color <meta> applyThemePref adds for an explicit choice. The
@@ -35,14 +36,14 @@ export const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
  */
 export const THEME_COLOR_OVERRIDE_ATTRIBUTE = "data-theme-override";
 
-/** What applyThemePref needs from the page: it may only use its parameters. */
-export type ThemeDom = {
+/** What applyThemePrefWith needs from the page: it may only use its parameters. */
+type ThemeDom = {
   attribute: string;
   overrideAttribute: string;
   colors: Record<ResolvedTheme, string>;
 };
 
-export const THEME_DOM: ThemeDom = {
+const THEME_DOM: ThemeDom = {
   attribute: THEME_ATTRIBUTE,
   overrideAttribute: THEME_COLOR_OVERRIDE_ATTRIBUTE,
   colors: BROWSER_THEME_COLOR,
@@ -68,11 +69,17 @@ export function resolveTheme(pref: ThemePref, systemDark: boolean): ResolvedThem
  * its own theme-color first in <head> (the browser uses the first match), so
  * the status bar follows the choice even when it differs from the device; for
  * "system" it removes it, and the layout's prefers-color-scheme metas apply.
- *
- * Self-contained (only its parameters and the DOM): THEME_BOOTSTRAP inlines
- * its source, so the head script and a change on Profil run the same code.
  */
-export function applyThemePref(pref: ThemePref, dom: ThemeDom): void {
+export function applyThemePref(pref: ThemePref): void {
+  applyThemePrefWith(pref, THEME_DOM);
+}
+
+/**
+ * applyThemePref's body, self-contained (only its parameters and the DOM):
+ * THEME_BOOTSTRAP inlines its source, so the head script and a change on
+ * Profil run the same code.
+ */
+function applyThemePrefWith(pref: ThemePref, dom: ThemeDom): void {
   const root = document.documentElement;
   let meta = document.querySelector(`meta[${dom.overrideAttribute}]`);
   if (pref === "system") {
@@ -93,10 +100,10 @@ export function applyThemePref(pref: ThemePref, dom: ThemeDom): void {
 
 /**
  * The constant script in the root layout's <head>: reads the stored choice and
- * runs parseThemePref and applyThemePref, inlined from their source.
+ * runs parseThemePref and applyThemePrefWith, inlined from their source.
  */
 export const THEME_BOOTSTRAP = `(function(){try{var p=null;try{p=localStorage.getItem(${JSON.stringify(
   THEME_PREF_KEY,
-)})}catch(e){}(${applyThemePref.toString()})((${parseThemePref.toString()})(p),${JSON.stringify(
+)})}catch(e){}(${applyThemePrefWith.toString()})((${parseThemePref.toString()})(p),${JSON.stringify(
   THEME_DOM,
 )})}catch(e){}})();`;

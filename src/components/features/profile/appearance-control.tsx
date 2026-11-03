@@ -20,12 +20,6 @@ export function AppearanceControl() {
   const pref = useThemePref();
 
   return (
-    <SegmentedControl
-      label="Udseende"
-      options={OPTIONS}
-      value={pref}
-      disabled={pref === null}
-      onChange={setThemePref}
-    />
+    <SegmentedControl label="Udseende" options={OPTIONS} value={pref} onChange={setThemePref} />
   );
 }

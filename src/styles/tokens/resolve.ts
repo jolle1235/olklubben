@@ -54,18 +54,20 @@ export type Resolver = {
   color(value: ColorValue, theme: Theme): Color;
   /** Værdien som CSS (var(--…), color-mix()); kun `auto` er regnet ud på forhånd. */
   css(value: ColorValue, theme: Theme): string;
+  /** En rolles værdi i et tema som CSS. */
+  roleCss(name: string, theme: Theme): string;
   /** WCAG-kontrasten mellem to værdier i et tema (forgrunden lægges på baggrunden). */
   contrast(foreground: ColorValue, background: ColorValue, theme: Theme): number;
 };
 
 const toRgb = converter("rgb");
 
-export function valueFor(value: ThemedValue, theme: Theme): ColorValue {
+function valueFor(value: ThemedValue, theme: Theme): ColorValue {
   return typeof value === "object" && "light" in value && "dark" in value ? value[theme] : value;
 }
 
 /** Alle roller (colors + vars) på navn. */
-export function tokensOf(definition: ThemeDefinition): Record<string, ThemedValue> {
+function tokensOf(definition: ThemeDefinition): Record<string, ThemedValue> {
   return { ...definition.colors, ...definition.vars };
 }
 
@@ -152,6 +154,11 @@ export function createResolver(definition: ThemeDefinition, scales: Scales): Res
   return {
     color: (value, theme) => color(value, theme),
     css,
+    roleCss(name, theme) {
+      const value = tokens[name];
+      if (!value) throw new Error(`Ukendt rolle "${name}"`);
+      return css(valueFor(value, theme), theme);
+    },
     contrast(foreground, background, theme) {
       const bg = color(background, theme);
       const fg = color(foreground, theme);

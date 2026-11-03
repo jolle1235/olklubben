@@ -3,7 +3,9 @@
 /**
  * A constant inline script in the root layout's <head> that runs before the
  * first paint: the per-device settings on <html> (the colour theme, §13.2,
- * and the song reader, D-124). `code` must be a constant string.
+ * and the song reader, D-124). `code` must be a constant string, and the
+ * caller a client component that imports it: a string passed from a Server
+ * Component would travel in the RSC payload of every page as well.
  *
  * In the server HTML it is a normal inline script, so the browser runs it
  * while parsing <head>. React never runs a script it creates itself, and it
