@@ -70,14 +70,14 @@ export function AuthField({
       )}
       <Suggestions id={listId} values={suggestions} />
       {showHint ? (
-        <p id={hintId} className="text-sm text-muted-foreground">
+        <p id={hintId} className="text-label-lg text-muted-foreground">
           {hint}
         </p>
       ) : null}
       {error ? (
         <p
           id={errorId}
-          className="flex items-start gap-1.5 text-sm font-semibold text-destructive-ink"
+          className="flex items-start gap-1.5 text-label-lg font-semibold text-destructive-ink"
         >
           <CircleAlertIcon aria-hidden className="mt-px size-4 shrink-0" />
           {error}

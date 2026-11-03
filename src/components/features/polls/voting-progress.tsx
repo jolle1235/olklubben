@@ -53,7 +53,7 @@ export function VotingProgress({ view }: VotingProgressProps) {
           </div>
         )
       ) : null}
-      <p className="text-[1.05rem] break-words text-foreground">
+      <p className="text-lead break-words text-foreground">
         <span className="font-semibold">{everyone && open ? "Alle har stemt 🎉" : summary}</span>
         {missing ? <span className="text-muted-foreground"> · {missing}</span> : null}
       </p>

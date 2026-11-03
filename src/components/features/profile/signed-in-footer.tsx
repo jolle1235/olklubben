@@ -39,7 +39,7 @@ export function SignedInFooter({
           <span aria-hidden>·</span>
           <Link
             href={feedbackListHref()}
-            className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+            className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
           >
             Feedback
           </Link>

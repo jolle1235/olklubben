@@ -40,7 +40,7 @@ export function PlaceCard({ place, href, isMine, muted = false }: PlaceCardProps
     <Link
       href={href}
       className={cn(
-        "group/place flex gap-3 rounded-xl border border-border px-4 py-3.5 transition-[border-color,box-shadow] hover:border-input hover:shadow-raised sm:gap-4 sm:px-5",
+        "group/place flex pressable gap-3 rounded-xl border border-border px-4 py-3.5 hover:border-input hover:shadow-raised sm:gap-4 sm:px-5",
         muted ? "bg-card/60" : "bg-card",
       )}
     >
@@ -57,7 +57,7 @@ export function PlaceCard({ place, href, isMine, muted = false }: PlaceCardProps
         <span className="flex items-start justify-between gap-3">
           <span
             className={cn(
-              "min-w-0 font-heading text-lg leading-snug font-semibold break-words hyphens-auto group-hover/place:underline group-hover/place:decoration-highlight group-hover/place:decoration-2 group-hover/place:underline-offset-4",
+              "min-w-0 font-heading text-body-lg leading-snug font-semibold break-words hyphens-auto group-hover/place:underline group-hover/place:decoration-highlight group-hover/place:decoration-2 group-hover/place:underline-offset-4",
               muted ? "text-muted-foreground" : "text-primary-ink",
             )}
           >
@@ -70,11 +70,11 @@ export function PlaceCard({ place, href, isMine, muted = false }: PlaceCardProps
           ) : null}
         </span>
         {place.address ? (
-          <span className="text-[0.95rem] break-words hyphens-auto text-foreground">
+          <span className="text-body-sm break-words hyphens-auto text-foreground">
             {place.address}
           </span>
         ) : null}
-        <span className="text-[0.95rem] break-words hyphens-auto text-muted-foreground">
+        <span className="text-body-sm break-words hyphens-auto text-muted-foreground">
           {owners} · {tastingCountLabel(place.eventCount)}
         </span>
       </span>

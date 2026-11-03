@@ -47,21 +47,21 @@ export function PollHeader({ view, now }: PollHeaderProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-3">
-        <h1 className="text-[2rem] leading-[1.05] font-bold tracking-tight break-words hyphens-auto text-primary-ink md:text-[2.5rem]">
+        <h1 className="text-headline-md font-bold break-words hyphens-auto text-primary-ink md:text-headline-lg">
           {view.title}
         </h1>
         {view.theme ? (
-          <p className="w-fit max-w-full rounded-2xl border border-highlight-border bg-highlight-subtle px-4 py-1.5 text-[1.05rem] break-words hyphens-auto text-foreground">
+          <p className="w-fit max-w-full rounded-2xl border border-highlight-border bg-highlight-subtle px-4 py-1.5 text-lead break-words hyphens-auto text-foreground">
             <span className="font-semibold">Tema:</span> {view.theme}
           </p>
         ) : null}
-        <p className="text-[0.95rem] break-words text-muted-foreground">
+        <p className="text-body-sm break-words text-muted-foreground">
           Startet af <span className="font-semibold text-foreground">{creator}</span>
           {view.createdBy.isMember ? null : " (tidligere medlem)"}
         </p>
       </div>
 
-      <p className="flex items-start gap-2 text-[1.05rem] text-foreground">
+      <p className="flex items-start gap-2 text-lead text-foreground">
         <ClockIcon aria-hidden className="mt-1 size-4 shrink-0 text-primary-ink" />
         <span className="min-w-0 break-words">
           {open ? (
@@ -78,7 +78,7 @@ export function PollHeader({ view, now }: PollHeaderProps) {
 
       {view.description ? (
         <section aria-labelledby="poll-plan-heading" className="grid grid-cols-1 gap-1">
-          <h2 id="poll-plan-heading" className="text-lg font-semibold text-foreground">
+          <h2 id="poll-plan-heading" className="text-body-lg font-semibold text-foreground">
             Planen
           </h2>
           <p className="break-words hyphens-auto whitespace-pre-line text-foreground">
@@ -87,7 +87,7 @@ export function PollHeader({ view, now }: PollHeaderProps) {
         </section>
       ) : null}
 
-      <p className="flex items-start gap-2 rounded-xl bg-info-subtle px-3.5 py-2.5 text-[0.95rem] text-info-ink">
+      <p className="flex items-start gap-2 rounded-xl bg-info-subtle px-3.5 py-2.5 text-body-sm text-info-ink">
         <EyeIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
         <span className="min-w-0">
           Stemmerne er åbne: alle i klubben kan se, hvem der har stemt på hvad.

@@ -38,7 +38,7 @@ export function CalendarViewToggle({ clubId, active, month, aside }: CalendarVie
                 view={view}
                 active={view === active}
                 href={calendarHref(clubId, view === "month" ? { view, month } : { view })}
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg px-4 font-semibold text-foreground transition-colors hover:bg-muted aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:hover:bg-primary [&_svg]:size-[1.1em]"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg px-4 font-semibold text-foreground pressable-dim hover:bg-muted aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:hover:bg-primary [&_svg]:size-[1.1em]"
               >
                 <LinkPending>
                   <Icon aria-hidden strokeWidth={2.25} />

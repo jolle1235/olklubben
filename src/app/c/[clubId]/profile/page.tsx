@@ -85,7 +85,9 @@ export default async function ProfilePage({
 
         <Card>
           <CardHeader>
-            <h2 className="font-heading text-xl leading-snug text-primary-ink">Navn og kælenavn</h2>
+            <h2 className="font-heading text-title-sm leading-snug text-primary-ink">
+              Navn og kælenavn
+            </h2>
           </CardHeader>
           <CardContent>
             <ProfileForm
@@ -102,7 +104,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-email-heading"
-                className="font-heading text-xl leading-snug text-primary-ink"
+                className="font-heading text-title-sm leading-snug text-primary-ink"
               >
                 Email
               </h2>
@@ -110,12 +112,12 @@ export default async function ProfilePage({
             <CardContent className="grid gap-6">
               {logins.hasPassword ? (
                 <>
-                  <p className="text-[1.05rem] text-muted-foreground">
+                  <p className="text-lead text-muted-foreground">
                     Du logger ind med{" "}
                     <span className="font-semibold break-all text-foreground">{user.email}</span>.
                   </p>
                   {accountProvider ? (
-                    <p className="text-[0.95rem] text-muted-foreground">
+                    <p className="text-body-sm text-muted-foreground">
                       Skifter du email, kobles dit {EXTERNAL_PROVIDERS[accountProvider].label}-login
                       fra. Du kan forbinde det igen med den nye email.
                     </p>
@@ -123,7 +125,7 @@ export default async function ProfilePage({
                   <ChangeEmailForm key={user.email} clubId={club.id} email={user.email} />
                 </>
               ) : (
-                <p className="text-[1.05rem] text-muted-foreground">
+                <p className="text-lead text-muted-foreground">
                   {emailFollowsExternal(EXTERNAL_PROVIDERS[accountProvider ?? "google"].label)}
                 </p>
               )}
@@ -136,7 +138,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-password-heading"
-                className="font-heading text-xl leading-snug text-primary-ink"
+                className="font-heading text-title-sm leading-snug text-primary-ink"
               >
                 {logins.hasPassword ? "Skift password" : "Tilføj password"}
               </h2>
@@ -168,7 +170,7 @@ export default async function ProfilePage({
             <CardHeader>
               <h2
                 id="profile-external-heading"
-                className="font-heading text-xl leading-snug text-primary-ink"
+                className="font-heading text-title-sm leading-snug text-primary-ink"
               >
                 {configured.label}-login
               </h2>
@@ -179,12 +181,12 @@ export default async function ProfilePage({
               ) : null}
               {externalError ? <FormAlert>{externalError}</FormAlert> : null}
               {hasConfigured ? (
-                <p className="text-[1.05rem] text-muted-foreground">
+                <p className="text-lead text-muted-foreground">
                   Du kan logge ind med {configured.label}.
                 </p>
               ) : (
                 <>
-                  <p className="text-[1.05rem] text-muted-foreground">
+                  <p className="text-lead text-muted-foreground">
                     Forbind din {configured.label}-konto, så kan du logge ind med ét tryk.{" "}
                     {configured.label}-kontoen skal have samme email (
                     <span className="break-all text-foreground">{user.email}</span>).
@@ -209,13 +211,13 @@ export default async function ProfilePage({
           <CardHeader>
             <h2
               id="profile-appearance-heading"
-              className="font-heading text-xl leading-snug text-primary-ink"
+              className="font-heading text-title-sm leading-snug text-primary-ink"
             >
               Udseende
             </h2>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <p className="text-[1.05rem] text-muted-foreground">
+            <p className="text-lead text-muted-foreground">
               System følger din telefon eller computer. Valget gælder kun på denne enhed.
             </p>
             <AppearanceControl />

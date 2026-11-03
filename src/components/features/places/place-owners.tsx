@@ -85,11 +85,11 @@ export function PlaceOwners({
         id="place-owners-heading"
         ref={headingRef}
         tabIndex={-1}
-        className="text-2xl text-primary-ink focus:outline-none"
+        className="text-title-md text-primary-ink focus:outline-none"
       >
         Ejere
       </h2>
-      <p className="text-[0.95rem] text-muted-foreground">
+      <p className="text-body-sm text-muted-foreground">
         Ejerne bliver automatisk værter, når stedet bruges til en smagning. Allerede oprettede
         events ændres ikke.
       </p>
@@ -133,7 +133,7 @@ export function PlaceOwners({
           {owned ? <UserMinusIcon aria-hidden /> : <HouseIcon aria-hidden />}
           {owned ? "Fjern mig som ejer" : "Det er mit sted"}
         </Button>
-        <p role="status" className="text-[0.95rem] font-semibold text-primary-ink">
+        <p role="status" className="text-body-sm font-semibold text-primary-ink">
           {status}
         </p>
       </div>

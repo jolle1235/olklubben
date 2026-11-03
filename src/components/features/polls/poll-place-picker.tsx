@@ -106,11 +106,11 @@ export function PollPlacePicker({
 
   return (
     <fieldset className="grid min-w-0 grid-cols-1 gap-2">
-      <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-foreground">
+      <legend className="mb-2 text-body-sm leading-tight font-semibold text-foreground">
         Hvor? <span className="font-normal text-muted-foreground">(mindst ét)</span>
       </legend>
       {noPlaces && !error ? (
-        <p id={hintId} className="text-[0.95rem] text-muted-foreground">
+        <p id={hintId} className="text-body-sm text-muted-foreground">
           Klubben har ingen steder endnu. Skriv, hvor I mødes.
         </p>
       ) : null}
@@ -120,7 +120,7 @@ export function PollPlacePicker({
         {shown.map(card)}
         {more.length > 0 ? (
           <details ref={moreRef} open={initiallyOpen} className="sm:col-span-2">
-            <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-lg px-1 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight">
+            <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-lg px-1 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight">
               Vis alle {places.length} steder
             </summary>
             <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">{more.map(card)}</div>

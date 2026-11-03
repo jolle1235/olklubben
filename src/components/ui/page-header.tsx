@@ -18,11 +18,11 @@ export function PageHeader({ title, description, action, className }: PageHeader
       )}
     >
       <div className="min-w-0 flex-1 basis-64">
-        <h1 className="text-[2rem] leading-[1.1] font-bold tracking-tight break-words hyphens-auto text-primary-ink md:text-[2.5rem]">
+        <h1 className="text-headline-md font-bold break-words hyphens-auto text-primary-ink md:text-headline-lg">
           {title}
         </h1>
         {description ? (
-          <p className="mt-2 max-w-[60ch] text-[1.05rem] break-words hyphens-auto text-muted-foreground">
+          <p className="mt-2 max-w-[60ch] text-lead break-words hyphens-auto text-muted-foreground">
             {description}
           </p>
         ) : null}

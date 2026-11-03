@@ -27,7 +27,7 @@ export function EventBeerList({ clubId, beers, addBeerHref, emphasizeAdd }: Even
   return (
     <div className="grid grid-cols-1 gap-5">
       {beers.length === 0 ? (
-        <p className="text-center text-[1.05rem] text-balance text-muted-foreground">
+        <p className="text-center text-lead text-balance text-muted-foreground">
           Ingen øl her endnu. Hvad bliver der skænket op? 🍺
         </p>
       ) : (

@@ -37,15 +37,31 @@ const readPref = () => parseThemePref(document.documentElement.getAttribute(THEM
 export function setThemePref(pref: ThemePref) {
   const root = document.documentElement;
   const theme = resolveTheme(pref, window.matchMedia(DARK_SCHEME_QUERY).matches);
-  root.setAttribute(THEME_PREF_ATTRIBUTE, pref);
-  root.setAttribute(THEME_ATTRIBUTE, theme);
-  syncBrowserThemeColor(pref);
+  const apply = () => {
+    root.setAttribute(THEME_PREF_ATTRIBUTE, pref);
+    root.setAttribute(THEME_ATTRIBUTE, theme);
+    syncBrowserThemeColor(pref);
+    for (const listener of listeners) listener();
+  };
+  if (root.getAttribute(THEME_ATTRIBUTE) === theme) apply();
+  else crossfade(apply);
   try {
     window.localStorage.setItem(THEME_PREF_KEY, pref);
   } catch {
     // Storage blocked: the attributes still apply until the next hard load.
   }
-  for (const listener of listeners) listener();
+}
+
+/**
+ * A new theme fades in instead of the whole screen jumping from light to dark
+ * in one frame (SPEC §13.2; Apple: no sudden jumps in brightness). The
+ * duration is in globals.css (::view-transition-*). Instant when the member
+ * asked for less motion or the browser has no View Transitions.
+ */
+function crossfade(update: () => void) {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion || typeof document.startViewTransition !== "function") update();
+  else document.startViewTransition(update);
 }
 
 export function useThemePref(): ThemePref {

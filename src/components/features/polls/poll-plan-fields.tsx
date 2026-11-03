@@ -85,11 +85,11 @@ export function PollPlanFields({
         {hint === "nothing-to-vote" ? (
           <p className="grid grid-cols-1 gap-1 rounded-xl border-2 border-highlight bg-highlight-subtle px-4 py-3 text-foreground">
             <span className="font-semibold">{SHAPE_HINT_TEXT[hint]}</span>
-            <span className="text-[0.95rem]">
+            <span className="text-body-sm">
               Tilføj en dato eller et sted mere – eller{" "}
               <Link
                 href={newEventHref(clubId, { date: firstDate, placeId: onlyPlace })}
-                className="font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+                className="font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
               >
                 opret et event i stedet
               </Link>
@@ -97,7 +97,7 @@ export function PollPlanFields({
             </span>
           </p>
         ) : hint ? (
-          <p className="rounded-xl bg-info-subtle px-4 py-3 text-[0.95rem] text-info-ink">
+          <p className="rounded-xl bg-info-subtle px-4 py-3 text-body-sm text-info-ink">
             {SHAPE_HINT_TEXT[hint]}
           </p>
         ) : null}

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { RATING_VALUES } from "@/server/domain/ratings/ratings";
 
-import { ratingAfterKey, starHitValues } from "./rating-input";
+import { ratingAfterKey, ratingAtX, starHitValues } from "./rating-input";
 
 describe("starHitValues", () => {
   it("gives the first star one hit area (1 star; no half star below 1)", () => {
@@ -55,5 +55,36 @@ describe("ratingAfterKey", () => {
     expect(ratingAfterKey(6, "Tab")).toBeUndefined();
     expect(ratingAfterKey(6, " ")).toBeUndefined();
     expect(ratingAfterKey(null, "Enter")).toBeUndefined();
+  });
+});
+
+describe("ratingAtX", () => {
+  // Five 50 px stars with 6 px gaps, as getBoundingClientRect gives them.
+  const stars = [0, 1, 2, 3, 4].map((i) => ({ left: i * 56, right: i * 56 + 50 }));
+
+  it("gives a half star on the left half and a whole star on the right half", () => {
+    expect(ratingAtX(60, stars)).toBe(3);
+    expect(ratingAtX(100, stars)).toBe(4);
+    expect(ratingAtX(230, stars)).toBe(9);
+    expect(ratingAtX(270, stars)).toBe(10);
+  });
+
+  it("gives 1 star anywhere on the first star (there is no ½)", () => {
+    expect(ratingAtX(5, stars)).toBe(2);
+    expect(ratingAtX(45, stars)).toBe(2);
+  });
+
+  it("splits the gap between two stars halfway", () => {
+    expect(ratingAtX(52.9, stars)).toBe(2);
+    expect(ratingAtX(53.1, stars)).toBe(3);
+  });
+
+  it("clamps a finger past the ends to 1 and 5 stars", () => {
+    expect(ratingAtX(-80, stars)).toBe(2);
+    expect(ratingAtX(900, stars)).toBe(10);
+  });
+
+  it("has no rating without stars", () => {
+    expect(ratingAtX(10, [])).toBeNull();
   });
 });

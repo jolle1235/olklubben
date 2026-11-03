@@ -24,7 +24,7 @@ export function FixedOptionRow({ category, label, meta }: FixedOptionRowProps) {
           {label} <span className="text-muted-foreground">· ligger fast</span>
         </span>
         {meta ? (
-          <span className="text-[0.95rem] break-words hyphens-auto text-muted-foreground">
+          <span className="text-body-sm break-words hyphens-auto text-muted-foreground">
             {meta}
           </span>
         ) : null}

@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { generateScale, resolveColor, generateScales, type ThemeDefinition } from "./build";
+import {
+  generateScale,
+  resolveColor,
+  generateScales,
+  withHighContrast,
+  type ThemeDefinition,
+} from "./build";
 import { palette } from "./palette";
 import { renderTokenFiles } from "./render";
 
@@ -61,5 +67,25 @@ describe("resolveColor", () => {
     const dark = resolveColor({ auto: "amber.9" }, "light", definition, scales);
     expect(light.mode === "rgb" && light.r > 0.9).toBe(true);
     expect(dark.mode === "rgb" && dark.r < 0.2).toBe(true);
+  });
+});
+
+describe("withHighContrast", () => {
+  const definition: ThemeDefinition = {
+    colors: { text: "sand.11", border: "sand.6" },
+    vars: {},
+    shadows: {},
+    highContrast: { text: "sand.12" },
+  };
+
+  it("lægger høj kontrast-rollerne oven på de andre", () => {
+    const contrast = withHighContrast(definition);
+    expect(contrast.colors).toEqual({ text: "sand.12", border: "sand.6" });
+  });
+
+  it("afviser en ukendt rolle", () => {
+    expect(() => withHighContrast({ ...definition, highContrast: { nope: "sand.12" } })).toThrow(
+      /Ukendt rolle/,
+    );
   });
 });

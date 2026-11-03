@@ -54,7 +54,7 @@ export function FeedbackShell({ email, children }: FeedbackShellProps) {
       >
         <Link
           href="/"
-          className="mb-3 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 hover:underline"
+          className="mb-3 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 pressable-dim hover:underline"
         >
           <ArrowLeftIcon aria-hidden className="size-4" />
           Tilbage
@@ -62,7 +62,7 @@ export function FeedbackShell({ email, children }: FeedbackShellProps) {
         {children}
       </main>
 
-      <footer className="px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)] text-center text-[0.95rem] text-muted-foreground">
+      <footer className="px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)] text-center text-body-sm text-muted-foreground">
         <SignedInFooter email={email} showFeedbackLink={false} />
       </footer>
     </div>

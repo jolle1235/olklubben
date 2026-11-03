@@ -59,7 +59,7 @@ export function PollDateRows({
       className="grid min-w-0 grid-cols-1 gap-3"
       aria-describedby={error ? errorId : hintId}
     >
-      <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-foreground">
+      <legend className="mb-2 text-body-sm leading-tight font-semibold text-foreground">
         Hvornår? <span className="font-normal text-muted-foreground">(mindst én)</span>
       </legend>
       {error ? <FieldError id={errorId}>{error}</FieldError> : null}
@@ -89,7 +89,7 @@ export function PollDateRows({
                 {weekday ? (
                   <span
                     aria-hidden
-                    className="min-w-0 pl-1 text-[0.95rem] break-words text-muted-foreground first-letter:uppercase sm:pl-0"
+                    className="min-w-0 pl-1 text-body-sm break-words text-muted-foreground first-letter:uppercase sm:pl-0"
                   >
                     {weekday}
                   </span>
@@ -117,7 +117,7 @@ export function PollDateRows({
           Tilføj dato
         </Button>
         {canAdd ? null : (
-          <span className="text-[0.95rem] text-muted-foreground">
+          <span className="text-body-sm text-muted-foreground">
             Højst {MAX_POLL_DATE_OPTIONS} datoer.
           </span>
         )}
@@ -134,7 +134,7 @@ export function PollDateRows({
         className="mt-2 max-w-[12rem]"
       />
 
-      <p id={hintId} className="text-[0.95rem] text-muted-foreground">
+      <p id={hintId} className="text-body-sm text-muted-foreground">
         {hint}
       </p>
     </fieldset>

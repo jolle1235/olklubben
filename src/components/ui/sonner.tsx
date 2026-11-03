@@ -59,7 +59,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         closeButtonAriaLabel: "Luk besked",
         classNames: {
-          toast: "cn-toast font-sans text-base! shadow-floating!",
+          toast: "cn-toast font-sans text-body-md! shadow-floating!",
           description: "opacity-90",
         },
       }}

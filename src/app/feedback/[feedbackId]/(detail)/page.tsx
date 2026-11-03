@@ -65,7 +65,7 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
     <>
       <Link
         href={feedbackListHref()}
-        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 hover:underline"
+        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 pressable-dim hover:underline"
       >
         <ArrowLeftIcon aria-hidden className="size-4" />
         Alle rapporter
@@ -91,7 +91,7 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
         <section aria-label="Stemmer">
           {feedback.isOwn ? (
             <p className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="font-heading text-2xl leading-none font-bold whitespace-nowrap text-primary-ink">
+              <span className="font-heading text-title-md leading-none font-bold whitespace-nowrap text-primary-ink">
                 <span aria-hidden>👍 </span>
                 {feedback.voteCount}
                 <span className="sr-only"> {voteNoun(feedback.voteCount)}</span>
@@ -129,8 +129,10 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
         {canModerate ? (
           <Card>
             <CardHeader>
-              <h2 className="font-heading text-xl leading-snug text-primary-ink">Status og svar</h2>
-              <p className="text-[0.95rem] text-muted-foreground">
+              <h2 className="font-heading text-title-sm leading-snug text-primary-ink">
+                Status og svar
+              </h2>
+              <p className="text-body-sm text-muted-foreground">
                 Kun app-admins kan ændre status, svare og markere dubletter.
               </p>
             </CardHeader>

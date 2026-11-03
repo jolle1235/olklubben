@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { Slot } from "radix-ui";
 
 // Restyled for Ølklubben (SPEC §13). Every size is at least 44 px tall on touch
@@ -24,10 +24,10 @@ const buttonVariants = cva(
       },
       size: {
         default:
-          "h-11 px-5 text-base has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
-        xs: "h-8 gap-1 rounded-md px-2.5 text-sm pointer-coarse:h-11 pointer-coarse:px-3.5",
-        sm: "h-9 gap-1.5 px-3.5 text-sm pointer-coarse:h-11 pointer-coarse:px-4",
-        lg: "h-13 px-7 text-lg",
+          "h-11 px-5 text-body-md has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
+        xs: "h-8 gap-1 rounded-md px-2.5 text-label-lg pointer-coarse:h-11 pointer-coarse:px-3.5",
+        sm: "h-9 gap-1.5 px-3.5 text-label-lg pointer-coarse:h-11 pointer-coarse:px-4",
+        lg: "h-13 px-7 text-body-lg",
         icon: "size-11",
         "icon-xs": "size-8 rounded-md pointer-coarse:size-11",
         "icon-sm": "size-9 pointer-coarse:size-11",

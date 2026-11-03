@@ -17,10 +17,12 @@ import {
   type ScaleInput,
   type Step,
 } from "./palette";
+import { capsTracking, componentTextStyles, textStyles, type TextStyle } from "./typography";
 
 /**
  * Farvesystemets motor (SPEC §13.2): genererer skalaerne i palette.ts,
- * opløser rollerne i themes.ts og skriver tokens.css. Køres af
+ * opløser rollerne i themes.ts og skriver tokens.css, sammen med
+ * typeskalaen fra typography.ts (§13.3). Køres af
  * `npm run tokens` (scripts/build-tokens.ts) og af testene; aldrig i appen
  * (culori er en devDependency).
  */
@@ -60,6 +62,12 @@ export type ThemeDefinition = {
   vars: Record<string, ThemedValue>;
   /** Elevation: `--elevation-<navn>` og utility'en `shadow-<navn>`. */
   shadows: Record<string, readonly ShadowLayer[]>;
+  /**
+   * Høj kontrast (`prefers-contrast: more`, fx "Øg kontrast" på iPhone):
+   * roller i `colors`/`vars`, der får en anden værdi, når systemet beder om
+   * mere kontrast. Gælder i begge temaer.
+   */
+  highContrast?: Record<string, ThemedValue>;
 };
 
 // ---------------------------------------------------------------------------
@@ -258,6 +266,24 @@ export function resolvedHex(
   return formatHex(resolveColor({ token }, theme, definition, scales));
 }
 
+/** Definitionen, som den ser ud ved høj kontrast (rollerne i `highContrast` lagt ovenpå). */
+export function withHighContrast(definition: ThemeDefinition): ThemeDefinition {
+  const overrides = definition.highContrast ?? {};
+  const pick = (group: Record<string, ThemedValue>) =>
+    Object.fromEntries(
+      Object.entries(group).map(([name, value]) => [name, overrides[name] ?? value]),
+    );
+  for (const name of Object.keys(overrides)) {
+    if (!(name in allTokens(definition))) throw new Error(`Ukendt rolle i highContrast: "${name}"`);
+  }
+  return {
+    ...definition,
+    colors: pick(definition.colors),
+    vars: pick(definition.vars),
+    highContrast: {},
+  };
+}
+
 // ---------------------------------------------------------------------------
 // CSS
 
@@ -321,14 +347,83 @@ function themeVariables(theme: Theme, definition: ThemeDefinition, scales: Scale
   return { primitives, roles, shadows };
 }
 
+// ---------------------------------------------------------------------------
+// Typografi
+
+export type Typography = {
+  textStyles: Record<string, TextStyle>;
+  capsTracking: Record<string, number>;
+};
+
+const em = (value: number) => `${value}em`;
+
+/** `--text-<rolle>` med linjehøjde og tracking: Tailwinds `text-<rolle>`. */
+function textStyleVariables(styles: Typography["textStyles"]): string {
+  return Object.entries(styles)
+    .flatMap(([name, style]) => [
+      `  --text-${name}: ${style.size};`,
+      `  --text-${name}--line-height: ${style.leading};`,
+      `  --text-${name}--letter-spacing: ${em(style.tracking)};`,
+    ])
+    .join("\n");
+}
+
+/** `caps` / `caps-wide`: versaler med deres tracking (vinder over text-<rolle>'s). */
+function capsUtilities(tracking: Typography["capsTracking"]): string {
+  return Object.entries(tracking)
+    .map(
+      ([name, value]) => `@utility ${name} {
+  text-transform: uppercase;
+  --tw-tracking: ${em(value)};
+  letter-spacing: ${em(value)};
+}`,
+    )
+    .join("\n\n");
+}
+
 const HEADER = `/*
  * GENERERET af \`npm run tokens\` (scripts/build-tokens.ts) ud fra
- * src/styles/tokens/palette.ts (lag 1) og themes.ts (lag 2–3). Redigér ikke
- * her: ret kilden og kør \`npm run tokens\`. SPEC §13.2.
+ * src/styles/tokens/palette.ts (lag 1), themes.ts (lag 2–3) og
+ * typography.ts (typeskalaen). Redigér ikke her: ret kilden og kør
+ * \`npm run tokens\`. SPEC §13.2, §13.3.
  */`;
 
+/** Høj kontrast: de ændrede roller pr. tema, i en media query til sidst i tokens.css. */
+function highContrastCss(definition: ThemeDefinition, scales: Scales): string {
+  const names = Object.keys(definition.highContrast ?? {});
+  if (names.length === 0) return "";
+  const contrast = withHighContrast(definition);
+  const tokens = allTokens(contrast);
+  const values = (theme: Theme) =>
+    names.map((name): [string, string] => [
+      name,
+      cssValue(valueFor(tokens[name]!, theme), theme, contrast, scales),
+    ]);
+  const light = values("light");
+  const lightByName = new Map(light);
+  const dark = values("dark").filter(([name, value]) => lightByName.get(name) !== value);
+  const block = (selector: string, entries: [string, string][]) =>
+    `  ${selector} {\n${entries.map(([name, value]) => `    --${name}: ${value};`).join("\n")}\n  }`;
+  return `
+/*
+ * Høj kontrast (prefers-contrast: more): de roller, der står i
+ * \`highContrast\` i themes.ts. Står sidst, så de vinder over begge temaer.
+ */
+@media (prefers-contrast: more) {
+${block(":root", light)}${dark.length > 0 ? `\n\n${block('[data-theme="dark"]', dark)}` : ""}
+}
+`;
+}
+
 /** tokens.css (uformateret; build-tokens.ts kører den gennem Prettier). */
-export function buildCss(definition: ThemeDefinition, scales: Scales = generateScales()): string {
+export function buildCss(
+  definition: ThemeDefinition,
+  scales: Scales = generateScales(),
+  typography: Typography = {
+    textStyles: { ...textStyles, ...componentTextStyles },
+    capsTracking,
+  },
+): string {
   const light = themeVariables("light", definition, scales);
   const dark = themeVariables("dark", definition, scales);
   const lightRoles = new Map(light.roles);
@@ -347,13 +442,21 @@ export function buildCss(definition: ThemeDefinition, scales: Scales = generateS
 
 /*
  * Utilities: bg-*, text-*, border-* … for hver rolle i \`colors\`, shadow-* for hver
- * elevation. Tailwinds standardpalet nulstilles først, så KUN rollerne findes som
- * farver (ingen tilfældige farver, fx lilla, kan snige sig ind).
+ * elevation og text-* for hver tekst-rolle. Tailwinds standardpalet og
+ * -skriftstørrelser nulstilles først, så KUN rollerne findes (ingen tilfældige
+ * farver, fx lilla, eller størrelser kan snige sig ind).
  */
 @theme inline {
   --color-*: initial;
+  --text-*: initial;
 ${utilities}
+
+  /* Typeskalaen: størrelse, linjehøjde og tracking pr. rolle */
+${textStyleVariables(typography.textStyles)}
 }
+
+/* Versaler: tracking til store bogstaver, uanset størrelse */
+${capsUtilities(typography.capsTracking)}
 
 :root {
   color-scheme: light;
@@ -380,7 +483,7 @@ ${declarations([
   ...dark.shadows.filter(([name, value]) => lightShadows.get(name) !== value),
 ])}
 }
-`;
+${highContrastCss(definition, scales)}`;
 }
 
 /** browser-colors.ts: browserens statusbar/adresselinje pr. tema (viewport.themeColor). */

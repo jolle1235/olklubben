@@ -29,16 +29,16 @@ export function LeaveClubSection({ clubId, clubName, block }: LeaveClubSectionPr
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6">
       <div className="min-w-0">
-        <h3 className="font-heading text-lg leading-tight font-semibold text-foreground">
+        <h3 className="font-heading text-body-lg leading-tight font-semibold text-foreground">
           Forlad klubben
         </h3>
-        <p className="mt-1 text-[0.95rem] text-pretty text-muted-foreground">
+        <p className="mt-1 text-body-sm text-pretty text-muted-foreground">
           {block === "LAST_ADMIN" ? (
             <>
               {MEMBERSHIP_MESSAGES.LAST_ADMIN_LEAVE}{" "}
               <a
                 href="#medlemmer"
-                className="font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+                className="font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
               >
                 Gør et medlem til admin
               </a>

@@ -2,9 +2,9 @@ import { cn } from "@/lib/utils";
 import { getInitials } from "@/components/ui/initials";
 
 const SIZES = {
-  sm: "size-8 text-sm",
-  md: "size-10 text-base",
-  lg: "size-14 text-xl",
+  sm: "size-8 text-label-lg",
+  md: "size-10 text-body-md",
+  lg: "size-14 text-title-sm",
 } as const;
 
 export type ClubBadgeProps = {

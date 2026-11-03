@@ -1,16 +1,19 @@
 /*
  * GENERERET af `npm run tokens` (scripts/build-tokens.ts) ud fra
- * src/styles/tokens/palette.ts (lag 1) og themes.ts (lag 2–3). Redigér ikke
- * her: ret kilden og kør `npm run tokens`. SPEC §13.2.
+ * src/styles/tokens/palette.ts (lag 1), themes.ts (lag 2–3) og
+ * typography.ts (typeskalaen). Redigér ikke her: ret kilden og kør
+ * `npm run tokens`. SPEC §13.2, §13.3.
  */
 
 /*
  * Utilities: bg-*, text-*, border-* … for hver rolle i `colors`, shadow-* for hver
- * elevation. Tailwinds standardpalet nulstilles først, så KUN rollerne findes som
- * farver (ingen tilfældige farver, fx lilla, kan snige sig ind).
+ * elevation og text-* for hver tekst-rolle. Tailwinds standardpalet og
+ * -skriftstørrelser nulstilles først, så KUN rollerne findes (ingen tilfældige
+ * farver, fx lilla, eller størrelser kan snige sig ind).
  */
 @theme inline {
   --color-*: initial;
+  --text-*: initial;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -104,6 +107,75 @@
   --shadow-hero: var(--elevation-hero);
   --shadow-bar: var(--elevation-bar);
   --shadow-press: var(--elevation-press);
+
+  /* Typeskalaen: størrelse, linjehøjde og tracking pr. rolle */
+  --text-display-xl: 6rem;
+  --text-display-xl--line-height: 1;
+  --text-display-xl--letter-spacing: -0.03em;
+  --text-display-lg: 4.5rem;
+  --text-display-lg--line-height: 1;
+  --text-display-lg--letter-spacing: -0.03em;
+  --text-display-md: 3rem;
+  --text-display-md--line-height: 1.05;
+  --text-display-md--letter-spacing: -0.025em;
+  --text-display-sm: 2.25rem;
+  --text-display-sm--line-height: 1.1;
+  --text-display-sm--letter-spacing: -0.025em;
+  --text-headline-lg: 2.5rem;
+  --text-headline-lg--line-height: 1.1;
+  --text-headline-lg--letter-spacing: -0.025em;
+  --text-headline-md: 2rem;
+  --text-headline-md--line-height: 1.1;
+  --text-headline-md--letter-spacing: -0.025em;
+  --text-headline-sm: 1.875rem;
+  --text-headline-sm--line-height: 1.2;
+  --text-headline-sm--letter-spacing: -0.02em;
+  --text-title-lg: 1.75rem;
+  --text-title-lg--line-height: 1.25;
+  --text-title-lg--letter-spacing: -0.02em;
+  --text-title-md: 1.5rem;
+  --text-title-md--line-height: 1.3;
+  --text-title-md--letter-spacing: -0.015em;
+  --text-title-sm: 1.25rem;
+  --text-title-sm--line-height: 1.4;
+  --text-title-sm--letter-spacing: -0.01em;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.5;
+  --text-body-lg--letter-spacing: 0em;
+  --text-lead: 1.05rem;
+  --text-lead--line-height: 1.5;
+  --text-lead--letter-spacing: 0em;
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.5;
+  --text-body-md--letter-spacing: 0em;
+  --text-body-sm: 0.95rem;
+  --text-body-sm--line-height: 1.5;
+  --text-body-sm--letter-spacing: 0em;
+  --text-label-lg: 0.875rem;
+  --text-label-lg--line-height: 1.43;
+  --text-label-lg--letter-spacing: 0em;
+  --text-label-md: 0.8125rem;
+  --text-label-md--line-height: 1.35;
+  --text-label-md--letter-spacing: 0em;
+  --text-label-sm: 0.75rem;
+  --text-label-sm--line-height: 1.333;
+  --text-label-sm--letter-spacing: 0em;
+  --text-invite-code: clamp(1.9rem, 9.5vw, 3rem);
+  --text-invite-code--line-height: 1;
+  --text-invite-code--letter-spacing: 0.06em;
+}
+
+/* Versaler: tracking til store bogstaver, uanset størrelse */
+@utility caps {
+  text-transform: uppercase;
+  --tw-tracking: 0.14em;
+  letter-spacing: 0.14em;
+}
+
+@utility caps-wide {
+  text-transform: uppercase;
+  --tw-tracking: 0.2em;
+  letter-spacing: 0.2em;
 }
 
 :root {
@@ -402,4 +474,29 @@
   --avatar-1: var(--olive-7);
   --avatar-5: var(--sand-8);
   --shadow-color: var(--black);
+}
+
+/*
+ * Høj kontrast (prefers-contrast: more): de roller, der står i
+ * `highContrast` i themes.ts. Står sidst, så de vinder over begge temaer.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --muted-foreground: color-mix(in oklab, var(--sand-11), var(--sand-12) 50%);
+    --border: var(--border-strong);
+    --scrim: color-mix(in oklab, var(--fixed-dark) 70%, transparent);
+    --frame-muted-foreground: var(--frame-foreground);
+    --frame-border: color-mix(in oklab, var(--frame-foreground) 40%, transparent);
+    --feature-muted-foreground: var(--feature-foreground);
+    --feature-border: color-mix(in oklab, var(--feature-foreground) 40%, transparent);
+    --primary-border: var(--olive-8);
+    --highlight-border: var(--amber-8);
+    --info-border: var(--harbor-8);
+    --success-border: var(--olive-8);
+    --destructive-border: var(--red-8);
+  }
+
+  [data-theme="dark"] {
+    --scrim: color-mix(in oklab, var(--black) 80%, transparent);
+  }
 }

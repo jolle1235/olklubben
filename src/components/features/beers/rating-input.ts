@@ -38,3 +38,28 @@ export function ratingAfterKey(current: number | null, key: string): number | un
   const next = current + (increase ? 1 : -1);
   return Math.min(Math.max(next, RATING_MIN), RATING_MAX);
 }
+
+/** A star's horizontal extent on screen (getBoundingClientRect). */
+export type StarBounds = { left: number; right: number };
+
+/**
+ * The rating under a finger dragged across the stars (pointer x, stars left
+ * to right), with the same halves as tapping: left half ½, right half whole,
+ * the first star always 1 star. The gaps between stars split halfway, and a
+ * finger past either end clamps to 1 or 5 stars, so a drag never falls out of
+ * the scale. Null without stars.
+ */
+export function ratingAtX(x: number, stars: readonly StarBounds[]): number | null {
+  if (stars.length === 0) return null;
+  let index = stars.length - 1;
+  for (let i = 0; i < stars.length - 1; i++) {
+    if (x < (stars[i]!.right + stars[i + 1]!.left) / 2) {
+      index = i;
+      break;
+    }
+  }
+  const star = stars[index]!;
+  const values = starHitValues(index);
+  const half = x < (star.left + star.right) / 2 ? 0 : 1;
+  return values[Math.min(half, values.length - 1)] ?? null;
+}

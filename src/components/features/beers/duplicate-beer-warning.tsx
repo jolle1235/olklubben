@@ -30,15 +30,15 @@ export function DuplicateBeerWarning({ id, beers, clubId, verb }: DuplicateBeerW
           <li key={beer.id} className="break-words hyphens-auto">
             <Link
               href={beerHref(clubId, beer.id)}
-              className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-highlight-ink decoration-2 underline-offset-4 hover:decoration-primary sm:min-h-8"
+              className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-highlight-ink decoration-2 underline-offset-4 pressable-dim hover:decoration-primary sm:min-h-8"
             >
               {beer.name}
             </Link>{" "}
-            <span className="text-[0.95rem] text-muted-foreground">· {formatAbv(beer.abv)}</span>
+            <span className="text-body-sm text-muted-foreground">· {formatAbv(beer.abv)}</span>
           </li>
         ))}
       </ul>
-      <p className="mt-1 text-[0.95rem]">Er det en anden øl, kan du godt {verb} den alligevel.</p>
+      <p className="mt-1 text-body-sm">Er det en anden øl, kan du godt {verb} den alligevel.</p>
     </div>
   );
 }

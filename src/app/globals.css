@@ -33,10 +33,18 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Bevægelse (SPEC §13.4): blød opbremsning uden at skyde over, som en kritisk dæmpet fjeder. */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root {
   --radius: 0.75rem;
+
+  /* Trykfeedback (se pressable nedenfor) */
+  --press-scale: 0.97;
+  --press-dim: 0.55;
+  --press-highlight: var(--muted);
 }
 
 @layer base {
@@ -78,6 +86,7 @@
 @utility surface-frame {
   --ring: var(--frame-ring);
   --porthole-gap: var(--frame);
+  --press-highlight: var(--frame-hover);
   background-color: var(--frame);
   color: var(--frame-foreground);
 }
@@ -85,8 +94,54 @@
 @utility surface-feature {
   --ring: var(--feature-ring);
   --porthole-gap: var(--feature);
+  --press-highlight: var(--feature-hover);
   background-color: var(--feature);
   color: var(--feature-foreground);
+}
+
+/*
+ * Trykfeedback (SPEC §13.4): alt, man kan trykke på, svarer i det øjeblik
+ * fingeren rammer, ikke først når siden skifter (Apple: respons på
+ * pointer-down). Tre slags, efter hvad man trykker på:
+ *
+ *   pressable      flader, man trykker på som helhed (kort, chips, valgkort,
+ *                  kalenderens dage): giver lidt efter
+ *   pressable-row  rækker i lister, menuer og på app-rammen: lyser op i
+ *                  --press-highlight (fladens egen, se surface-frame)
+ *   pressable-dim  tekstlinks og ikonknapper: dæmpes
+ *
+ * Trykket sker med det samme, slippet glider tilbage. Utility'en ejer
+ * elementets transition (farve, kant, skygge, opacity, scale), så elementet
+ * selv har ingen transition-*. Button har sit eget tryk.
+ */
+@utility pressable {
+  transition-property: color, background-color, border-color, box-shadow, opacity, scale;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-spring);
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    scale: var(--press-scale);
+    transition-duration: 90ms;
+  }
+}
+
+@utility pressable-row {
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-spring);
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    background-color: var(--press-highlight);
+    transition-duration: 0ms;
+  }
+}
+
+@utility pressable-dim {
+  transition-property: color, background-color, text-decoration-color, opacity;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-spring);
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    opacity: var(--press-dim);
+    transition-duration: 0ms;
+  }
 }
 
 /*
@@ -99,6 +154,17 @@
     0 0 0 2px var(--porthole-gap),
     0 0 0 4px var(--porthole-ring),
     0 0 0 5px color-mix(in oklab, var(--shadow-color) 20%, transparent);
+}
+
+/*
+ * Temaskift (SPEC §13.2): det nye tema toner frem over hele skærmen i stedet
+ * for at blinke (setThemePref bruger View Transitions; ikke ved reduceret
+ * bevægelse).
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+  animation-timing-function: ease-in-out;
 }
 
 /* Respekter prefers-reduced-motion (SPEC §15.2). Ulaget, så det vinder over utilities. */

@@ -24,7 +24,7 @@ export function PlaceAbout({ address, description, editHref }: PlaceAboutProps) 
     <section aria-label="Om stedet" className="grid grid-cols-1 gap-4">
       {address ? (
         <div className="grid grid-cols-1 gap-3">
-          <p className="flex items-start gap-2 text-lg text-foreground">
+          <p className="flex items-start gap-2 text-body-lg text-foreground">
             <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-primary-ink" />
             <span className="sr-only">Adresse: </span>
             <span className="min-w-0 break-words hyphens-auto">{address}</span>
@@ -44,7 +44,7 @@ export function PlaceAbout({ address, description, editHref }: PlaceAboutProps) 
           Ingen adresse endnu.
           <Link
             href={editHref}
-            className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+            className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
           >
             <PlusIcon aria-hidden className="size-4" />
             Tilføj adresse
@@ -53,7 +53,7 @@ export function PlaceAbout({ address, description, editHref }: PlaceAboutProps) 
       )}
 
       {description ? (
-        <p className="max-w-[60ch] text-[1.05rem] leading-relaxed break-words hyphens-auto whitespace-pre-line text-foreground">
+        <p className="max-w-[60ch] text-lead leading-relaxed break-words hyphens-auto whitespace-pre-line text-foreground">
           {description}
         </p>
       ) : null}

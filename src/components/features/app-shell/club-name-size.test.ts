@@ -18,23 +18,23 @@ describe("longestWordLength", () => {
 });
 
 describe("clubNameSize", () => {
-  it("keeps text-lg for names with short words, however long the name", () => {
-    expect(clubNameSize("Drengene & Bajere")).toBe("text-lg");
-    expect(clubNameSize("Den Gamle Klub Fra Nørrebro Og Omegn")).toBe("text-lg");
+  it("keeps text-body-lg for names with short words, however long the name", () => {
+    expect(clubNameSize("Drengene & Bajere")).toBe("text-body-lg");
+    expect(clubNameSize("Den Gamle Klub Fra Nørrebro Og Omegn")).toBe("text-body-lg");
   });
 
   it("steps down for long single words", () => {
-    expect(clubNameSize("Ølklubbensklub")).toBe("text-base"); // 14
-    expect(clubNameSize("Æblemostklubben")).toBe("text-base"); // 15
-    expect(clubNameSize("Torsdagsklubben")).toBe("text-base"); // 15
-    expect(clubNameSize("Ølsmagningsklubben")).toBe("text-sm"); // 18
-    expect(clubNameSize("Ølsmagningsklub")).toBe("text-base"); // 15
+    expect(clubNameSize("Ølklubbensklub")).toBe("text-body-md"); // 14
+    expect(clubNameSize("Æblemostklubben")).toBe("text-body-md"); // 15
+    expect(clubNameSize("Torsdagsklubben")).toBe("text-body-md"); // 15
+    expect(clubNameSize("Ølsmagningsklubben")).toBe("text-label-lg"); // 18
+    expect(clubNameSize("Ølsmagningsklub")).toBe("text-body-md"); // 15
   });
 
   it("uses the boundaries 13 and 15", () => {
-    expect(clubNameSize("a".repeat(13))).toBe("text-lg");
-    expect(clubNameSize("a".repeat(14))).toBe("text-base");
-    expect(clubNameSize("a".repeat(15))).toBe("text-base");
-    expect(clubNameSize("a".repeat(16))).toBe("text-sm");
+    expect(clubNameSize("a".repeat(13))).toBe("text-body-lg");
+    expect(clubNameSize("a".repeat(14))).toBe("text-body-md");
+    expect(clubNameSize("a".repeat(15))).toBe("text-body-md");
+    expect(clubNameSize("a".repeat(16))).toBe("text-label-lg");
   });
 });

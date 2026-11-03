@@ -82,7 +82,7 @@ export function ProfileForm({
       />
 
       {preview ? (
-        <p className="rounded-lg bg-muted px-4 py-3 text-[0.95rem] break-words hyphens-auto text-muted-foreground">
+        <p className="rounded-lg bg-muted px-4 py-3 text-body-sm break-words hyphens-auto text-muted-foreground">
           Sådan ser de andre dig: <span className="font-semibold text-foreground">{preview}</span>
         </p>
       ) : null}

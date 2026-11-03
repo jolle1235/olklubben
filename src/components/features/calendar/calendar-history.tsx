@@ -45,7 +45,7 @@ export function CalendarHistory({ clubId, events, total, now }: CalendarHistoryP
       <ScrollToHash key={events.length} targetId={CALENDAR_HISTORY_ID} />
       <h2
         id={HEADING_ID}
-        className="text-2xl leading-tight font-bold text-primary-ink md:text-[1.75rem]"
+        className="text-title-md leading-tight font-bold text-primary-ink md:text-title-lg"
       >
         Tidligere ølsmagninger
       </h2>
@@ -56,7 +56,7 @@ export function CalendarHistory({ clubId, events, total, now }: CalendarHistoryP
           <section key={monthKey} aria-labelledby={`${HEADING_ID} ${monthId}`}>
             <h3
               id={monthId}
-              className="mb-3 flex items-center gap-3 font-display text-base font-bold tracking-[0.16em] text-muted-foreground uppercase after:h-px after:flex-1 after:bg-border"
+              className="mb-3 flex items-center gap-3 font-display text-body-md font-bold caps text-muted-foreground after:h-px after:flex-1 after:bg-border"
             >
               {monthKeyLabel(monthKey)}
             </h3>

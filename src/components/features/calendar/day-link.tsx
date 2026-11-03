@@ -69,13 +69,13 @@ export function DayLink({
           : undefined
       }
       className={cn(
-        "flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-xl transition-colors",
+        "flex h-12 w-full pressable flex-col items-center justify-center gap-0.5 rounded-xl",
         selected ? "bg-primary text-primary-foreground" : "hover:bg-muted",
       )}
     >
       <span
         className={cn(
-          "grid size-7 place-items-center rounded-full text-base tabular-nums",
+          "grid size-7 place-items-center rounded-full text-body-md tabular-nums",
           inMonth ? "font-semibold" : "font-normal",
           // Today is marked in the info role; a ring in the page colour keeps
           // the circle visible on the selected day's primary tile.

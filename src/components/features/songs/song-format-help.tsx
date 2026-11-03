@@ -16,7 +16,7 @@ export function SongFormatHelp() {
         <CircleHelpIcon aria-hidden className="size-5 shrink-0" />
         <span className="min-w-0">Sådan skriver du vers, akkorder og omkvæd</span>
       </summary>
-      <ul className="grid list-disc gap-1.5 px-4 pt-1 pb-4 pl-9 text-[0.95rem] text-foreground">
+      <ul className="grid list-disc gap-1.5 px-4 pt-1 pb-4 pl-9 text-body-sm text-foreground">
         {RULES.map((rule) => (
           <li key={rule} className="break-words">
             {rule}

@@ -31,16 +31,16 @@ export function EmptyState({
       {icon ? (
         <div
           aria-hidden
-          className="mb-6 grid size-16 place-items-center porthole rounded-full bg-muted text-3xl text-primary-ink [&_svg]:size-7"
+          className="mb-6 grid size-16 place-items-center porthole rounded-full bg-muted text-headline-sm text-primary-ink [&_svg]:size-7"
         >
           {icon}
         </div>
       ) : null}
-      <Heading className="max-w-[24ch] text-2xl leading-tight font-bold text-primary-ink md:text-[1.75rem]">
+      <Heading className="max-w-[24ch] text-title-md leading-tight font-bold text-primary-ink md:text-title-lg">
         {title}
       </Heading>
       {description ? (
-        <div className="mt-2 max-w-[44ch] text-[1.05rem] text-muted-foreground">{description}</div>
+        <div className="mt-2 max-w-[44ch] text-lead text-muted-foreground">{description}</div>
       ) : null}
       {actions ? (
         <div className="mt-6 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center">

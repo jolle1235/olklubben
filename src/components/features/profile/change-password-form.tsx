@@ -61,7 +61,7 @@ export function ChangePasswordForm({ clubId, email }: { clubId: string; email: s
 
       <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
         <SubmitButton pendingLabel="Skifter …">Skift password</SubmitButton>
-        <p className="text-[0.95rem] text-muted-foreground">Dine andre enheder bliver logget ud.</p>
+        <p className="text-body-sm text-muted-foreground">Dine andre enheder bliver logget ud.</p>
       </div>
     </form>
   );

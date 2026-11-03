@@ -27,9 +27,7 @@ export function OnboardingSkeleton({ variant }: { variant: "picker" | "onboardin
           <FormSectionSkeleton />
           <div className="my-7 flex items-center gap-4" aria-hidden>
             <span className="h-px flex-1 bg-border" />
-            <span className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-              eller
-            </span>
+            <span className="text-label-lg font-semibold caps text-muted-foreground">eller</span>
             <span className="h-px flex-1 bg-border" />
           </div>
           <FormSectionSkeleton />

@@ -74,7 +74,7 @@ export function CalendarDayPanel({
           ref={headingRef}
           id="calendar-day-heading"
           tabIndex={-1}
-          className="text-xl leading-tight font-bold text-primary-ink"
+          className="text-title-sm leading-tight font-bold text-primary-ink"
         >
           {heading}
         </h3>
@@ -88,12 +88,12 @@ export function CalendarDayPanel({
               window.history.replaceState(null, "", monthHref);
               headingRef.current?.focus();
             }}
-            className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+            className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
           >
             Vis hele måneden
           </Link>
         ) : (
-          <span className="text-[0.95rem] text-muted-foreground">{capitalize(countLabel)}</span>
+          <span className="text-body-sm text-muted-foreground">{capitalize(countLabel)}</span>
         )}
       </div>
 
@@ -114,7 +114,7 @@ export function CalendarDayPanel({
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-[1.05rem] text-muted-foreground">
+        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-lead text-muted-foreground">
           {day ? "Ingen events denne dag." : "Ingen events i denne måned."}
         </p>
       )}
@@ -122,7 +122,7 @@ export function CalendarDayPanel({
       {day ? (
         <Link
           href={newEventHref(clubId, { date: day })}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
         >
           <PlusIcon aria-hidden className="size-4" />
           Opret event denne dag

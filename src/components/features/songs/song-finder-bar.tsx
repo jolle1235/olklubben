@@ -107,7 +107,7 @@ export function SongFinderBar({
                 onClear();
                 inputRef.current?.focus();
               }}
-              className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-muted-foreground hover:text-foreground"
+              className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-muted-foreground pressable-dim hover:text-foreground"
             >
               <XIcon aria-hidden className="size-5" />
             </button>

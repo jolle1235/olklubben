@@ -5,8 +5,8 @@ import { constants, palette } from "../src/styles/tokens/palette";
 
 /**
  * `npm run check:tokens` (en del af `npm run check`): holder farvesystemet
- * intakt (SPEC §13.2). Komponenter må kun bruge rollerne fra themes.ts. Fejler
- * ved:
+ * (SPEC §13.2) og typeskalaen (§13.3) intakt. Komponenter må kun bruge
+ * rollerne fra themes.ts og typography.ts. Fejler ved:
  *
  *   * farveværdier (hex, rgb(), hsl(), oklch() …) uden for src/styles/tokens/
  *   * primitiver (var(--olive-9), var(--white) …) uden for src/styles/tokens/
@@ -16,9 +16,13 @@ import { constants, palette } from "../src/styles/tokens/palette";
  *     {rolle}-ink, som er kontrasttestet på lyse flader i begge temaer
  *   * `dark:` i app- og feature-kode (temaet skifter via tokens; kun shadcn's
  *     primitiver i components/ui har dem)
+ *   * Tailwinds egne skriftstørrelser (text-lg …) og vilkårlige størrelser,
+ *     linjehøjder og tracking (text-[0.95rem], leading-[1.1], tracking-[0.1em]):
+ *     brug en tekst-rolle (text-body-sm …) og `caps` til versaler
  *
- * Tailwind fejler ikke selv ved ukendte utilities (`--color-*: initial`), så
- * et gammelt navn ville ellers bare give ingen farve.
+ * Tailwind fejler ikke selv ved ukendte utilities (`--color-*: initial`,
+ * `--text-*: initial`), så et gammelt navn ville ellers bare give ingen farve
+ * eller størrelse.
  */
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -30,6 +34,8 @@ const ALLOWED_COLOR_FILES = [
   "src/components/features/auth/external-sign-in.tsx",
   "src/server/email/templates.ts",
 ];
+/** Filer med bevidste, faste skriftstørrelser: logoets ordmærke (D-162). */
+const ALLOWED_TYPE_FILES = ["src/components/brand/logo.tsx"];
 
 const OLD_NAMES = [
   "olive",
@@ -75,6 +81,8 @@ type Rule = {
   pattern: RegExp;
   /** Gælder ikke ALLOWED_COLOR_FILES. */
   colorValue?: boolean;
+  /** Gælder ikke ALLOWED_TYPE_FILES. */
+  typeValue?: boolean;
   /** Kun TS/TSX uden for components/ui (shadcn's primitiver). */
   appCodeOnly?: boolean;
 };
@@ -102,6 +110,19 @@ const RULES: Rule[] = [
     pattern: /(?<![\w-])text-(?:primary|destructive|info|success)(?![\w-])/g,
   },
   { name: "dark: (temaet skifter via tokens)", pattern: /(?<![\w-])dark:/g, appCodeOnly: true },
+  {
+    name: "Tailwind-skriftstørrelse (brug en tekst-rolle fra typography.ts)",
+    pattern: /(?<![\w-])text-(?:xs|sm|base|lg|xl|[2-9]xl)(?![\w-])/g,
+  },
+  {
+    name: "vilkårlig skriftstørrelse (brug en tekst-rolle fra typography.ts)",
+    pattern: /(?<![\w-])text-\[(?:length:)?-?[\d.]+(?:rem|px)\]/g,
+    typeValue: true,
+  },
+  {
+    name: "vilkårlig linjehøjde eller tracking (tekst-rollen har dem; versaler: caps)",
+    pattern: /(?<![\w-])(?:leading|tracking)-\[[^\]]*\]/g,
+  },
 ];
 
 function files(dir: string): string[] {
@@ -120,6 +141,7 @@ for (const file of SCAN.flatMap((dir) => files(path.join(ROOT, dir)))) {
   const lines = readFileSync(file, "utf8").split("\n");
   for (const rule of RULES) {
     if (rule.colorValue && ALLOWED_COLOR_FILES.includes(rel)) continue;
+    if (rule.typeValue && ALLOWED_TYPE_FILES.includes(rel)) continue;
     if (rule.appCodeOnly && (rel.startsWith("src/components/ui/") || rel.endsWith(".css"))) {
       continue;
     }
@@ -133,7 +155,9 @@ for (const file of SCAN.flatMap((dir) => files(path.join(ROOT, dir)))) {
 
 if (problems.length > 0) {
   console.error(problems.join("\n"));
-  console.error(`\n${problems.length} brud på farvesystemet (SPEC §13.2).`);
+  console.error(
+    `\n${problems.length} brud på farvesystemet eller typeskalaen (SPEC §13.2, §13.3).`,
+  );
   process.exit(1);
 }
-console.log("Farvesystemet er intakt.");
+console.log("Farvesystemet og typeskalaen er intakte.");

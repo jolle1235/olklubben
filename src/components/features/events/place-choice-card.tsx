@@ -79,7 +79,7 @@ export function PlaceChoiceCard({
         <label
           htmlFor={id}
           className={cn(
-            "flex min-h-14 items-start gap-3 rounded-xl border-2 border-border bg-card px-3.5 py-3 text-foreground transition-colors peer-hover:border-primary-border peer-hover:bg-muted/40",
+            "flex min-h-14 pressable items-start gap-3 rounded-xl border-2 border-border bg-card px-3.5 py-3 text-foreground peer-hover:border-primary-border peer-hover:bg-muted/40",
             "before:mt-0.5 before:size-5 before:shrink-0 before:border-2 before:border-border-strong before:bg-card before:content-['']",
             "peer-checked:border-primary peer-checked:bg-primary-subtle",
             type === "radio"
@@ -87,7 +87,7 @@ export function PlaceChoiceCard({
                 "before:rounded-full peer-checked:before:border-[6px] peer-checked:before:border-primary"
               : // The checkbox: an empty square, primary with a tick when checked. The tick
                 // has empty alt text (`/ ''`), so it is not part of the accessible name.
-                "before:grid before:place-items-center before:rounded-[5px] before:text-[0.8rem] before:leading-none before:font-bold before:text-primary-foreground peer-checked:before:border-primary peer-checked:before:bg-primary peer-checked:before:content-['✓'_/_'']",
+                "before:grid before:place-items-center before:rounded-[5px] before:text-label-md before:leading-none before:font-bold before:text-primary-foreground peer-checked:before:border-primary peer-checked:before:bg-primary peer-checked:before:content-['✓'_/_'']",
             "peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
           )}
         >
@@ -97,7 +97,7 @@ export function PlaceChoiceCard({
               <span
                 id={metaId}
                 aria-hidden
-                className="text-[0.95rem] break-words hyphens-auto text-muted-foreground"
+                className="text-body-sm break-words hyphens-auto text-muted-foreground"
               >
                 {meta}
               </span>

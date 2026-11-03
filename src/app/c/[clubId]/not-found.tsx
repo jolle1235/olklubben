@@ -14,7 +14,7 @@ export default function ClubNotFound() {
   return (
     <EmptyState
       as="h1"
-      icon={<span className="font-display text-xl font-bold text-highlight-ink">404</span>}
+      icon={<span className="font-display text-title-sm font-bold text-highlight-ink">404</span>}
       title="Den her øl er vist drukket."
       description="Siden findes ikke. Måske er linket gammelt, eller også er siden flyttet."
       actions={

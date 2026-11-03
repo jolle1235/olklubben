@@ -27,7 +27,7 @@ export function EventHosts({ hosts, className }: EventHostsProps) {
   return (
     <p
       className={cn(
-        "flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[1.05rem] text-foreground",
+        "flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-lead text-foreground",
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function EventHosts({ hosts, className }: EventHostsProps) {
           />
         ))}
         {hidden > 0 ? (
-          <span className="ml-1 text-[0.95rem] font-semibold text-muted-foreground">+{hidden}</span>
+          <span className="ml-1 text-body-sm font-semibold text-muted-foreground">+{hidden}</span>
         ) : null}
       </span>
       <span className="min-w-0 break-words hyphens-auto">

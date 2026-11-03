@@ -106,7 +106,7 @@ export function SongForm({ clubId, songId, defaults, cancelHref }: SongFormProps
         {existing ? (
           <Link
             href={songHref(clubId, existing.id)}
-            className="inline-flex min-h-11 w-fit max-w-full items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+            className="inline-flex min-h-11 w-fit max-w-full items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
           >
             <span className="min-w-0 break-words hyphens-auto">Gå til «{existing.title}»</span>
             <ArrowRightIcon aria-hidden className="size-4 shrink-0" />
@@ -152,7 +152,7 @@ export function SongForm({ clubId, songId, defaults, cancelHref }: SongFormProps
                 autoCapitalize="off"
                 autoCorrect="off"
                 required
-                className="field-sizing-fixed resize-y overflow-x-auto font-mono text-[0.95rem] leading-relaxed whitespace-pre"
+                className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm leading-relaxed whitespace-pre"
               />
             )}
           </FieldShell>

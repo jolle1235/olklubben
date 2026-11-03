@@ -56,7 +56,7 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p
           id="next-event-label"
-          className="text-[0.8rem] font-bold tracking-[0.2em] text-feature-muted-foreground uppercase"
+          className="text-label-md font-bold caps-wide text-feature-muted-foreground"
         >
           Næste ølsmagning
         </p>
@@ -67,11 +67,11 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
         <BigDate date={event.startsAt} size="lg" className="text-feature-foreground md:pr-10" />
 
         <div className="min-w-0 md:border-l md:border-feature-border md:pl-10">
-          <h2 className="text-[2rem] leading-[1.1] font-bold break-words hyphens-auto text-feature-foreground md:text-[2.5rem]">
+          <h2 className="text-headline-md font-bold break-words hyphens-auto text-feature-foreground md:text-headline-lg">
             {event.title}
           </h2>
 
-          <ul className="mt-3 flex flex-col gap-1.5 text-lg text-feature-foreground">
+          <ul className="mt-3 flex flex-col gap-1.5 text-body-lg text-feature-foreground">
             <li className="flex items-center gap-2.5">
               <ClockIcon aria-hidden className="size-5 shrink-0 text-highlight" />
               {eventWeekdayAndTime(event)}
@@ -86,9 +86,9 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
           </ul>
 
           {event.theme ? (
-            <p className="mt-4 text-lg break-words text-feature-muted-foreground">
+            <p className="mt-4 text-body-lg break-words text-feature-muted-foreground">
               Tema:{" "}
-              <span className="font-heading text-[1.35rem] leading-snug font-semibold text-feature-highlight">
+              <span className="font-heading text-title-sm leading-snug font-semibold text-feature-highlight">
                 {event.theme}
               </span>
             </p>
@@ -111,7 +111,7 @@ function HeroBadge({ state }: { state: HeroState }) {
   return (
     <span
       className={cn(
-        "inline-flex min-h-8 items-center gap-2 rounded-full px-3.5 py-1 text-[0.95rem] leading-tight font-bold",
+        "inline-flex min-h-8 items-center gap-2 rounded-full px-3.5 py-1 text-body-sm leading-tight font-bold",
         highlighted
           ? "bg-highlight text-highlight-foreground"
           : "border border-feature-muted-foreground/40 bg-feature-hover text-feature-foreground",

@@ -136,9 +136,7 @@ export function SongbookBrowser({ clubId, entries, canManage }: SongbookBrowserP
       <p
         role="status"
         className={
-          searching && result.matches.length > 0
-            ? "text-[0.95rem] text-muted-foreground"
-            : "sr-only"
+          searching && result.matches.length > 0 ? "text-body-sm text-muted-foreground" : "sr-only"
         }
       >
         {searching

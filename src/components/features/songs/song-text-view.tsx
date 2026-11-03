@@ -84,12 +84,12 @@ function ChordsView({ stanzas, chords }: { stanzas: SongStanza[]; chords: string
     <>
       {chords.length > 0 ? (
         <div className="mb-[1.1em] grid grid-cols-1 gap-1.5 font-sans">
-          <p className="text-[0.95rem] font-semibold text-muted-foreground">Akkorder i sangen</p>
+          <p className="text-body-sm font-semibold text-muted-foreground">Akkorder i sangen</p>
           <ul className="flex flex-wrap gap-1.5">
             {chords.map((chord) => (
               <li
                 key={chord}
-                className="rounded-md bg-info-subtle px-2 py-0.5 text-base leading-snug font-semibold text-info-ink"
+                className="rounded-md bg-info-subtle px-2 py-0.5 text-body-md leading-snug font-semibold text-info-ink"
               >
                 {chord}
               </li>

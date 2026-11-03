@@ -100,7 +100,7 @@ export function PlaceSelector({
             {shown.map(card)}
             {more.length > 0 ? (
               <details ref={moreRef} open={initiallyOpen} className="group/more sm:col-span-2">
-                <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-lg px-1 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight">
+                <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-lg px-1 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight">
                   Vis alle {places.length} steder
                 </summary>
                 <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">{more.map(card)}</div>

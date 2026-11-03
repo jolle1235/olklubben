@@ -31,10 +31,10 @@ import { VoteOptionRow } from "./vote-option-row";
 function SectionHeading({ id, title, note }: { id: string; title: string; note: string }) {
   return (
     <legend className="mb-3 flex w-full flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      <h2 id={id} className="text-xl font-bold tracking-tight text-primary-ink">
+      <h2 id={id} className="text-title-sm font-bold text-primary-ink">
         {title}
       </h2>
-      <span className="text-[0.95rem] text-muted-foreground">{note}</span>
+      <span className="text-body-sm text-muted-foreground">{note}</span>
     </legend>
   );
 }
@@ -216,7 +216,7 @@ export function PollVoteFormFields({ model }: { model: VoteFormModel }) {
           ) : model.saved ? (
             <p className="font-semibold text-primary-ink">Du har stemt ✓</p>
           ) : null}
-          <p className="text-[0.95rem] break-words text-muted-foreground">
+          <p className="text-body-sm break-words text-muted-foreground">
             {model.saved
               ? `Du kan ændre din stemme indtil ${model.deadlineLabel}.`
               : `Du kan stemme indtil ${model.deadlineLabel} – og ændre det bagefter.`}

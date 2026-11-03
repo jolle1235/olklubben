@@ -27,12 +27,12 @@ export function FeedbackMeta({ feedback }: { feedback: FeedbackDetail }) {
         </span>
         <FeedbackStatusBadge status={feedback.status} />
       </p>
-      <p className="text-[0.95rem] break-words hyphens-auto text-muted-foreground">
+      <p className="text-body-sm break-words hyphens-auto text-muted-foreground">
         {feedback.authorName} ·{" "}
         <time dateTime={toDateKey(feedback.createdAt)}>{formatDate(feedback.createdAt)}</time>
       </p>
       {feedback.type === "BUG" && feedback.pagePath ? (
-        <p className="text-[0.95rem] text-muted-foreground">
+        <p className="text-body-sm text-muted-foreground">
           Side: <code className="font-mono break-all text-foreground">{feedback.pagePath}</code>
         </p>
       ) : null}
@@ -43,7 +43,7 @@ export function FeedbackMeta({ feedback }: { feedback: FeedbackDetail }) {
 /** A report's description or the app-admin's answer: plain text, line breaks kept. */
 export function FeedbackText({ text, className }: { text: string; className?: string }) {
   return (
-    <p className={cn("text-[1.05rem] break-words whitespace-pre-wrap text-foreground", className)}>
+    <p className={cn("text-lead break-words whitespace-pre-wrap text-foreground", className)}>
       {text}
     </p>
   );
@@ -58,7 +58,7 @@ export function FeedbackAdminResponse({ text }: { text: string }) {
     >
       <h2
         id="feedback-response-heading"
-        className="flex items-center gap-2 text-xl leading-tight text-info-ink"
+        className="flex items-center gap-2 text-title-sm leading-tight text-info-ink"
       >
         <MessageSquareReplyIcon aria-hidden className="size-5 shrink-0" />
         Svar fra app-admin
@@ -78,7 +78,7 @@ export function FeedbackDuplicateNote({ original }: { original: FeedbackDetail["
           Dublet af{" "}
           <Link
             href={feedbackHref(original.id)}
-            className="font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+            className="font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
           >
             «{original.title}»
           </Link>
@@ -101,7 +101,7 @@ export function FeedbackTechInfo({ info }: { info: FeedbackTechnicalInfo }) {
     >
       <h2
         id="feedback-tech-heading"
-        className="flex items-center gap-2 text-xl leading-tight text-primary-ink"
+        className="flex items-center gap-2 text-title-sm leading-tight text-primary-ink"
       >
         <MonitorSmartphoneIcon aria-hidden className="size-5 shrink-0" />
         Teknisk info (kun synlig for dig)
@@ -113,7 +113,7 @@ export function FeedbackTechInfo({ info }: { info: FeedbackTechnicalInfo }) {
           {info.userAgent ? (
             <>
               <dt className="font-semibold text-foreground">Browser/enhed</dt>
-              <dd className="font-mono text-[0.9rem] break-all text-muted-foreground">
+              <dd className="font-mono text-label-lg break-all text-muted-foreground">
                 {info.userAgent}
               </dd>
             </>

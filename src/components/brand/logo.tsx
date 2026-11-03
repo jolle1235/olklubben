@@ -81,8 +81,10 @@ type LogoProps = {
   size?: "sm" | "md" | "lg";
 };
 
+// Faste størrelser: logoet står som designet (D-162), uden for typeskalaen
+// (SPEC §13.3; tilladt i check:tokens).
 const sizes = {
-  sm: { mark: "size-7", text: "text-lg" },
+  sm: { mark: "size-7", text: "text-[1.125rem]" },
   md: { mark: "size-9", text: "text-[1.35rem]" },
   lg: { mark: "size-14", text: "text-[2rem]" },
 } as const;

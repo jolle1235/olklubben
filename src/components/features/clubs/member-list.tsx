@@ -74,7 +74,7 @@ export function MemberList({ clubId, clubName, members, currentUserId }: MemberL
                   <Badge variant="secondary">{CLUB_ROLE_LABEL.ADMIN}</Badge>
                 ) : null}
               </p>
-              <p className="text-[0.95rem] text-muted-foreground">
+              <p className="text-body-sm text-muted-foreground">
                 Medlem siden{" "}
                 <time dateTime={toDateKey(member.joinedAt)}>{formatDate(member.joinedAt)}</time>
               </p>

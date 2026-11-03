@@ -148,7 +148,7 @@ function FrozenPollPlan({
         aria-labelledby="poll-edit-options-heading"
         className="grid grid-cols-1 gap-3 rounded-xl border-2 border-dashed border-info-border bg-info-subtle/40 px-4 py-4"
       >
-        <h2 id="poll-edit-options-heading" className="text-[0.95rem] font-semibold text-foreground">
+        <h2 id="poll-edit-options-heading" className="text-body-sm font-semibold text-foreground">
           Datoer og steder
         </h2>
         <ul className="grid grid-cols-1 gap-1.5">
@@ -169,7 +169,7 @@ function FrozenPollPlan({
             </li>
           ))}
         </ul>
-        <p className="text-[0.95rem] text-muted-foreground">
+        <p className="text-body-sm text-muted-foreground">
           Datoer og steder kan ikke ændres, når nogen har stemt. Er de forkerte, så annullér
           afstemningen og start en ny.
         </p>

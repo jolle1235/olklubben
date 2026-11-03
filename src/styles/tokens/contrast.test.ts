@@ -1,17 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { contrastOf, generateScales, THEMES, type ColorValue } from "./build";
+import {
+  contrastOf,
+  generateScales,
+  THEMES,
+  withHighContrast,
+  type ColorValue,
+  type ThemeDefinition,
+} from "./build";
 import { themeDefinition } from "./themes";
 
 /**
- * WCAG AA for farvesystemet (SPEC §13.2, §15.2), i BEGGE temaer: tekst
- * ≥ 4,5:1, ikoner, kanter og fokus ≥ 3:1. Erstatter den håndskrevne
- * kontrasttabel: ændres en farve i palette.ts eller en rolle i themes.ts,
- * siger testen til her.
+ * WCAG AA for farvesystemet (SPEC §13.2, §15.2), i BEGGE temaer og med
+ * høj kontrast slået til: tekst ≥ 4,5:1, ikoner, kanter og fokus ≥ 3:1.
+ * Med høj kontrast skal dæmpet tekst desuden nå AAA (7:1) og almindelige
+ * kanter 3:1. Erstatter den håndskrevne kontrasttabel: ændres en farve i
+ * palette.ts eller en rolle i themes.ts, siger testen til her.
  */
 
 const TEXT = 4.5;
 const NON_TEXT = 3;
+const TEXT_AAA = 7;
 
 const t = (name: string): ColorValue => ({ token: name });
 
@@ -76,18 +85,33 @@ const pairs: Pair[] = [
   ...[1, 2, 3, 4, 5].map((n) => ({ fg: "avatar-foreground", bg: `avatar-${n}`, min: TEXT })),
 ];
 
-describe("farvesystemets kontrast (WCAG AA)", () => {
-  const scales = generateScales();
+/** Kun med høj kontrast: dæmpet tekst næsten som brødtekst, kanter, der ses. */
+const highContrastPairs: Pair[] = [
+  ...NEUTRAL_SURFACES.map((bg) => ({ fg: "muted-foreground", bg, min: TEXT_AAA })),
+  ...SURFACES.map((s) => ({ fg: `${s}-muted-foreground`, bg: s, min: TEXT_AAA })),
+  ...["background", "card"].map((bg) => ({ fg: "border", bg, min: NON_TEXT })),
+];
 
+const highContrast = withHighContrast(themeDefinition);
+
+function failures(list: Pair[], theme: (typeof THEMES)[number], definition: ThemeDefinition) {
+  const scales = generateScales();
+  return list
+    .map((pair) => ({
+      ...pair,
+      ratio: contrastOf(t(pair.fg), t(pair.bg), theme, definition, scales),
+    }))
+    .filter(({ ratio, min }) => ratio < min)
+    .map(({ fg, bg, ratio, min }) => `${fg} på ${bg}: ${ratio.toFixed(2)} < ${min}`);
+}
+
+describe("farvesystemets kontrast (WCAG AA)", () => {
   it.each(THEMES)("alle par holder i %s tema", (theme) => {
-    const failures = pairs
-      .map((pair) => ({
-        ...pair,
-        ratio: contrastOf(t(pair.fg), t(pair.bg), theme, themeDefinition, scales),
-      }))
-      .filter(({ ratio, min }) => ratio < min)
-      .map(({ fg, bg, ratio, min }) => `${fg} på ${bg}: ${ratio.toFixed(2)} < ${min}`);
-    expect(failures).toEqual([]);
+    expect(failures(pairs, theme, themeDefinition)).toEqual([]);
+  });
+
+  it.each(THEMES)("alle par holder i %s tema med høj kontrast", (theme) => {
+    expect(failures([...pairs, ...highContrastPairs], theme, highContrast)).toEqual([]);
   });
 
   it("dækker kun roller, der findes", () => {

@@ -30,10 +30,13 @@ export function InviteSection({
     <section id="invite" aria-labelledby="invite-heading" className={cn("scroll-mt-24", className)}>
       <Card className="border-highlight-border shadow-raised">
         <CardHeader>
-          <h2 id="invite-heading" className="font-heading text-2xl leading-tight text-primary-ink">
+          <h2
+            id="invite-heading"
+            className="font-heading text-title-md leading-tight text-primary-ink"
+          >
             Inviter dine ølbrødre
           </h2>
-          <CardDescription className="text-[1.05rem]">
+          <CardDescription className="text-lead">
             En tom klub er ikke sjov. Del linket i gruppechatten.
           </CardDescription>
         </CardHeader>
@@ -46,7 +49,7 @@ export function InviteSection({
               className="[--ticket-notch:var(--card)]"
             />
           ) : (
-            <p className="rounded-2xl border-2 border-dashed border-border bg-card/60 px-5 py-6 text-center text-[1.05rem] text-muted-foreground">
+            <p className="rounded-2xl border-2 border-dashed border-border bg-card/60 px-5 py-6 text-center text-lead text-muted-foreground">
               {canRegenerate
                 ? "Klubben har ingen aktiv invitationskode lige nu."
                 : "Klubben har ingen aktiv invitationskode lige nu. Spørg en admin om at lave en ny."}
@@ -57,7 +60,7 @@ export function InviteSection({
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
               <RegenerateInviteButton clubId={clubId} hasInvite={invite !== null} />
               {invite ? (
-                <p className="text-[0.95rem] text-muted-foreground">
+                <p className="text-body-sm text-muted-foreground">
                   Er linket havnet de forkerte steder? Så lav en ny kode.
                 </p>
               ) : null}

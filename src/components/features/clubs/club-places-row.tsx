@@ -13,7 +13,7 @@ export function ClubPlacesRow({ clubId, placeCount }: { clubId: string; placeCou
   return (
     <Link
       href={placesHref(clubId)}
-      className="group/row flex min-h-16 items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/70 sm:px-5"
+      className="group/row flex min-h-16 pressable items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3 hover:bg-muted/70 sm:px-5"
     >
       <span
         aria-hidden
@@ -22,10 +22,10 @@ export function ClubPlacesRow({ clubId, placeCount }: { clubId: string; placeCou
         <MapPinIcon strokeWidth={2.25} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-heading text-lg leading-tight font-semibold text-primary-ink">
+        <span className="block font-heading text-body-lg leading-tight font-semibold text-primary-ink">
           {placeCountLabel(placeCount)}
         </span>
-        <span className="block text-[0.95rem] text-pretty text-muted-foreground">
+        <span className="block text-body-sm text-pretty text-muted-foreground">
           Hvor I mødes, og hvem der ejer dem
         </span>
       </span>

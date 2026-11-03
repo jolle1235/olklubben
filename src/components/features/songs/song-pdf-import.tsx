@@ -43,7 +43,7 @@ export function SongPdfImport({ clubId }: { clubId: string }) {
     <div className="grid gap-6">
       <PdfDropzone onFiles={state.addFiles} />
 
-      <p aria-live="polite" className="text-[0.95rem] text-muted-foreground empty:hidden">
+      <p aria-live="polite" className="text-body-sm text-muted-foreground empty:hidden">
         {reading > 0 ? `Læser ${items.length - reading} af ${items.length} PDF'er …` : ""}
       </p>
 
@@ -52,7 +52,7 @@ export function SongPdfImport({ clubId }: { clubId: string }) {
       {items.length > 0 ? (
         <section aria-label="Sange fra PDF'erne" className="grid gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-body-lg font-semibold text-foreground">
               {songsLabel(selectedCount)} valgt af {items.length}
             </h2>
             <Button
@@ -97,7 +97,7 @@ function ImportFooter({ state }: { state: ReturnType<typeof useSongPdfImport> })
     <div className="sticky bottom-20 z-10 grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:bottom-4">
       {state.importError ? <FormError>{state.importError}</FormError> : null}
       {hasDuplicates ? (
-        <p className="text-[0.95rem] font-semibold text-destructive-ink">
+        <p className="text-body-sm font-semibold text-destructive-ink">
           To af de valgte sange hedder det samme. Ret den ene titel, eller fravælg den.
         </p>
       ) : null}
@@ -131,13 +131,13 @@ function PdfDropzone({ onFiles }: { onFiles: (files: FileList | null) => void })
         onFiles(event.dataTransfer.files);
       }}
       className={cn(
-        "flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-10 text-center transition-colors focus-within:border-primary hover:border-primary",
+        "flex pressable cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-10 text-center focus-within:border-primary hover:border-primary",
         dragging && "border-primary bg-background",
       )}
     >
       <FileUpIcon aria-hidden className="size-8 text-primary-ink" />
-      <span className="text-lg font-semibold text-foreground">Vælg PDF&apos;er</span>
-      <span className="max-w-md text-[0.95rem] text-muted-foreground">
+      <span className="text-body-lg font-semibold text-foreground">Vælg PDF&apos;er</span>
+      <span className="max-w-md text-body-sm text-muted-foreground">
         Én sang pr. fil. Du kan vælge mange på én gang eller trække dem herind. Udskrifter fra
         ChordBank kommer med akkorder; andre PDF&apos;er bliver til tekst, du kan rette til.
       </span>
@@ -164,8 +164,8 @@ function ImportSummary({ clubId, result }: { clubId: string; result: ImportResul
       <p className="font-semibold text-foreground">{`${songsLabel(result.created)} er importeret 🎵`}</p>
       {result.skipped.length > 0 ? (
         <>
-          <p className="text-[0.95rem] text-muted-foreground">Disse blev sprunget over:</p>
-          <ul className="list-disc pl-6 text-[0.95rem] text-muted-foreground">
+          <p className="text-body-sm text-muted-foreground">Disse blev sprunget over:</p>
+          <ul className="list-disc pl-6 text-body-sm text-muted-foreground">
             {result.skipped.map((skip, i) => (
               <li key={i}>
                 «{skip.title}»: {SKIP_REASONS[skip.reason]}
@@ -176,7 +176,7 @@ function ImportSummary({ clubId, result }: { clubId: string; result: ImportResul
       ) : null}
       <Link
         href={songsHref(clubId)}
-        className="inline-flex min-h-11 w-fit items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+        className="inline-flex min-h-11 w-fit items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
       >
         Gå til sangbogen
         <ArrowRightIcon aria-hidden className="size-4" />

@@ -47,7 +47,7 @@ export function BeerCard({ beer, href, imageUrl = null }: BeerCardProps) {
   return (
     <Link
       href={href}
-      className="group/beer flex gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-[border-color,box-shadow] hover:border-input hover:shadow-raised sm:gap-4 sm:px-5"
+      className="group/beer flex pressable gap-3 rounded-xl border border-border bg-card px-4 py-3.5 hover:border-input hover:shadow-raised sm:gap-4 sm:px-5"
     >
       {imageUrl ? (
         <BeerPhoto
@@ -59,19 +59,19 @@ export function BeerCard({ beer, href, imageUrl = null }: BeerCardProps) {
       ) : (
         <span
           aria-hidden
-          className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-muted text-xl"
+          className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-muted text-title-sm"
         >
           🍺
         </span>
       )}
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="flex items-start justify-between gap-3">
-          <span className="min-w-0 font-heading text-lg leading-snug font-semibold break-words hyphens-auto text-primary-ink group-hover/beer:underline group-hover/beer:decoration-highlight group-hover/beer:decoration-2 group-hover/beer:underline-offset-4">
+          <span className="min-w-0 font-heading text-body-lg leading-snug font-semibold break-words hyphens-auto text-primary-ink group-hover/beer:underline group-hover/beer:decoration-highlight group-hover/beer:decoration-2 group-hover/beer:underline-offset-4">
             {beer.name}
           </span>
           <ClubScore averageStars={beer.averageStars} ratingCount={beer.ratingCount} />
         </span>
-        <span className="flex items-start justify-between gap-3 text-[0.95rem] text-muted-foreground">
+        <span className="flex items-start justify-between gap-3 text-body-sm text-muted-foreground">
           <span className="min-w-0 break-words hyphens-auto">
             {formatAbv(beer.abv)}
             {beer.event ? <> · {beer.event.title}</> : null}
@@ -89,7 +89,7 @@ function ClubScore({
 }: Pick<BeerCardBeer, "averageStars" | "ratingCount">) {
   if (averageStars === null) {
     return (
-      <span className="shrink-0 pt-0.5 text-[0.95rem] text-muted-foreground">Ingen ratings</span>
+      <span className="shrink-0 pt-0.5 text-body-sm text-muted-foreground">Ingen ratings</span>
     );
   }
   return (

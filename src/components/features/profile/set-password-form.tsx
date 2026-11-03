@@ -53,7 +53,7 @@ export function SetPasswordForm({ clubId, email, provider, available }: ReauthPr
       <input type="hidden" name="clubId" value={clubId} />
       <input type="email" autoComplete="username" value={email} readOnly hidden />
 
-      <p className="text-[1.05rem] text-muted-foreground">
+      <p className="text-lead text-muted-foreground">
         Vælg et password, så du også kan logge ind med email.
       </p>
 
@@ -80,7 +80,7 @@ export function SetPasswordForm({ clubId, email, provider, available }: ReauthPr
 
       <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
         <SubmitButton pendingLabel="Gemmer …">Gem password</SubmitButton>
-        <p className="text-[0.95rem] text-muted-foreground">Dine andre enheder bliver logget ud.</p>
+        <p className="text-body-sm text-muted-foreground">Dine andre enheder bliver logget ud.</p>
       </div>
     </form>
   );
@@ -97,7 +97,7 @@ export function ExternalReauth({ clubId, email, provider, available }: ReauthPro
   const { label, reauth } = EXTERNAL_PROVIDERS[provider];
   return (
     <div className="grid gap-4">
-      <p className="text-[1.05rem] text-muted-foreground">
+      <p className="text-lead text-muted-foreground">
         Af sikkerhedshensyn skal du have logget ind med {label} for nylig, før du kan tilføje et
         password.
       </p>

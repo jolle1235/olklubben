@@ -11,7 +11,7 @@ export type SongLetterGridProps = {
 };
 
 const TILE =
-  "grid size-12 place-items-center rounded-lg text-lg font-semibold focus-visible:outline-offset-0";
+  "grid size-12 place-items-center rounded-lg text-body-lg font-semibold focus-visible:outline-offset-0";
 
 /** Smooth only when the member has not asked for less motion (SPEC §15.2). */
 function scrollBehavior(): ScrollBehavior {
@@ -67,7 +67,7 @@ export function SongLetterGrid({ available }: SongLetterGridProps) {
     >
       <summary
         aria-label="Hop til bogstav"
-        className="grid h-12 w-11 cursor-pointer list-none place-items-center rounded-lg border border-input bg-card text-[0.95rem] font-bold text-primary-ink select-none group-open:border-primary group-open:bg-primary group-open:text-primary-foreground hover:bg-muted group-open:hover:bg-primary-hover [&::-webkit-details-marker]:hidden"
+        className="grid h-12 w-11 pressable cursor-pointer list-none place-items-center rounded-lg border border-input bg-card text-body-sm font-bold text-primary-ink select-none group-open:border-primary group-open:bg-primary group-open:text-primary-foreground hover:bg-muted group-open:hover:bg-primary-hover [&::-webkit-details-marker]:hidden"
       >
         A–Å
       </summary>
@@ -82,7 +82,7 @@ export function SongLetterGrid({ available }: SongLetterGridProps) {
                   aria-label={letter === "#" ? "Tal og tegn" : undefined}
                   className={cn(
                     TILE,
-                    "bg-primary-subtle text-primary-ink hover:bg-primary hover:text-primary-foreground",
+                    "pressable bg-primary-subtle text-primary-ink hover:bg-primary hover:text-primary-foreground",
                   )}
                 >
                   {letter}

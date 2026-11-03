@@ -59,19 +59,21 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
     >
       <h2
         id={headingId}
-        className="flex items-start gap-2 text-[0.85rem] font-bold tracking-[0.12em] text-info-ink uppercase"
+        className="flex items-start gap-2 text-label-md font-bold caps text-info-ink"
       >
         <VoteIcon aria-hidden className="mt-px size-4 shrink-0" />
         <span className="min-w-0 break-words hyphens-auto">
           Afstemning:{" "}
-          <span className="font-heading text-base tracking-normal normal-case">{poll.title}</span>
+          <span className="font-heading text-body-md tracking-normal normal-case">
+            {poll.title}
+          </span>
         </span>
       </h2>
 
       <div className="grid grid-cols-1 gap-1">
         <p
           className={cn(
-            "text-xl leading-snug font-bold break-words hyphens-auto",
+            "text-title-sm leading-snug font-bold break-words hyphens-auto",
             urgent ? "text-highlight-ink" : "text-foreground",
           )}
         >
@@ -112,7 +114,7 @@ export function PollCard({ clubId, poll, viewerId, canManage, now }: PollCardPro
             </Button>
             <Link
               href={pollHref(clubId, poll.id)}
-              className="inline-flex min-h-11 items-center self-center px-2 text-[0.95rem] font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+              className="inline-flex min-h-11 items-center self-center px-2 text-body-sm font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
             >
               Se afstemningen
             </Link>
@@ -132,7 +134,7 @@ function CardMeta({
   state: PollCardState;
   now: Date;
 }) {
-  const line = "text-[1.05rem] break-words hyphens-auto text-muted-foreground";
+  const line = "text-lead break-words hyphens-auto text-muted-foreground";
   switch (state) {
     case "missing":
       return <p className={line}>{pollCardMeta(poll, now)}</p>;
@@ -140,7 +142,7 @@ function CardMeta({
       return (
         <>
           <p className={line}>{pollCardMeta(poll, now)}</p>
-          <p className="text-[1.05rem] font-semibold break-words hyphens-auto text-foreground">
+          <p className="text-lead font-semibold break-words hyphens-auto text-foreground">
             {leaderLabel(poll.leader)}
           </p>
         </>

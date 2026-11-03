@@ -41,7 +41,7 @@ export function RatingsList({ ratings, currentUserId }: RatingsListProps) {
             <RatingStars
               stars={ratingToStars(rating.value)}
               label={ratingAriaLabel(rating.value)}
-              className="text-[1.05rem]"
+              className="text-lead"
             />
             <span
               aria-hidden

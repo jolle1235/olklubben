@@ -42,7 +42,7 @@ export function ClubSwitcher({ club, clubs, variant = "topbar", className }: Clu
   const isSidebar = variant === "sidebar";
 
   const triggerClass = cn(
-    "group/club flex min-h-11 min-w-0 items-center rounded-xl text-left text-frame-foreground transition-colors hover:bg-frame-hover",
+    "group/club flex min-h-11 min-w-0 items-center rounded-xl pressable-row text-left text-frame-foreground hover:bg-frame-hover",
     isSidebar ? "w-full gap-2.5 bg-frame-hover/60 p-2.5 pr-2" : "max-w-full gap-3 px-2 py-1.5",
     hasMany && "data-[state=open]:bg-frame-hover",
     className,
@@ -57,7 +57,7 @@ export function ClubSwitcher({ club, clubs, variant = "topbar", className }: Clu
             "block font-display font-bold",
             isSidebar
               ? cn("line-clamp-2 break-words hyphens-auto", clubNameSize(club.name))
-              : "truncate text-[1.2rem]",
+              : "truncate text-title-sm",
             // After the size: Tailwind's text-* sizes carry their own line height.
             "leading-tight",
           )}
@@ -65,7 +65,7 @@ export function ClubSwitcher({ club, clubs, variant = "topbar", className }: Clu
           {club.name}
         </span>
         {isSidebar ? (
-          <span className="block text-sm text-frame-muted-foreground">
+          <span className="block text-label-lg text-frame-muted-foreground">
             {hasMany ? "Skift klub" : "Klubbens side"}
           </span>
         ) : null}

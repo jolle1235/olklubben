@@ -58,7 +58,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group/nav flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[1.05rem] font-semibold transition-colors",
+                    "group/nav flex min-h-12 items-center gap-3.5 rounded-xl pressable-row px-3 text-lead font-semibold",
                     active
                       ? "bg-frame-hover text-frame-foreground [--porthole-gap:var(--frame-hover)]"
                       : "text-frame-muted-foreground hover:bg-frame-hover/60 hover:text-frame-foreground",
@@ -90,7 +90,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
             href={userRow.href}
             aria-current={userRowActive ? "page" : undefined}
             className={cn(
-              "flex min-h-14 items-center gap-3 rounded-xl px-2.5 py-2 transition-colors",
+              "flex min-h-14 items-center gap-3 rounded-xl pressable-row px-2.5 py-2",
               userRowActive
                 ? "bg-frame-hover [--porthole-gap:var(--frame-hover)]"
                 : "[--porthole-ring:var(--frame-hover)] hover:bg-frame-hover/60",
@@ -102,7 +102,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
               <span className="block truncate font-semibold text-frame-foreground">
                 {user.name}
               </span>
-              <span className="block truncate text-sm text-frame-muted-foreground">
+              <span className="block truncate text-label-lg text-frame-muted-foreground">
                 {user.email}
               </span>
             </span>

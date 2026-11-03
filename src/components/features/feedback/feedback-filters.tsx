@@ -40,10 +40,7 @@ function ChipGroup({
   const labelId = useId();
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <span
-        id={labelId}
-        className="w-14 shrink-0 text-[0.95rem] font-semibold text-muted-foreground"
-      >
+      <span id={labelId} className="w-14 shrink-0 text-body-sm font-semibold text-muted-foreground">
         {label}
       </span>
       <ul aria-labelledby={labelId} className="flex min-w-0 flex-wrap gap-2">
@@ -53,7 +50,7 @@ function ChipGroup({
               href={chip.href}
               aria-current={chip.current ? "true" : undefined}
               className={cn(
-                "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 font-semibold whitespace-nowrap transition-colors",
+                "inline-flex min-h-11 pressable items-center gap-1.5 rounded-full border px-4 font-semibold whitespace-nowrap",
                 chip.current
                   ? "border-primary bg-primary text-primary-foreground hover:bg-primary-hover"
                   : "border-border bg-card text-foreground hover:border-input hover:bg-muted",

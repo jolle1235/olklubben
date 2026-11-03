@@ -195,7 +195,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
         {error ? (
           <p
             role="alert"
-            className="rounded-lg bg-destructive-subtle px-4 py-3 text-[0.95rem] font-semibold text-destructive-ink"
+            className="rounded-lg bg-destructive-subtle px-4 py-3 text-body-sm font-semibold text-destructive-ink"
           >
             {error}
           </p>

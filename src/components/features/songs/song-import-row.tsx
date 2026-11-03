@@ -55,7 +55,7 @@ export function ImportRow({
           <span className="truncate font-semibold text-foreground">{item.fileName}</span>
           <span
             className={cn(
-              "text-[0.95rem]",
+              "text-body-sm",
               item.phase === "failed" ? "text-destructive-ink" : "text-muted-foreground",
             )}
           >
@@ -140,7 +140,7 @@ function ReviewRow({
           >
             {fields.title || "(uden titel)"}
           </label>
-          <div className="flex flex-wrap items-center gap-2 text-[0.95rem] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
             {fields.artist ? <span>{fields.artist}</span> : null}
             <Badge variant={candidate.kind === "chordbank" ? "info" : "outline"}>
               {candidate.kind === "chordbank" ? "Med akkorder" : "Ren tekst"}
@@ -148,7 +148,7 @@ function ReviewRow({
             <span className="truncate text-muted-foreground">{item.fileName}</span>
           </div>
           {problem ? (
-            <p className="text-[0.95rem] font-semibold text-destructive-ink">
+            <p className="text-body-sm font-semibold text-destructive-ink">
               {problem}{" "}
               {candidate.existing && candidate.status !== "new" && !errors ? (
                 <Link
@@ -161,7 +161,7 @@ function ReviewRow({
             </p>
           ) : null}
           {candidate.notes.map((note) => (
-            <p key={note} className="text-[0.95rem] text-muted-foreground">
+            <p key={note} className="text-body-sm text-muted-foreground">
               {note}
             </p>
           ))}
@@ -257,7 +257,7 @@ function DraftEditor({
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
-              className="field-sizing-fixed resize-y overflow-x-auto font-mono text-[0.95rem] leading-relaxed whitespace-pre"
+              className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm leading-relaxed whitespace-pre"
             />
           )}
         </FieldShell>

@@ -77,7 +77,7 @@ export function CalendarMonth({
                 <th
                   key={weekday.short}
                   scope="col"
-                  className="pb-1.5 text-center text-xs font-bold tracking-[0.12em] text-muted-foreground uppercase md:bg-muted/50 md:px-2.5 md:py-2 md:text-left"
+                  className="pb-1.5 text-center text-label-sm font-bold caps text-muted-foreground md:bg-muted/50 md:px-2.5 md:py-2 md:text-left"
                 >
                   <span aria-hidden>{weekday.short}</span>
                   <span className="sr-only">{weekday.long}</span>
@@ -167,7 +167,7 @@ function DayCell({
         <span
           aria-current={day.isToday ? "date" : undefined}
           className={cn(
-            "grid size-7 place-items-center rounded-full text-sm font-semibold tabular-nums",
+            "grid size-7 place-items-center rounded-full text-label-lg font-semibold tabular-nums",
             day.isToday
               ? "bg-info text-info-foreground"
               : day.inMonth

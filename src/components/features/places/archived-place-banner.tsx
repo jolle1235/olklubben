@@ -24,11 +24,11 @@ export function ArchivedPlaceBanner({ clubId, placeId, canRestore }: ArchivedPla
         <div className="grid min-w-0 gap-1">
           <h2
             id="archived-place-heading"
-            className="font-heading text-lg leading-snug text-foreground"
+            className="font-heading text-body-lg leading-snug text-foreground"
           >
             Arkiveret · vises ikke, når I vælger sted
           </h2>
-          <p className="text-[0.95rem] text-foreground">
+          <p className="text-body-sm text-foreground">
             {canRestore
               ? "De gamle events viser det stadig. Gendan det, hvis I skal bruge det igen."
               : "De gamle events viser det stadig. Stedets ejere og klubbens admins kan gendanne det."}

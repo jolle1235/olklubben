@@ -60,11 +60,11 @@ export default async function SongPage({ params }: PageProps<"/c/[clubId]/songs/
       </div>
 
       <header className="mb-5 grid grid-cols-1 gap-1.5">
-        <h1 className="text-3xl leading-[1.1] font-bold tracking-tight break-words hyphens-auto text-primary-ink md:text-4xl">
+        <h1 className="text-headline-sm font-bold break-words hyphens-auto text-primary-ink md:text-display-sm">
           {song.title}
         </h1>
         {song.artist ? (
-          <p className="text-[1.125rem] break-words hyphens-auto text-muted-foreground">
+          <p className="text-body-lg break-words hyphens-auto text-muted-foreground">
             {song.artist}
           </p>
         ) : null}

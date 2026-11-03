@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { Dialog as DialogPrimitive } from "radix-ui";
 
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 rounded-2xl border border-border bg-popover p-6 text-base text-popover-foreground shadow-overlay duration-150 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 rounded-2xl border border-border bg-popover p-6 text-body-md text-popover-foreground shadow-overlay duration-150 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className,
         )}
         {...props}
@@ -110,7 +110,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "pr-10 font-heading text-2xl leading-tight font-semibold text-primary-ink",
+        "pr-10 font-heading text-title-md leading-tight font-semibold text-primary-ink",
         className,
       )}
       {...props}
@@ -126,7 +126,7 @@ function DialogDescription({
     <DialogPrimitive.Description
       data-slot="dialog-description"
       className={cn(
-        "text-base text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+        "text-body-md text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
         className,
       )}
       {...props}

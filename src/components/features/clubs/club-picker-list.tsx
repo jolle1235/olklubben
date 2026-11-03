@@ -29,14 +29,14 @@ export function ClubPickerList({ clubs }: { clubs: ClubPickerItem[] }) {
         <li key={club.id}>
           <Link
             href={`/c/${club.id}`}
-            className="group flex min-h-18 items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-input hover:bg-background"
+            className="group flex min-h-18 pressable items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 hover:border-input hover:bg-background"
           >
             <ClubBadge name={club.name} className="m-1" />
             <span className="min-w-0 flex-1">
-              <span className="line-clamp-3 font-display text-lg leading-snug font-semibold break-words hyphens-auto text-primary-ink">
+              <span className="line-clamp-3 font-display text-body-lg leading-snug font-semibold break-words hyphens-auto text-primary-ink">
                 {club.name}
               </span>
-              <span className="block text-[0.95rem] text-muted-foreground">
+              <span className="block text-body-sm text-muted-foreground">
                 {CLUB_ROLE_LABEL[club.role]} · {memberCountLabel(club.memberCount)}
               </span>
             </span>

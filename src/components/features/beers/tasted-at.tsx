@@ -20,13 +20,13 @@ export type TastedAtProps = {
 export function TastedAt({ clubId, event, newBeerHref }: TastedAtProps) {
   return (
     <section aria-labelledby="tasted-at-heading" className="grid grid-cols-1 gap-3">
-      <h2 id="tasted-at-heading" className="text-2xl text-primary-ink">
+      <h2 id="tasted-at-heading" className="text-title-md text-primary-ink">
         Smagt til
       </h2>
       {event ? (
         <Link
           href={eventHref(clubId, event.id)}
-          className="group/event flex min-h-16 items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/70 md:px-5"
+          className="group/event flex min-h-16 pressable items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 hover:bg-muted/70 md:px-5"
         >
           <span
             aria-hidden
@@ -35,12 +35,12 @@ export function TastedAt({ clubId, event, newBeerHref }: TastedAtProps) {
             <CalendarDaysIcon strokeWidth={2.25} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-heading text-lg leading-tight font-semibold break-words hyphens-auto text-primary-ink">
+            <span className="block font-heading text-body-lg leading-tight font-semibold break-words hyphens-auto text-primary-ink">
               {event.title}
             </span>
             <time
               dateTime={toDateKey(event.startsAt)}
-              className="text-[0.95rem] text-muted-foreground"
+              className="text-body-sm text-muted-foreground"
             >
               {formatCompactDate(event.startsAt)}
             </time>
@@ -58,7 +58,7 @@ export function TastedAt({ clubId, event, newBeerHref }: TastedAtProps) {
       {newBeerHref ? (
         <Link
           href={newBeerHref}
-          className="inline-flex min-h-11 w-fit items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+          className="inline-flex min-h-11 w-fit items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
         >
           <PlusIcon aria-hidden className="size-4" />
           Tilføj en øl mere til eventet

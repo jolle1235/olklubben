@@ -26,7 +26,7 @@ export function Highlighted({ text, marks }: { text: string; marks?: readonly Hi
 /** A lyric line under a search hit: „… line …“ in italic muted-foreground, at most two lines. */
 export function SongSnippet({ text, marks }: { text: string; marks: readonly HighlightRange[] }) {
   return (
-    <span className="mt-1 line-clamp-2 text-[0.95rem] break-words text-muted-foreground italic">
+    <span className="mt-1 line-clamp-2 text-body-sm break-words text-muted-foreground italic">
       „<Highlighted text={text} marks={marks} />“
     </span>
   );

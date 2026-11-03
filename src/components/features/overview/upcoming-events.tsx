@@ -34,7 +34,7 @@ export function UpcomingEvents({
     <section aria-labelledby="upcoming-events-heading">
       <h2
         id="upcoming-events-heading"
-        className="mb-3 text-2xl leading-tight font-bold text-primary-ink md:text-[1.75rem]"
+        className="mb-3 text-title-md leading-tight font-bold text-primary-ink md:text-title-lg"
       >
         Kommende arrangementer
       </h2>
@@ -48,7 +48,7 @@ export function UpcomingEvents({
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-[1.05rem] text-muted-foreground md:px-5">
+        <p className="rounded-xl border-2 border-dashed border-border bg-card/60 px-4 py-4 text-lead text-muted-foreground md:px-5">
           Ikke flere ølsmagninger i kalenderen endnu.
         </p>
       )}

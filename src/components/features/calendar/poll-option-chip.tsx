@@ -26,15 +26,15 @@ export function PollOptionChip({ clubId, option, now }: PollOptionChipProps) {
       href={pollHref(clubId, option.pollId)}
       title={`${option.pollTitle} (afstemning)`}
       aria-label={pollDateAccessibleName(option, now)}
-      className="block rounded-md border-[1.5px] border-dashed border-info-border bg-transparent px-1.5 py-1 text-info-ink transition-colors hover:bg-info-subtle/60 focus-visible:-outline-offset-3"
+      className="block pressable rounded-md border-[1.5px] border-dashed border-info-border bg-transparent px-1.5 py-1 text-info-ink hover:bg-info-subtle/60 focus-visible:-outline-offset-3"
     >
       <span className="flex items-start gap-1">
         <VoteIcon aria-hidden className="mt-px size-3.5 shrink-0" />
-        <span className="line-clamp-3 min-w-0 text-sm leading-tight font-semibold break-words hyphens-auto">
+        <span className="line-clamp-3 min-w-0 text-label-lg leading-tight font-semibold break-words hyphens-auto">
           {option.pollTitle}
         </span>
       </span>
-      <span className="mt-0.5 block text-[0.8125rem] leading-tight text-muted-foreground tabular-nums">
+      <span className="mt-0.5 block text-label-md leading-tight text-muted-foreground tabular-nums">
         {formatTime(option.startsAt)}
         {option.viewerTicked ? " · Du kan ✓" : ""}
       </span>

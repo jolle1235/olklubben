@@ -84,6 +84,37 @@ function surface(name: string, base: ThemedValue): Record<string, ThemedValue> {
   };
 }
 
+/**
+ * Høj kontrast (SPEC §13.2): når telefonen eller computeren beder om mere
+ * kontrast, bliver dæmpet tekst næsten fuld tekst (≥ 7:1, AAA), kanter
+ * synlige (≥ 3:1) og skillelinjer på de mørke flader tydelige. På de mørke
+ * flader er dæmpet tekst lig med teksten: fladen giver ikke plads til et
+ * mellemtrin over 7:1.
+ */
+function highContrast(): Record<string, ThemedValue> {
+  const families = {
+    primary: roles.primary,
+    highlight: roles.highlight,
+    info: roles.info,
+    success: roles.success,
+    destructive: roles.destructive,
+  };
+  return {
+    "muted-foreground": { mix: [neutral(11), neutral(12)], amount: 0.5 },
+    border: token("border-strong"),
+    scrim: { light: { alpha: 0.7, of: "fixed-dark" }, dark: { alpha: 0.8, of: "black" } },
+    ...Object.fromEntries(
+      (["frame", "feature"] as const).flatMap((name) => [
+        [`${name}-muted-foreground`, token(`${name}-foreground`)],
+        [`${name}-border`, { alpha: 0.4, of: token(`${name}-foreground`) }],
+      ]),
+    ),
+    ...Object.fromEntries(
+      Object.entries(families).map(([name, hue]) => [`${name}-border`, at(hue, 8)]),
+    ),
+  };
+}
+
 const shadow = (geometry: string, alpha: number): ShadowLayer => ({
   geometry,
   color: { alpha, of: token("shadow-color") },
@@ -173,4 +204,6 @@ export const themeDefinition: ThemeDefinition = {
     /** Solide knappers "kant" forneden. */
     press: [{ geometry: "inset 0 -2px 0", color: { alpha: 0.2, of: "black" } }],
   },
+
+  highContrast: highContrast(),
 };

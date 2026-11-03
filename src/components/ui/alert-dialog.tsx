@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 
 import { Button } from "@/components/ui/button";
@@ -106,7 +106,7 @@ function AlertDialogTitle({
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
       className={cn(
-        "font-heading text-2xl leading-tight font-semibold text-primary-ink sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2",
+        "font-heading text-title-md leading-tight font-semibold text-primary-ink sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2",
         className,
       )}
       {...props}
@@ -122,7 +122,7 @@ function AlertDialogDescription({
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
       className={cn(
-        "text-base text-pretty text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+        "text-body-md text-pretty text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
         className,
       )}
       {...props}

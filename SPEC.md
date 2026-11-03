@@ -797,6 +797,7 @@ Klubbens historik over øl, man har drukket. En af de centrale features.
 ### Rating-komponent (`<BeerRating />`)
 
 * Fem store stjerner. Tryk på venstre halvdel giver halv stjerne, højre halvdel hel stjerne.
+* Man kan også trække fingeren hen over stjernerne, som når man rater i App Store. Stjernerne følger fingeren fra første berøring, og værdien gemmes, når man slipper (D-169). Kun sidelæns, så siden stadig kan scrolles hen over dem. En finger forbi enderne giver 1 eller 5 stjerner.
 * Gemmes med det samme ved tryk (optimistisk UI og en lille "Gemt ✓"). Der er ingen separat gem-knap. Det er hurtigt under en smagning.
 * "Fjern min rating" er et diskret link under stjernerne.
 * Tilgængelighed: implementeret som radiogruppe med 9 værdier og piletaststyring samt `aria-label` som "4,5 ud af 5".
@@ -1743,13 +1744,24 @@ Utilities'ne `surface-frame` og `surface-feature` sætter baggrund, tekst, fokus
 
 * På Profil vælges **Udseende: System / Lyst / Mørkt** (§9.8). Valget gemmes pr. enhed. "System" følger telefonens eller computerens indstilling, også mens appen er åben.
 * `data-theme` på `<html>` sættes af et script i `<head>` før første maling, så siden aldrig blinker i det forkerte tema (`src/lib/theme-prefs.ts`).
+* Et skift på Profil toner over hele skærmen (View Transitions, 300 ms) i stedet for at hoppe fra lyst til mørkt på én frame. Ved reduceret bevægelse sker det med det samme (D-169).
 * Mørkt tema bruger skalaernes mørke udgaver med samme trin. Kun få roller peger på et andet trin, fx baggrund/kort og app-rammen. Det står som `{ light, dark }` i `themes.ts`.
 * Browserens statusbar følger app-rammen: `viewport.themeColor` pr. `prefers-color-scheme` og en ekstra `theme-color`, når valget på Profil afviger fra systemet. Farverne genereres i `browser-colors.ts`.
 * Mørkt tema er indtil videre afledt af D-092-paletten. Det får sit eget design med det nye look (TG-066).
 
+### Høj kontrast
+
+Når telefonen eller computeren beder om mere kontrast (`prefers-contrast: more`, fx "Øg kontrast" på iPhone), får nogle roller en anden værdi i begge temaer (D-169). De står i `highContrast` i `themes.ts`, og `npm run tokens` lægger dem i en media query sidst i `tokens.css`:
+
+* Dæmpet tekst (`muted-foreground`) bliver næsten brødtekst (≥ 7:1). På de mørke flader er den lig med teksten.
+* Almindelige kanter (`border`) og familiernes kanter bliver stærke (≥ 3:1). Skillelinjer på de mørke flader bliver tydelige.
+* Overlayet bag dialoger bliver mørkere.
+
+Der er ingen knap for det i appen. Det følger systemet.
+
 ### Kontrast
 
-`src/styles/tokens/contrast.test.ts` tjekker alle par i **begge temaer**:
+`src/styles/tokens/contrast.test.ts` tjekker alle par i **begge temaer**, også med høj kontrast:
 
 * Tekst skal have mindst 4,5:1, ikoner, kanter og fokus mindst 3:1 (WCAG AA).
 * Testen dækker hver farvefamilie, de mørke flader, neutralerne og avatarerne.
@@ -1765,11 +1777,51 @@ Ingen komponent skal røres.
 
 > v1 af paletten (navy `#13233F` + flaskegrøn `#0B6B3A`, "fra øltrøjen") blev erstattet af D-092. D-092's håndplukkede tokens (`olive-soft`, `cream-deep`, `on-dark-muted` …) blev erstattet af farvesystemet (D-168).
 
-## 13.3 Typografi (forslag)
+## 13.3 Typografi [BESLUTNING, D-169]
 
-* **Overskrifter:** en karakterfuld serif eller slab (fx *Fraunces* eller *Zilla Slab*). Giver "etiket"-følelse.
-* **Brødtekst/UI:** en læsbar sans-serif (fx *Inter* eller *Source Sans 3*).
+* **Overskrifter og store tal:** Zilla Slab (`font-display`/`font-heading`). Giver "etiket"-følelse.
+* **Brødtekst og UI:** Source Sans 3 (`font-sans`).
 * Store datoer på events ("23 / OKTOBER") er et gennemgående visuelt motiv.
+
+### Typeskalaen (`src/styles/tokens/typography.ts`)
+
+Skriftstørrelser er tekst-roller, ligesom farverne er roller. Hver rolle har sin egen størrelse, linjehøjde og tracking, for de tre hører sammen (Apple, "The Details of UI Typography"). Store overskrifter får tæt linjehøjde og negativ tracking, brødtekst får luft og 0. `npm run tokens` skriver rollerne i `tokens.css` som `text-<rolle>`.
+
+| Rolle | Størrelse | Bruges til |
+|---|---|---|
+| `display-xl` … `display-sm` | 6 / 4,5 / 3 / 2,25 rem | Store tal og datoer (BigDate, 404, klubbens rating), invitationens titel |
+| `headline-lg` / `headline-md` | 2,5 / 2 rem | Sidetitler: desktop / mobil |
+| `headline-sm` | 1,875 rem | De centrerede sider (login, invitationer), sangtitlen |
+| `title-lg` / `title-md` | 1,75 / 1,5 rem | Sektionsoverskrifter (desktop / mobil), dialogtitler |
+| `title-sm` | 1,25 rem | Titler på kort |
+| `body-lg` | 1,125 rem | Listetitler, fremhævet brødtekst |
+| `lead` | 1,05 rem | Sidens beskrivelse, indledninger |
+| `body-md` | 1 rem | Brødtekst, knapper, felter |
+| `body-sm` | 0,95 rem | Sekundære linjer ("Hos Mads · 18:30"), hjælpetekster |
+| `label-lg` / `label-md` / `label-sm` | 0,875 / 0,8125 / 0,75 rem | Små tekster, chips og badges, ugedage |
+
+Komponent-tekster (som farvesystemets lag 3) står i `componentTextStyles`: `invite-code` (invitationskoden, der fylder bredden uden at bryde).
+
+**Regler**
+
+* Komponenter bruger kun rollerne: `text-body-sm`, `text-title-sm` … Tailwinds egne størrelser (`text-lg`) findes ikke (`--text-*: initial`). Vilkårlige størrelser, linjehøjder og tracking (`text-[0.95rem]`, `leading-[1.1]`, `tracking-[0.1em]`) afvises af `npm run check:tokens`. Kun logoets ordmærke har faste størrelser (D-162).
+* En komponent må stramme linjehøjden for et enkelt element med de navngivne klasser, fx `leading-none` for et tal i en cirkel eller `leading-tight` for en titel over to linjer.
+* VERSALER bruger `caps` (0,14 em) eller `caps-wide` (0,2 em). De sætter både uppercase og tracking.
+* `cn` importeres fra `@/lib/utils`, aldrig fra `"cn"` (ESLint). Kun den kender tekst-rollerne. Ellers bliver `text-title-sm` set som en tekstfarve og forsvinder ved siden af `text-primary-ink` (F-091).
+* Størrelser er i rem, så teksten følger browserens skriftstørrelse.
+* `typography.test.ts` holder reglerne:
+  * Fra brødtekst og op bliver linjehøjde og tracking aldrig større, når størrelsen vokser.
+  * Overskrifter (fra 1,25 rem) har negativ tracking, brødtekst 0.
+  * Ingen tekst er under 0,75 rem.
+  * To roller har aldrig samme størrelse.
+
+### Sådan ændrer du typografien
+
+1. Ret rollen i `typography.ts` (størrelse, linjehøjde, tracking), eller ret skrifterne i `src/components/brand/fonts.ts`.
+2. Kør `npm run tokens`.
+3. Kør `npm test`.
+
+Ingen komponent skal røres.
 
 ## 13.4 UI-principper
 
@@ -1780,6 +1832,13 @@ Ingen komponent skal røres.
 5. **Én primær handling pr. skærm** er tydeligt fremhævet.
 6. **Optimistisk UI** ved hurtige handlinger (rating, stemme, ejer-toggle) med rollback ved fejl.
 7. **Skeletons** frem for spinnere ved indlæsning.
+8. **Alt, man kan trykke på, svarer i det øjeblik fingeren rammer**, ikke først når siden skifter (Apple: respons på pointer-down, D-169). Der er tre utilities i `globals.css`:
+   * `pressable` på flader, man trykker på som helhed (kort, chips, valgkort, kalenderens dage). De giver lidt efter (`--press-scale`, 0,97).
+   * `pressable-row` på rækker i lister og menuer og på app-rammen. De lyser op i `--press-highlight`, som fladen sætter: `surface-frame` bruger `frame-hover`, menuer `accent`.
+   * `pressable-dim` på tekstlinks og ikonknapper. De dæmpes (`--press-dim`).
+
+   `Button` har sit eget tryk (1 px ned). Utility'en ejer elementets transition, så elementet selv har ingen `transition-*`.
+9. **Bevægelse som en fjeder, der ikke skyder over** (`ease-spring`). Trykket sker med det samme, og slippet glider tilbage på 220 ms. I `SegmentedControl` glider valget over til det nye segment (300 ms), og segmenterne er lige brede som på iOS. `prefers-reduced-motion` gør det hele øjeblikkeligt.
 
 ## 13.5 Mikrotekst-eksempler
 
@@ -1830,9 +1889,9 @@ Ingen komponent skal røres.
 Genanvendelige og generiske nok til flere steder. Navne på engelsk.
 
 **Primitiver (`components/ui`)**
-`Button`, `IconButton`, `Input`, `Textarea`, `Select`, `DateTimePicker`, `Card`, `Modal`, `ConfirmDialog`, `Toast`, `Skeleton`, `EmptyState`, `ErrorState`, `Avatar`, `Badge`, `Tabs`, `SegmentedControl` (én valgt blandt få knapper: Tekst | Akkorder, System | Lyst | Mørkt)
+`Button`, `IconButton`, `Input`, `Textarea`, `Select`, `DateTimePicker`, `Card`, `Modal`, `ConfirmDialog`, `Toast`, `Skeleton`, `EmptyState`, `ErrorState`, `Avatar`, `Badge`, `Tabs`, `SegmentedControl` (én valgt blandt få knapper med lige brede segmenter og et valg, der glider: Tekst | Akkorder, System | Lyst | Mørkt)
 
-Farver kommer kun fra farvesystemets roller (§13.2): `bg-card`, `text-primary-ink`, `surface-frame`, `shadow-raised` … `Button` og `Badge` har varianten `highlight` (før `brass`/`amber`).
+Farver kommer kun fra farvesystemets roller (§13.2): `bg-card`, `text-primary-ink`, `surface-frame`, `shadow-raised` … Skriftstørrelser kommer kun fra typeskalaen (§13.3): `text-body-sm`, `text-title-sm` … Tryk-flader bruger `pressable`, `pressable-row` eller `pressable-dim` (§13.4). `Button` og `Badge` har varianten `highlight` (før `brass`/`amber`).
 
 **Hooks (`src/hooks`)**
 `useHydrated` (falsk på serveren og under hydrering; indstillinger pr. enhed er slået fra indtil da, TG-020)
@@ -2140,6 +2199,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | – | – | X til at rydde tekstfelter (D-167) og afstemningsfristen under hinanden på mobil (F-088) | ✅ | 2026-11-01. X'et sidder i `src/components/ui/input.tsx` (2026-11-02: flyttet ind fra en separat `ClearableInput`, så alle enlinjede tekstfelter får det uden at vælge komponent; `clearable={false}` slår det fra). Ny E2E `clear-input.spec.ts`. Gates 2026-11-02: typecheck, lint, 52 E2E (clear-input, beers, form-focus, login-suggestions, password-reset, profile, songs-import, members). Oprydning samme dag: `clear-input.spec.ts` venter på hydrering (`expectHydrated`), før der klikkes på X'et. |
 | – | – | Nulstillingslink til en selv afvises på serveren (D-116, F-087) | ✅ | 2026-10-28. Fundet ved sikkerhedsreview af hele projektet. `createMemberResetLink` afviser eget id med FORBIDDEN; 1 ny integrationstest. |
 | – | – | Farvesystem (tokens i tre lag) + mørkt tema (§13.2, D-168) | ✅ | 2026-11-02. `src/styles/tokens/` (palette, themes, build, genereret `tokens.css`/`browser-colors.ts`), `npm run tokens`, `npm run check:tokens` i `check`. 160 filer flyttet fra brandnavne til roller (codemod + hånd for ramme/hero/succes). Udseende (System/Lyst/Mørkt) på Profil, tema-bootstrap før første maling. Tests: `contrast.test.ts` (alle par, begge temaer), `build.test.ts`, `theme-prefs.test.ts`; 1144 unit grønne. Lyst tema pixel-sammenlignet med `master` på 22 skærme × 375 px/desktop: under 1 % ændret undtagen bevidste ændringer (skygger samlet i 6 niveauer, gennemsigtige kanter → `{rolle}-border`, login-knappens kant; Profil har kortet Udseende). Mørkt tema gennemgået på samme skærme. Mørkt tema er afledt, ikke designet (TG-066). Første fase af det nye look; derefter tre retninger på Overblik. |
+| – | – | Apple-polish: trykfeedback, temaskift, træk på stjernerne, SegmentedControl, høj kontrast og typeskala (§13.3, §13.4, D-169) | ✅ | 2026-11-03. `pressable`/`pressable-row`/`pressable-dim` på ca. 60 tryk-flader og 26 tekstlinks. Temaskift med View Transitions. `BeerRating` med træk (`ratingAtX`). `SegmentedControl` med lige brede segmenter og et valg, der glider. `highContrast` i `themes.ts` → `@media (prefers-contrast: more)`. Typeskala i `typography.ts`: 17 roller + `invite-code`, ca. 370 størrelser i 140 filer flyttet med codemod, `caps` til versaler, `cn` via `createCn`. Tests: `typography.test.ts`, `utils.test.ts`, `ratingAtX`, `withHighContrast`, kontrasttesten med høj kontrast; 1161 unit grønne. Ny E2E: træk hen over stjernerne (desktop + 375 px). Fuld E2E 232/232. Screenshots af 22 skærme × 375 px/desktop × lyst/mørkt mod før: kun højden flytter sig 1–12 px (linjehøjder), sidetitler og heroens titel har negativ tracking, SegmentedControl er lige bred. Prøvet i Chromium: kort giver efter (0,97) og glider tilbage, fanerne dæmpes, valget glider, temaskiftet bruger en view transition, touch-træk på stjernerne gemmer, og et lodret swipe på stjernerne scroller stadig. Titel-grep 0 fund. Linjehøjde står stadig også i komponenter (TG-067). |
 
 ## 19.3 Beslutningslog
 
@@ -2315,6 +2375,7 @@ Korte arkitektur- og produktbeslutninger. Nyeste nederst.
 | D-166 | 2026-10-28 | **Auth0 Universal Login** (Jesper: "universal login, de samme folk som andre steder", knaptekst "Fortsæt med Auth0", kun Auth0-knappen, log ud også fra Auth0). (a) Better Auth `genericOAuth` med `auth0()` + `requireIdTokenVerification: true` (uden brugbar discovery registreres udbyderen ikke) og `endSessionEndpoint` `/oidc/logout`; Auth0 bruger de samme kerne-endpoints som Google, så D-165 gælder uændret. **Fravalgt: `@auth0/nextjs-auth0`** (Auth0-skillens standard): eget sessionssystem og egne `/auth/*`-ruter ved siden af Better Auth, som al autorisation, club isolation og rate limits bygger på. (b) `externalProvider` = `auth0` › `google` › `null`; Google registreres ikke, når Auth0 er sat op. (c) Account-hooks gælder alle udbydere undtagen `credential` (ukendte fejler lukket); for Auth0 kun `sub` med `google-oauth2|` eller `auth0|` (`connection_not_allowed`). (d) `authBeforeHook`: id-token fra klienten afvises på alle stier, `scopes`/`additionalParams` på login-endpoints undtagen `{ prompt: "login" }`. (e) Generelle eksterne logins: `getAccountLogins → { hasPassword, external }`, `changeUserEmail` sletter alle ikke-`credential`-konti (`email-changed-external`), tekster med udbyderens navn (`EXTERNAL_PROVIDERS`, `emailFollowsExternal`, `getOAuthErrorMessage(code, label)`). (f) "Tilføj password" for Auth0 kræver også, at `auth_time` i det gemte id-token er under 10 minutter; "Log ind med Auth0 igen" sender `prompt=login`. (g) "Log ud" følger Auth0's logout-URL én gang (`disableRedirect`). | Én Auth0-identitet på tværs af Jespers apps, uden at åbne nye veje ind: en delt tenant kan have forbindelser og M2M-klienter, der påstår `email_verified`, og Auth0's SSO og lange id-tokens må hverken erstatte et rigtigt login eller kunne genbruges. Sikkerhedsreview af planen (uafhængig agent mod better-auth 1.7.7) fandt M1 og L1–L7; alle er indarbejdet. | §4.1, §4.7, §4.8, §6.2, §9.8, D-165 |
 | D-167 | 2026-11-01 | Enlinjede tekstfelter (text, email, search, url, tel) har et X, der rydder feltet. Det sidder i `Input` selv og er slået til for de typer som standard; `clearable={false}` slår det fra. X'et vises kun, når der står noget (CSS `:placeholder-shown`, derfor pladsholderen " " som standard), og aldrig på deaktiverede eller skrivebeskyttede felter. Det står uden for tab-rækkefølgen og hedder "Ryd feltet" for skærmlæsere. Ikke på tekstområder, password (har "Vis password"; skifter type, så det er slået fra eksplicit), dato, tid, tal, alkoholprocent eller "skriv klubnavnet" i slet-dialogen. Sangbogens søgning beholder sit eget X. | Jesper: hurtigt at fjerne det, man har skrevet forkert, især på telefonen. CSS-styret synlighed følger også ukontrollerede felter, form-reset efter server actions og autofill uden React-state. Rydningen går gennem den native setter og en input-hændelse, så `onChange` og klientvalidering kører. | – |
 | D-168 | 2026-11-02 | **Farvesystem i tre lag** (Jesper: "lav et ordentligt color token design system, som de professionelle apps, så det er nemt at ændre på sigt … gør det struktureret"). (a) Lag 1 `palette.ts`: 12-trins skalaer (Radix-trin) genereret i OKLCH fra én base pr. skala, lyst + mørkt, låste trin holder D-092-værdierne; det eneste sted med farveværdier. (b) Lag 2 `themes.ts`: roller valgt ét sted (`roles`), ensartede familier (`{rolle}`, `-hover`, `-foreground` (auto efter kontrast), `-subtle`, `-subtle-hover`, `-border`, `-ink`), mørke flader `frame`/`feature` med `-hover`/`-sunken`/`-foreground`/`-muted-foreground`/`-border`/`-ring`, 6 elevation-niveauer; shadcn-navnene bevares som roller. (c) Lag 3: avatarer, porthole, chart, sidebar-aliaser. (d) `npm run tokens` genererer `tokens.css` (inkl. `@theme inline` og nulstillingen af Tailwinds palet) og `browser-colors.ts`; `culori` 4.0.2 som devDependency (kun build/test). (e) Værn: `contrast.test.ts` (WCAG AA i begge temaer), `build.test.ts` (genereret fil = kilde), `check:tokens` (ingen farveværdier, primitiver, gamle navne, solide familiefarver som tekst eller `dark:` i app-koden) i `npm run check`. (f) Mørkt tema fra start (Jesper valgte det): `data-theme` + `data-theme-pref` på `<html>`, bootstrap før første maling efter songbook-mønstret, Udseende System/Lyst/Mørkt pr. enhed på Profil, `theme-color` pr. tema. (g) `Button`/`Badge`-varianterne `brass`/`amber` hedder `highlight`; `Logo tone` er `frame`/`page`; `SegmentedControl` deles af sangbogens visning og Udseende; `useHydrated` flyttet til `src/hooks`. (h) `.agents/` (installerede skills) i `.prettierignore`: de fik `format:check` til at fejle allerede på `master`. Første fase af det nye look (kun logoet bliver, D-162); næste fase er tre retninger på Overblik. | Én ændring ét sted i stedet for 800 klassenavne; mørkt tema kræver roller, ikke farvenavne; kontrasten testes i stedet for at regnes i hånden. | §13.2, §9.8, §14 |
+| D-169 | 2026-11-03 | **Apple-polish: tryk, typeskala og høj kontrast** (Jesper: "lav 1-6 i denne PR" efter en gennemgang med apple-design-skillen). (a) Trykfeedback: `pressable`, `pressable-row` og `pressable-dim` (§13.4) på alle kort, rækker, links og menupunkter. Før havde kun `Button` en `active:`-tilstand, og på en telefon skete der intet ved tryk, fordi `hover:` kun gælder med mus, og tap-highlight er slået fra. (b) Temaskiftet på Profil toner over med View Transitions, ikke ved reduceret bevægelse. (c) `BeerRating`: man kan trække hen over stjernerne (pointer capture, 8 px tærskel, `touch-action: pan-y`), og værdien gemmes, når man slipper. `ratingAtX` er unit-testet. (d) `SegmentedControl`: lige brede segmenter og et valg, der glider (én `translate`, ingen måling, rigtig fra serveren). (e) Høj kontrast: `highContrast` i `themes.ts` bliver til `@media (prefers-contrast: more)` i `tokens.css`. Kontrasttesten kører også med høj kontrast (dæmpet tekst ≥ 7:1, kanter ≥ 3:1). (f) Typeskala i `typography.ts`: 17 roller + `invite-code`, genereret til `text-<rolle>` med linjehøjde og tracking. Tailwinds størrelser er nulstillet, versaler bruger `caps`/`caps-wide`, og `check:tokens` afviser Tailwind-størrelser og vilkårlige størrelser, linjehøjder og tracking. `cn` kender rollerne (`createCn`), og ESLint kræver `@/lib/utils`. 37 størrelser blev til 17 roller. Skærmene flytter sig 1–12 px i højden, og sidetitler og heroens titel har nu negativ tracking. Logoets ordmærke står uden for skalaen (D-162). | Hver del er et af Apples principper fra gennemgangen: respons ved tryk, ingen pludselige lysskift, direkte manipulation, rumlig sammenhæng, tilgængelighed og typografi, der følger størrelsen. Typografien er bygget som farvesystemet (D-168), så den nye skrift i næste fase er én ændring. | §13.3 (forslag) |
 
 ## 19.4 Fejl og rettelser (implementeringslog)
 
@@ -2328,6 +2389,20 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Rettelse:** Hvad blev ændret? (filer/commits)
 - **Læring / forebyggelse:** Hvad skal næste session vide? Skal spec'en opdateres?
 ```
+
+### F-092 · 2026-11-03 · E2E-serveren slettede screenshot-serverens build-mappe
+- **Område:** Værktøj / E2E
+- **Symptom:** `npx playwright test` stoppede med `ENOTEMPTY ... .next-e2e/dev/cache/turbopack`, og den dev-server på port 3200, der tog screenshots, døde.
+- **Årsag:** Begge servere brugte `NEXT_DIST_DIR=.next-e2e`. Playwrights `webServer` sletter `.next-e2e/dev`, før den starter, også mens en anden server skriver i den.
+- **Rettelse:** Screenshot-serveren stoppes, før E2E kører, og startes igen bagefter.
+- **Læring / forebyggelse:** Kør aldrig en anden `next dev` med `.next-e2e` samtidig med `npm run test:e2e`. `next dev` med `NEXT_DIST_DIR` retter også `tsconfig.json`: kør `git checkout tsconfig.json` bagefter.
+
+### F-091 · 2026-11-03 · `cn` ville have smidt typeskalaens tekst-roller væk
+- **Område:** UI / Tailwind
+- **Symptom (fanget før det ramte):** `cn("text-title-sm", "text-primary-ink")` gav `"text-primary-ink"`. Størrelsen forsvandt, hver gang en komponent flettede en tekst-rolle med en tekstfarve.
+- **Årsag:** `cn` (clsx + tailwind-merge) kender kun Tailwinds egne størrelser (`text-lg` …). Alt andet `text-*` regner den som en farve, og af to farver i samme kald vinder den sidste.
+- **Rettelse:** `src/lib/utils.ts` bygger `cn` med `createCn` og `font-size: TEXT_ROLES` fra `typography.ts`. `utils.test.ts` holder det. De 15 shadcn-filer, der importerede `cn` direkte fra `"cn"`, bruger nu `@/lib/utils`, og ESLint forbyder den direkte import.
+- **Læring / forebyggelse:** Et nyt Tailwind-navnerum med egne navne (fx `--text-*`) skal også meldes til `cn`, ellers fletter den forkert uden at sige noget.
 
 ### F-090 · 2026-11-02 · Rettede theme-color-tags gav dubletter efter hydrering
 - **Område:** UI / Tema
@@ -2968,6 +3043,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 | ~~TG-064~~ | 2026-10-18 | ~~"Skift email" kan pege på en andens adresse, som ingen konto har (D-151). Logger ejeren af adressen senere ind med Google, kobles Google på kontoen (samme klasse som TG-002)~~ | ~~Lav i en privat klub-app: kræver en konto med password og et bevidst valg af en andens email~~ | ~~Verificér den nye email (TG-033), før den gemmes eller kobles~~ ✅ Løst 2026-10-26 af D-165: ingen automatisk kobling, "Skift email" kobler Google fra, og en kobling afvises, hvis kontoens email er skiftet undervejs. |
 | TG-065 | 2026-10-18 | To ting har ingen E2E: "Log ind med Google igen" (`GoogleSignInButton` med `loginHint`, D-152), fordi Google ikke er sat op i dev og E2E, og linket "Rapportér denne fejl" i `global-error.tsx` (D-150), fordi testene ikke fremtvinger en fejl i rodlayoutet. | En fejl i Googles round trip efter "Tilføj password" eller i den globale fejlsides link opdages først i brug | Google-delen testes manuelt sammen med TG-011, når `GOOGLE_*` er sat op. Den globale fejlside er dækket af kodegennemgang og unit tests af `newFeedbackHref` |
 | TG-066 | 2026-11-02 | Mørkt tema er afledt af D-092-paletten (genererede mørke skalaer + få `{ light, dark }`-roller), ikke designet | Læsbart og AA-testet, men ikke gennemtænkt visuelt: fx er primærknapper lys oliven med mørk tekst | Designes sammen med det nye look (tre retninger på Overblik, D-168). Rettes i `palette.ts`/`themes.ts`, ikke i komponenter |
+| TG-067 | 2026-11-03 | Komponenter sætter stadig `leading-tight`/`leading-snug` på mange titler, selvom tekst-rollerne har deres egen linjehøjde (D-169) | Virker og er tilladt, men linjehøjden bor to steder: ændres en rolles linjehøjde, følger de elementer ikke med | Ryd op, når den nye typografi rulles ud (fase 3): fjern de lokale `leading-*`, hvor rollens linjehøjde passer, og justér rollerne i `typography.ts` |
 
 ## 19.6 Dokumenthistorik
 

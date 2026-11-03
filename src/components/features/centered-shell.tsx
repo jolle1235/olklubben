@@ -59,19 +59,17 @@ export function CenteredShell({
           {title || subtitle ? (
             <header className="mb-6">
               {title ? (
-                <h1 className="text-[1.85rem] leading-tight font-bold tracking-tight text-primary-ink">
+                <h1 className="text-headline-sm leading-tight font-bold text-primary-ink">
                   {title}
                 </h1>
               ) : null}
-              {subtitle ? (
-                <p className="mt-2 text-[1.05rem] text-muted-foreground">{subtitle}</p>
-              ) : null}
+              {subtitle ? <p className="mt-2 text-lead text-muted-foreground">{subtitle}</p> : null}
             </header>
           ) : null}
           {children}
         </div>
         {footer ? (
-          <div className="mt-6 w-full max-w-md text-center text-[0.95rem] text-muted-foreground">
+          <div className="mt-6 w-full max-w-md text-center text-body-sm text-muted-foreground">
             {footer}
           </div>
         ) : null}

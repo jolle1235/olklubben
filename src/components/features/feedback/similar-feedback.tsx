@@ -48,10 +48,10 @@ export function SimilarFeedback({ title, candidates }: SimilarFeedbackProps) {
           aria-labelledby={headingId}
           className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-highlight bg-highlight-subtle/60 px-4 py-3"
         >
-          <h2 id={headingId} className="text-lg leading-tight text-primary-ink">
+          <h2 id={headingId} className="text-body-lg leading-tight text-primary-ink">
             Findes den allerede?
           </h2>
-          <p className="text-[0.95rem] text-foreground">
+          <p className="text-body-sm text-foreground">
             Giv hellere en 👍 på en rapport, der findes, end at skrive den igen.
           </p>
           <ul className="grid grid-cols-1 gap-1">
@@ -61,14 +61,14 @@ export function SimilarFeedback({ title, candidates }: SimilarFeedbackProps) {
                   href={feedbackHref(candidate.id)}
                   target="_blank"
                   rel="noopener"
-                  className="inline-flex min-h-11 min-w-0 items-center gap-1.5 font-semibold text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight"
+                  className="inline-flex min-h-11 min-w-0 items-center gap-1.5 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
                 >
                   <span className="min-w-0 break-words hyphens-auto">{candidate.title}</span>
                   <ExternalLinkIcon aria-hidden className="size-4 shrink-0" />
                   <span className="sr-only"> (åbner i en ny fane)</span>
                 </a>
                 <FeedbackStatusBadge status={candidate.status} />
-                <span className="text-[0.95rem] whitespace-nowrap text-muted-foreground">
+                <span className="text-body-sm whitespace-nowrap text-muted-foreground">
                   <span aria-hidden>👍 </span>
                   {candidate.voteCount}
                   <span className="sr-only"> {voteNoun(candidate.voteCount)}</span>

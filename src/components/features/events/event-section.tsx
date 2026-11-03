@@ -19,7 +19,7 @@ export function EventSection({ id, title, children, className }: EventSectionPro
       <SectionDivider />
       <h2
         id={id}
-        className="text-center text-2xl leading-tight break-words hyphens-auto text-primary-ink md:text-[1.75rem]"
+        className="text-center text-title-md leading-tight break-words hyphens-auto text-primary-ink md:text-title-lg"
       >
         {title}
       </h2>

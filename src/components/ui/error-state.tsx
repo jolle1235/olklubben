@@ -37,18 +37,18 @@ export function ErrorState({
       >
         <BeerOffIcon />
       </div>
-      <Heading className="max-w-[26ch] text-2xl leading-tight font-bold text-primary-ink">
+      <Heading className="max-w-[26ch] text-title-md leading-tight font-bold text-primary-ink">
         {title}
       </Heading>
       {description ? (
-        <div className="mt-2 max-w-[44ch] text-[1.05rem] text-muted-foreground">{description}</div>
+        <div className="mt-2 max-w-[44ch] text-lead text-muted-foreground">{description}</div>
       ) : null}
       {action ? (
         <div className="mt-6 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row">
           {action}
         </div>
       ) : null}
-      {detail ? <p className="mt-5 text-sm text-muted-foreground">{detail}</p> : null}
+      {detail ? <p className="mt-5 text-label-lg text-muted-foreground">{detail}</p> : null}
     </section>
   );
 }

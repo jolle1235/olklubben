@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { Avatar as AvatarPrimitive } from "radix-ui";
 
 function Avatar({
@@ -42,7 +42,7 @@ function AvatarFallback({
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-avatar-1 font-display text-sm font-semibold text-avatar-foreground group-data-[size=sm]/avatar:text-xs",
+        "flex size-full items-center justify-center rounded-full bg-avatar-1 font-display text-label-lg font-semibold text-avatar-foreground group-data-[size=sm]/avatar:text-label-sm",
         className,
       )}
       {...props}
@@ -84,7 +84,7 @@ function AvatarGroupCount({ className, ...props }: React.ComponentProps<"div">) 
     <div
       data-slot="avatar-group-count"
       className={cn(
-        "relative flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground ring-2 ring-background group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3",
+        "relative flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-label-lg text-muted-foreground ring-2 ring-background group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3",
         className,
       )}
       {...props}

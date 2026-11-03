@@ -66,7 +66,7 @@ export function VoterAvatars({
         ),
       )}
       {rest > 0 ? (
-        <span className="text-[0.9rem] font-semibold text-muted-foreground tabular-nums">
+        <span className="text-label-lg font-semibold text-muted-foreground tabular-nums">
           +{rest}
         </span>
       ) : null}

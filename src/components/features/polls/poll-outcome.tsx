@@ -50,7 +50,7 @@ export function PollOutcome({ clubId, view, now }: PollOutcomeProps) {
     >
       <h2
         id="poll-outcome-heading"
-        className="text-[1.6rem] leading-tight font-bold break-words text-feature-foreground md:text-[1.85rem]"
+        className="text-title-md leading-tight font-bold break-words text-feature-foreground md:text-headline-sm"
       >
         🎉 Afstemningen er afsluttet!
       </h2>
@@ -61,19 +61,19 @@ export function PollOutcome({ clubId, view, now }: PollOutcomeProps) {
             <BigDate date={event.startsAt} size="md" className="text-feature-foreground" />
           </div>
           <div className="grid min-w-0 grid-cols-1 gap-2">
-            <p className="text-xl font-semibold break-words text-feature-foreground">
+            <p className="text-title-sm font-semibold break-words text-feature-foreground">
               <time dateTime={event.startsAt.toISOString()}>
                 {outcomeDateLabel(event.startsAt, now)}
               </time>
             </p>
-            <p className="flex items-start gap-2.5 text-lg text-feature-foreground">
+            <p className="flex items-start gap-2.5 text-body-lg text-feature-foreground">
               <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-highlight" />
               <span className="min-w-0 break-words hyphens-auto">
                 <span className="sr-only">Sted: </span>
                 {event.placeName}
               </span>
             </p>
-            <p className="flex items-start gap-2.5 text-lg text-feature-foreground">
+            <p className="flex items-start gap-2.5 text-body-lg text-feature-foreground">
               <UsersIcon aria-hidden className="mt-1 size-5 shrink-0 text-highlight" />
               <span className="min-w-0 break-words hyphens-auto">
                 {hostsLabel(event.hosts.map((host) => getDisplayName(host)))}
@@ -82,11 +82,11 @@ export function PollOutcome({ clubId, view, now }: PollOutcomeProps) {
           </div>
         </div>
       ) : (
-        <p className="mt-3 text-lg text-feature-foreground">{EVENT_DELETED_NOTE}</p>
+        <p className="mt-3 text-body-lg text-feature-foreground">{EVENT_DELETED_NOTE}</p>
       )}
 
       {reason ? (
-        <p className="mt-4 text-[0.95rem] break-words text-feature-muted-foreground">{reason}</p>
+        <p className="mt-4 text-body-sm break-words text-feature-muted-foreground">{reason}</p>
       ) : null}
 
       {event ? (

@@ -35,7 +35,7 @@ export function BottomNav({ clubId, className }: BottomNavProps) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 pt-2 pb-1.5 text-[0.8125rem] leading-none font-semibold transition-colors",
+                  "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 pt-2 pb-1.5 text-label-md leading-none font-semibold pressable-dim",
                   active
                     ? "text-frame-foreground"
                     : "text-frame-muted-foreground hover:text-frame-foreground",

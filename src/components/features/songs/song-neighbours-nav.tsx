@@ -82,7 +82,7 @@ function NeighbourCard({
       prefetch={true}
       rel={isNext ? "next" : "prev"}
       className={cn(
-        "group flex min-h-16 min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-3 text-foreground transition-colors hover:border-primary-border hover:bg-primary-subtle/50 sm:px-4",
+        "group flex min-h-16 min-w-0 pressable items-center gap-2 rounded-xl border border-border bg-card px-3 py-3 text-foreground hover:border-primary-border hover:bg-primary-subtle/50 sm:px-4",
         isNext && "flex-row-reverse text-right",
       )}
     >
@@ -92,7 +92,7 @@ function NeighbourCard({
         <ChevronLeftIcon aria-hidden className="size-5 shrink-0 text-primary-ink" />
       )}
       <span className="grid min-w-0 flex-1 grid-cols-1">
-        <span className="text-[0.9rem] text-muted-foreground">
+        <span className="text-label-lg text-muted-foreground">
           {isNext ? "Næste sang" : "Forrige sang"}
         </span>
         <span className="line-clamp-2 font-semibold break-words hyphens-auto">

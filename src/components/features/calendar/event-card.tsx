@@ -41,7 +41,7 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
     <Link
       href={eventHref(clubId, event.id)}
       className={cn(
-        "group flex min-h-20 items-center gap-4 rounded-xl border border-l-4 border-border px-4 py-3 transition-colors",
+        "group flex min-h-20 pressable items-center gap-4 rounded-xl border border-l-4 border-border px-4 py-3",
         past
           ? "border-l-border-strong bg-muted/50 hover:bg-muted"
           : "border-l-primary bg-card shadow-raised hover:bg-muted/60",
@@ -51,39 +51,39 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
       <span aria-hidden className="flex w-11 shrink-0 flex-col items-center text-center">
         <span
           className={cn(
-            "font-display text-[2rem] leading-none font-bold",
+            "font-display text-headline-md leading-none font-bold",
             past ? "text-muted-foreground" : "text-primary-ink",
           )}
         >
           {formatDayMonthParts(event.startsAt)?.day}
         </span>
-        <span className="mt-1.5 text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">
+        <span className="mt-1.5 text-label-sm font-bold caps text-muted-foreground">
           {formatWeekdayShort(event.startsAt)}
         </span>
       </span>
 
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="min-w-0 font-heading text-xl leading-snug font-semibold break-words hyphens-auto text-primary-ink">
+          <span className="min-w-0 font-heading text-title-sm leading-snug font-semibold break-words hyphens-auto text-primary-ink">
             {event.title}
           </span>
           {badge ? (
-            <span className="rounded-full bg-highlight-subtle px-2.5 py-0.5 text-[0.85rem] font-bold whitespace-nowrap text-highlight-ink">
+            <span className="rounded-full bg-highlight-subtle px-2.5 py-0.5 text-label-md font-bold whitespace-nowrap text-highlight-ink">
               {badge}
             </span>
           ) : null}
         </span>
         <span className="sr-only">, {formatLongDate(event.startsAt, now)}, </span>
-        <span className="block text-[0.95rem] break-words text-muted-foreground">
+        <span className="block text-body-sm break-words text-muted-foreground">
           {eventPlaceAndTime(event)}
         </span>
         {event.theme ? (
-          <span className="mt-0.5 block text-[0.95rem] break-words text-foreground">
+          <span className="mt-0.5 block text-body-sm break-words text-foreground">
             <span className="text-muted-foreground">Tema:</span> {event.theme}
           </span>
         ) : null}
         {meta ? (
-          <span className="mt-0.5 block text-[0.95rem] break-words hyphens-auto text-foreground">
+          <span className="mt-0.5 block text-body-sm break-words hyphens-auto text-foreground">
             {meta}
           </span>
         ) : null}

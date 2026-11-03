@@ -142,7 +142,7 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
         <div className="grid min-w-0 gap-1.5">
           <label
             htmlFor={sortId}
-            className="text-[0.95rem] leading-tight font-semibold text-foreground"
+            className="text-body-sm leading-tight font-semibold text-foreground"
           >
             Sorter
           </label>
@@ -166,7 +166,7 @@ export function CatalogControls({ action, params, events }: CatalogControlsProps
         <div className="grid min-w-0 gap-1.5">
           <label
             htmlFor={eventId}
-            className="text-[0.95rem] leading-tight font-semibold text-foreground"
+            className="text-body-sm leading-tight font-semibold text-foreground"
           >
             Event
           </label>
