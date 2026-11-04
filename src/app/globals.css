@@ -53,7 +53,46 @@
   html {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+  }
+  /*
+   * På mobil har klubsiderne rammen øverst og nederst (top bar,
+   * bundnavigation). Lærredet bag siden får rammens farve, så top baren ikke
+   * ser ud til at gå løs, når iOS trækker siden ud over enden (SPEC §13.6).
+   */
+  @media (width < 48rem) {
+    html:has([data-app-shell]) {
+      background-color: var(--frame);
+    }
+  }
+  /*
+   * Kontroller (SPEC §13.6): et tryk gælder med det samme, uden at browseren
+   * venter på et dobbelttryk (knib-zoom virker stadig), og et langt tryk
+   * markerer ikke knappens tekst.
+   */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  summary,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+  button,
+  label,
+  summary,
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Installeret som app: et langt tryk på et link åbner ikke browserens menu (ny fane, del). */
+  @media (display-mode: standalone) {
+    a {
+      -webkit-touch-callout: none;
+    }
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -111,9 +150,12 @@
  *
  * Trykket sker med det samme, slippet glider tilbage. Utility'en ejer
  * elementets transition (farve, kant, skygge, opacity, scale), så elementet
- * selv har ingen transition-*. Button har sit eget tryk.
+ * selv har ingen transition-*. Button har sit eget tryk. Det er kontroller,
+ * så et langt tryk markerer ikke deres tekst (§13.6).
  */
 @utility pressable {
+  -webkit-user-select: none;
+  user-select: none;
   transition-property: color, background-color, border-color, box-shadow, opacity, scale;
   transition-duration: 220ms;
   transition-timing-function: var(--ease-spring);
@@ -124,6 +166,8 @@
 }
 
 @utility pressable-row {
+  -webkit-user-select: none;
+  user-select: none;
   transition-property: color, background-color, border-color, opacity;
   transition-duration: 220ms;
   transition-timing-function: var(--ease-spring);
@@ -134,6 +178,8 @@
 }
 
 @utility pressable-dim {
+  -webkit-user-select: none;
+  user-select: none;
   transition-property: color, background-color, text-decoration-color, opacity;
   transition-duration: 220ms;
   transition-timing-function: var(--ease-spring);

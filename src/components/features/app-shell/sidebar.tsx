@@ -33,7 +33,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
   return (
     <div
       className={cn(
-        "sticky top-0 hidden h-dvh flex-col overflow-y-auto surface-frame md:flex",
+        "sticky top-0 hidden h-dvh flex-col overflow-y-auto overscroll-contain surface-frame pt-[env(safe-area-inset-top)] md:flex",
         className,
       )}
     >

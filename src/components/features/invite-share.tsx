@@ -88,7 +88,7 @@ export function InviteShare({ inviteUrl, displayCode, clubName, className }: Inv
           readOnly
           value={inviteUrl}
           onFocus={(event) => event.currentTarget.select()}
-          className="h-11 w-full truncate rounded-lg bg-muted px-3.5 text-body-sm text-foreground"
+          className="h-11 w-full truncate rounded-lg bg-muted px-3.5 text-body-md text-foreground"
         />
         <div className="grid grid-cols-2 gap-3">
           <Button type="button" variant="secondary" onClick={copyLink}>

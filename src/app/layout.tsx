@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   title: { template: "%s · Ølklubben", default: "Ølklubben" },
   description: "Klubbens digitale samlingspunkt: næste ølsmagning, øl, sange og afstemninger.",
   applicationName: "Ølklubben",
-  appleWebApp: { title: "Ølklubben", capable: true, statusBarStyle: "default" },
+  // Installed on an iPhone (manifest.ts): the page runs under the status bar,
+  // whose light text sits on the frame colour that every shell paints there
+  // (top bar, CenteredShell's band, AppShell's strip on wide screens) (SPEC §13.6).
+  appleWebApp: { title: "Ølklubben", capable: true, statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 
