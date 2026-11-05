@@ -124,21 +124,19 @@ test.describe("Ratings", () => {
       return found;
     };
 
-    // From the first star to the right half of the fourth (§13.4, D-169).
     const first = await box(0);
     const fourth = await box(3);
     const y = first.y + first.height / 2;
     await page.mouse.move(first.x + first.width / 2, y);
     await page.mouse.down();
     await page.mouse.move(fourth.x + fourth.width * 0.8, y, { steps: 12 });
-    // While dragging nothing is saved yet.
+    // Saved on release, not while dragging.
     expect(await myRating(beerId, owner.email)).toBeNull();
     await page.mouse.up();
     await expectRatingSaved(page);
     await expect(group.getByRole("radio", { name: "4 ud af 5", exact: true })).toBeChecked();
     await expect.poll(() => myRating(beerId, owner.email)).toBe(8);
 
-    // Past the last star: clamps to 5 stars instead of falling off the scale.
     const second = await box(1);
     const last = await box(4);
     await page.mouse.move(second.x + second.width / 2, y);

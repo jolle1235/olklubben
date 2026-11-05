@@ -65,7 +65,6 @@ export function SongListItem({
   );
 }
 
-/** The card the rows sit in: card surface, rounded, dividers between rows. */
 export function SongListCard({ children }: { children: React.ReactNode }) {
   return (
     <ul className="grid grid-cols-1 divide-y divide-muted overflow-hidden rounded-2xl border border-border bg-card">

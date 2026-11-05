@@ -9,12 +9,10 @@ import {
   Loader2Icon,
 } from "lucide-react";
 
-// Toasts are pills in the app frame's colours (SPEC §13.2); errors use the
-// destructive role. The colours come from the colour system's roles, so they
-// follow the light and dark theme without next-themes; contrast is tested in
-// src/styles/tokens/contrast.test.ts. The highlight border sets them off on
-// the frame band of CenteredShell pages, where "club-left"/"club-deleted"
-// land (TG-039), as well as on the page background.
+// Pills in the app frame's colours (SPEC §13.2). The colours are roles, so
+// they follow the theme without next-themes. The highlight border sets them off
+// on the frame band of CenteredShell pages, where "club-left"/"club-deleted"
+// land (TG-039).
 // Top-center on all screens, so toasts never hide behind the mobile bottom nav.
 const Toaster = ({ ...props }: ToasterProps) => {
   return (

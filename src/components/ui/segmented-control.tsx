@@ -5,27 +5,20 @@ import { cn } from "@/lib/utils";
 export type SegmentedOption<T extends string> = { value: T; label: ReactNode };
 
 export type SegmentedControlProps<T extends string> = {
-  /** The group's accessible name, e.g. "Visning". */
+  /** The group's accessible name. */
   label: string;
   options: readonly SegmentedOption<T>[];
-  /** The chosen option; null shows none as chosen (e.g. before hydration). */
+  /** null shows none as chosen. */
   value: T | null;
   onChange: (value: T) => void;
-  /** Default: while no option is chosen (value null). */
   disabled?: boolean;
   className?: string;
 };
 
 /**
- * A row of toggle buttons where exactly one is chosen (aria-pressed), e.g.
- * Tekst | Akkorder in the song reader and System | Lyst | Mørkt on Profil.
- * Every button is at least 44 px (SPEC §13.4).
- *
- * Like iOS, the segments are equally wide and the marker slides to the
- * chosen one (SPEC §13.4). The marker is one element moved with `translate`,
- * so it needs no measuring and is right from the server render; it only
- * appears once a value is chosen, so it never slides in from the first
- * segment after hydration.
+ * Toggle buttons where one is chosen, iOS style (SPEC §13.4). Equal segments
+ * let the marker slide with `translate`, without measuring. It renders only once
+ * a value is chosen, so it never slides in after hydration.
  */
 export function SegmentedControl<T extends string>({
   label,

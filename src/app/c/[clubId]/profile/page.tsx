@@ -28,8 +28,8 @@ export const metadata: Metadata = { title: "Profil" };
  * Profil (D-023, SPEC §8.1, §9.8, D-105, D-106, D-151, D-152): who you are
  * (with the official name when a nickname is set), name and nickname, the
  * email, the password, the way to the club page, its places and other clubs,
- * "Udseende" (System | Lyst | Mørkt, per device, §13.2), "Feedback (fejl og
- * ønsker)" (the app-wide reports, §9.9, D-147), and log out.
+ * "Udseende" (per device, §13.2), "Feedback (fejl og ønsker)" (the app-wide
+ * reports, §9.9, D-147), and log out.
  *
  *   * Email: password logins get "Skift email"; accounts with only an external
  *     login (Google or Auth0, D-166) are told that their email follows it.

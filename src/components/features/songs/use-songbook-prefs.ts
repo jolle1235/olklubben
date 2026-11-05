@@ -12,12 +12,6 @@ import {
   type SongView,
 } from "@/lib/songbook-prefs";
 
-/**
- * The reader's font step and view (src/lib/songbook-prefs.ts) as per-device
- * settings on <html>, which the head bootstrap set before the first paint.
- * The text itself is sized by CSS from the attribute, so it never jumps; the
- * controls get null until hydrated.
- */
 const fontStep = createHtmlPref({
   attribute: SONG_SIZE_ATTRIBUTE,
   storageKey: SONG_FONT_STEP_KEY,

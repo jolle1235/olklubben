@@ -20,7 +20,7 @@ export type SidebarProps = {
 };
 
 /**
- * Desktop navigation (md+): the frame-coloured sidebar with logo, club switcher, the list
+ * Desktop navigation (md+): sidebar with logo, club switcher, the list
  * (Overblik, Kalender, Øl, Sangbog) and, at the bottom, the user row, which is
  * the way to Profil (and the club page) on desktop, with "Log ud" under it.
  */

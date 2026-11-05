@@ -34,7 +34,7 @@ const clubPath = (id: string) => `/c/${encodeURIComponent(id)}`;
 /**
  * The active club's name (SPEC §3.1, §8.1). With one club it is a link to the
  * club page; with more it opens a menu to switch club, like switching profile on
- * Instagram. Always on the app frame (surface-frame).
+ * Instagram. Always on the app frame.
  */
 export function ClubSwitcher({ club, clubs, variant = "topbar", className }: ClubSwitcherProps) {
   const router = useRouter();

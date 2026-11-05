@@ -10,7 +10,7 @@ import { setSongFontStep, useSongFontStep } from "./use-songbook-prefs";
 
 export type SongFontStepperProps = {
   /**
-   * "topbar": two icon buttons in the frame colours in the mobile top bar (TopBarAction).
+   * "topbar": icon buttons in the mobile top bar (TopBarAction).
    * "toolbar": outline buttons in the reader's toolbar (md and up).
    */
   variant: "topbar" | "toolbar";
@@ -22,7 +22,6 @@ export type SongFontStepperProps = {
  * remembered per device. Disabled at the ends and until hydrated (TG-020).
  */
 export function SongFontStepper({ variant, className }: SongFontStepperProps) {
-  // Null until hydrated (TG-020).
   const step = useSongFontStep();
   const buttonClass =
     variant === "topbar"

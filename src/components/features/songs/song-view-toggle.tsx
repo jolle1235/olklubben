@@ -12,8 +12,8 @@ const VIEWS = [
 
 /**
  * Tekst | Akkorder (SPEC §9.6). Remembered per device. Both views are already
- * on the page (SongTextView); this only flips <html data-song-view>. Disabled
- * until hydrated (useSongView is null until then, TG-020). Rendered only for songs with chords.
+ * on the page (SongTextView); this only flips <html data-song-view>. Rendered
+ * only for songs with chords.
  */
 export function SongViewToggle({ className }: { className?: string }) {
   const view = useSongView();

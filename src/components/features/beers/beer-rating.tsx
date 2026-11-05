@@ -31,8 +31,7 @@ export type BeerRatingProps = {
  * Saves at once (optimistic, then a small "Gemt ✓"); a failure rolls back
  * and shows an error toast. "Fjern min rating" is a discreet link below.
  *
- * A finger (or mouse) can also drag across the stars, like rating in the App
- * Store (useStarDrag): the stars follow it 1:1 and the value is saved on
+ * The stars can also be dragged across (useStarDrag); the value is saved on
  * release (§13.4).
  *
  * Accessible as a radio group of nine native radios ("4,5 ud af 5"):

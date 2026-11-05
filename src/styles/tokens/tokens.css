@@ -1,15 +1,11 @@
 /*
- * GENERERET af `npm run tokens` (scripts/build-tokens.ts) ud fra
- * src/styles/tokens/palette.ts (lag 1), themes.ts (lag 2–3) og
- * typography.ts (typeskalaen). Redigér ikke her: ret kilden og kør
- * `npm run tokens`. SPEC §13.2, §13.3.
+ * GENERERET af `npm run tokens` ud fra src/styles/tokens/palette.ts, themes.ts
+ * og typography.ts. Redigér ikke her (SPEC §13.2, §13.3).
  */
 
 /*
- * Utilities: bg-*, text-*, border-* … for hver rolle i `colors`, shadow-* for hver
- * elevation og text-* for hver tekst-rolle. Tailwinds standardpalet,
- * -skriftstørrelser og -skygger nulstilles først, så KUN rollerne findes (ingen
- * tilfældige farver, fx lilla, størrelser eller sorte skygger kan snige sig ind).
+ * Kun rollerne findes: Tailwinds farver, størrelser og skygger nulstilles her,
+ * i samme blok og før rollerne (F-089).
  */
 @theme inline {
   --color-*: initial;
@@ -126,7 +122,7 @@
   --shadow-bar: var(--elevation-bar);
   --shadow-press: var(--elevation-press);
 
-  /* Typeskalaen: størrelse, linjehøjde og tracking pr. rolle */
+  /* Typeskalaen */
   --text-display-xl: 6rem;
   --text-display-xl--line-height: 1;
   --text-display-xl--letter-spacing: -0.03em;
@@ -216,7 +212,6 @@
   --text-invite-code--letter-spacing: 0.06em;
 }
 
-/* Versaler: tracking til store bogstaver, uanset størrelse */
 @utility caps {
   text-transform: uppercase;
   --tw-tracking: 0.14em;
@@ -439,7 +434,7 @@
   --elevation-press: inset 0 -2px 0 color-mix(in oklab, var(--black) 20%, transparent);
 }
 
-/* Mørkt tema: valgt på Profil, eller System på en enhed i mørk tilstand */
+/* Mørkt tema */
 [data-theme="dark"] {
   color-scheme: dark;
 
@@ -529,7 +524,7 @@
   --brown-11: #dcb692;
   --brown-12: #f9e8d8;
 
-  /* Roller, der peger på et andet trin i mørkt tema */
+  /* Kun roller og skygger, der skifter værdi */
   --background: var(--sand-1);
   --card: var(--sand-2);
   --popover: var(--sand-3);
@@ -634,7 +629,7 @@
     --brown-11: #dcb692;
     --brown-12: #f9e8d8;
 
-    /* Roller, der peger på et andet trin i mørkt tema */
+    /* Kun roller og skygger, der skifter værdi */
     --background: var(--sand-1);
     --card: var(--sand-2);
     --popover: var(--sand-3);
@@ -650,10 +645,7 @@
   }
 }
 
-/*
- * Høj kontrast (prefers-contrast: more): de roller, der står i
- * `highContrast` i themes.ts. Står sidst, så de vinder over begge temaer.
- */
+/* Høj kontrast: står sidst, så den vinder over begge temaer */
 @media (prefers-contrast: more) {
   :root {
     --muted-foreground: color-mix(in oklab, var(--sand-11), var(--sand-12) 50%);

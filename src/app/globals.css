@@ -1,22 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-/* Farvesystemet: genereret fra src/styles/tokens/ med `npm run tokens`. */
+/* Genereret fra src/styles/tokens/ med `npm run tokens`. */
 @import "../styles/tokens/tokens.css";
 
 /*
  * Ølklubben designsystem (SPEC §13).
  *
- * Farverne kommer fra farvesystemet (SPEC §13.2): primitiver i
- * src/styles/tokens/palette.ts, roller i themes.ts, genereret til
- * tokens.css. Komponenter bruger kun rollerne (bg-card, text-muted-foreground,
- * bg-primary, shadow-raised …). Kontrasten testes i contrast.test.ts.
- * tokens.css slår også Tailwinds standardpalet fra: kun rollerne findes som farver.
- *
- * Lyst og mørkt tema: tokens.css skifter skalaerne under rollerne, når
- * data-theme="dark" er valgt på Profil, eller når valget er System og
- * enheden er i mørk tilstand (src/lib/theme-prefs.ts). Ingen komponent
- * bruger Tailwinds dark-variant.
+ * Farverne er kun rollerne fra tokens.css (SPEC §13.2), som også slår Tailwinds
+ * standardpalet fra. Mørkt tema skifter skalaerne under rollerne, så ingen
+ * komponent bruger Tailwinds dark-variant.
  */
 
 @theme inline {
@@ -33,7 +26,7 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  /* Bevægelse (SPEC §13.4): blød opbremsning uden at skyde over, som en kritisk dæmpet fjeder. */
+  /* SPEC §13.4: som en kritisk dæmpet fjeder, uden at skyde over. */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -57,9 +50,8 @@
     text-size-adjust: 100%;
   }
   /*
-   * På mobil har klubsiderne rammen øverst og nederst (top bar,
-   * bundnavigation). Lærredet bag siden får rammens farve, så top baren ikke
-   * ser ud til at gå løs, når iOS trækker siden ud over enden (SPEC §13.6).
+   * Mobil: lærredet bag klubsiderne får rammens farve, så top baren ikke ser
+   * ud til at gå løs, når iOS trækker siden ud over enden (SPEC §13.6).
    */
   @media (width < 48rem) {
     html:has([data-app-shell]) {
@@ -67,9 +59,8 @@
     }
   }
   /*
-   * Kontroller (SPEC §13.6): et tryk gælder med det samme, uden at browseren
-   * venter på et dobbelttryk (knib-zoom virker stadig), og et langt tryk
-   * markerer ikke knappens tekst.
+   * Kontroller (SPEC §13.6): ingen ventetid på dobbelttryk (knib-zoom virker
+   * stadig), og et langt tryk markerer ikke teksten.
    */
   a,
   button,
@@ -88,7 +79,7 @@
     -webkit-user-select: none;
     user-select: none;
   }
-  /* Installeret som app: et langt tryk på et link åbner ikke browserens menu (ny fane, del). */
+  /* Installeret som app: et langt tryk på et link åbner ikke browserens menu. */
   @media (display-mode: standalone) {
     a {
       -webkit-touch-callout: none;
@@ -116,10 +107,8 @@
 }
 
 /*
- * Flader med egen tekst (SPEC §13.2): tekstfarve, fokusring og spalten i
- * porthole-ringe følger fladen. surface-frame: app-rammen (sidebar, top bar,
- * bundnavigation, CenteredShell). surface-feature: fremhævede kort (Overblikkets
- * hero, "Klubbens rating", afstemningens resultat).
+ * Flader med egen tekst (SPEC §13.2): fokusring, trykfarve og porthole-spalten
+ * følger fladen. surface-frame er app-rammen, surface-feature fremhævede kort.
  */
 @utility surface-frame {
   --ring: var(--frame-ring);
@@ -138,20 +127,12 @@
 }
 
 /*
- * Trykfeedback (SPEC §13.4): alt, man kan trykke på, svarer i det øjeblik
- * fingeren rammer, ikke først når siden skifter (Apple: respons på
- * pointer-down). Tre slags, efter hvad man trykker på:
- *
- *   pressable      flader, man trykker på som helhed (kort, chips, valgkort,
- *                  kalenderens dage): giver lidt efter
- *   pressable-row  rækker i lister, menuer og på app-rammen: lyser op i
- *                  --press-highlight (fladens egen, se surface-frame)
+ * Trykfeedback (SPEC §13.4): svarer, når fingeren rammer, og glider tilbage ved slip.
+ *   pressable      flader, man trykker på som helhed: giver lidt efter
+ *   pressable-row  rækker i lister, menuer og på rammen: lyser op i --press-highlight
  *   pressable-dim  tekstlinks og ikonknapper: dæmpes
- *
- * Trykket sker med det samme, slippet glider tilbage. Utility'en ejer
- * elementets transition (farve, kant, skygge, opacity, scale), så elementet
- * selv har ingen transition-*. Button har sit eget tryk. Det er kontroller,
- * så et langt tryk markerer ikke deres tekst (§13.6).
+ * Utility'en ejer elementets transition, så elementet selv har ingen transition-*.
+ * Button har sit eget tryk.
  */
 @utility pressable {
   -webkit-user-select: none;
@@ -201,11 +182,7 @@
     0 0 0 5px var(--porthole-shadow);
 }
 
-/*
- * Temaskift (SPEC §13.2): det nye tema toner frem over hele skærmen i stedet
- * for at blinke (setThemePref bruger View Transitions; ikke ved reduceret
- * bevægelse).
- */
+/* Temaskiftets overtoning (setThemePref, SPEC §13.2). */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 300ms;
@@ -225,7 +202,7 @@
 }
 
 /*
- * Sonner uses its mobile offset only at ≤600 px, but the top bar (frame) shows
+ * Sonner uses its mobile offset only at ≤600 px, but the top bar shows
  * below md (768 px). Unlayered like Sonner's injected CSS (a layered rule
  * would lose to it); the extra `html` outranks its selector (0,2,0).
  */

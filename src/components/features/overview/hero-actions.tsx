@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { eventHref, newBeerHref, songsHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-/** A quiet button on the feature card (feature text, thin muted border). */
+/** A quiet button on the feature card. */
 const ON_HARBOR_OUTLINE =
   "border-feature-border-strong bg-transparent text-feature-foreground hover:border-feature-muted-foreground hover:bg-feature-hover aria-expanded:bg-feature-hover";
 

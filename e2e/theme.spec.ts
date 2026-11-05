@@ -3,17 +3,12 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { clubName, newUser, profileLink, signUpWithClub } from "./support/app";
 
-/** The theme the page shows (tokens.css sets color-scheme per theme). */
+/** tokens.css sets color-scheme per theme, so it tells which theme is shown. */
 function shownTheme(page: Page) {
   return page.locator("html").evaluate((html) => getComputedStyle(html).colorScheme);
 }
 
-/**
- * Udseende on Profil (SPEC §9.8, §13.2, D-168, D-171): System | Lyst | Mørkt,
- * remembered per device. An explicit choice is data-theme on <html>, set
- * before the first paint on a hard reload; "System" is no attribute, and the
- * CSS follows the device.
- */
+// SPEC §13.2, D-171: a choice is data-theme on <html>; System is no attribute.
 test("Udseende: Mørkt huskes, System følger enheden", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light" });
   await signUpWithClub(page, newUser(testInfo, "tema"), clubName(testInfo, "Temaklub"));
@@ -36,7 +31,7 @@ test("Udseende: Mørkt huskes, System følger enheden", async ({ page }, testInf
   );
   await expect.poll(() => shownTheme(page)).toBe("dark");
 
-  // Before the first paint: the server HTML has no data-theme; the head script sets it.
+  // The server HTML has no data-theme: the head script must set it before the first paint.
   await page.reload();
   await expect(html).toHaveAttribute("data-theme", "dark");
   await page.emulateMedia({ colorScheme: "light" });

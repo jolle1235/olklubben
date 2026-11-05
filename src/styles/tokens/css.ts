@@ -6,14 +6,7 @@ import type { Scales, Theme } from "./scales";
 import { DARK_SCHEME_QUERY, THEME_ATTRIBUTE } from "./theme-attribute";
 import type { capsTracking, textUtilities } from "./typography";
 
-/**
- * Skriver de genererede filer (SPEC §13.2, §13.3): tokens.css ud fra
- * skalaerne, rollerne og typeskalaen, og browser-colors.ts. render.ts samler
- * kilderne; `npm run tokens` skriver filerne.
- */
-
 type Typography = {
-  /** Hver `text-*`-utility (roller og deres -tight/-loose-varianter). */
   textStyles: ReturnType<typeof textUtilities>;
   capsTracking: typeof capsTracking;
 };
@@ -21,17 +14,13 @@ type Typography = {
 type Declaration = [name: string, value: string];
 
 const HEADER = `/*
- * GENERERET af \`npm run tokens\` (scripts/build-tokens.ts) ud fra
- * src/styles/tokens/palette.ts (lag 1), themes.ts (lag 2–3) og
- * typography.ts (typeskalaen). Redigér ikke her: ret kilden og kør
- * \`npm run tokens\`. SPEC §13.2, §13.3.
+ * GENERERET af \`npm run tokens\` ud fra src/styles/tokens/palette.ts, themes.ts
+ * og typography.ts. Redigér ikke her (SPEC §13.2, §13.3).
  */`;
 
 /**
- * Mørkt tema slår til på to måder (SPEC §13.2): valgt på Profil
- * (data-theme="dark"), eller System (ingen data-theme) på en enhed i mørk
- * tilstand. Begge selektorer har samme specificitet som :root, så
- * rækkefølgen i filen afgør, og høj kontrast til sidst vinder.
+ * Valgt mørkt tema, eller System på en mørk enhed. Begge har samme specificitet
+ * som :root, så rækkefølgen i filen afgør, og høj kontrast sidst vinder.
  */
 const DARK_CHOSEN = `[${THEME_ATTRIBUTE}="dark"]`;
 const DARK_SYSTEM = `:root:where(:not([${THEME_ATTRIBUTE}="light"]))`;
@@ -43,7 +32,6 @@ function declarations(entries: readonly Declaration[]): string {
   return entries.map(([name, value]) => `  --${name}: ${value};`).join("\n");
 }
 
-/** De erklæringer i `dark`, der har en anden værdi end i `light`. */
 function changed(dark: readonly Declaration[], light: readonly Declaration[]): Declaration[] {
   const lightByName = new Map(light);
   return dark.filter(([name, value]) => lightByName.get(name) !== value);
@@ -60,7 +48,6 @@ function rule(selector: string, body: string): string {
   return `${selector} {\n${body}\n}`;
 }
 
-/** Samme erklæringer for begge veje til mørkt tema. */
 function darkRules(body: string): string {
   return `${rule(DARK_CHOSEN, body)}
 
@@ -69,7 +56,7 @@ ${indent(rule(DARK_SYSTEM, body))}
 }`;
 }
 
-/** Skalaernes trin (og i lyst tema de faste farver) som variabler. */
+/** De faste farver skrives kun i :root: de skifter ikke med temaet. */
 function primitives(scales: Scales, theme: Theme): Declaration[] {
   const fixed: Declaration[] = theme === "light" ? Object.entries(constants) : [];
   return [
@@ -80,7 +67,6 @@ function primitives(scales: Scales, theme: Theme): Declaration[] {
   ];
 }
 
-/** Rollerne med de navne i et tema. */
 function roles(resolver: Resolver, theme: Theme, names: readonly string[]): Declaration[] {
   return names.map((name) => [name, resolver.roleCss(name, theme)]);
 }
@@ -92,7 +78,6 @@ function shadows(definition: ThemeDefinition, resolver: Resolver, theme: Theme):
   ]);
 }
 
-/** `--text-<rolle>` med linjehøjde og tracking: Tailwinds `text-<rolle>`. */
 function textStyleVariables(styles: Typography["textStyles"]): string {
   return Object.entries(styles)
     .flatMap(([name, style]) => [
@@ -103,7 +88,7 @@ function textStyleVariables(styles: Typography["textStyles"]): string {
     .join("\n");
 }
 
-/** `caps` / `caps-wide`: versaler med deres tracking (vinder over text-<rolle>'s). */
+/** `--tw-tracking` gør, at versal-trackingen vinder over text-<rolle>'s. */
 function capsUtilities(tracking: Typography["capsTracking"]): string {
   return Object.entries(tracking)
     .map(
@@ -116,7 +101,6 @@ function capsUtilities(tracking: Typography["capsTracking"]): string {
     .join("\n\n");
 }
 
-/** Høj kontrast: de ændrede roller pr. tema, i en media query til sidst i tokens.css. */
 function highContrastCss(definition: ThemeDefinition, scales: Scales): string {
   const names = Object.keys(definition.highContrast ?? {});
   if (names.length === 0) return "";
@@ -125,17 +109,13 @@ function highContrastCss(definition: ThemeDefinition, scales: Scales): string {
   const dark = changed(roles(resolver, "dark", names), light);
   const body = dark.length > 0 ? `\n\n${darkRules(declarations(dark))}` : "";
   return `
-/*
- * Høj kontrast (prefers-contrast: more): de roller, der står i
- * \`highContrast\` i themes.ts. Står sidst, så de vinder over begge temaer.
- */
+/* Høj kontrast: står sidst, så den vinder over begge temaer */
 @media ${HIGH_CONTRAST_QUERY} {
 ${indent(rule(":root", declarations(light)) + body)}
 }
 `;
 }
 
-/** tokens.css, som den skrives (filen står i .prettierignore). */
 export function buildCss(
   definition: ThemeDefinition,
   scales: Scales,
@@ -156,10 +136,8 @@ export function buildCss(
   return `${HEADER}
 
 /*
- * Utilities: bg-*, text-*, border-* … for hver rolle i \`colors\`, shadow-* for hver
- * elevation og text-* for hver tekst-rolle. Tailwinds standardpalet,
- * -skriftstørrelser og -skygger nulstilles først, så KUN rollerne findes (ingen
- * tilfældige farver, fx lilla, størrelser eller sorte skygger kan snige sig ind).
+ * Kun rollerne findes: Tailwinds farver, størrelser og skygger nulstilles her,
+ * i samme blok og før rollerne (F-089).
  */
 @theme inline {
   --color-*: initial;
@@ -169,11 +147,10 @@ export function buildCss(
   --drop-shadow-*: initial;
 ${utilities}
 
-  /* Typeskalaen: størrelse, linjehøjde og tracking pr. rolle */
+  /* Typeskalaen */
 ${textStyleVariables(typography.textStyles)}
 }
 
-/* Versaler: tracking til store bogstaver, uanset størrelse */
 ${capsUtilities(typography.capsTracking)}
 
 :root {
@@ -189,13 +166,13 @@ ${declarations(lightRoles)}
 ${declarations(lightShadows)}
 }
 
-/* Mørkt tema: valgt på Profil, eller System på en enhed i mørk tilstand */
+/* Mørkt tema */
 ${darkRules(`  color-scheme: dark;
 
   /* Lag 1 · primitiver */
 ${declarations(primitives(scales, "dark"))}
 
-  /* Roller, der peger på et andet trin i mørkt tema */
+  /* Kun roller og skygger, der skifter værdi */
 ${declarations([
   ...changed(roles(resolver, "dark", roleNames), lightRoles),
   ...changed(shadows(definition, resolver, "dark"), lightShadows),
@@ -203,13 +180,11 @@ ${declarations([
 ${highContrastCss(definition, scales)}`;
 }
 
-/** browser-colors.ts: browserens statusbar/adresselinje pr. tema (viewport.themeColor). */
 export function buildBrowserColors(definition: ThemeDefinition, scales: Scales): string {
   const resolver = createResolver(definition, scales);
   const hex = (theme: Theme) => formatHex(resolver.color({ token: "frame" }, theme));
   return `// GENERERET af \`npm run tokens\` ud fra rollen \`frame\` (src/styles/tokens/themes.ts). Redigér ikke her.
 
-/** App-rammens farve pr. tema: viewport.themeColor og temavælgeren på Profil. */
 export const BROWSER_THEME_COLOR = {
   light: "${hex("light")}",
   dark: "${hex("dark")}",

@@ -3,11 +3,8 @@ import type { MetadataRoute } from "next";
 import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
 
 /**
- * The web app manifest (SPEC §13.6): "Føj til hjemmeskærm" opens Ølklubben as
- * its own app, without the browser's address bar. The splash screen and the
- * status bar take the app frame's colour, like the top bar. The icons are the
- * logo (D-162), rasterised from src/app/icon.svg into public/icons; the
- * maskable one has the logo on the frame colour, inside the 80 % safe zone.
+ * SPEC §13.6. The icons are rasterised from src/app/icon.svg (D-162); the
+ * maskable one keeps the logo inside the 80 % safe zone.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {

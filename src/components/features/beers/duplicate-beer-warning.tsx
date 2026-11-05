@@ -16,7 +16,6 @@ export type DuplicateBeerWarningProps = {
 /**
  * "Den her har I vist smagt før 👀" (SPEC §9.5, E21): links to the beer(s)
  * with the same name. Only a warning – the member can still add the beer.
- * Foreground and primary-ink on highlight-subtle (contrast.test.ts).
  */
 export function DuplicateBeerWarning({ id, beers, clubId, verb }: DuplicateBeerWarningProps) {
   return (

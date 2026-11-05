@@ -83,11 +83,9 @@ export function RatingStar({
 }
 
 /**
- * The star itself: a highlight-ink outline with a highlight-ink fill clipped to a
- * half or the whole star, ≥ 3:1 on card and background (WCAG 1.4.11), like the
- * read-only <RatingStars /> and <BeerCard />. A hover preview fills with the
- * lighter highlight, so it never looks saved. The solid highlight as the saved
- * colour is for the feature panel only (<RatingSummary />).
+ * Highlight-ink, not highlight: the star needs ≥ 3:1 on card and background
+ * (WCAG 1.4.11). A hover preview fills with the lighter highlight, so it never
+ * looks saved.
  */
 function StarGlyph({ fill, preview }: { fill: StarFill; preview: boolean }) {
   return (

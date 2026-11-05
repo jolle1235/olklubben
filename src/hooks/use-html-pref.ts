@@ -1,18 +1,14 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * A setting remembered PER DEVICE in localStorage and shown as an attribute
- * on <html>: the song reader's size and view (D-124) and the colour theme
- * (§13.2). CSS keys on the attribute, and a head script sets it before the
- * first paint, so the page never jumps; these read and write the same
- * attribute afterwards. Every storage access is wrapped in try/catch (private
- * mode, blocked storage).
+ * A per-device setting kept in localStorage and mirrored as an attribute on
+ * <html>, which CSS keys on. A head script sets it before the first paint
+ * (HeadScript); this reads and writes it afterwards.
  */
 export type HtmlPref<T> = {
   subscribe: (listener: () => void) => () => void;
-  /** The value on <html> now. Client only. */
+  /** Client only. */
   read: () => T;
-  /** Puts the value on <html>, remembers it and updates the hooks. */
   set: (value: T) => void;
 };
 
@@ -24,9 +20,8 @@ export function createHtmlPref<T extends string | number>({
 }: {
   attribute: string;
   storageKey: string;
-  /** An attribute value (or none) → a valid value; anything else gives the default. */
+  /** Maps a missing or invalid value to the default. */
   parse: (value: string | null) => T;
-  /** Puts a value on <html>. Default: the attribute. */
   apply?: (value: T) => void;
 }): HtmlPref<T> {
   const listeners = new Set<() => void>();
@@ -53,9 +48,8 @@ export function createHtmlPref<T extends string | number>({
 const serverSnapshot = () => null;
 
 /**
- * The value, or null on the server and during hydration: the server cannot
- * know a per-device setting, so a control shows no choice and stays disabled
- * until then, never the default as if it were the choice (TG-020).
+ * Null on the server and during hydration: the server can't know a per-device
+ * setting, so controls show no choice and stay disabled until then (TG-020).
  */
 export function useHtmlPref<T>(pref: HtmlPref<T>): T | null {
   return useSyncExternalStore(pref.subscribe, pref.read, serverSnapshot);

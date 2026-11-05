@@ -3,23 +3,11 @@ import { blend, converter, interpolate, wcagContrast, type Color } from "culori"
 import { constants, palette, STEPS, type Constant, type Hue, type Step } from "./palette";
 import { THEMES, type Scales, type Theme } from "./scales";
 
-/**
- * Lag 2–3 (SPEC §13.2): hvad værdierne i themes.ts betyder. createResolver
- * giver hver værdi som farve (kontrasttesten, browserens temafarve) og som
- * CSS (tokens.css) ud fra samme definition.
- */
-
-/** Et skalatrin ("olive.9") eller en fast farve ("fixed-light"). */
 export type Ref = `${Hue}.${Step}` | Constant;
 
 /**
- * En farveværdi i themes.ts:
- *   "olive.9"                     et skalatrin (skifter med temaet)
- *   { token: "primary" }          en anden rolle
- *   { mix: [a, b], amount: 0.1 }  10 % b blandet i a (OKLab), fx hover-tilstande
- *   { alpha: 0.5, of: a }         a med 50 % dækkeevne, fx overlays og skygger
- *   { auto: a }                   den faste lyse eller mørke tekstfarve, der giver
- *                                 mest kontrast mod a (tekst på solide flader)
+ * `mix`: `amount` af b blandet i a (OKLab). `auto`: den faste lyse eller mørke
+ * tekstfarve med mest kontrast mod fladen.
  */
 export type ColorValue =
   | Ref
@@ -28,35 +16,28 @@ export type ColorValue =
   | { alpha: number; of: ColorValue }
   | { auto: ColorValue };
 
-/** En værdi, der er ens i begge temaer, eller én pr. tema. */
 export type ThemedValue = ColorValue | { light: ColorValue; dark: ColorValue };
 
-/** Ét skygge-lag: geometrien ("0 10px 24px -20px", evt. "inset …") og farven. */
+/** `geometry` er box-shadow uden farven, fx "0 10px 24px -20px". */
 export type ShadowLayer = { geometry: string; color: ColorValue };
 
 export type ThemeDefinition = {
-  /** Roller, der bliver Tailwind-utilities (bg-*, text-*, border-* …). */
+  /** Bliver også Tailwind-utilities (bg-*, text-* …). */
   colors: Record<string, ThemedValue>;
-  /** Komponent-variabler, der kun findes som CSS-variabler (fx porthole-ringen). */
+  /** Kun CSS-variabler, ingen utilities. */
   vars: Record<string, ThemedValue>;
-  /** Elevation: `--elevation-<navn>` og utility'en `shadow-<navn>`. */
+  /** Bliver `--elevation-<navn>` og `shadow-<navn>`. */
   shadows: Record<string, readonly ShadowLayer[]>;
-  /**
-   * Høj kontrast (`prefers-contrast: more`, fx "Øg kontrast" på iPhone):
-   * roller i `colors`/`vars`, der får en anden værdi, når systemet beder om
-   * mere kontrast. Gælder i begge temaer.
-   */
+  /** Roller med en anden værdi ved `prefers-contrast: more`, i begge temaer. */
   highContrast?: Record<string, ThemedValue>;
 };
 
 export type Resolver = {
-  /** Farven en værdi ender med i et tema (sRGB, evt. med alfa). */
   color(value: ColorValue, theme: Theme): Color;
-  /** Værdien som CSS (var(--…), color-mix()); kun `auto` er regnet ud på forhånd. */
+  /** Kun `auto` er regnet ud på forhånd; resten bliver var() og color-mix(). */
   css(value: ColorValue, theme: Theme): string;
-  /** En rolles værdi i et tema som CSS. */
   roleCss(name: string, theme: Theme): string;
-  /** WCAG-kontrasten mellem to værdier i et tema (forgrunden lægges på baggrunden). */
+  /** En gennemsigtig forgrund lægges først på baggrunden. */
   contrast(foreground: ColorValue, background: ColorValue, theme: Theme): number;
 };
 
@@ -66,7 +47,6 @@ function valueFor(value: ThemedValue, theme: Theme): ColorValue {
   return typeof value === "object" && "light" in value && "dark" in value ? value[theme] : value;
 }
 
-/** Alle roller (colors + vars) på navn. */
 function tokensOf(definition: ThemeDefinition): Record<string, ThemedValue> {
   return { ...definition.colors, ...definition.vars };
 }
@@ -88,10 +68,8 @@ function percent(fraction: number): string {
 }
 
 /**
- * Opløser værdierne i en definition. Alle roller og skygger tjekkes i begge
- * temaer med det samme: en ukendt rolle, et ukendt trin eller en cirkulær
- * henvisning fejler her, også for roller, som kontrasttesten ikke nævner, så
- * tokens.css aldrig får en cyklus af var()'er.
+ * Tjekker alle roller og skygger i begge temaer med det samme, så en ukendt rolle
+ * eller en cyklus fejler her og aldrig bliver til cykliske var() i tokens.css.
  */
 export function createResolver(definition: ThemeDefinition, scales: Scales): Resolver {
   const tokens = tokensOf(definition);
@@ -122,7 +100,6 @@ export function createResolver(definition: ThemeDefinition, scales: Scales): Res
     return toRgb(constants[autoForeground(value.auto, theme, seen)])!;
   }
 
-  /** Den faste tekstfarve (lys eller mørk), der giver mest kontrast mod fladen. */
   function autoForeground(surface: ColorValue, theme: Theme, seen: readonly string[]): Constant {
     const background = color(surface, theme, seen);
     return wcagContrast(constants["fixed-light"], background) >=
@@ -162,14 +139,12 @@ export function createResolver(definition: ThemeDefinition, scales: Scales): Res
     contrast(foreground, background, theme) {
       const bg = color(background, theme);
       const fg = color(foreground, theme);
-      // En (evt. gennemsigtig) forgrund lagt oven på baggrunden.
       const shown = (fg.alpha ?? 1) >= 1 ? fg : toRgb(blend([bg, fg], "normal"));
       return wcagContrast(shown, bg);
     },
   };
 }
 
-/** Definitionen, som den ser ud ved høj kontrast (rollerne i `highContrast` lagt ovenpå). */
 export function withHighContrast(definition: ThemeDefinition): ThemeDefinition {
   const overrides = definition.highContrast ?? {};
   const known = tokensOf(definition);

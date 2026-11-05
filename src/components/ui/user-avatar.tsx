@@ -2,8 +2,6 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials, pickByName } from "@/components/ui/initials";
 
-// Initial colours: the avatar-1 … avatar-5 component tokens (src/styles/tokens/themes.ts),
-// with avatar-foreground initials (≥ 4,5:1 in both themes, contrast.test.ts).
 const FALLBACK_BACKGROUNDS = [
   "bg-avatar-1",
   "bg-avatar-2",

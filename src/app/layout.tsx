@@ -14,16 +14,14 @@ export const metadata: Metadata = {
   title: { template: "%s · Ølklubben", default: "Ølklubben" },
   description: "Klubbens digitale samlingspunkt: næste ølsmagning, øl, sange og afstemninger.",
   applicationName: "Ølklubben",
-  // Installed on an iPhone (manifest.ts): the page runs under the status bar,
-  // whose light text sits on the frame colour that every shell paints there
-  // (top bar, CenteredShell's band, AppShell's strip on wide screens) (SPEC §13.6).
+  // Installed on an iPhone, the page runs under the status bar's light text, so
+  // every shell paints the frame colour there (SPEC §13.6).
   appleWebApp: { title: "Ølklubben", capable: true, statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
-  // Browser chrome in the app frame's colour (top bar, sidebar), per theme (SPEC §13.2).
-  // The theme bootstrap re-points it when the choice on Profil differs from the system.
+  // The frame colour per theme; a choice on Profil overrides it (src/lib/theme-prefs.ts).
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: BROWSER_THEME_COLOR.light },
     { media: "(prefers-color-scheme: dark)", color: BROWSER_THEME_COLOR.dark },
@@ -41,12 +39,11 @@ export const viewport: Viewport = {
  */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // suppressHydrationWarning: the bootstraps below set data-theme,
-    // data-song-size and data-song-view on <html> before React hydrates. It
-    // covers <html>'s own attributes only.
+    // suppressHydrationWarning: the head scripts set attributes on <html>
+    // before React hydrates. It covers <html>'s own attributes only.
     <html lang="da" className={`${fontVariables} h-full`} suppressHydrationWarning>
       <head>
-        {/* The colour theme, before the first paint (no flash of the wrong theme). */}
+        {/* The colour theme, before the first paint. */}
         <ThemePrefsScript />
         {/* The songbook reader's font size and view, before the first paint. */}
         <SongbookPrefsScript />

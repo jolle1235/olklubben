@@ -23,7 +23,7 @@ export function Highlighted({ text, marks }: { text: string; marks?: readonly Hi
   return parts;
 }
 
-/** A lyric line under a search hit: „… line …“ in italic muted-foreground, at most two lines. */
+/** A lyric line under a search hit: „… line …“. */
 export function SongSnippet({ text, marks }: { text: string; marks: readonly HighlightRange[] }) {
   return (
     <span className="mt-1 line-clamp-2 text-body-sm break-words text-muted-foreground italic">

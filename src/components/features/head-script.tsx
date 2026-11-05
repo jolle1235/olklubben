@@ -1,19 +1,13 @@
 "use client";
 
 /**
- * A constant inline script in the root layout's <head> that runs before the
- * first paint: the per-device settings on <html> (the colour theme, §13.2,
- * and the song reader, D-124). `code` must be a constant string, and the
- * caller a client component that imports it: a string passed from a Server
- * Component would travel in the RSC payload of every page as well.
+ * An inline script for the root layout's <head>, run before the first paint.
+ * Import `code` in a client component: passed from a Server Component it would
+ * also travel in every page's RSC payload.
  *
- * In the server HTML it is a normal inline script, so the browser runs it
- * while parsing <head>. React never runs a script it creates itself, and it
- * warns when it does (the client render of a 404 rebuilds the document,
- * F-071). On the client the element is therefore a data block
- * (type="text/plain"): hydration keeps the server's element as it is
- * (suppressHydrationWarning covers the type attribute only), and a client
- * render creates an inert element without the warning.
+ * On the client it is an inert type="text/plain": React warns when it creates a
+ * <script> (a 404's client render rebuilds the document, F-071). Hydration keeps
+ * the server's runnable element; suppressHydrationWarning covers the type.
  */
 export function HeadScript({ code }: { code: string }) {
   const isServer = typeof window === "undefined";

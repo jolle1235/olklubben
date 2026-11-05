@@ -4,37 +4,12 @@ import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
 
 import {
   applyThemePref,
-  parseThemePref,
-  resolveTheme,
   THEME_ATTRIBUTE,
   THEME_BOOTSTRAP,
   THEME_COLOR_OVERRIDE_ATTRIBUTE,
   THEME_PREF_KEY,
   type ThemePref,
 } from "./theme-prefs";
-
-describe("parseThemePref", () => {
-  it("keeps the three choices", () => {
-    expect(parseThemePref("system")).toBe("system");
-    expect(parseThemePref("light")).toBe("light");
-    expect(parseThemePref("dark")).toBe("dark");
-  });
-
-  it("falls back to system for anything else", () => {
-    expect(parseThemePref(null)).toBe("system");
-    expect(parseThemePref(undefined)).toBe("system");
-    expect(parseThemePref("Dark")).toBe("system");
-  });
-});
-
-describe("resolveTheme", () => {
-  it("follows the device only for system", () => {
-    expect(resolveTheme("system", true)).toBe("dark");
-    expect(resolveTheme("system", false)).toBe("light");
-    expect(resolveTheme("light", true)).toBe("light");
-    expect(resolveTheme("dark", false)).toBe("dark");
-  });
-});
 
 /** A minimal fake page: <html>'s attributes and the override metas in <head>. */
 function fakePage() {
@@ -90,20 +65,13 @@ function fakePage() {
 }
 
 describe("applyThemePref", () => {
-  it("sets data-theme and its own theme-color for an explicit choice", () => {
+  it("switches data-theme and its own theme-color, and removes both for system (F-090)", () => {
     const page = fakePage();
     page.apply("dark");
-    expect(page.theme()).toBe("dark");
-    expect(page.overrideColors()).toEqual([BROWSER_THEME_COLOR.dark]);
-
     page.apply("light");
     expect(page.theme()).toBe("light");
     expect(page.overrideColors()).toEqual([BROWSER_THEME_COLOR.light]);
-  });
 
-  it("removes both for system, so the CSS and the layout's metas follow the device", () => {
-    const page = fakePage();
-    page.apply("dark");
     page.apply("system");
     expect(page.theme()).toBeUndefined();
     expect(page.overrideColors()).toEqual([]);

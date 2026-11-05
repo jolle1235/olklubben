@@ -11,14 +11,10 @@ export type AppShellProps = {
 };
 
 /**
- * Frame for every club page (/c/[clubId]/…). Mobile: top bar (surface-frame) with
- * the club name + fixed bottom navigation. Desktop (md+): sidebar on the left.
+ * Frame for every club page (/c/[clubId]/…). Mobile: top bar with the club
+ * name + fixed bottom navigation. Desktop (md+): sidebar on the left.
  * Server Component; the interactive parts are client components.
- *
- * Installed as an app, the page runs under the status bar (layout.tsx): on
- * md+ a strip in the frame colour sits there, as the top bar does on mobile
- * (0 px in a browser). data-app-shell gives the canvas the frame colour on
- * mobile (globals.css).
+ * data-app-shell is styled in globals.css.
  */
 export function AppShell({ club, clubs, user, children }: AppShellProps) {
   return (
@@ -26,6 +22,7 @@ export function AppShell({ club, clubs, user, children }: AppShellProps) {
       data-app-shell
       className="min-h-dvh md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:bg-[linear-gradient(to_right,var(--frame)_17rem,transparent_17rem)]"
     >
+      {/* md+: the frame colour under the status bar when installed (layout.tsx); 0 px in a browser. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 z-40 hidden h-[env(safe-area-inset-top)] surface-frame md:block"

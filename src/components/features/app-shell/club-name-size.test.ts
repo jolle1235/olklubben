@@ -18,7 +18,7 @@ describe("longestWordLength", () => {
 });
 
 describe("clubNameSize", () => {
-  it("keeps text-body-lg for names with short words, however long the name", () => {
+  it("keeps the largest size for names with short words, however long the name", () => {
     expect(clubNameSize("Drengene & Bajere")).toBe("text-body-lg-tight");
     expect(clubNameSize("Den Gamle Klub Fra Nørrebro Og Omegn")).toBe("text-body-lg-tight");
   });

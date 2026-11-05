@@ -24,7 +24,7 @@ export type PollOutcomeProps = {
 
 /**
  * "🎉 Afstemningen er afsluttet!" (SPEC §9.7.7): the event the poll created,
- * in the hero card's look (surface-feature, the big date): date and time, place,
+ * in the hero card's look (the big date): date and time, place,
  * hosts, why voting ended and who chose after a tie, and [Se event]. The
  * event is an ordinary event afterwards, so it shows its CURRENT date and
  * place; if it was deleted, the card says so and has no button.

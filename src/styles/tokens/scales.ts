@@ -2,11 +2,7 @@ import { converter, formatHex, toGamut, type Color } from "culori";
 
 import { palette, STEPS, type Hue, type ScaleInput, type Step } from "./palette";
 
-/**
- * Lag 1 (SPEC §13.2): genererer de 12 trin i hver skala i palette.ts, i lyst
- * og mørkt tema. Køres af `npm run tokens` og af testene; aldrig i appen
- * (culori er en devDependency).
- */
+/** Kun til `npm run tokens` og testene, aldrig i appen: culori er en devDependency. */
 
 export type Theme = "light" | "dark";
 export const THEMES: readonly Theme[] = ["light", "dark"];
@@ -16,10 +12,7 @@ export type Scales = Record<Theme, Record<Hue, Record<Step, string>>>;
 const toOklch = converter("oklch");
 const intoGamut = toGamut("rgb", "oklch");
 
-/**
- * Lyshed (OKLCH L) og mætning (andel af basens chroma) pr. trin. Trin 9 er
- * basen selv; trin 10 og 11 regnes ud fra den (se generateScale).
- */
+/** OKLCH-lyshed og andel af basens chroma pr. trin. Manglende trin regnes ud fra basen. */
 const CURVES: Record<Theme, { lightness: Record<number, number>; chroma: number[] }> = {
   light: {
     lightness: {
@@ -56,7 +49,6 @@ function hex(color: Color): string {
   return formatHex(intoGamut(color));
 }
 
-/** De 12 trin i ét tema: genereret ud fra basen, med de låste trin lagt ovenpå. */
 export function generateScale(input: ScaleInput, theme: Theme): Record<Step, string> {
   const baseHex = theme === "dark" ? (input.darkBase ?? input.base) : input.base;
   const base = toOklch(baseHex);
@@ -67,7 +59,7 @@ export function generateScale(input: ScaleInput, theme: Theme): Record<Step, str
   const lightnessOf = (step: Step): number => {
     if (step === 9) return base.l;
     if (step === 10) return theme === "light" ? base.l - 0.04 : base.l + 0.04;
-    // Farvet tekst på lyse flader: aldrig lysere end basen, højst L 0,5 (≥ 4,5:1 på trin 1–3).
+    // Farvet tekst: højst L 0,5, så den holder 4,5:1 på trin 1–3.
     if (step === 11 && theme === "light") return Math.min(0.5, base.l);
     return curve.lightness[step]!;
   };

@@ -18,7 +18,7 @@ const buttonVariants = cva(
         ghost: "text-foreground hover:bg-muted aria-expanded:bg-muted",
         destructive:
           "bg-destructive text-destructive-foreground shadow-press hover:bg-destructive-hover",
-        /** Fremhævet knap, også på mørke flader (top bar, hero): highlight-rollen. */
+        /** Fremhævet knap; virker også på mørke flader (top bar, hero). */
         highlight: "bg-highlight text-highlight-foreground shadow-press hover:bg-highlight-hover",
         link: "h-auto! px-0! text-primary-ink underline decoration-2 underline-offset-4 hover:decoration-highlight",
       },

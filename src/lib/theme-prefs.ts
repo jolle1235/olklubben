@@ -4,22 +4,8 @@ import { DARK_SCHEME_QUERY, THEME_ATTRIBUTE } from "@/styles/tokens/theme-attrib
 export { DARK_SCHEME_QUERY, THEME_ATTRIBUTE };
 
 /**
- * The colour theme (SPEC §13.2, §9.8 "Udseende"): System, Lyst or Mørkt,
- * remembered PER DEVICE in localStorage.
- *
- * The choice is one attribute on <html>: data-theme="light" | "dark", or none
- * for "System". tokens.css shows the dark theme for data-theme="dark" and,
- * without a choice, while the device is in dark mode, so "System" needs no
- * script and follows the device also while the app is open.
- *
- * applyThemePref puts a choice on the page. THEME_BOOTSTRAP runs the same
- * code in the root layout's <head> before the first paint, so the page
- * never flashes in the wrong theme; the hook in
- * components/features/theme/use-theme-pref.ts runs it on a change. Every
- * storage access is wrapped in try/catch (private mode, blocked storage):
- * "system" applies.
- *
- * Pure module: client-safe, no React.
+ * The colour theme (SPEC §13.2), remembered per device: data-theme="light" |
+ * "dark" on <html>, or none for "System", where tokens.css follows the device.
  */
 
 export const THEME_PREFS = ["system", "light", "dark"] as const;
@@ -29,14 +15,11 @@ export type ResolvedTheme = Exclude<ThemePref, "system">;
 export const THEME_PREF_KEY = "olklubben.theme";
 
 /**
- * Marks the theme-color <meta> applyThemePref adds for an explicit choice. The
- * root layout's own two (viewport.themeColor, one per prefers-color-scheme)
- * are never touched: React hydrates those, and editing them makes it insert
- * duplicates (F-090).
+ * Marks the theme-color <meta> applyThemePref adds. The layout's own are never
+ * edited: React hydrates them and would insert duplicates (F-090).
  */
 export const THEME_COLOR_OVERRIDE_ATTRIBUTE = "data-theme-override";
 
-/** What applyThemePrefWith needs from the page: it may only use its parameters. */
 type ThemeDom = {
   attribute: string;
   overrideAttribute: string;
@@ -49,36 +32,21 @@ const THEME_DOM: ThemeDom = {
   colors: BROWSER_THEME_COLOR,
 };
 
-/**
- * A stored or attribute value → a valid choice; anything else (also none)
- * gives "system". Self-contained: THEME_BOOTSTRAP inlines it.
- */
+/** Self-contained: THEME_BOOTSTRAP inlines its source. */
 export function parseThemePref(value: string | null | undefined): ThemePref {
   return value === "light" || value === "dark" ? value : "system";
 }
 
-/** The theme a choice shows, given whether the device is in dark mode. */
 export function resolveTheme(pref: ThemePref, systemDark: boolean): ResolvedTheme {
   if (pref === "system") return systemDark ? "dark" : "light";
   return pref;
 }
 
-/**
- * Puts a choice on the page: data-theme for "light"/"dark", none for "system"
- * (tokens.css then follows the device). For an explicit choice it also puts
- * its own theme-color first in <head> (the browser uses the first match), so
- * the status bar follows the choice even when it differs from the device; for
- * "system" it removes it, and the layout's prefers-color-scheme metas apply.
- */
 export function applyThemePref(pref: ThemePref): void {
   applyThemePrefWith(pref, THEME_DOM);
 }
 
-/**
- * applyThemePref's body, self-contained (only its parameters and the DOM):
- * THEME_BOOTSTRAP inlines its source, so the head script and a change on
- * Profil run the same code.
- */
+/** Self-contained (only its parameters and the DOM): THEME_BOOTSTRAP inlines its source. */
 function applyThemePrefWith(pref: ThemePref, dom: ThemeDom): void {
   const root = document.documentElement;
   let meta = document.querySelector(`meta[${dom.overrideAttribute}]`);
@@ -94,14 +62,11 @@ function applyThemePrefWith(pref: ThemePref, dom: ThemeDom): void {
     meta.setAttribute(dom.overrideAttribute, "");
   }
   meta.setAttribute("content", dom.colors[pref]);
-  // First in <head> (again): React hoists the layout's own metas to the front when it hydrates.
+  // First in <head>, even when already there: the browser uses the first match (F-090).
   document.head.prepend(meta);
 }
 
-/**
- * The constant script in the root layout's <head>: reads the stored choice and
- * runs parseThemePref and applyThemePrefWith, inlined from their source.
- */
+/** Runs in the root layout's <head>, so the first paint has the right theme. */
 export const THEME_BOOTSTRAP = `(function(){try{var p=null;try{p=localStorage.getItem(${JSON.stringify(
   THEME_PREF_KEY,
 )})}catch(e){}(${applyThemePrefWith.toString()})((${parseThemePref.toString()})(p),${JSON.stringify(

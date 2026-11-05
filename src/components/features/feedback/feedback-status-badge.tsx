@@ -2,10 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { FEEDBACK_STATUS_LABELS, type FeedbackStatus } from "@/server/domain/feedback/status";
 
-/**
- * Colour-system roles only (§13.2); every pair is WCAG AA in both themes
- * (src/styles/tokens/contrast.test.ts).
- */
 const STATUS_CLASSES: Record<FeedbackStatus, string> = {
   NEW: "bg-info-subtle text-info-ink",
   PLANNED: "bg-highlight-subtle text-foreground",

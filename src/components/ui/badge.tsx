@@ -13,9 +13,7 @@ const badgeVariants = cva(
         destructive:
           "bg-destructive-subtle text-destructive-ink [a]:hover:bg-destructive-subtle-hover",
         outline: "border-input text-foreground [a]:hover:bg-muted",
-        /** Fremhævning, fx "I aften!" (highlight-rollen). */
         highlight: "bg-highlight text-highlight-foreground [a]:hover:bg-highlight-hover",
-        /** Info, fx "om 3 dage" (info-rollen). */
         info: "bg-info-subtle text-info-ink [a]:hover:bg-info-subtle-hover",
         ghost: "hover:bg-muted",
         link: "text-primary-ink underline-offset-4 hover:underline",

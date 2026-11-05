@@ -4,42 +4,21 @@ import path from "node:path";
 import { constants, palette } from "../src/styles/tokens/palette";
 
 /**
- * `npm run check:tokens` (en del af `npm run check`): holder farvesystemet
- * (SPEC §13.2) og typeskalaen (§13.3) intakt. Komponenter må kun bruge
- * rollerne fra themes.ts og typography.ts. Fejler ved:
- *
- *   * farveværdier (hex, rgb(), hsl(), oklch() …) uden for src/styles/tokens/
- *   * primitiver (var(--olive-9), var(--white) …) uden for src/styles/tokens/
- *   * de gamle farvenavne fra før farvesystemet (bg-olive, text-ink,
- *     var(--cream), on-olive …)
- *   * en solid familiefarve som tekst (text-primary …): farvet tekst er
- *     {rolle}-ink, som er kontrasttestet på lyse flader i begge temaer
- *   * `dark:` (temaet skifter via tokens.css, også for System)
- *   * Tailwinds egne skriftstørrelser (text-lg …) og vilkårlige størrelser,
- *     linjehøjder og tracking (text-[0.95rem], leading-[1.1], tracking-[0.1em]):
- *     brug en tekst-rolle (text-body-sm …) og `caps` til versaler
- *   * linjehøjder i komponenten (leading-tight …): rollen har sin egen, og
- *     ellers en -tight/-loose-variant (text-body-sm-tight). Kun leading-none
- *     er tilladt, til ét tal eller tegn i en boks
- *   * en modifier på en rolle (bg-muted/60, text-body-md/6): gennemsigtighed
- *     er en rolle selv (-faint, -hover …), linjehøjden hører til tekst-rollen
- *   * Tailwinds egne skygger (shadow-lg …): brug en elevation fra themes.ts
- *
- * Tailwind fejler ikke selv ved ukendte utilities (`--color-*`, `--text-*` og
- * `--shadow-*` er nulstillet), så et gammelt navn ville ellers bare give ingen
- * farve, størrelse eller skygge.
+ * Håndhæver reglerne i SPEC §13.2 og §13.3. Tailwind fejler ikke ved ukendte
+ * utilities, så et gammelt navn ville ellers bare give ingen farve, størrelse
+ * eller skygge.
  */
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const SCAN = ["src"];
 const SKIP_DIRS = ["src/styles/tokens", "src/generated"];
-/** Filer med bevidste, faste farver: logoet (D-162), Googles logo og e-mails. */
+/** Bevidst faste farver, fx logoet (D-162). */
 const ALLOWED_COLOR_FILES = [
   "src/components/brand/logo.tsx",
   "src/components/features/auth/external-sign-in.tsx",
   "src/server/email/templates.ts",
 ];
-/** Filer med bevidste, faste skriftstørrelser: logoets ordmærke (D-162). */
+/** Logoets ordmærke (D-162). */
 const ALLOWED_TYPE_FILES = ["src/components/brand/logo.tsx"];
 
 const OLD_NAMES = [

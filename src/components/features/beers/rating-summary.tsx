@@ -11,8 +11,8 @@ export type RatingSummaryProps = {
 
 /**
  * "Klubbens rating" (SPEC §9.5 Øl-detail): ★★★★½ 4,7 · 12 ratings, on a feature
- * panel with highlight stars (≥ 3:1 for graphics, contrast.test.ts). The average is computed on read and shown
- * with one decimal (§3.4); "Ingen ratings endnu" before the first rating.
+ * panel. The average is computed on read and shown with one decimal (§3.4);
+ * "Ingen ratings endnu" before the first rating.
  */
 export function RatingSummary({ averageStars, ratingCount, className }: RatingSummaryProps) {
   return (

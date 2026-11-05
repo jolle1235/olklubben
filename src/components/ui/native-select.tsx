@@ -3,9 +3,9 @@ import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * A native <select> styled like <Input> (44 px, card surface, focus ring). Native
- * on purpose: the phone's own picker, keyboard support and it works without
- * JavaScript (GET forms, Server Action forms).
+ * A native <select> styled like <Input>. Native on purpose: the phone's own
+ * picker, keyboard support and it works without JavaScript (GET forms, Server
+ * Action forms).
  */
 export function NativeSelect({ className, ...props }: React.ComponentProps<"select">) {
   return (

@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 type FormAlertTone = "error" | "success" | "info";
 
 const TONES = {
-  // {role}-ink on {role}-subtle: WCAG AA in both themes (src/styles/tokens/contrast.test.ts).
   error: {
     role: "alert",
     Icon: CircleAlertIcon,

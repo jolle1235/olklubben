@@ -11,10 +11,6 @@ import {
   type ThemePref,
 } from "@/lib/theme-prefs";
 
-/**
- * The colour theme choice (src/lib/theme-prefs.ts) as a per-device setting on
- * <html>: data-theme, which the head bootstrap set before the first paint.
- */
 export const themePref = createHtmlPref({
   attribute: THEME_ATTRIBUTE,
   storageKey: THEME_PREF_KEY,
@@ -22,12 +18,11 @@ export const themePref = createHtmlPref({
   apply: applyThemePref,
 });
 
-/** The choice, or null until hydrated. */
 export function useThemePref(): ThemePref | null {
   return useHtmlPref(themePref);
 }
 
-/** Applies and remembers a choice; fades when the page changes between light and dark. */
+/** Fades only when the visible theme changes. */
 export function setThemePref(pref: ThemePref) {
   const systemDark = window.matchMedia(DARK_SCHEME_QUERY).matches;
   const update = () => themePref.set(pref);
@@ -35,12 +30,7 @@ export function setThemePref(pref: ThemePref) {
   else crossfade(update);
 }
 
-/**
- * A new theme fades in instead of the whole screen jumping from light to dark
- * in one frame (SPEC §13.2; Apple: no sudden jumps in brightness). The
- * duration is in globals.css (::view-transition-*). Instant when the member
- * asked for less motion or the browser has no View Transitions.
- */
+/** No sudden jump in brightness (SPEC §13.2). Duration in globals.css (::view-transition-*). */
 function crossfade(update: () => void) {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduceMotion || typeof document.startViewTransition !== "function") update();

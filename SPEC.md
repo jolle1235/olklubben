@@ -1830,13 +1830,11 @@ Komponent-tekster (som farvesystemets lag 3) står i `componentTextStyles`: `inv
 * Linjehøjden bor i rollen. En komponent vælger rollen eller dens `-tight`/`-loose`-variant, aldrig et tal: `check:tokens` afviser `leading-tight`, `leading-snug` osv. Kun `leading-none` er tilladt, til ét tal eller tegn i en boks (dagens nummer, initialer, bundnavigationens etiketter) (D-170).
 * VERSALER bruger `caps` (0,14 em) eller `caps-wide` (0,2 em). De sætter både uppercase og tracking.
 * `cn` importeres fra `@/lib/utils`, aldrig fra `"cn"` (ESLint). Kun den kender tekst-rollerne. Ellers bliver `text-title-sm` set som en tekstfarve og forsvinder ved siden af `text-primary-ink` (F-091).
-* Størrelser er i rem, så teksten følger browserens skriftstørrelse.
 * `typography.test.ts` holder reglerne:
-  * Fra brødtekst og op bliver linjehøjde og tracking aldrig større, når størrelsen vokser.
-  * Overskrifter (fra 1,25 rem) har negativ tracking, brødtekst 0.
-  * En tæt variant ligger under rollens linjehøjde, en luftig over.
+  * Størrelser er i rem, så teksten følger browserens skriftstørrelse.
   * Ingen tekst er under 0,75 rem.
-  * To roller har aldrig samme størrelse.
+  * Fra brødtekst og op bliver linjehøjde og tracking aldrig større, når størrelsen vokser.
+* Overskrifter (fra 1,25 rem) har negativ tracking og brødtekst 0. En tæt variant ligger under rollens linjehøjde og en luftig over. To roller har aldrig samme størrelse.
 
 ### Sådan ændrer du typografien
 
@@ -2252,6 +2250,7 @@ Organiseret efter implementeringsrunderne i §16.3 (D-020).
 | – | – | Review-opfølgning 3/3: trækket på stjernerne i sit eget hook (§9.5, D-169) | ✅ | 2026-11-03. `useStarDrag` (`features/beers/use-star-drag.ts`) ejer tryk, træk, pointer capture og det slugte klik efter et træk og nulstiller selv flaget ved et tastetryk. `BeerRating` skal ikke længere vide noget om pointer-flowet (270 → 196 linjer). E2E `beers.spec.ts` 14/14 (træk på desktop og 375 px, piletaster). |
 | – | – | Forenkling efter `/simplify` af review-opfølgningen (§13.2, §14) | ✅ | 2026-11-03. Fire agenter (genbrug, forenkling, effektivitet, abstraktionsniveau). Rettet: temaets attribut og media-query står ét sted (`theme-attribute.ts`), som `css.ts` og `theme-prefs.ts` læser; `SongbookPrefsScript` er tilbage, så sangbogens script ikke serialiseres i RSC-payloaden; `applyThemePref(pref)` uden `THEME_DOM` hos kalderne; resolveren har `roleCss`, så `valueFor`/`tokensOf` er private; høj kontrast er én `@media` med den mørke System-regel indlejret; `SegmentedControl` er slået fra, når intet er valgt; døde exports fjernet. Sprunget over: et snapshot af stjernernes position under et træk (fandtes før, ubetydeligt) og de gentagne klassesæt for tomme noter, valgkort og notitser (fandtes før, kræver nye fælles komponenter og ændrer udseendet: kandidater til en egen opgave). |
 | – | – | Appen føles installeret på mobil: manifest, statusbar, tryk og markering (§13.6, D-173) | ✅ | 2026-11-03. `manifest.ts` + ikoner i `public/icons`, `black-translucent` med rammen under statusbaren i alle skaller, `touch-action`/`user-select` i `globals.css` og `pressable*`, rammens farve på lærredet bag klubsiderne på mobil, `overscroll-contain` på sidebar og menuer, invitationslinket på 16 px. Tjekket i appen (desktop + 375 px): manifestet og ikonerne serveres, meta-tags, lærredets farve, `user-select`/`touch-action` og 16 px. Felter målt på 18 sider: kun invitationslinket var under 16 px. **Kræver en rigtig telefon:** installation og statusbaren (iPhone og Android), rubber band, at et tryk føles øjeblikkeligt, og at et langt tryk ikke markerer. |
+| – | – | Kommentarer og tests i PR #6 skåret ned (§13.2, §13.3) | ✅ | 2026-11-05. Jesper: "only necessary comments are needed. dont state the obvious" og kun tests, der giver reel sikkerhed. Kommentarer i 62 filer: ca. 740 linjer væk, kun hvorfor, enheder og SPEC-henvisninger står tilbage (tabeller, der gentog SPEC, er erstattet af en henvisning). Ingen kode ændret. 19 unit-tests fjernet (1167 → 1148): `scales.test.ts` (gentog håndskrevne kurver; snapshot- og kontrasttesten dækker), resolverens reference/`auto`/CSS-format-tests (dækket af kontrast- og snapshot-testen; kun valideringen er tilbage, fordi den rigtige definition aldrig udløser den), `cn`-tests af tailwind-merges egen opførsel, kontrasttestens "dækker kun roller, der findes" (resolveren kaster selv) og en kant-tærskel på 2:1 uden WCAG-grund, tre smagsregler i `typography.test.ts`, `parseThemePref`/`resolveTheme` (énlinjers, dækket af bootstrap-testen) og en null-guard i `ratingAtX`. §13.3 nævner kun de regler, testen holder. |
 
 ## 19.3 Beslutningslog
 

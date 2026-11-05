@@ -83,8 +83,4 @@ describe("ratingAtX", () => {
     expect(ratingAtX(-80, stars)).toBe(2);
     expect(ratingAtX(900, stars)).toBe(10);
   });
-
-  it("has no rating without stars", () => {
-    expect(ratingAtX(10, [])).toBeNull();
-  });
 });

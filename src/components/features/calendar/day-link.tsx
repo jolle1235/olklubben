@@ -9,10 +9,7 @@ import type { DateKey } from "@/server/domain/events/time";
 
 import { parseSelectedDay } from "./calendar-params";
 
-/**
- * One dot per item (at most three): upcoming events in primary, past ones in
- * muted-foreground, a poll's possible date as a hollow info ring (D-137).
- */
+/** One dot per item (at most three); a poll's possible date is a hollow ring (D-137). */
 export type DayDot = "upcoming" | "past" | "poll";
 
 export type DayLinkProps = {
@@ -77,8 +74,7 @@ export function DayLink({
         className={cn(
           "grid size-7 place-items-center rounded-full text-body-md tabular-nums",
           inMonth ? "font-semibold" : "font-normal",
-          // Today is marked in the info role; a ring in the page colour keeps
-          // the circle visible on the selected day's primary tile.
+          // The ring keeps today's circle visible on the selected day's tile.
           isToday
             ? cn("bg-info text-info-foreground", selected && "ring-2 ring-background")
             : selected

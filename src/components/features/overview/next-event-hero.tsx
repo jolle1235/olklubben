@@ -31,9 +31,8 @@ export type NextEventHeroProps = {
  * The next event, big and clear (SPEC §3.2, §9.1): "NÆSTE ØLSMAGNING" with a
  * relative badge, the big date, title, weekday · time, place, theme and
  * [Se event]. While the event is on, the shortcuts [Tilføj øl] (pre-filled
- * with the event) and [Sangbog] come first. A feature card (surface-feature,
- * §13.2), so it stands apart from the app frame; "I aften! 🍻" and "I gang nu"
- * light up in the highlight role.
+ * with the event) and [Sangbog] come first. A feature card, so it stands apart
+ * from the app frame (§13.2).
  */
 export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHeroProps) {
   const state = heroState(event, now);

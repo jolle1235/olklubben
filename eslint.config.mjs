@@ -5,8 +5,6 @@ import nextTs from "eslint-config-next/typescript";
 const DB_IMPORT_MESSAGE =
   "Ingen databaseadgang fra sider og Server Actions: brug src/server/<feature>/queries.ts eller mutations.ts.";
 
-// cn from "cn" does not know the type scale's text roles and would drop
-// text-title-sm next to text-primary-ink (SPEC §13.3).
 const CN_IMPORT = {
   name: "cn",
   message: "Brug cn fra @/lib/utils: den kender typeskalaens tekst-roller (SPEC §13.3).",

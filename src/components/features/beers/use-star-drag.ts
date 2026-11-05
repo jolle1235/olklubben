@@ -2,14 +2,12 @@ import { useRef } from "react";
 
 import { ratingAtX } from "./rating-input";
 
-/** How far a finger moves sideways before a press becomes a drag across the stars. */
 const DRAG_THRESHOLD_PX = 8;
 
-/** A press on the stars that may turn into a drag (pointer id and where it started). */
 type Press = { pointerId: number; startX: number; startY: number; dragging: boolean };
 
 type StarDragOptions = {
-  /** The value under the finger while pressing or dragging; null goes back to the saved one. */
+  /** null shows the saved value again. */
   onPreview: (value: number | null) => void;
   /** A drag ended over this value. */
   onRelease: (value: number) => void;
@@ -17,16 +15,12 @@ type StarDragOptions = {
 
 /**
  * Dragging across the stars, like rating in the App Store (SPEC §9.5, D-169).
- * The star under the finger lights up on press, the stars follow the finger
- * 1:1 once it moves sideways, and the value is given on release. Sideways
- * only: a vertical move leaves the press to the page's scroll
- * (touch-action: pan-y), and pointer capture keeps following a finger past
- * the ends of the stars.
+ * Spread the result on the stars' group; its children must be the stars, left
+ * to right, and the group needs touch-action: pan-y so a vertical move still
+ * scrolls the page.
  *
- * Spread the result on the stars' group; its children must be the stars,
- * left to right. A drag's release can still produce a click on a star: the
- * hook swallows that one click, and any key press clears it (Space on a
- * radio clicks too).
+ * A drag's release can also click the star under it, so the hook swallows that
+ * one click. Any key press clears the flag, since Space on a radio clicks too.
  */
 export function useStarDrag({ onPreview, onRelease }: StarDragOptions) {
   const group = useRef<HTMLDivElement>(null);
@@ -54,7 +48,6 @@ export function useStarDrag({ onPreview, onRelease }: StarDragOptions) {
         startY: event.clientY,
         dragging: false,
       };
-      // Respond on press, not on release: the star under the finger lights up.
       onPreview(ratingAt(event.clientX));
     },
 
@@ -83,7 +76,7 @@ export function useStarDrag({ onPreview, onRelease }: StarDragOptions) {
     },
 
     onPointerCancel() {
-      // The browser took over (a vertical scroll): back to the saved value.
+      // The browser took over to scroll vertically.
       press.current = null;
       onPreview(null);
     },
