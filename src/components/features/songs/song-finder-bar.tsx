@@ -60,7 +60,7 @@ export function SongFinderBar({
   }, []);
 
   return (
-    <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 -mx-4 border-b border-border bg-cream px-4 py-2 sm:-mx-6 sm:px-6 md:top-0 md:mx-0 md:px-0 md:py-3">
+    <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 -mx-4 border-b border-border bg-background px-4 py-2 sm:-mx-6 sm:px-6 md:top-0 md:mx-0 md:px-0 md:py-3">
       <form
         role="search"
         aria-label="Sangbogen"
@@ -79,7 +79,7 @@ export function SongFinderBar({
           </label>
           <SearchIcon
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-slate"
+            className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             ref={inputRef}
@@ -107,7 +107,7 @@ export function SongFinderBar({
                 onClear();
                 inputRef.current?.focus();
               }}
-              className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-slate hover:text-ink"
+              className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-muted-foreground pressable-dim hover:text-foreground"
             >
               <XIcon aria-hidden className="size-5" />
             </button>

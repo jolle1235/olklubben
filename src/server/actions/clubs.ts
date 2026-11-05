@@ -160,8 +160,9 @@ export type MemberResetLink = {
  * in the group chat, when email is not set up.
  *
  * Never for yourself (D-116). Only for members whose every club the admin
- * administers, and never for an account with a Google login (canResetMemberPassword). Both refusals give the
- * same message, so nothing reveals that the member is in other clubs (§3.3).
+ * administers, and never for an account with a Google login
+ * (canResetMemberPassword). Both refusals give the same message, so nothing
+ * reveals that the member is in other clubs (§3.3).
  */
 export async function createMemberResetLink(
   clubId: string,
@@ -171,13 +172,9 @@ export async function createMemberResetLink(
   if (!parsed.success) notFound();
 
   const { user, membership, club } = await requireMembership(parsed.data.clubId);
-  if (!canGeneratePasswordResetLink(membership)) {
-    return fail(ACTION_ERROR_CODES.FORBIDDEN, DEFAULT_ERROR_MESSAGES.FORBIDDEN);
-  }
-
   // Never for yourself (D-116): it would skip the current-password check of
   // "Skift password" for anyone holding a stolen session.
-  if (parsed.data.userId === user.id) {
+  if (!canGeneratePasswordResetLink(membership) || parsed.data.userId === user.id) {
     return fail(ACTION_ERROR_CODES.FORBIDDEN, DEFAULT_ERROR_MESSAGES.FORBIDDEN);
   }
 

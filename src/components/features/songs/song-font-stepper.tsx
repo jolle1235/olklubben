@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { MAX_SONG_FONT_STEP } from "@/lib/songbook-prefs";
 import { cn } from "@/lib/utils";
 
-import { setSongFontStep, useHydrated, useSongFontStep } from "./use-songbook-prefs";
+import { setSongFontStep, useSongFontStep } from "./use-songbook-prefs";
 
 export type SongFontStepperProps = {
   /**
-   * "topbar": two cream icon buttons in the mobile top bar (TopBarAction).
+   * "topbar": icon buttons in the mobile top bar (TopBarAction).
    * "toolbar": outline buttons in the reader's toolbar (md and up).
    */
   variant: "topbar" | "toolbar";
@@ -23,11 +23,10 @@ export type SongFontStepperProps = {
  */
 export function SongFontStepper({ variant, className }: SongFontStepperProps) {
   const step = useSongFontStep();
-  const hydrated = useHydrated();
   const buttonClass =
     variant === "topbar"
-      ? "text-cream hover:bg-olive-soft hover:text-cream"
-      : "border-input bg-paper text-ink hover:bg-cream-deep";
+      ? "text-frame-foreground hover:bg-frame-hover hover:text-frame-foreground"
+      : "border-input bg-card text-foreground hover:bg-muted";
 
   return (
     <div role="group" aria-label="Skriftstørrelse" className={cn("flex gap-1", className)}>
@@ -36,8 +35,8 @@ export function SongFontStepper({ variant, className }: SongFontStepperProps) {
         size="icon"
         variant={variant === "topbar" ? "ghost" : "outline"}
         aria-label="Mindre skrift"
-        disabled={!hydrated || step <= 0}
-        onClick={() => setSongFontStep(step - 1)}
+        disabled={step === null || step <= 0}
+        onClick={() => step !== null && setSongFontStep(step - 1)}
         className={buttonClass}
       >
         <AArrowDownIcon aria-hidden className="size-6" />
@@ -47,8 +46,8 @@ export function SongFontStepper({ variant, className }: SongFontStepperProps) {
         size="icon"
         variant={variant === "topbar" ? "ghost" : "outline"}
         aria-label="Større skrift"
-        disabled={!hydrated || step >= MAX_SONG_FONT_STEP}
-        onClick={() => setSongFontStep(step + 1)}
+        disabled={step === null || step >= MAX_SONG_FONT_STEP}
+        onClick={() => step !== null && setSongFontStep(step + 1)}
         className={buttonClass}
       >
         <AArrowUpIcon aria-hidden className="size-6" />

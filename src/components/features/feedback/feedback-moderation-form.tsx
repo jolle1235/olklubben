@@ -102,7 +102,7 @@ export function FeedbackModerationForm({
           </NativeSelect>
         )}
       </FieldShell>
-      <p className="-mt-3 hidden text-[0.95rem] text-muted-foreground group-has-[.status-wont-do:checked]/moderation:block">
+      <p className="-mt-3 hidden text-body-sm text-muted-foreground group-has-[.status-wont-do:checked]/moderation:block">
         Skriv gerne en begrundelse.
       </p>
 

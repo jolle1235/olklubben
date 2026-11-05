@@ -61,7 +61,7 @@ export default async function BeersPage({ params, searchParams }: PageProps<"/c/
   return (
     <>
       <TopBarAction>
-        <Button asChild size="icon" variant="brass">
+        <Button asChild size="icon" variant="highlight">
           <Link href={addHref} aria-label="Tilføj øl">
             <PlusIcon aria-hidden />
           </Link>
@@ -105,7 +105,7 @@ export default async function BeersPage({ params, searchParams }: PageProps<"/c/
           />
 
           <div className="grid grid-cols-1 gap-3 transition-opacity group-has-data-pending/catalog:opacity-60">
-            <p role="status" className="text-[0.95rem] text-muted-foreground">
+            <p role="status" className="text-body-sm text-muted-foreground">
               {catalogResultLabel(shown.length, beers.length)}
             </p>
             {shown.length > 0 ? (

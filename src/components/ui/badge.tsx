@@ -1,23 +1,22 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { Slot } from "radix-ui";
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2.5 py-0.5 text-[0.8rem] font-semibold whitespace-nowrap transition-all has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2.5 py-0.5 text-label-md font-semibold whitespace-nowrap transition-all has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
-        destructive: "bg-danger-tint text-destructive [a]:hover:bg-danger-tint/80",
+        default: "bg-primary text-primary-foreground [a]:hover:bg-primary-hover",
+        secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary-hover",
+        destructive:
+          "bg-destructive-subtle text-destructive-ink [a]:hover:bg-destructive-subtle-hover",
         outline: "border-input text-foreground [a]:hover:bg-muted",
-        /** Fremhævning, fx "I aften!" (ink på amber: 6,92:1). */
-        amber: "bg-amber text-ink [a]:hover:bg-amber-light",
-        /** Info i sekundærfarven, fx "om 3 dage" (harbor på harbor-tint). */
-        info: "bg-harbor-tint text-harbor [a]:hover:bg-harbor-tint/80",
+        highlight: "bg-highlight text-highlight-foreground [a]:hover:bg-highlight-hover",
+        info: "bg-info-subtle text-info-ink [a]:hover:bg-info-subtle-hover",
         ghost: "hover:bg-muted",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-primary-ink underline-offset-4 hover:underline",
       },
     },
     defaultVariants: {

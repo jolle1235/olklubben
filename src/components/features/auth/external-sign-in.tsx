@@ -35,7 +35,7 @@ export function ExternalSignIn({ provider, callbackURL, errorCallbackURL }: Exte
       >
         {EXTERNAL_PROVIDERS[provider].signIn}
       </ExternalSignInButton>
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+      <div className="flex items-center gap-3 text-label-lg text-muted-foreground">
         <span aria-hidden className="h-px flex-1 bg-border" />
         eller med email
         <span aria-hidden className="h-px flex-1 bg-border" />

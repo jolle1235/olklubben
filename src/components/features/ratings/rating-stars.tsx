@@ -18,8 +18,8 @@ export type RatingStarsProps = {
  * group) is a separate component.
  *
  * Sized by the surrounding font size (1em per star) and coloured by
- * currentColor: amber-ink by default (5.2:1 on cream); on harbor pass
- * className="text-amber". Server-safe; one role="img" with a Danish label.
+ * currentColor: highlight-ink by default; on the feature surface pass
+ * className="text-highlight". Server-safe; one role="img" with a Danish label.
  */
 export function RatingStars({ stars, label, className }: RatingStarsProps) {
   const ariaLabel =
@@ -29,7 +29,7 @@ export function RatingStars({ stars, label, className }: RatingStarsProps) {
     <span
       role="img"
       aria-label={ariaLabel}
-      className={cn("inline-flex shrink-0 items-center gap-[0.1em] text-amber-ink", className)}
+      className={cn("inline-flex shrink-0 items-center gap-[0.1em] text-highlight-ink", className)}
     >
       {starFills(stars).map((fill, index) => (
         <span key={index} aria-hidden className="relative inline-block size-[1em]">

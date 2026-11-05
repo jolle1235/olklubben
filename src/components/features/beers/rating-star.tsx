@@ -74,7 +74,7 @@ export function RatingStar({
             onPointerEnter={(event) => {
               if (event.pointerType === "mouse") onPreview(value);
             }}
-            className="absolute inset-0 cursor-pointer after:absolute after:inset-x-1.5 after:top-[calc(100%+0.3rem)] after:h-1 after:rounded-full peer-focus-visible:after:bg-olive"
+            className="absolute inset-0 cursor-pointer after:absolute after:inset-x-1.5 after:top-[calc(100%+0.3rem)] after:h-1 after:rounded-full peer-focus-visible:after:bg-primary"
           />
         </span>
       ))}
@@ -83,15 +83,13 @@ export function RatingStar({
 }
 
 /**
- * The star itself: an amber-ink outline with an amber-ink fill clipped to a
- * half or the whole star, ≥ 3:1 on paper and cream (WCAG 1.4.11), like the
- * read-only <RatingStars /> and <BeerCard />. A hover preview fills with the
- * lighter amber, so it never looks saved. Amber as the saved colour is for
- * the harbor panel only (<RatingSummary />).
+ * Highlight-ink, not highlight: the star needs ≥ 3:1 on card and background
+ * (WCAG 1.4.11). A hover preview fills with the lighter highlight, so it never
+ * looks saved.
  */
 function StarGlyph({ fill, preview }: { fill: StarFill; preview: boolean }) {
   return (
-    <span aria-hidden className="pointer-events-none absolute inset-0 text-amber-ink">
+    <span aria-hidden className="pointer-events-none absolute inset-0 text-highlight-ink">
       <StarIcon className="absolute inset-0 size-full" strokeWidth={1.5} />
       {fill === "empty" ? null : (
         <span
@@ -103,7 +101,7 @@ function StarGlyph({ fill, preview }: { fill: StarFill; preview: boolean }) {
           <StarIcon
             className={cn(
               "size-(--star-size) max-w-none transition-colors duration-150",
-              preview ? "fill-amber" : "fill-amber-ink",
+              preview ? "fill-highlight" : "fill-highlight-ink",
             )}
             strokeWidth={1.5}
           />

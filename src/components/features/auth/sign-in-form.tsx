@@ -56,7 +56,7 @@ export function SignInForm({ next }: { next: string | null }) {
         describedBy={formError ? alertId : undefined}
       />
       {remembered.emails.length > 0 ? (
-        <div className="-mt-2 flex flex-wrap items-center gap-2 text-[0.95rem]">
+        <div className="-mt-2 flex flex-wrap items-center gap-2 text-body-sm">
           <span className="text-muted-foreground">Brugt før:</span>
           {remembered.emails.map((email) => (
             <Button
@@ -92,7 +92,7 @@ export function SignInForm({ next }: { next: string | null }) {
         <div className="flex justify-end">
           <TextLink
             href={withNext("/forgot-password", next)}
-            className="inline-flex min-h-11 items-center text-[0.95rem]"
+            className="inline-flex min-h-11 items-center text-body-sm"
           >
             Glemt password?
           </TextLink>

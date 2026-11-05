@@ -106,11 +106,11 @@ export function PollPlacePicker({
 
   return (
     <fieldset className="grid min-w-0 grid-cols-1 gap-2">
-      <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-ink">
+      <legend className="mb-2 text-body-sm-tight font-semibold text-foreground">
         Hvor? <span className="font-normal text-muted-foreground">(mindst ét)</span>
       </legend>
       {noPlaces && !error ? (
-        <p id={hintId} className="text-[0.95rem] text-muted-foreground">
+        <p id={hintId} className="text-body-sm text-muted-foreground">
           Klubben har ingen steder endnu. Skriv, hvor I mødes.
         </p>
       ) : null}
@@ -120,7 +120,7 @@ export function PollPlacePicker({
         {shown.map(card)}
         {more.length > 0 ? (
           <details ref={moreRef} open={initiallyOpen} className="sm:col-span-2">
-            <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-lg px-1 font-semibold text-olive underline decoration-2 underline-offset-4 hover:decoration-amber">
+            <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-lg px-1 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight">
               Vis alle {places.length} steder
             </summary>
             <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2">{more.map(card)}</div>
@@ -137,7 +137,7 @@ export function PollPlacePicker({
           describedBy={describedBy}
           className="sm:col-span-2"
         >
-          <div className="mt-3 hidden grid-cols-1 gap-5 rounded-xl border border-dashed border-border bg-cream-deep/40 px-4 py-4 group-has-[.place-radio:checked]/choice:grid">
+          <div className="mt-3 hidden grid-cols-1 gap-5 rounded-xl border border-dashed border-border bg-muted-faint px-4 py-4 group-has-[.place-radio:checked]/choice:grid">
             <div className="grid grid-cols-1 gap-2">
               <InputField
                 name="newPlaceName"
@@ -151,7 +151,7 @@ export function PollPlacePicker({
               />
               <div aria-live="polite">
                 {existing ? (
-                  <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-amber bg-amber-tint/70 px-3.5 py-2 text-ink">
+                  <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-highlight bg-highlight-faint px-3.5 py-2 text-foreground">
                     <span className="min-w-0 break-words hyphens-auto">
                       «{existing.name}» findes allerede.
                     </span>

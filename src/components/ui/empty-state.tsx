@@ -24,23 +24,23 @@ export function EmptyState({
   return (
     <section
       className={cn(
-        "flex flex-col items-center rounded-2xl border-2 border-dashed border-border bg-paper/60 px-6 py-10 text-center md:px-10 md:py-12",
+        "flex flex-col items-center rounded-2xl border-2 border-dashed border-border bg-card-faint px-6 py-10 text-center md:px-10 md:py-12",
         className,
       )}
     >
       {icon ? (
         <div
           aria-hidden
-          className="mb-6 grid size-16 place-items-center porthole rounded-full bg-cream-deep text-3xl text-olive [&_svg]:size-7"
+          className="mb-6 grid size-16 place-items-center porthole rounded-full bg-muted text-headline-sm text-primary-ink [&_svg]:size-7"
         >
           {icon}
         </div>
       ) : null}
-      <Heading className="max-w-[24ch] text-2xl leading-tight font-bold text-olive md:text-[1.75rem]">
+      <Heading className="max-w-[24ch] text-title-md font-bold text-primary-ink md:text-title-lg">
         {title}
       </Heading>
       {description ? (
-        <div className="mt-2 max-w-[44ch] text-[1.05rem] text-muted-foreground">{description}</div>
+        <div className="mt-2 max-w-[44ch] text-lead text-muted-foreground">{description}</div>
       ) : null}
       {actions ? (
         <div className="mt-6 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center">

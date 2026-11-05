@@ -16,18 +16,15 @@ export type VoteBarProps = {
 export function VoteBar({ share, emphasis = null, className }: VoteBarProps) {
   const width = `${Math.round(Math.min(1, Math.max(0, share)) * 100)}%`;
   return (
-    <div
-      aria-hidden
-      className={cn("h-2 w-full overflow-hidden rounded-full bg-cream-deep", className)}
-    >
+    <div aria-hidden className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}>
       <div
         className={cn(
           "h-full rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none",
           emphasis === "leader" || emphasis === "winner"
-            ? "bg-amber"
+            ? "bg-highlight"
             : emphasis === "tied"
-              ? "bg-harbor"
-              : "bg-olive",
+              ? "bg-info"
+              : "bg-primary",
         )}
         style={{ width }}
       />

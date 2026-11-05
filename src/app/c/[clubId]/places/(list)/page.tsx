@@ -31,7 +31,7 @@ export default async function PlacesPage({ params }: PageProps<"/c/[clubId]/plac
   return (
     <>
       <TopBarAction>
-        <Button asChild size="icon" variant="brass">
+        <Button asChild size="icon" variant="highlight">
           <Link href={newPlaceHref} aria-label="Nyt sted">
             <PlusIcon aria-hidden />
           </Link>

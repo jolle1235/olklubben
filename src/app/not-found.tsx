@@ -12,14 +12,14 @@ export default function NotFound() {
       <div className="flex flex-col items-center text-center">
         <p
           aria-hidden
-          className="font-display text-7xl leading-none font-bold tracking-tight text-amber-ink"
+          className="font-display text-display-lg leading-none font-bold text-highlight-ink"
         >
           404
         </p>
-        <h1 className="mt-4 text-[1.85rem] leading-tight font-bold text-olive">
+        <h1 className="mt-4 text-headline-sm font-bold text-primary-ink">
           Den her øl er vist drukket.
         </h1>
-        <p className="mt-2 text-[1.05rem] text-muted-foreground">
+        <p className="mt-2 text-lead text-muted-foreground">
           Siden findes ikke. Måske er linket gammelt, eller også er siden flyttet.
         </p>
         <Button asChild className="mt-7 w-full sm:w-auto">

@@ -47,14 +47,17 @@ export function ImportRow({
 }) {
   if (item.phase !== "ready") {
     return (
-      <li className="flex items-center gap-3 rounded-xl border border-border bg-paper px-4 py-3">
+      <li className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
         {item.phase === "reading" ? (
-          <Loader2Icon aria-hidden className="size-5 shrink-0 animate-spin text-slate" />
+          <Loader2Icon aria-hidden className="size-5 shrink-0 animate-spin text-muted-foreground" />
         ) : null}
         <div className="grid min-w-0 flex-1 gap-0.5">
-          <span className="truncate font-semibold text-ink">{item.fileName}</span>
+          <span className="truncate font-semibold text-foreground">{item.fileName}</span>
           <span
-            className={cn("text-[0.95rem]", item.phase === "failed" ? "text-danger" : "text-slate")}
+            className={cn(
+              "text-body-sm",
+              item.phase === "failed" ? "text-destructive-ink" : "text-muted-foreground",
+            )}
           >
             {item.phase === "failed" ? item.error : "Læser …"}
           </span>
@@ -117,7 +120,7 @@ function ReviewRow({
   const checkboxId = `song-import-${item.key}`;
 
   return (
-    <li className="grid gap-3 rounded-xl border border-border bg-paper px-4 py-3">
+    <li className="grid gap-3 rounded-xl border border-border bg-card px-4 py-3">
       <div className="flex items-start gap-3">
         <input
           id={checkboxId}
@@ -131,10 +134,13 @@ function ReviewRow({
           className="mt-1 size-5 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed"
         />
         <div className="grid min-w-0 flex-1 gap-1">
-          <label htmlFor={checkboxId} className="cursor-pointer font-semibold break-words text-ink">
+          <label
+            htmlFor={checkboxId}
+            className="cursor-pointer font-semibold break-words text-foreground"
+          >
             {fields.title || "(uden titel)"}
           </label>
-          <div className="flex flex-wrap items-center gap-2 text-[0.95rem] text-slate">
+          <div className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
             {fields.artist ? <span>{fields.artist}</span> : null}
             <Badge variant={candidate.kind === "chordbank" ? "info" : "outline"}>
               {candidate.kind === "chordbank" ? "Med akkorder" : "Ren tekst"}
@@ -142,12 +148,12 @@ function ReviewRow({
             <span className="truncate text-muted-foreground">{item.fileName}</span>
           </div>
           {problem ? (
-            <p className="text-[0.95rem] font-semibold text-danger">
+            <p className="text-body-sm font-semibold text-destructive-ink">
               {problem}{" "}
               {candidate.existing && candidate.status !== "new" && !errors ? (
                 <Link
                   href={songHref(clubId, candidate.existing.id)}
-                  className="text-primary underline underline-offset-4"
+                  className="text-primary-ink underline underline-offset-4"
                 >
                   Se «{candidate.existing.title}»
                 </Link>
@@ -155,7 +161,7 @@ function ReviewRow({
             </p>
           ) : null}
           {candidate.notes.map((note) => (
-            <p key={note} className="text-[0.95rem] text-slate">
+            <p key={note} className="text-body-sm text-muted-foreground">
               {note}
             </p>
           ))}
@@ -235,7 +241,7 @@ function DraftEditor({
       {preview ? (
         <section
           aria-label="Forhåndsvisning"
-          className="rounded-xl border border-border bg-cream/50 px-4 py-4"
+          className="rounded-xl border border-border bg-background px-4 py-4"
         >
           <SongTextView body={cleanSongText(fields.body)} mode="chords" />
         </section>
@@ -251,7 +257,7 @@ function DraftEditor({
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
-              className="field-sizing-fixed resize-y overflow-x-auto font-mono text-[0.95rem] leading-relaxed whitespace-pre"
+              className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm-loose whitespace-pre"
             />
           )}
         </FieldShell>

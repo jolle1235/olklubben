@@ -41,7 +41,7 @@ export function CalendarMonthNav({ clubId, monthKey, view, headingId }: Calendar
       <h2
         id={headingId}
         aria-live="polite"
-        className="min-w-0 text-xl leading-tight font-bold text-olive capitalize md:text-[1.75rem]"
+        className="min-w-0 text-title-sm-tight font-bold text-primary-ink capitalize md:text-title-lg"
       >
         {monthKeyLabel(monthKey)}
       </h2>

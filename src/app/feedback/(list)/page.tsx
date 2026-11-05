@@ -89,7 +89,7 @@ export default async function FeedbackListPage({ searchParams }: PageProps<"/fee
             ))}
           </ul>
           {items.length >= FEEDBACK_LIST_LIMIT ? (
-            <p className="mt-4 text-[0.95rem] text-muted-foreground">
+            <p className="mt-4 text-body-sm text-muted-foreground">
               Viser de første {FEEDBACK_LIST_LIMIT} rapporter. Brug filtrene for at se andre.
             </p>
           ) : null}

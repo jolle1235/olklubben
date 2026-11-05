@@ -134,7 +134,7 @@ export function MemberActionsMenu({
                 {menu.isSelf ? "Fjern min admin-rolle" : "Fjern admin-rollen"}
               </DropdownMenuItem>
               {menu.canDemote ? null : (
-                <p id={reasonId} className="max-w-72 px-3 pb-2 text-sm text-muted-foreground">
+                <p id={reasonId} className="max-w-72 px-3 pb-2 text-label-lg text-muted-foreground">
                   {MEMBERSHIP_MESSAGES.LAST_ADMIN}
                 </p>
               )}

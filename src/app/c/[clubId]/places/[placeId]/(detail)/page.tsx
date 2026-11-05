@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeftIcon, CalendarPlusIcon, PencilIcon, PlusIcon, VoteIcon } from "lucide-react";
+import { CalendarPlusIcon, PencilIcon, PlusIcon, VoteIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
+import { BackLink } from "@/components/features/back-link";
 import { ArchivedPlaceBanner } from "@/components/features/places/archived-place-banner";
 import { PlaceAbout } from "@/components/features/places/place-about";
 import { PlaceEvents } from "@/components/features/places/place-events";
@@ -68,7 +69,7 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
     <>
       {archived ? null : (
         <TopBarAction>
-          <Button asChild size="icon" variant="brass">
+          <Button asChild size="icon" variant="highlight">
             <Link href={createHref} aria-label="Opret event her">
               <PlusIcon aria-hidden />
             </Link>
@@ -76,13 +77,7 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
         </TopBarAction>
       )}
 
-      <Link
-        href={placesHref(club.id)}
-        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        Alle steder
-      </Link>
+      <BackLink href={placesHref(club.id)}>Alle steder</BackLink>
       <PageHeader
         title={place.name}
         action={
@@ -121,7 +116,7 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
           <PlaceEvents clubId={club.id} events={events} now={now} />
 
           <section aria-label="Administrer stedet" className="grid grid-cols-1 gap-3">
-            <p className="text-[0.95rem] break-words text-muted-foreground">
+            <p className="text-body-sm break-words text-muted-foreground">
               Oprettet af {getDisplayName(place.createdBy)} ·{" "}
               <time dateTime={toDateKey(place.createdAt)}>
                 {formatCompactDate(place.createdAt)}
@@ -147,13 +142,13 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
               ) : null}
             </div>
             {blockingPoll && !archived ? (
-              <p className="flex items-start gap-2 text-[0.95rem] break-words text-muted-foreground">
-                <VoteIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-harbor" />
+              <p className="flex items-start gap-2 text-body-sm break-words text-muted-foreground">
+                <VoteIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-info-ink" />
                 <span className="min-w-0">
                   {placeInActivePollNote(blockingPoll.title)}{" "}
                   <Link
                     href={pollHref(club.id, blockingPoll.id)}
-                    className="inline-flex min-h-11 items-center font-semibold text-olive underline underline-offset-4"
+                    className="inline-flex min-h-11 items-center font-semibold text-primary-ink underline underline-offset-4"
                   >
                     Se afstemningen
                   </Link>

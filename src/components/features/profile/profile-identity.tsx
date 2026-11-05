@@ -45,17 +45,17 @@ export function ProfileIdentity({
         className="m-1.5 shrink-0"
       />
       <div className="grid max-w-full min-w-0 grid-cols-1">
-        <p className="font-display text-2xl leading-tight font-semibold break-words hyphens-auto text-olive md:text-[1.75rem]">
+        <p className="font-display text-title-md font-semibold break-words hyphens-auto text-primary-ink md:text-title-lg">
           {displayName}
         </p>
         {officialName ? (
-          <p className="mt-0.5 text-[1.05rem] break-words hyphens-auto text-muted-foreground">
+          <p className="mt-0.5 text-lead break-words hyphens-auto text-muted-foreground">
             ({officialName})
           </p>
         ) : null}
-        <p className="mt-1 text-[1.05rem] break-all text-ink">{email}</p>
+        <p className="mt-1 text-lead break-all text-foreground">{email}</p>
         {pictureHint ? (
-          <p className="mt-2 text-[0.95rem] text-muted-foreground">{pictureHint}</p>
+          <p className="mt-2 text-body-sm text-muted-foreground">{pictureHint}</p>
         ) : null}
       </div>
     </section>

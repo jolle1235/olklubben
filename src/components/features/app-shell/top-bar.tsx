@@ -13,7 +13,7 @@ export function TopBar({ club, clubs, className }: TopBarProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 on-olive pt-[env(safe-area-inset-top)] md:hidden",
+        "sticky top-0 z-30 surface-frame pt-[env(safe-area-inset-top)] md:hidden",
         className,
       )}
     >

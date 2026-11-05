@@ -36,7 +36,7 @@ export function PollManageActions({ clubId, view, canManage }: PollManageActions
 
   if (!canManage) {
     return (
-      <p className="text-center text-[0.95rem] break-words text-muted-foreground">
+      <p className="text-center text-body-sm break-words text-muted-foreground">
         {managersNote({ name: getDisplayName(view.createdBy), isMember: view.createdBy.isMember })}
       </p>
     );

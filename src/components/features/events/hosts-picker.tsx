@@ -74,7 +74,7 @@ export function HostsPicker({
                 choice.id === currentUserId ? " (dig)" : choice.former ? " (tidligere medlem)" : "";
               return (
                 <li key={choice.id} className="min-w-0">
-                  <label className="flex min-h-13 cursor-pointer items-center gap-3 rounded-xl border-2 border-border bg-paper px-3 py-1.5 text-ink transition-colors hover:border-olive/50 has-checked:border-olive has-checked:bg-olive-tint has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring">
+                  <label className="flex min-h-13 pressable cursor-pointer items-center gap-3 rounded-xl border-2 border-border bg-card px-3 py-1.5 text-foreground hover:border-primary-border has-checked:border-primary has-checked:bg-primary-subtle has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring">
                     <input
                       type="checkbox"
                       name="hostIds"
@@ -95,7 +95,7 @@ export function HostsPicker({
                       decorative
                       className="m-1"
                     />
-                    <span className="min-w-0 flex-1 leading-snug font-semibold break-words hyphens-auto">
+                    <span className="min-w-0 flex-1 text-body-md-tight font-semibold break-words hyphens-auto">
                       {choice.displayName}
                       {suffix ? (
                         <span className="font-normal text-muted-foreground">{suffix}</span>
@@ -107,7 +107,7 @@ export function HostsPicker({
             })}
           </ul>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p aria-live="polite" className="text-[0.95rem] text-muted-foreground">
+            <p aria-live="polite" className="text-body-sm text-muted-foreground">
               {hint}
             </p>
             {canUseOwners(state, suggestion) ? (

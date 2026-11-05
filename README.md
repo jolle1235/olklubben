@@ -169,25 +169,27 @@ Login, signup, "Glemt password", join-med-kode og opslag af invitationskoder er 
 
 ## Scripts
 
-| Script                            | Gør                                                                        |
-| --------------------------------- | -------------------------------------------------------------------------- |
-| `npm run dev`                     | Udviklingsserver på port 3000                                              |
-| `npm run build`                   | `prisma generate` + `prisma migrate deploy` + `next build` (som på Vercel) |
-| `npm run start`                   | Kører det byggede produktionsbuild                                         |
-| `npm run lint`                    | ESLint                                                                     |
-| `npm run typecheck`               | `next typegen` (route-typer) + `tsc --noEmit`                              |
-| `npm test` / `npm run test:watch` | Unit tests (Vitest), uden database                                         |
-| `npm run test:integration`        | Integrationstests (Vitest) mod `olklubben_itest`                           |
-| `npm run test:e2e`                | E2E-tests (Playwright) mod testdatabasen                                   |
-| `npm run check`                   | `typecheck` + `lint` + `format:check` + `test` (før deploy)                |
-| `npm run db:migrate`              | Ny migration fra `prisma/schema.prisma` + anvend den (udvikling)           |
-| `npm run db:deploy`               | Anvend ventende migrations (ingen nye)                                     |
-| `npm run db:seed`                 | Fyld testdata i via `prisma/seed.ts`                                       |
-| `npm run db:reset`                | Slet og genopbyg udviklingsdatabasen (spørger først)                       |
-| `npm run db:studio`               | Prisma Studio                                                              |
-| `npm run songbook:import`         | Læs/importér sangbogens PDF'er (se "Importér sangbogen")                   |
-| `npm run feedback:list`           | Vis åbne feedback-rapporter, flest 👍 først (se "Feedback og app-admin")   |
-| `npm run format` / `format:check` | Prettier (inkl. sortering af Tailwind-klasser)                             |
+| Script                            | Gør                                                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `npm run dev`                     | Udviklingsserver på port 3000                                                                  |
+| `npm run build`                   | `prisma generate` + `prisma migrate deploy` + `next build` (som på Vercel)                     |
+| `npm run start`                   | Kører det byggede produktionsbuild                                                             |
+| `npm run lint`                    | ESLint                                                                                         |
+| `npm run typecheck`               | `next typegen` (route-typer) + `tsc --noEmit`                                                  |
+| `npm test` / `npm run test:watch` | Unit tests (Vitest), uden database                                                             |
+| `npm run test:integration`        | Integrationstests (Vitest) mod `olklubben_itest`                                               |
+| `npm run test:e2e`                | E2E-tests (Playwright) mod testdatabasen                                                       |
+| `npm run check`                   | `typecheck` + `lint` + `format:check` + `check:tokens` + `test` (før deploy)                   |
+| `npm run tokens`                  | Genererer `tokens.css` (farver og typeskala) fra `src/styles/tokens/` (SPEC §13.2–13.3)        |
+| `npm run check:tokens`            | Ingen farveværdier, primitiver, gamle farvenavne eller vilkårlige skriftstørrelser i app-koden |
+| `npm run db:migrate`              | Ny migration fra `prisma/schema.prisma` + anvend den (udvikling)                               |
+| `npm run db:deploy`               | Anvend ventende migrations (ingen nye)                                                         |
+| `npm run db:seed`                 | Fyld testdata i via `prisma/seed.ts`                                                           |
+| `npm run db:reset`                | Slet og genopbyg udviklingsdatabasen (spørger først)                                           |
+| `npm run db:studio`               | Prisma Studio                                                                                  |
+| `npm run songbook:import`         | Læs/importér sangbogens PDF'er (se "Importér sangbogen")                                       |
+| `npm run feedback:list`           | Vis åbne feedback-rapporter, flest 👍 først (se "Feedback og app-admin")                       |
+| `npm run format` / `format:check` | Prettier (inkl. sortering af Tailwind-klasser)                                                 |
 
 `npm run build` kører `prisma migrate deploy` mod databasen i `.env.local`. Stop `npm run dev` først, da begge bruger `.next/`. Slet `.next/dev`, før du starter `npm run dev` igen efter et build, ellers kan siderne genindlæse i en løkke (`HMR hash mismatch`, SPEC F-013).
 

@@ -2,15 +2,19 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials, pickByName } from "@/components/ui/initials";
 
-// Initial colors. Cream initials on each: olive 8,77 · harbor 6,83 · rust 6,73 ·
-// brown 6,56 · slate 5,12 (all ≥ 4,5:1).
-const FALLBACK_BACKGROUNDS = ["bg-olive", "bg-harbor", "bg-rust", "bg-brown", "bg-slate"] as const;
+const FALLBACK_BACKGROUNDS = [
+  "bg-avatar-1",
+  "bg-avatar-2",
+  "bg-avatar-3",
+  "bg-avatar-4",
+  "bg-avatar-5",
+] as const;
 
 const SIZES = {
-  sm: "size-8 text-xs",
-  md: "size-10 text-sm",
-  lg: "size-16 text-xl",
-  xl: "size-24 text-3xl",
+  sm: "size-8 text-label-sm",
+  md: "size-10 text-label-lg",
+  lg: "size-16 text-title-sm",
+  xl: "size-24 text-headline-sm",
 } as const;
 
 export type UserAvatarSize = keyof typeof SIZES;
@@ -32,7 +36,7 @@ export type UserAvatarProps = {
 /**
  * Round avatar with a porthole ring and an initials fallback.
  * The ring is drawn outside the box (box-shadow), so leave ~5 px of room around it.
- * On dark surfaces, put it inside an element with the `on-olive` or `on-harbor` utility so the
+ * On dark surfaces, put it inside an element with the `surface-frame` or `surface-feature` utility so the
  * gap in the ring matches the background.
  */
 export function UserAvatar({
@@ -45,7 +49,7 @@ export function UserAvatar({
 }: UserAvatarProps) {
   return (
     <Avatar
-      className={cn(SIZES[size], "after:hidden", porthole && "porthole", className)}
+      className={cn(SIZES[size], porthole && "porthole", className)}
       role={decorative ? undefined : "img"}
       aria-label={decorative ? undefined : name}
       aria-hidden={decorative ? true : undefined}

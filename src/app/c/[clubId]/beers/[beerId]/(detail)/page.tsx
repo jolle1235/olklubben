@@ -50,7 +50,7 @@ export default async function BeerPage({ params }: PageProps<"/c/[clubId]/beers/
   return (
     <>
       <TopBarAction>
-        <Button asChild size="icon" variant="brass">
+        <Button asChild size="icon" variant="highlight">
           <Link href={addHref} aria-label="Tilføj øl">
             <PlusIcon aria-hidden />
           </Link>
@@ -63,13 +63,13 @@ export default async function BeerPage({ params }: PageProps<"/c/[clubId]/beers/
         <BeerPhoto
           src={imageUrl}
           alt={`Billede af ${beer.name}`}
-          className="mb-6 max-h-80 w-fit max-w-full rounded-2xl bg-paper md:max-h-96"
+          className="mb-6 max-h-80 w-fit max-w-full rounded-2xl bg-card md:max-h-96"
         />
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <RatingSummary averageStars={beer.averageStars} ratingCount={beer.ratingCount} />
-        <div className="rounded-2xl border border-border bg-paper px-4 py-5 sm:px-5">
+        <div className="rounded-2xl border border-border bg-card px-4 py-5 sm:px-5">
           <BeerRating clubId={club.id} beerId={beer.id} myRating={beer.myRating} />
         </div>
       </div>
@@ -79,7 +79,7 @@ export default async function BeerPage({ params }: PageProps<"/c/[clubId]/beers/
           <TastedAt clubId={club.id} event={beer.event} newBeerHref={beer.event ? addHref : null} />
 
           <section aria-label="Om øllen" className="grid grid-cols-1 gap-3">
-            <p className="text-[0.95rem] text-muted-foreground">
+            <p className="text-body-sm text-muted-foreground">
               Tilføjet af {getDisplayName(beer.createdBy)} ·{" "}
               <time dateTime={toDateKey(beer.createdAt)}>{formatCompactDate(beer.createdAt)}</time>
             </p>
@@ -107,10 +107,10 @@ export default async function BeerPage({ params }: PageProps<"/c/[clubId]/beers/
         </div>
 
         <section aria-labelledby="ratings-heading" className="grid grid-cols-1 content-start gap-3">
-          <h2 id="ratings-heading" className="text-2xl text-olive">
+          <h2 id="ratings-heading" className="text-title-md text-primary-ink">
             Ratings
             {beer.ratingCount > 0 ? (
-              <span className="ml-2 font-sans text-lg font-normal text-muted-foreground">
+              <span className="ml-2 font-sans text-body-lg font-normal text-muted-foreground">
                 ({beer.ratingCount})
               </span>
             ) : null}

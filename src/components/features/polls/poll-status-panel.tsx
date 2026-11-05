@@ -108,19 +108,19 @@ function TieCard({
   return (
     <section
       aria-labelledby="poll-tie-heading"
-      className="grid grid-cols-1 gap-4 rounded-2xl border-2 border-amber bg-amber-tint/60 px-5 py-5 sm:px-6"
+      className="grid grid-cols-1 gap-4 rounded-2xl border-2 border-highlight bg-highlight-faint px-5 py-5 sm:px-6"
     >
       <div className="grid grid-cols-1 gap-1.5">
-        <h2 id="poll-tie-heading" className="text-[1.5rem] leading-tight font-bold text-ink">
+        <h2 id="poll-tie-heading" className="text-title-md font-bold text-foreground">
           {tieHeadline(tied)}
         </h2>
         {view.ballotCount === 0 ? (
-          <p className="text-[1.05rem] font-semibold text-amber-ink">{NO_VOTES_NOTE}</p>
+          <p className="text-lead font-semibold text-highlight-ink">{NO_VOTES_NOTE}</p>
         ) : null}
       </div>
 
       {decided.length > 0 ? (
-        <ul className="grid grid-cols-1 gap-1 text-[1.05rem] text-ink">
+        <ul className="grid grid-cols-1 gap-1 text-lead text-foreground">
           {decided.map((category) => {
             const winner = optionsOf(view, category).find(
               (option) => option.id === view.winners[category],
@@ -153,7 +153,7 @@ function TieCard({
           {groups.map((group) => (
             <p
               key={group.category}
-              className="text-[1.05rem] font-semibold break-words hyphens-auto text-ink tabular-nums"
+              className="text-lead font-semibold break-words hyphens-auto text-foreground tabular-nums"
             >
               <span className="sr-only">
                 {group.category === "DATE"
@@ -168,7 +168,7 @@ function TieCard({
               )}
             </p>
           ))}
-          <p className="text-[1.05rem] text-ink">{tieWaitingNote(creator)}</p>
+          <p className="text-lead text-foreground">{tieWaitingNote(creator)}</p>
         </div>
       )}
     </section>

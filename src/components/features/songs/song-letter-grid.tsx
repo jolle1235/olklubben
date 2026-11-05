@@ -11,7 +11,7 @@ export type SongLetterGridProps = {
 };
 
 const TILE =
-  "grid size-12 place-items-center rounded-lg text-lg font-semibold focus-visible:outline-offset-0";
+  "grid size-12 place-items-center rounded-lg text-body-lg font-semibold focus-visible:outline-offset-0";
 
 /** Smooth only when the member has not asked for less motion (SPEC §15.2). */
 function scrollBehavior(): ScrollBehavior {
@@ -67,11 +67,11 @@ export function SongLetterGrid({ available }: SongLetterGridProps) {
     >
       <summary
         aria-label="Hop til bogstav"
-        className="grid h-12 w-11 cursor-pointer list-none place-items-center rounded-lg border border-input bg-paper text-[0.95rem] font-bold text-olive select-none group-open:border-olive group-open:bg-olive group-open:text-cream hover:bg-cream-deep group-open:hover:bg-olive-soft [&::-webkit-details-marker]:hidden"
+        className="grid h-12 w-11 pressable cursor-pointer list-none place-items-center rounded-lg border border-input bg-card text-body-sm font-bold text-primary-ink select-none group-open:border-primary group-open:bg-primary group-open:text-primary-foreground hover:bg-muted group-open:hover:bg-primary-hover [&::-webkit-details-marker]:hidden"
       >
         A–Å
       </summary>
-      <div className="absolute top-full right-0 z-30 mt-2 w-max rounded-xl border border-border bg-paper p-2 shadow-lg">
+      <div className="absolute top-full right-0 z-30 mt-2 w-max rounded-xl border border-border bg-card p-2 shadow-floating">
         <ul className="grid grid-cols-[repeat(6,3rem)] gap-1">
           {SONGBOOK_LETTERS.map((letter) => (
             <li key={letter}>
@@ -82,7 +82,7 @@ export function SongLetterGrid({ available }: SongLetterGridProps) {
                   aria-label={letter === "#" ? "Tal og tegn" : undefined}
                   className={cn(
                     TILE,
-                    "bg-olive-tint text-olive-deep hover:bg-olive hover:text-cream",
+                    "pressable bg-primary-subtle text-primary-ink hover:bg-primary hover:text-primary-foreground",
                   )}
                 >
                   {letter}
@@ -92,7 +92,7 @@ export function SongLetterGrid({ available }: SongLetterGridProps) {
                   role="link"
                   aria-disabled="true"
                   aria-label={letter === "#" ? "Tal og tegn" : undefined}
-                  className={cn(TILE, "text-slate/45")}
+                  className={cn(TILE, "text-muted-foreground opacity-45")}
                 >
                   {letter}
                 </span>

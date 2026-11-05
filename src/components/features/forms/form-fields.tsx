@@ -74,7 +74,7 @@ export function FieldShell({
         "aria-describedby": describedBy,
       })}
       {showHint ? (
-        <p id={hintId} className="text-[0.95rem] text-muted-foreground">
+        <p id={hintId} className="text-body-sm text-muted-foreground">
           {hint}
         </p>
       ) : null}
@@ -162,7 +162,7 @@ export function CheckboxField({
     <div className={cn("grid content-start gap-1", className)}>
       <label
         htmlFor={controlId}
-        className="flex min-h-11 cursor-pointer items-center gap-3 text-base leading-snug text-ink"
+        className="flex min-h-11 cursor-pointer items-center gap-3 text-body-md-tight text-foreground"
       >
         <input
           type="checkbox"
@@ -175,7 +175,7 @@ export function CheckboxField({
         <span className="min-w-0 break-words hyphens-auto">{label}</span>
       </label>
       {showHint ? (
-        <p id={hintId} className="pl-8 text-[0.95rem] text-muted-foreground">
+        <p id={hintId} className="pl-8 text-body-sm text-muted-foreground">
           {hint}
         </p>
       ) : null}
@@ -226,12 +226,12 @@ export function ChoiceFieldset({
       aria-describedby={typeof children === "function" ? undefined : describedBy}
       className={cn("grid min-w-0 content-start gap-2", className)}
     >
-      <legend className="mb-2 flex items-center gap-2 text-[0.95rem] leading-tight font-semibold text-ink">
+      <legend className="mb-2 flex items-center gap-2 text-body-sm-tight font-semibold text-foreground">
         {legend}
         <OptionalMark optional={optional} />
       </legend>
       {showHint ? (
-        <p id={hintId} className="text-[0.95rem] text-muted-foreground">
+        <p id={hintId} className="text-body-sm text-muted-foreground">
           {hint}
         </p>
       ) : null}

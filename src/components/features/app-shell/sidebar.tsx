@@ -20,7 +20,7 @@ export type SidebarProps = {
 };
 
 /**
- * Desktop navigation (md+): olive sidebar with logo, club switcher, the list
+ * Desktop navigation (md+): sidebar with logo, club switcher, the list
  * (Overblik, Kalender, Øl, Sangbog) and, at the bottom, the user row, which is
  * the way to Profil (and the club page) on desktop, with "Log ud" under it.
  */
@@ -33,13 +33,13 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
   return (
     <div
       className={cn(
-        "sticky top-0 hidden h-dvh flex-col overflow-y-auto on-olive md:flex",
+        "sticky top-0 hidden h-dvh flex-col overflow-y-auto overscroll-contain surface-frame pt-[env(safe-area-inset-top)] md:flex",
         className,
       )}
     >
       <div className="px-5 pt-6">
         <Link href={overview} className="inline-flex rounded-lg">
-          <Logo tone="cream" size="md" />
+          <Logo tone="frame" size="md" />
         </Link>
       </div>
 
@@ -58,17 +58,19 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group/nav flex min-h-12 items-center gap-3.5 rounded-xl px-3 text-[1.05rem] font-semibold transition-colors",
+                    "group/nav flex min-h-12 items-center gap-3.5 rounded-xl pressable-row px-3 text-lead font-semibold",
                     active
-                      ? "bg-olive-soft text-cream [--porthole-gap:var(--olive-soft)]"
-                      : "text-on-dark-muted hover:bg-olive-soft/60 hover:text-cream",
+                      ? "bg-frame-hover text-frame-foreground [--porthole-gap:var(--frame-hover)]"
+                      : "text-frame-muted-foreground hover:bg-frame-faint hover:text-frame-foreground",
                   )}
                 >
                   <span
                     aria-hidden
                     className={cn(
                       "grid size-8 shrink-0 place-items-center rounded-full transition-colors [&_svg]:size-[1.15rem]",
-                      active ? "porthole bg-amber text-olive-deep" : "bg-olive-deep/60",
+                      active
+                        ? "porthole bg-highlight text-highlight-foreground"
+                        : "bg-frame-sunken",
                     )}
                   >
                     <Icon strokeWidth={2.25} />
@@ -81,24 +83,28 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
         </ul>
 
         {/* Profil on desktop: the user row, active on the profile and club pages
-            like the bottom nav's Profil item. The brass ring marks it active,
+            like the bottom nav's Profil item. The porthole ring marks it active,
             like the list's icons. */}
-        <div className="mt-auto border-t border-white/10 p-3">
+        <div className="mt-auto border-t border-frame-border p-3">
           <Link
             href={userRow.href}
             aria-current={userRowActive ? "page" : undefined}
             className={cn(
-              "flex min-h-14 items-center gap-3 rounded-xl px-2.5 py-2 transition-colors",
+              "flex min-h-14 items-center gap-3 rounded-xl pressable-row px-2.5 py-2",
               userRowActive
-                ? "bg-olive-soft [--porthole-gap:var(--olive-soft)]"
-                : "[--porthole-ring:var(--olive-soft)] hover:bg-olive-soft/60",
+                ? "bg-frame-hover [--porthole-gap:var(--frame-hover)]"
+                : "[--porthole-ring:var(--frame-hover)] hover:bg-frame-faint",
             )}
           >
             <span className="sr-only">{userRow.label}: </span>
             <UserAvatar name={user.name} image={user.image} size="sm" decorative />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold text-cream">{user.name}</span>
-              <span className="block truncate text-sm text-on-dark-muted">{user.email}</span>
+              <span className="block truncate font-semibold text-frame-foreground">
+                {user.name}
+              </span>
+              <span className="block truncate text-label-lg text-frame-muted-foreground">
+                {user.email}
+              </span>
             </span>
           </Link>
           <LogoutButton variant="sidebar" className="mt-1" />

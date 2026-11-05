@@ -10,7 +10,7 @@ export function EventDetailSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite" className="mx-auto flex max-w-2xl flex-col gap-8">
       <span className="sr-only">Henter eventet …</span>
-      <div className="flex flex-col items-center rounded-3xl border border-border bg-paper px-5 pt-8 pb-6 sm:px-10 sm:pt-10">
+      <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-5 pt-8 pb-6 sm:px-10 sm:pt-10">
         <Skeleton className="mb-5 size-12 rounded-full" />
         <Skeleton className="mb-3 h-6 w-24 rounded-full" />
         <Skeleton className="h-10 w-64 max-w-full md:h-12" />
@@ -46,7 +46,7 @@ export function EventFormSkeleton() {
     <div aria-busy="true" aria-live="polite" className="max-w-2xl">
       <span className="sr-only">Henter …</span>
       <Skeleton className="mb-6 h-10 w-56 md:mb-8 md:h-12" />
-      <div className="grid gap-7 rounded-xl border border-border bg-paper p-5">
+      <div className="grid gap-7 rounded-xl border border-border bg-card p-5">
         <FieldSkeleton />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <FieldSkeleton className="col-span-2 sm:col-span-1" />

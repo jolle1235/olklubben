@@ -16,7 +16,7 @@ export function FieldError({
   className?: string;
 }) {
   return (
-    <p id={id} className={cn("text-[0.95rem] font-semibold text-danger", className)}>
+    <p id={id} className={cn("text-body-sm font-semibold text-destructive-ink", className)}>
       {children}
     </p>
   );
@@ -34,7 +34,7 @@ export function FormError({
     <p
       role="alert"
       className={cn(
-        "rounded-lg bg-danger-tint px-4 py-3 text-[0.95rem] font-semibold text-danger",
+        "rounded-lg bg-destructive-subtle px-4 py-3 text-body-sm font-semibold text-destructive-ink",
         className,
       )}
     >

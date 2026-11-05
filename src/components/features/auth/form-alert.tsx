@@ -6,21 +6,20 @@ import { cn } from "@/lib/utils";
 type FormAlertTone = "error" | "success" | "info";
 
 const TONES = {
-  // danger-deep on danger-tint 6,95:1, olive-deep on olive-tint 10,83:1, harbor on harbor-tint 6,14:1.
   error: {
     role: "alert",
     Icon: CircleAlertIcon,
-    className: "border-danger/30 bg-danger-tint text-danger-deep",
+    className: "border-destructive-border bg-destructive-subtle text-destructive-ink",
   },
   success: {
     role: "status",
     Icon: CircleCheckIcon,
-    className: "border-olive/25 bg-olive-tint text-olive-deep",
+    className: "border-success-border bg-success-subtle text-success-ink",
   },
   info: {
     role: "status",
     Icon: InfoIcon,
-    className: "border-harbor/25 bg-harbor-tint text-harbor",
+    className: "border-info-border bg-info-subtle text-info-ink",
   },
 } as const;
 
@@ -40,7 +39,7 @@ export function FormAlert({ tone = "error", title, children, id, className }: Fo
       id={id}
       role={role}
       className={cn(
-        "flex gap-3 rounded-xl border px-4 py-3 text-[0.98rem] leading-snug",
+        "flex gap-3 rounded-xl border px-4 py-3 text-body-md-tight",
         toneClassName,
         className,
       )}

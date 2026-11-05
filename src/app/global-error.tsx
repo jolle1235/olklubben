@@ -5,6 +5,7 @@ import { BugIcon, RotateCwIcon } from "lucide-react";
 
 import { fontVariables } from "@/components/brand/fonts";
 import { CenteredShell } from "@/components/features/centered-shell";
+import { ThemePrefsScript } from "@/components/features/theme/theme-prefs-script";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
 import { newFeedbackHref } from "@/lib/routes";
@@ -34,7 +35,10 @@ export default function GlobalError({
   );
 
   return (
-    <html lang="da" className={`${fontVariables} h-full`}>
+    <html lang="da" className={`${fontVariables} h-full`} suppressHydrationWarning>
+      <head>
+        <ThemePrefsScript />
+      </head>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <title>Noget gik galt · Ølklubben</title>
         <CenteredShell>

@@ -5,9 +5,12 @@ AGENTS.md
 
 # Generated or installed
 node_modules/
+.agents/
 .next/
 .next-e2e/
 src/generated/
+src/styles/tokens/tokens.css
+src/styles/tokens/browser-colors.ts
 package-lock.json
 next-env.d.ts
 

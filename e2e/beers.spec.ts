@@ -103,6 +103,50 @@ test.describe("Ratings", () => {
     await expect(page.getByRole("button", { name: "Fjern min rating" })).toHaveCount(0);
   });
 
+  test("træk hen over stjernerne: de følger med, og værdien gemmes, når man slipper", async ({
+    page,
+  }, testInfo) => {
+    const owner = newUser(testInfo, "drag");
+    const clubId = await signUpWithClub(page, owner, clubName(testInfo, "Træk"));
+    const beerId = await insertBeer({
+      clubId,
+      createdByEmail: owner.email,
+      name: "Rochefort 8",
+      abv: 9.2,
+    });
+    await page.goto(`/c/${clubId}/beers/${beerId}`);
+    const group = ratingGroup(page);
+    await expectHydrated(group);
+    const stars = group.locator(":scope > span");
+    const box = async (index: number) => {
+      const found = await stars.nth(index).boundingBox();
+      if (!found) throw new Error("E2E: stjernen er ikke synlig");
+      return found;
+    };
+
+    const first = await box(0);
+    const fourth = await box(3);
+    const y = first.y + first.height / 2;
+    await page.mouse.move(first.x + first.width / 2, y);
+    await page.mouse.down();
+    await page.mouse.move(fourth.x + fourth.width * 0.8, y, { steps: 12 });
+    // Saved on release, not while dragging.
+    expect(await myRating(beerId, owner.email)).toBeNull();
+    await page.mouse.up();
+    await expectRatingSaved(page);
+    await expect(group.getByRole("radio", { name: "4 ud af 5", exact: true })).toBeChecked();
+    await expect.poll(() => myRating(beerId, owner.email)).toBe(8);
+
+    const second = await box(1);
+    const last = await box(4);
+    await page.mouse.move(second.x + second.width / 2, y);
+    await page.mouse.down();
+    await page.mouse.move(last.x + last.width + 80, y, { steps: 12 });
+    await page.mouse.up();
+    await expect(group.getByRole("radio", { name: "5 ud af 5", exact: true })).toBeChecked();
+    await expect.poll(() => myRating(beerId, owner.email)).toBe(10);
+  });
+
   test("hver gemning annonceres som et nyt “Gemt ✓”, også to lige efter hinanden", async ({
     page,
   }, testInfo) => {

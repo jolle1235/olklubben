@@ -39,7 +39,7 @@ export default async function OnboardingPage() {
           {hasClubs ? (
             <Link
               href={backLink.href}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 pressable-dim hover:underline"
             >
               <ArrowLeftIcon aria-hidden className="size-4" />
               {backLink.label}
@@ -50,10 +50,10 @@ export default async function OnboardingPage() {
       }
     >
       <section aria-labelledby="create-club-heading">
-        <h2 id="create-club-heading" className="mb-1 text-xl text-olive">
+        <h2 id="create-club-heading" className="mb-1 text-title-sm text-primary-ink">
           Opret ølklub
         </h2>
-        <p className="mb-4 text-[0.95rem] text-muted-foreground">
+        <p className="mb-4 text-body-sm text-muted-foreground">
           Du bliver klubbens admin og får et link, du kan dele med de andre.
         </p>
         <CreateClubForm />
@@ -61,17 +61,15 @@ export default async function OnboardingPage() {
 
       <div className="my-7 flex items-center gap-4" aria-hidden>
         <span className="h-px flex-1 bg-border" />
-        <span className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-          eller
-        </span>
+        <span className="text-label-lg font-semibold caps text-muted-foreground">eller</span>
         <span className="h-px flex-1 bg-border" />
       </div>
 
       <section aria-labelledby="join-club-heading">
-        <h2 id="join-club-heading" className="mb-1 text-xl text-olive">
+        <h2 id="join-club-heading" className="mb-1 text-title-sm text-primary-ink">
           Join en ølklub
         </h2>
-        <p className="mb-4 text-[0.95rem] text-muted-foreground">
+        <p className="mb-4 text-body-sm text-muted-foreground">
           Har du fået en kode af en ven? Skriv den her.
         </p>
         <JoinCodeForm />

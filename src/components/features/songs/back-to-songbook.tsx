@@ -40,7 +40,7 @@ export function BackToSongbook({ clubId }: { clubId: string }) {
   return (
     <Link
       href={href}
-      className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
+      className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 pressable-dim hover:underline"
     >
       <ChevronLeftIcon aria-hidden className="size-5" />
       Sangbog

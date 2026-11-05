@@ -24,7 +24,7 @@ export function CancelPollButton({ clubId, pollId, title }: CancelPollButtonProp
   return (
     <ConfirmDialog
       trigger={
-        <Button variant="outline" className="text-danger hover:bg-danger-tint">
+        <Button variant="outline" className="text-destructive-ink hover:bg-destructive-subtle">
           <BanIcon aria-hidden />
           Annullér afstemning
         </Button>

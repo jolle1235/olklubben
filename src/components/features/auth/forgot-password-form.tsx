@@ -56,18 +56,18 @@ function ResetLinkSent({ email, next }: { email: string; next: string | null }) 
       <div className="flex flex-col items-start gap-4 sm:flex-row">
         <span
           aria-hidden
-          className="m-1.5 grid size-12 shrink-0 place-items-center porthole rounded-full bg-olive-tint text-olive-deep"
+          className="m-1.5 grid size-12 shrink-0 place-items-center porthole rounded-full bg-success-subtle text-success-ink"
         >
           <MailCheckIcon className="size-6" />
         </span>
         <div className="grid min-w-0 gap-1.5">
-          <h2 className="text-xl leading-tight font-bold text-olive">
+          <h2 className="text-title-sm-tight font-bold text-primary-ink">
             Hvis emailen findes, har vi sendt et link{"\u00a0"}📬
           </h2>
           <p className="text-muted-foreground">
             Tjek indbakken for{" "}
-            <strong className="[overflow-wrap:anywhere] text-ink">{email}</strong> – og spam-mappen,
-            hvis den gemmer sig. Linket virker i{"\u00a0"}1{"\u00a0"}time.
+            <strong className="[overflow-wrap:anywhere] text-foreground">{email}</strong> – og
+            spam-mappen, hvis den gemmer sig. Linket virker i{"\u00a0"}1{"\u00a0"}time.
           </p>
         </div>
       </div>

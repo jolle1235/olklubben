@@ -75,14 +75,14 @@ export function PlaceList({ clubId, active, archived, viewerId, newPlaceHref }: 
 
       {archived.length > 0 ? (
         <details className="group/archived grid grid-cols-1 gap-3">
-          <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-lg font-heading text-lg font-semibold text-olive [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-lg font-heading text-body-lg font-semibold text-primary-ink [&::-webkit-details-marker]:hidden">
             <ChevronRightIcon
               aria-hidden
               className="size-5 shrink-0 transition-transform group-open/archived:rotate-90"
             />
             Arkiverede steder ({archived.length})
           </summary>
-          <p className="mb-3 text-[0.95rem] text-muted-foreground">
+          <p className="mb-3 text-body-sm text-muted-foreground">
             Vises ikke, når I vælger sted. De gamle events viser dem stadig.
           </p>
           <Cards clubId={clubId} places={archived} viewerId={viewerId} muted />

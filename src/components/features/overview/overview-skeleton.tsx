@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Overblik while it loads (SPEC §13.4: skeletons, not spinners), shaped like
- * the page: the harbor hero card (label, badge, big date, title, lines,
+ * the page: the feature hero card (label, badge, big date, title, lines,
  * button), a dashed poll card (round 4: polls sit right under the hero), the
  * "Kommende arrangementer" rows and the quieter "Tidligere
  * ølsmagninger" rows. Announced once as "Henter Overblik …".
@@ -13,26 +13,26 @@ export function OverviewSkeleton() {
     <div aria-busy="true" aria-live="polite" className="flex flex-col gap-8 md:gap-10">
       <span className="sr-only">Henter Overblik …</span>
 
-      <div className="rounded-2xl on-harbor px-5 pt-5 pb-6 sm:px-7 md:px-10 md:pt-8 md:pb-10">
+      <div className="rounded-2xl surface-feature px-5 pt-5 pb-6 sm:px-7 md:px-10 md:pt-8 md:pb-10">
         <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-4 w-40 bg-harbor-soft" />
-          <Skeleton className="h-8 w-24 rounded-full bg-harbor-soft" />
+          <Skeleton className="h-4 w-40 bg-feature-hover" />
+          <Skeleton className="h-8 w-24 rounded-full bg-feature-hover" />
         </div>
         <div className="mt-5 grid gap-5 md:mt-7 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-10">
           <div className="flex flex-col gap-3">
-            <Skeleton className="h-18 w-24 bg-harbor-soft md:h-24 md:w-28" />
-            <Skeleton className="h-4 w-24 bg-harbor-soft" />
+            <Skeleton className="h-18 w-24 bg-feature-hover md:h-24 md:w-28" />
+            <Skeleton className="h-4 w-24 bg-feature-hover" />
           </div>
           <div className="flex flex-col gap-3">
-            <Skeleton className="h-10 w-4/5 max-w-sm bg-harbor-soft" />
-            <Skeleton className="h-5 w-40 bg-harbor-soft" />
-            <Skeleton className="h-5 w-32 bg-harbor-soft" />
-            <Skeleton className="mt-3 h-13 w-full bg-harbor-soft sm:w-40" />
+            <Skeleton className="h-10 w-4/5 max-w-sm bg-feature-hover" />
+            <Skeleton className="h-5 w-40 bg-feature-hover" />
+            <Skeleton className="h-5 w-32 bg-feature-hover" />
+            <Skeleton className="mt-3 h-13 w-full bg-feature-hover sm:w-40" />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-harbor/40 bg-paper px-5 py-4 sm:px-6 sm:py-5">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-info-border bg-card px-5 py-4 sm:px-6 sm:py-5">
         <Skeleton className="h-4 w-56 max-w-full" />
         <Skeleton className="h-6 w-48 max-w-full" />
         <Skeleton className="h-4 w-64 max-w-full" />
@@ -40,7 +40,7 @@ export function OverviewSkeleton() {
       </div>
 
       <RowsSkeleton rows={3} className="bg-card" />
-      <RowsSkeleton rows={2} withMeta className="bg-cream-deep/40" />
+      <RowsSkeleton rows={2} withMeta className="bg-muted-faint" />
     </div>
   );
 }

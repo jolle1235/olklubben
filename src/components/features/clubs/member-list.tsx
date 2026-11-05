@@ -41,7 +41,7 @@ export function MemberList({ clubId, clubName, members, currentUserId }: MemberL
   const roster: Roster = new Map(members.map((member) => [member.userId, member.role]));
 
   return (
-    <ul className="divide-y divide-border rounded-2xl border border-border bg-paper px-4 sm:px-5">
+    <ul className="divide-y divide-border rounded-2xl border border-border bg-card px-4 sm:px-5">
       {members.map((member, index) => {
         const lastAdmin = member.role === "ADMIN" && members[index + 1]?.role === "MEMBER";
         const displayName = getDisplayName(member);
@@ -53,13 +53,13 @@ export function MemberList({ clubId, clubName, members, currentUserId }: MemberL
             key={member.userId}
             className={cn(
               "flex min-h-18 items-center gap-3 py-3 sm:gap-4",
-              lastAdmin && "border-b-2 border-olive/25",
+              lastAdmin && "border-b-2 border-primary-border",
             )}
           >
             <UserAvatar name={displayName} image={member.image} decorative className="m-1" />
             <div className="grid min-w-0 flex-1 grid-cols-1">
               <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="min-w-0 font-semibold break-words hyphens-auto text-ink">
+                <span className="min-w-0 font-semibold break-words hyphens-auto text-foreground">
                   {displayName}
                 </span>{" "}
                 {officialName ? (
@@ -74,7 +74,7 @@ export function MemberList({ clubId, clubName, members, currentUserId }: MemberL
                   <Badge variant="secondary">{CLUB_ROLE_LABEL.ADMIN}</Badge>
                 ) : null}
               </p>
-              <p className="text-[0.95rem] text-muted-foreground">
+              <p className="text-body-sm text-muted-foreground">
                 Medlem siden{" "}
                 <time dateTime={toDateKey(member.joinedAt)}>{formatDate(member.joinedAt)}</time>
               </p>

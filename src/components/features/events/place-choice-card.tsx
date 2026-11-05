@@ -79,15 +79,15 @@ export function PlaceChoiceCard({
         <label
           htmlFor={id}
           className={cn(
-            "flex min-h-14 items-start gap-3 rounded-xl border-2 border-border bg-paper px-3.5 py-3 text-ink transition-colors peer-hover:border-olive/50 peer-hover:bg-cream-deep/40",
-            "before:mt-0.5 before:size-5 before:shrink-0 before:border-2 before:border-slate before:bg-paper before:content-['']",
-            "peer-checked:border-olive peer-checked:bg-olive-tint",
+            "flex min-h-14 pressable items-start gap-3 rounded-xl border-2 border-border bg-card px-3.5 py-3 text-foreground peer-hover:border-primary-border peer-hover:bg-card-hover",
+            "before:mt-0.5 before:size-5 before:shrink-0 before:border-2 before:border-border-strong before:bg-card before:content-['']",
+            "peer-checked:border-primary peer-checked:bg-primary-subtle",
             type === "radio"
               ? // The radio dot: an empty ring, filled when checked.
-                "before:rounded-full peer-checked:before:border-[6px] peer-checked:before:border-olive"
-              : // The checkbox: an empty square, olive with a tick when checked. The tick
+                "before:rounded-full peer-checked:before:border-[6px] peer-checked:before:border-primary"
+              : // The checkbox: an empty square, primary with a tick when checked. The tick
                 // has empty alt text (`/ ''`), so it is not part of the accessible name.
-                "before:grid before:place-items-center before:rounded-[5px] before:text-[0.8rem] before:leading-none before:font-bold before:text-paper peer-checked:before:border-olive peer-checked:before:bg-olive peer-checked:before:content-['✓'_/_'']",
+                "before:grid before:place-items-center before:rounded-[5px] before:text-label-md before:leading-none before:font-bold before:text-primary-foreground peer-checked:before:border-primary peer-checked:before:bg-primary peer-checked:before:content-['✓'_/_'']",
             "peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
           )}
         >
@@ -97,7 +97,7 @@ export function PlaceChoiceCard({
               <span
                 id={metaId}
                 aria-hidden
-                className="text-[0.95rem] break-words hyphens-auto text-slate"
+                className="text-body-sm break-words hyphens-auto text-muted-foreground"
               >
                 {meta}
               </span>

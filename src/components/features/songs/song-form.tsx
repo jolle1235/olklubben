@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { ACTION_ERROR_CODES } from "@/lib/action-result";
 import { songHref } from "@/lib/routes";
 import { songFormSchema } from "@/lib/validation/song";
@@ -24,7 +25,6 @@ import {
 
 import { SongFormatHelp } from "./song-format-help";
 import { SongPreview } from "./song-preview";
-import { useHydrated } from "./use-songbook-prefs";
 
 /** The fields' starting values ("" for empty). */
 export type SongFormDefaults = { title: string; artist: string; melody: string; body: string };
@@ -106,7 +106,7 @@ export function SongForm({ clubId, songId, defaults, cancelHref }: SongFormProps
         {existing ? (
           <Link
             href={songHref(clubId, existing.id)}
-            className="inline-flex min-h-11 w-fit max-w-full items-center gap-2 font-semibold text-primary underline decoration-2 underline-offset-4 hover:decoration-amber"
+            className="inline-flex min-h-11 w-fit max-w-full items-center gap-2 font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
           >
             <span className="min-w-0 break-words hyphens-auto">Gå til «{existing.title}»</span>
             <ArrowRightIcon aria-hidden className="size-4 shrink-0" />
@@ -152,7 +152,7 @@ export function SongForm({ clubId, songId, defaults, cancelHref }: SongFormProps
                 autoCapitalize="off"
                 autoCorrect="off"
                 required
-                className="field-sizing-fixed resize-y overflow-x-auto font-mono text-[0.95rem] leading-relaxed whitespace-pre"
+                className="field-sizing-fixed resize-y overflow-x-auto font-mono text-body-sm-loose whitespace-pre"
               />
             )}
           </FieldShell>

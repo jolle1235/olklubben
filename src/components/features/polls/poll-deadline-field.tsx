@@ -30,7 +30,7 @@ export function PollDeadlineField({
 }: PollDeadlineFieldProps) {
   return (
     <fieldset className="grid min-w-0 grid-cols-1 gap-2">
-      <legend className="mb-2 text-[0.95rem] leading-tight font-semibold text-ink">
+      <legend className="mb-2 text-body-sm-tight font-semibold text-foreground">
         Afstemningsfrist
       </legend>
       <div className="grid grid-cols-1 gap-4 sm:max-w-md sm:grid-cols-2">
@@ -54,7 +54,7 @@ export function PollDeadlineField({
           errors={errors.deadlineTime}
         />
       </div>
-      <p className="text-[0.95rem] text-muted-foreground">{hint}</p>
+      <p className="text-body-sm text-muted-foreground">{hint}</p>
     </fieldset>
   );
 }

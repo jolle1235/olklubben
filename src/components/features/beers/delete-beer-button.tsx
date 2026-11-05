@@ -26,7 +26,7 @@ export function DeleteBeerButton({ clubId, beerId, beerName, ratingCount }: Dele
   return (
     <ConfirmDialog
       trigger={
-        <Button variant="outline" className="text-danger hover:bg-danger-tint">
+        <Button variant="outline" className="text-destructive-ink hover:bg-destructive-subtle">
           <Trash2Icon aria-hidden />
           Slet øl
         </Button>

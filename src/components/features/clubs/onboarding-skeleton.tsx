@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 /**
  * Loading state for /clubs and /onboarding (SPEC §13.4: skeletons, not
  * spinners), rendered inside a CenteredShell without a title, so there is no
- * h1 yet and the olive band and logo stay put. Shaped like the page that is on
+ * h1 yet and the frame band and logo stay put. Shaped like the page that is on
  * its way: "picker" is the club list, "onboarding" the create/join forms.
  */
 export function OnboardingSkeleton({ variant }: { variant: "picker" | "onboarding" }) {
@@ -27,9 +27,7 @@ export function OnboardingSkeleton({ variant }: { variant: "picker" | "onboardin
           <FormSectionSkeleton />
           <div className="my-7 flex items-center gap-4" aria-hidden>
             <span className="h-px flex-1 bg-border" />
-            <span className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-              eller
-            </span>
+            <span className="text-label-lg font-semibold caps text-muted-foreground">eller</span>
             <span className="h-px flex-1 bg-border" />
           </div>
           <FormSectionSkeleton />

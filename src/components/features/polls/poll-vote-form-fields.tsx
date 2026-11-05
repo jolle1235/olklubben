@@ -31,10 +31,10 @@ import { VoteOptionRow } from "./vote-option-row";
 function SectionHeading({ id, title, note }: { id: string; title: string; note: string }) {
   return (
     <legend className="mb-3 flex w-full flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      <h2 id={id} className="text-xl font-bold tracking-tight text-olive">
+      <h2 id={id} className="text-title-sm font-bold text-primary-ink">
         {title}
       </h2>
-      <span className="text-[0.95rem] text-slate">{note}</span>
+      <span className="text-body-sm text-muted-foreground">{note}</span>
     </legend>
   );
 }
@@ -209,14 +209,14 @@ export function PollVoteFormFields({ model }: { model: VoteFormModel }) {
         <FixedOptionRow category="PLACE" label={fixedPlace.label} meta={fixedPlace.meta} />
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-harbor/40 bg-paper px-4 py-4 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-info-border bg-card px-4 py-4 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
         <div className="grid min-w-0 grid-cols-1 gap-1" aria-live="polite">
           {dirty ? (
-            <p className="font-semibold text-amber-ink">Ikke gemt endnu</p>
+            <p className="font-semibold text-highlight-ink">Ikke gemt endnu</p>
           ) : model.saved ? (
-            <p className="font-semibold text-olive">Du har stemt ✓</p>
+            <p className="font-semibold text-primary-ink">Du har stemt ✓</p>
           ) : null}
-          <p className="text-[0.95rem] break-words text-slate">
+          <p className="text-body-sm break-words text-muted-foreground">
             {model.saved
               ? `Du kan ændre din stemme indtil ${model.deadlineLabel}.`
               : `Du kan stemme indtil ${model.deadlineLabel} – og ændre det bagefter.`}

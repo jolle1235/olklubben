@@ -1,17 +1,19 @@
 /**
- * Text size for the club name in the sidebar's ClubSwitcher.
+ * Text size for the club name in the sidebar's ClubSwitcher (the tight
+ * variants: the name is a title over at most two lines).
  *
  * The sidebar's name column is about 154 px wide: room for about 13
- * characters of Zilla Slab bold at text-lg, 15 at text-base and 17 at text-sm
- * (measured: "Æblemostklubben" is 159/147/126 px). A long single word would
- * otherwise be broken mid-word, so the size steps down with the longest word.
- * Names with short words keep text-lg and simply wrap (two lines at most);
- * anything longer still is hyphenated (hyphens-auto, lang="da").
+ * characters of Zilla Slab bold at text-body-lg, 15 at text-body-md and 17
+ * at text-label-lg (measured: "Æblemostklubben" is 159/147/126 px). A long
+ * single word would otherwise be broken mid-word, so the size steps down with
+ * the longest word. Names with short words keep text-body-lg-tight and simply
+ * wrap (two lines at most); anything longer still is hyphenated
+ * (hyphens-auto, lang="da").
  *
  * Pure and client-safe.
  */
 
-export type ClubNameSize = "text-lg" | "text-base" | "text-sm";
+export type ClubNameSize = "text-body-lg-tight" | "text-body-md-tight" | "text-label-lg-tight";
 
 /** The length of the longest whitespace-separated word, counted in characters (not UTF-16 units). */
 export function longestWordLength(name: string): number {
@@ -20,7 +22,7 @@ export function longestWordLength(name: string): number {
 
 export function clubNameSize(name: string): ClubNameSize {
   const longest = longestWordLength(name);
-  if (longest <= 13) return "text-lg";
-  if (longest <= 15) return "text-base";
-  return "text-sm";
+  if (longest <= 13) return "text-body-lg-tight";
+  if (longest <= 15) return "text-body-md-tight";
+  return "text-label-lg-tight";
 }

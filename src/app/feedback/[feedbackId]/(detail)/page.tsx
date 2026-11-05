@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, PencilIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 
+import { BackLink } from "@/components/features/back-link";
 import { DeleteFeedbackButton } from "@/components/features/feedback/delete-feedback-button";
 import {
   FeedbackAdminResponse,
@@ -63,13 +64,7 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
 
   return (
     <>
-      <Link
-        href={feedbackListHref()}
-        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-olive underline-offset-4 hover:underline"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        Alle rapporter
-      </Link>
+      <BackLink href={feedbackListHref()}>Alle rapporter</BackLink>
       <PageHeader title={feedback.title} />
 
       <div className="grid max-w-2xl grid-cols-1 gap-6">
@@ -81,7 +76,7 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
 
         <section
           aria-label="Beskrivelse"
-          className="rounded-xl border border-border bg-paper px-4 py-4 sm:px-5"
+          className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5"
         >
           <FeedbackText text={feedback.description} />
         </section>
@@ -91,7 +86,7 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
         <section aria-label="Stemmer">
           {feedback.isOwn ? (
             <p className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="font-heading text-2xl leading-none font-bold whitespace-nowrap text-olive">
+              <span className="font-heading text-title-md leading-none font-bold whitespace-nowrap text-primary-ink">
                 <span aria-hidden>👍 </span>
                 {feedback.voteCount}
                 <span className="sr-only"> {voteNoun(feedback.voteCount)}</span>
@@ -129,8 +124,8 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
         {canModerate ? (
           <Card>
             <CardHeader>
-              <h2 className="font-heading text-xl leading-snug text-olive">Status og svar</h2>
-              <p className="text-[0.95rem] text-muted-foreground">
+              <h2 className="font-heading text-title-sm text-primary-ink">Status og svar</h2>
+              <p className="text-body-sm text-muted-foreground">
                 Kun app-admins kan ændre status, svare og markere dubletter.
               </p>
             </CardHeader>

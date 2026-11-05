@@ -58,7 +58,7 @@ export function JoinCodeForm() {
           aria-describedby={error ? `${errorId} ${hintId}` : hintId}
         />
         {error ? <FieldError id={errorId}>{error}</FieldError> : null}
-        <p id={hintId} className="text-[0.95rem] text-muted-foreground">
+        <p id={hintId} className="text-body-sm text-muted-foreground">
           Du kan også indsætte hele linket.
         </p>
       </div>

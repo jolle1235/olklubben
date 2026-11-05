@@ -28,7 +28,7 @@ export function SongListSkeleton() {
           <Skeleton className="h-12 w-11" />
         </div>
         <Skeleton className="mt-2 h-7 w-8" />
-        <div className="grid grid-cols-1 divide-y divide-cream-deep rounded-2xl border border-border bg-paper">
+        <div className="grid grid-cols-1 divide-y divide-muted rounded-2xl border border-border bg-card">
           {Array.from({ length: 8 }, (_, index) => (
             <div key={index} className="grid min-h-15 content-center gap-1.5 px-4 py-2.5">
               <Skeleton className={index % 3 === 1 ? "h-5 w-3/5" : "h-5 w-2/5"} />

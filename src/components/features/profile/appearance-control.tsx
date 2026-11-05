@@ -1,0 +1,20 @@
+"use client";
+
+import { setThemePref, useThemePref } from "@/components/features/theme/use-theme-pref";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import type { ThemePref } from "@/lib/theme-prefs";
+
+const OPTIONS = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Lyst" },
+  { value: "dark", label: "Mørkt" },
+] as const satisfies readonly { value: ThemePref; label: string }[];
+
+/** Udseende on Profil (SPEC §9.8). */
+export function AppearanceControl() {
+  const pref = useThemePref();
+
+  return (
+    <SegmentedControl label="Udseende" options={OPTIONS} value={pref} onChange={setThemePref} />
+  );
+}

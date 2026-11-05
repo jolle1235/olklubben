@@ -40,15 +40,15 @@ export function PlaceCard({ place, href, isMine, muted = false }: PlaceCardProps
     <Link
       href={href}
       className={cn(
-        "group/place flex gap-3 rounded-xl border border-border px-4 py-3.5 transition-[border-color,box-shadow] hover:border-input hover:shadow-[0_10px_24px_-20px_rgb(65_68_55/0.7)] sm:gap-4 sm:px-5",
-        muted ? "bg-paper/60" : "bg-paper",
+        "group/place flex pressable gap-3 rounded-xl border border-border px-4 py-3.5 hover:border-input hover:shadow-raised sm:gap-4 sm:px-5",
+        muted ? "bg-card-faint" : "bg-card",
       )}
     >
       <span
         aria-hidden
         className={cn(
           "mt-0.5 grid size-10 shrink-0 place-items-center rounded-full [&_svg]:size-5",
-          muted ? "bg-cream-deep text-slate" : "bg-olive text-amber",
+          muted ? "bg-muted text-muted-foreground" : "bg-frame text-highlight",
         )}
       >
         <MapPinIcon strokeWidth={2.25} />
@@ -57,22 +57,24 @@ export function PlaceCard({ place, href, isMine, muted = false }: PlaceCardProps
         <span className="flex items-start justify-between gap-3">
           <span
             className={cn(
-              "min-w-0 font-heading text-lg leading-snug font-semibold break-words hyphens-auto group-hover/place:underline group-hover/place:decoration-amber group-hover/place:decoration-2 group-hover/place:underline-offset-4",
-              muted ? "text-slate" : "text-olive",
+              "min-w-0 font-heading text-body-lg-tight font-semibold break-words hyphens-auto group-hover/place:underline group-hover/place:decoration-highlight group-hover/place:decoration-2 group-hover/place:underline-offset-4",
+              muted ? "text-muted-foreground" : "text-primary-ink",
             )}
           >
             {place.name}
           </span>
           {isMine ? (
-            <Badge variant="amber" className="mt-0.5">
+            <Badge variant="highlight" className="mt-0.5">
               Dit sted
             </Badge>
           ) : null}
         </span>
         {place.address ? (
-          <span className="text-[0.95rem] break-words hyphens-auto text-ink">{place.address}</span>
+          <span className="text-body-sm break-words hyphens-auto text-foreground">
+            {place.address}
+          </span>
         ) : null}
-        <span className="text-[0.95rem] break-words hyphens-auto text-muted-foreground">
+        <span className="text-body-sm break-words hyphens-auto text-muted-foreground">
           {owners} · {tastingCountLabel(place.eventCount)}
         </span>
       </span>

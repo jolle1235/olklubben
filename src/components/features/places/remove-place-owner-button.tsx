@@ -41,7 +41,7 @@ export function RemovePlaceOwnerButton({
           variant="ghost"
           size="icon"
           aria-label={`Fjern ${ownerName} som ejer`}
-          className="text-slate hover:bg-danger-tint hover:text-danger"
+          className="text-muted-foreground hover:bg-destructive-subtle hover:text-destructive-ink"
         >
           <XIcon aria-hidden />
         </Button>

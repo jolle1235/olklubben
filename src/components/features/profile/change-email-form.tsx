@@ -65,7 +65,7 @@ export function ChangeEmailForm({ clubId, email }: { clubId: string; email: stri
 
       <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
         <SubmitButton pendingLabel="Skifter …">Skift email</SubmitButton>
-        <p className="text-[0.95rem] text-muted-foreground">
+        <p className="text-body-sm text-muted-foreground">
           Du logger ind med den nye email fra nu af. Dine andre enheder bliver logget ud.
         </p>
       </div>

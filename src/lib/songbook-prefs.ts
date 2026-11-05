@@ -16,14 +16,13 @@
  */
 
 /** The 7 font steps, 16–32 px. */
-export const SONG_FONT_SIZES_REM = [1, 1.125, 1.25, 1.375, 1.5625, 1.75, 2] as const;
+const SONG_FONT_SIZES_REM = [1, 1.125, 1.25, 1.375, 1.5625, 1.75, 2] as const;
 /** 1.25rem (20 px). */
-export const DEFAULT_SONG_FONT_STEP = 2;
+const DEFAULT_SONG_FONT_STEP = 2;
 export const MAX_SONG_FONT_STEP = SONG_FONT_SIZES_REM.length - 1;
 
-export const SONG_VIEWS = ["lyrics", "chords"] as const;
-export type SongView = (typeof SONG_VIEWS)[number];
-export const DEFAULT_SONG_VIEW: SongView = "lyrics";
+export type SongView = "lyrics" | "chords";
+const DEFAULT_SONG_VIEW: SongView = "lyrics";
 
 export const SONG_FONT_STEP_KEY = "olklubben.songbook.fontStep";
 export const SONG_VIEW_KEY = "olklubben.songbook.view";

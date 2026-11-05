@@ -83,13 +83,13 @@ export function PollPlanFields({
 
       <div aria-live="polite" className="empty:hidden">
         {hint === "nothing-to-vote" ? (
-          <p className="grid grid-cols-1 gap-1 rounded-xl border-2 border-amber bg-amber-tint px-4 py-3 text-ink">
+          <p className="grid grid-cols-1 gap-1 rounded-xl border-2 border-highlight bg-highlight-subtle px-4 py-3 text-foreground">
             <span className="font-semibold">{SHAPE_HINT_TEXT[hint]}</span>
-            <span className="text-[0.95rem]">
+            <span className="text-body-sm">
               Tilføj en dato eller et sted mere – eller{" "}
               <Link
                 href={newEventHref(clubId, { date: firstDate, placeId: onlyPlace })}
-                className="font-semibold text-olive underline decoration-2 underline-offset-4 hover:decoration-amber"
+                className="font-semibold text-primary-ink underline decoration-2 underline-offset-4 pressable-dim hover:decoration-highlight"
               >
                 opret et event i stedet
               </Link>
@@ -97,7 +97,7 @@ export function PollPlanFields({
             </span>
           </p>
         ) : hint ? (
-          <p className="rounded-xl bg-harbor-tint px-4 py-3 text-[0.95rem] text-harbor">
+          <p className="rounded-xl bg-info-subtle px-4 py-3 text-body-sm text-info-ink">
             {SHAPE_HINT_TEXT[hint]}
           </p>
         ) : null}

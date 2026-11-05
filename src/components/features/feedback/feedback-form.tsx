@@ -150,8 +150,8 @@ export function FeedbackForm(props: FeedbackFormProps) {
             />
           </div>
           <input type="hidden" name="viewportWidth" value={width ?? ""} />
-          <p className="flex items-start gap-2 text-[0.95rem] text-muted-foreground">
-            <InfoIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-harbor" />
+          <p className="flex items-start gap-2 text-body-sm text-muted-foreground">
+            <InfoIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-info-ink" />
             Din rapport kan ses af alle brugere af appen.
           </p>
         </>
