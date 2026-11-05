@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeftIcon, CalendarPlusIcon, PencilIcon, PlusIcon, VoteIcon } from "lucide-react";
+import { CalendarPlusIcon, PencilIcon, PlusIcon, VoteIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
+import { BackLink } from "@/components/features/back-link";
 import { ArchivedPlaceBanner } from "@/components/features/places/archived-place-banner";
 import { PlaceAbout } from "@/components/features/places/place-about";
 import { PlaceEvents } from "@/components/features/places/place-events";
@@ -76,13 +77,7 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
         </TopBarAction>
       )}
 
-      <Link
-        href={placesHref(club.id)}
-        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 pressable-dim hover:underline"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        Alle steder
-      </Link>
+      <BackLink href={placesHref(club.id)}>Alle steder</BackLink>
       <PageHeader
         title={place.name}
         action={

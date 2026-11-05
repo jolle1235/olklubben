@@ -17,6 +17,9 @@ import { useStarDrag } from "./use-star-drag";
 const KEYBOARD_SAVE_DELAY_MS = 600;
 const STATUS_VISIBLE_MS = 2500;
 
+const STATUS_TEXT = { saved: "Gemt ✓", removed: "Rating fjernet" } as const;
+type Status = keyof typeof STATUS_TEXT;
+
 export type BeerRatingProps = {
   clubId: string;
   beerId: string;
@@ -47,7 +50,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
   // A keyboard value that is waiting for its save.
   const [draft, setDraft] = useState<number | null>(null);
   const [hover, setHover] = useState<number | null>(null);
-  const [status, setStatus] = useState<"saved" | "removed" | null>(null);
+  const [status, setStatus] = useState<Status | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const statusTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingKeyboardValue = useRef<number | null>(null);
@@ -74,7 +77,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
     };
   }, [clubId, beerId]);
 
-  function showStatus(next: "saved" | "removed") {
+  function showStatus(next: Status) {
     setStatus(next);
     clearTimeout(statusTimer.current);
     statusTimer.current = setTimeout(() => setStatus(null), STATUS_VISIBLE_MS);
@@ -138,7 +141,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
           Din rating
         </h2>
         <p aria-live="polite" className="text-body-sm font-semibold text-primary-ink">
-          {status === "saved" ? "Gemt ✓" : status === "removed" ? "Rating fjernet" : ""}
+          {status === null ? "" : STATUS_TEXT[status]}
         </p>
       </div>
 

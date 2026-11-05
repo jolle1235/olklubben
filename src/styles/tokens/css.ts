@@ -32,9 +32,11 @@ function declarations(entries: readonly Declaration[]): string {
   return entries.map(([name, value]) => `  --${name}: ${value};`).join("\n");
 }
 
-function changed(dark: readonly Declaration[], light: readonly Declaration[]): Declaration[] {
+/** Lyst tema i sin helhed, mørkt kun med det, der skifter værdi. */
+function perTheme(build: (theme: Theme) => Declaration[]): Record<Theme, Declaration[]> {
+  const light = build("light");
   const lightByName = new Map(light);
-  return dark.filter(([name, value]) => lightByName.get(name) !== value);
+  return { light, dark: build("dark").filter(([name, value]) => lightByName.get(name) !== value) };
 }
 
 function indent(text: string): string {
@@ -78,14 +80,12 @@ function shadows(definition: ThemeDefinition, resolver: Resolver, theme: Theme):
   ]);
 }
 
-function textStyleVariables(styles: Typography["textStyles"]): string {
-  return Object.entries(styles)
-    .flatMap(([name, style]) => [
-      `  --text-${name}: ${style.size};`,
-      `  --text-${name}--line-height: ${style.leading};`,
-      `  --text-${name}--letter-spacing: ${em(style.tracking)};`,
-    ])
-    .join("\n");
+function textStyleVariables(styles: Typography["textStyles"]): Declaration[] {
+  return Object.entries(styles).flatMap(([name, style]): Declaration[] => [
+    [`text-${name}`, style.size],
+    [`text-${name}--line-height`, `${style.leading}`],
+    [`text-${name}--letter-spacing`, em(style.tracking)],
+  ]);
 }
 
 /** `--tw-tracking` gør, at versal-trackingen vinder over text-<rolle>'s. */
@@ -105,8 +105,7 @@ function highContrastCss(definition: ThemeDefinition, scales: Scales): string {
   const names = Object.keys(definition.highContrast ?? {});
   if (names.length === 0) return "";
   const resolver = createResolver(withHighContrast(definition), scales);
-  const light = roles(resolver, "light", names);
-  const dark = changed(roles(resolver, "dark", names), light);
+  const { light, dark } = perTheme((theme) => roles(resolver, theme, names));
   const body = dark.length > 0 ? `\n\n${darkRules(declarations(dark))}` : "";
   return `
 /* Høj kontrast: står sidst, så den vinder over begge temaer */
@@ -123,15 +122,19 @@ export function buildCss(
 ): string {
   const resolver = createResolver(definition, scales);
   const roleNames = [...Object.keys(definition.colors), ...Object.keys(definition.vars)];
-  const lightRoles = roles(resolver, "light", roleNames);
-  const lightShadows = shadows(definition, resolver, "light");
+  const roleValues = perTheme((theme) => roles(resolver, theme, roleNames));
+  const shadowValues = perTheme((theme) => shadows(definition, resolver, theme));
 
   const utilities = [
-    ...Object.keys(definition.colors).map((name) => `  --color-${name}: var(--${name});`),
-    ...Object.keys(definition.shadows).map(
-      (name) => `  --shadow-${name}: var(--elevation-${name});`,
-    ),
-  ].join("\n");
+    ...Object.keys(definition.colors).map((name): Declaration => [
+      `color-${name}`,
+      `var(--${name})`,
+    ]),
+    ...Object.keys(definition.shadows).map((name): Declaration => [
+      `shadow-${name}`,
+      `var(--elevation-${name})`,
+    ]),
+  ];
 
   return `${HEADER}
 
@@ -145,10 +148,10 @@ export function buildCss(
   --shadow-*: initial;
   --inset-shadow-*: initial;
   --drop-shadow-*: initial;
-${utilities}
+${declarations(utilities)}
 
   /* Typeskalaen */
-${textStyleVariables(typography.textStyles)}
+${declarations(textStyleVariables(typography.textStyles))}
 }
 
 ${capsUtilities(typography.capsTracking)}
@@ -160,10 +163,10 @@ ${capsUtilities(typography.capsTracking)}
 ${declarations(primitives(scales, "light"))}
 
   /* Lag 2–3 · roller og komponent-tokens */
-${declarations(lightRoles)}
+${declarations(roleValues.light)}
 
   /* Elevation */
-${declarations(lightShadows)}
+${declarations(shadowValues.light)}
 }
 
 /* Mørkt tema */
@@ -173,10 +176,7 @@ ${darkRules(`  color-scheme: dark;
 ${declarations(primitives(scales, "dark"))}
 
   /* Kun roller og skygger, der skifter værdi */
-${declarations([
-  ...changed(roles(resolver, "dark", roleNames), lightRoles),
-  ...changed(shadows(definition, resolver, "dark"), lightShadows),
-])}`)}
+${declarations([...roleValues.dark, ...shadowValues.dark])}`)}
 ${highContrastCss(definition, scales)}`;
 }
 

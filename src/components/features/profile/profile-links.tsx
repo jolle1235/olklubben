@@ -1,14 +1,13 @@
-import Link from "next/link";
 import {
   AnchorIcon,
   ArrowLeftRightIcon,
-  ChevronRightIcon,
   MapPinIcon,
   MessageSquareWarningIcon,
   PlusIcon,
   type LucideIcon,
 } from "lucide-react";
 
+import { LinkRow } from "@/components/features/link-row";
 import { clubHref, feedbackListHref, placesHref } from "@/lib/routes";
 
 export type ProfileLinksProps = {
@@ -88,33 +87,11 @@ function LinkList({ label, rows }: { label: string; rows: readonly Row[] }) {
   return (
     <nav aria-label={label}>
       <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-        {rows.map(({ href, icon: Icon, title, subtitle }) => (
-          <li key={href} className="first:*:rounded-t-xl last:*:rounded-b-xl">
+        {rows.map((row) => (
+          <li key={row.href} className="first:*:rounded-t-xl last:*:rounded-b-xl">
             {/* The list clips its children (overflow-hidden, for the rounded hover
                 background), so the focus ring is drawn inside the row. */}
-            <Link
-              href={href}
-              className="group/row flex min-h-16 items-center gap-4 pressable-row px-4 py-3 hover:bg-card-hover focus-visible:-outline-offset-3 md:px-5"
-            >
-              <span
-                aria-hidden
-                className="grid size-10 shrink-0 place-items-center rounded-full bg-frame text-highlight [&_svg]:size-5"
-              >
-                <Icon strokeWidth={2.25} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-heading text-body-lg-tight font-semibold text-primary-ink">
-                  {title}
-                </span>
-                <span className="block text-body-sm text-pretty text-muted-foreground">
-                  {subtitle}
-                </span>
-              </span>
-              <ChevronRightIcon
-                aria-hidden
-                className="size-5 shrink-0 text-muted-foreground transition-transform group-hover/row:translate-x-0.5"
-              />
-            </Link>
+            <LinkRow {...row} className="pressable-row focus-visible:-outline-offset-3 md:px-5" />
           </li>
         ))}
       </ul>

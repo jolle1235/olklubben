@@ -14,7 +14,7 @@ import {
 // on the frame band of CenteredShell pages, where "club-left"/"club-deleted"
 // land (TG-039).
 // Top-center on all screens, so toasts never hide behind the mobile bottom nav.
-const Toaster = ({ ...props }: ToasterProps) => {
+function Toaster(props: ToasterProps) {
   return (
     <Sonner
       theme="light"
@@ -64,6 +64,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
       {...props}
     />
   );
-};
+}
 
 export { Toaster };

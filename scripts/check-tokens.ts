@@ -60,21 +60,14 @@ const PRIMITIVES = [
   ...Object.keys(constants),
 ].join("|");
 
-type Rule = {
-  name: string;
-  pattern: RegExp;
-  /** Gælder ikke ALLOWED_COLOR_FILES. */
-  colorValue?: boolean;
-  /** Gælder ikke ALLOWED_TYPE_FILES. */
-  typeValue?: boolean;
-};
+type Rule = { name: string; pattern: RegExp; allowedIn?: string[] };
 
 const RULES: Rule[] = [
   {
     name: "farveværdi (brug en rolle fra themes.ts)",
     pattern:
       /(?<![&\w])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b|(?<![a-zA-Z0-9-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(/g,
-    colorValue: true,
+    allowedIn: ALLOWED_COLOR_FILES,
   },
   {
     name: "primitiv (brug en rolle fra themes.ts)",
@@ -99,7 +92,7 @@ const RULES: Rule[] = [
   {
     name: "vilkårlig skriftstørrelse (brug en tekst-rolle fra typography.ts)",
     pattern: /(?<![\w-])text-\[(?:length:)?-?[\d.]+(?:rem|px)\]/g,
-    typeValue: true,
+    allowedIn: ALLOWED_TYPE_FILES,
   },
   {
     name: "vilkårlig linjehøjde eller tracking (tekst-rollen har dem; versaler: caps)",
@@ -137,8 +130,7 @@ for (const file of SCAN.flatMap((dir) => files(path.join(ROOT, dir)))) {
   const rel = path.relative(ROOT, file);
   const lines = readFileSync(file, "utf8").split("\n");
   for (const rule of RULES) {
-    if (rule.colorValue && ALLOWED_COLOR_FILES.includes(rel)) continue;
-    if (rule.typeValue && ALLOWED_TYPE_FILES.includes(rel)) continue;
+    if (rule.allowedIn?.includes(rel)) continue;
     lines.forEach((line, index) => {
       for (const match of line.matchAll(rule.pattern)) {
         problems.push(`${rel}:${index + 1}  ${rule.name}: ${match[0]}`);

@@ -1,10 +1,8 @@
-import Link from "next/link";
-import { ChevronRightIcon, VoteIcon } from "lucide-react";
+import { VoteIcon } from "lucide-react";
 
-import { formatDayMonthParts, formatLongDate, formatWeekdayShort } from "@/lib/format/date";
 import { pollHref } from "@/lib/routes";
-import { cn } from "@/lib/utils";
 
+import { DateCard } from "./date-card";
 import { pollDateMeta, pollDateTitle, type CalendarPollDate } from "./event-format";
 
 export type PollOptionCardProps = {
@@ -27,44 +25,19 @@ export type PollOptionCardProps = {
  */
 export function PollOptionCard({ clubId, option, now, className }: PollOptionCardProps) {
   return (
-    <Link
+    <DateCard
       href={pollHref(clubId, option.pollId)}
-      className={cn(
-        "group flex min-h-20 pressable items-center gap-4 rounded-xl border-2 border-dashed border-info-border bg-transparent px-4 py-3 hover:bg-info-faint",
-        className,
-      )}
+      variant="poll"
+      date={option.startsAt}
+      now={now}
+      title={pollDateTitle(option)}
+      badge={option.viewerTicked ? "Du kan ✓" : null}
+      className={className}
     >
-      <span aria-hidden className="flex w-11 shrink-0 flex-col items-center text-center">
-        <span className="font-display text-headline-md leading-none font-bold text-info-ink">
-          {formatDayMonthParts(option.startsAt)?.day}
-        </span>
-        <span className="mt-1.5 text-label-sm font-bold caps text-muted-foreground">
-          {formatWeekdayShort(option.startsAt)}
-        </span>
+      <span className="flex items-start gap-1.5 text-body-sm break-words text-muted-foreground">
+        <VoteIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-info-ink" />
+        <span className="min-w-0">{pollDateMeta(option)}</span>
       </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="min-w-0 font-heading text-title-sm font-semibold break-words hyphens-auto text-info-ink">
-            {pollDateTitle(option)}
-          </span>
-          {option.viewerTicked ? (
-            <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-label-md font-bold whitespace-nowrap text-primary-ink">
-              Du kan ✓
-            </span>
-          ) : null}
-        </span>
-        <span className="sr-only">, {formatLongDate(option.startsAt, now)}, </span>
-        <span className="flex items-start gap-1.5 text-body-sm break-words text-muted-foreground">
-          <VoteIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-info-ink" />
-          <span className="min-w-0">{pollDateMeta(option)}</span>
-        </span>
-      </span>
-
-      <ChevronRightIcon
-        aria-hidden
-        className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-      />
-    </Link>
+    </DateCard>
   );
 }

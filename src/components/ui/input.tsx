@@ -17,6 +17,19 @@ type InputProps = React.ComponentProps<"input"> & {
 };
 
 /**
+ * Empties the input before the X. Native setter + input event, so React's
+ * onChange runs: field.value = "" would be undone by React on a controlled field.
+ */
+function clearField(event: React.MouseEvent<HTMLButtonElement>) {
+  const field = event.currentTarget.previousElementSibling;
+  if (!(field instanceof HTMLInputElement)) return;
+  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  setValue?.call(field, "");
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  field.focus();
+}
+
+/**
  * The X shows only while there is text: CSS (:placeholder-shown, hence the
  * " " fallback placeholder) decides, so it also follows uncontrolled fields,
  * form resets and autofill. Out of the tab order: Ctrl+A, Delete does the
@@ -51,18 +64,7 @@ function Input({
         type="button"
         tabIndex={-1}
         aria-label="Ryd feltet"
-        onClick={(event) => {
-          const field = event.currentTarget.previousElementSibling;
-          if (!(field instanceof HTMLInputElement)) return;
-          // Native setter + input event, so React's onChange runs: field.value = ""
-          // would be undone by React on a controlled field.
-          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(
-            field,
-            "",
-          );
-          field.dispatchEvent(new Event("input", { bubbles: true }));
-          field.focus();
-        }}
+        onClick={clearField}
         className="absolute top-1/2 right-0.5 grid size-11 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-muted-foreground pressable-dim peer-placeholder-shown:hidden peer-read-only:hidden peer-disabled:hidden hover:text-foreground"
       >
         <XIcon aria-hidden className="size-5" />

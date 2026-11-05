@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, PencilIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 
+import { BackLink } from "@/components/features/back-link";
 import { DeleteFeedbackButton } from "@/components/features/feedback/delete-feedback-button";
 import {
   FeedbackAdminResponse,
@@ -63,13 +64,7 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
 
   return (
     <>
-      <Link
-        href={feedbackListHref()}
-        className="mb-1 -ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-primary-ink underline-offset-4 pressable-dim hover:underline"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        Alle rapporter
-      </Link>
+      <BackLink href={feedbackListHref()}>Alle rapporter</BackLink>
       <PageHeader title={feedback.title} />
 
       <div className="grid max-w-2xl grid-cols-1 gap-6">

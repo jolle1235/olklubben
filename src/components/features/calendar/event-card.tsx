@@ -1,9 +1,4 @@
-import Link from "next/link";
-import { ChevronRightIcon } from "lucide-react";
-
-import { formatDayMonthParts, formatLongDate, formatWeekdayShort } from "@/lib/format/date";
 import { eventHref } from "@/lib/routes";
-import { cn } from "@/lib/utils";
 import {
   hasEnded,
   heroState,
@@ -11,6 +6,7 @@ import {
   isHeroHighlighted,
 } from "@/server/domain/events/status";
 
+import { DateCard } from "./date-card";
 import { eventPlaceAndTime, type CalendarEvent } from "./event-format";
 
 export type EventCardProps = {
@@ -38,61 +34,28 @@ export function EventCard({ clubId, event, now, meta, className }: EventCardProp
   const badge = !past && isHeroHighlighted(state) ? heroStateLabel(state) : null;
 
   return (
-    <Link
+    <DateCard
       href={eventHref(clubId, event.id)}
-      className={cn(
-        "group flex min-h-20 pressable items-center gap-4 rounded-xl border border-l-4 border-border px-4 py-3",
-        past
-          ? "border-l-border-strong bg-muted-faint hover:bg-muted"
-          : "border-l-primary bg-card shadow-raised hover:bg-card-hover",
-        className,
-      )}
+      variant={past ? "past" : "event"}
+      date={event.startsAt}
+      now={now}
+      title={event.title}
+      badge={badge}
+      className={className}
     >
-      <span aria-hidden className="flex w-11 shrink-0 flex-col items-center text-center">
-        <span
-          className={cn(
-            "font-display text-headline-md leading-none font-bold",
-            past ? "text-muted-foreground" : "text-primary-ink",
-          )}
-        >
-          {formatDayMonthParts(event.startsAt)?.day}
-        </span>
-        <span className="mt-1.5 text-label-sm font-bold caps text-muted-foreground">
-          {formatWeekdayShort(event.startsAt)}
-        </span>
+      <span className="block text-body-sm break-words text-muted-foreground">
+        {eventPlaceAndTime(event)}
       </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span className="min-w-0 font-heading text-title-sm font-semibold break-words hyphens-auto text-primary-ink">
-            {event.title}
-          </span>
-          {badge ? (
-            <span className="rounded-full bg-highlight-subtle px-2.5 py-0.5 text-label-md font-bold whitespace-nowrap text-highlight-ink">
-              {badge}
-            </span>
-          ) : null}
+      {event.theme ? (
+        <span className="mt-0.5 block text-body-sm break-words text-foreground">
+          <span className="text-muted-foreground">Tema:</span> {event.theme}
         </span>
-        <span className="sr-only">, {formatLongDate(event.startsAt, now)}, </span>
-        <span className="block text-body-sm break-words text-muted-foreground">
-          {eventPlaceAndTime(event)}
+      ) : null}
+      {meta ? (
+        <span className="mt-0.5 block text-body-sm break-words hyphens-auto text-foreground">
+          {meta}
         </span>
-        {event.theme ? (
-          <span className="mt-0.5 block text-body-sm break-words text-foreground">
-            <span className="text-muted-foreground">Tema:</span> {event.theme}
-          </span>
-        ) : null}
-        {meta ? (
-          <span className="mt-0.5 block text-body-sm break-words hyphens-auto text-foreground">
-            {meta}
-          </span>
-        ) : null}
-      </span>
-
-      <ChevronRightIcon
-        aria-hidden
-        className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-      />
-    </Link>
+      ) : null}
+    </DateCard>
   );
 }

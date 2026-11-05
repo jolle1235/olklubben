@@ -6,7 +6,7 @@ import type { Hue, Step } from "./palette";
  * med temaet; `{ light, dark }` står kun, hvor en rolle bruger et andet trin.
  */
 
-export const roles = {
+const roles = {
   neutral: "sand",
   /** App-rammen: top bar, sidebar, bundnavigation. */
   frame: "olive",
@@ -19,6 +19,9 @@ export const roles = {
   destructive: "red",
 } as const satisfies Record<string, Hue>;
 
+const FAMILIES = ["primary", "highlight", "info", "success", "destructive"] as const;
+type Family = (typeof FAMILIES)[number];
+
 const at = (hue: Hue, step: Step): Ref => `${hue}.${step}`;
 const neutral = (step: Step): Ref => at(roles.neutral, step);
 const token = (name: string): ColorValue => ({ token: name });
@@ -27,7 +30,8 @@ const token = (name: string): ColorValue => ({ token: name });
 const faint = (tone: string): ColorValue => ({ alpha: 0.6, of: token(tone) });
 
 /** Hvad hvert token i en familie bruges til: SPEC §13.2 "Farvefamilier". */
-function family(name: string, hue: Hue): Record<string, ThemedValue> {
+function family(name: Family): Record<string, ThemedValue> {
+  const hue = roles[name];
   return {
     [name]: at(hue, 9),
     [`${name}-hover`]: at(hue, 10),
@@ -64,13 +68,6 @@ function surface(name: string, base: ThemedValue): Record<string, ThemedValue> {
  * mellemtrin over 7:1.
  */
 function highContrast(): Record<string, ThemedValue> {
-  const families = {
-    primary: roles.primary,
-    highlight: roles.highlight,
-    info: roles.info,
-    success: roles.success,
-    destructive: roles.destructive,
-  };
   return {
     "muted-foreground": { mix: [neutral(11), neutral(12)], amount: 0.5 },
     border: token("border-strong"),
@@ -81,9 +78,7 @@ function highContrast(): Record<string, ThemedValue> {
         [`${name}-border`, { alpha: 0.4, of: token(`${name}-foreground`) }],
       ]),
     ),
-    ...Object.fromEntries(
-      Object.entries(families).map(([name, hue]) => [`${name}-border`, at(hue, 8)]),
-    ),
+    ...Object.fromEntries(FAMILIES.map((name) => [`${name}-border`, at(roles[name], 8)])),
   };
 }
 
@@ -119,11 +114,11 @@ export const themeDefinition: ThemeDefinition = {
     ...surface("feature", { light: at(roles.feature, 9), dark: at(roles.feature, 4) }),
     "feature-highlight": at(roles.highlight, 10),
 
-    ...family("primary", roles.primary),
-    ...family("highlight", roles.highlight),
-    ...family("info", roles.info),
-    ...family("success", roles.success),
-    ...family("destructive", roles.destructive),
+    ...family("primary"),
+    ...family("highlight"),
+    ...family("info"),
+    ...family("success"),
+    ...family("destructive"),
 
     // shadcn-aliaser
     secondary: neutral(4),

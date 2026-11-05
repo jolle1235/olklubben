@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { CalendarDaysIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
+import { CalendarDaysIcon, PlusIcon } from "lucide-react";
 
+import { LinkRow } from "@/components/features/link-row";
 import { formatCompactDate, toDateKey } from "@/lib/format/date";
 import { eventHref } from "@/lib/routes";
 import type { BeerEventRef } from "@/server/beers/queries";
@@ -24,32 +25,15 @@ export function TastedAt({ clubId, event, newBeerHref }: TastedAtProps) {
         Smagt til
       </h2>
       {event ? (
-        <Link
+        <LinkRow
           href={eventHref(clubId, event.id)}
-          className="group/event flex min-h-16 pressable items-center gap-4 rounded-xl border border-border bg-card px-4 py-3 hover:bg-card-hover md:px-5"
-        >
-          <span
-            aria-hidden
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-frame text-highlight [&_svg]:size-5"
-          >
-            <CalendarDaysIcon strokeWidth={2.25} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-heading text-body-lg-tight font-semibold break-words hyphens-auto text-primary-ink">
-              {event.title}
-            </span>
-            <time
-              dateTime={toDateKey(event.startsAt)}
-              className="text-body-sm text-muted-foreground"
-            >
-              {formatCompactDate(event.startsAt)}
-            </time>
-          </span>
-          <ChevronRightIcon
-            aria-hidden
-            className="size-5 shrink-0 text-muted-foreground transition-transform group-hover/event:translate-x-0.5"
-          />
-        </Link>
+          icon={CalendarDaysIcon}
+          title={<span className="break-words hyphens-auto">{event.title}</span>}
+          subtitle={
+            <time dateTime={toDateKey(event.startsAt)}>{formatCompactDate(event.startsAt)}</time>
+          }
+          className="pressable rounded-xl border border-border bg-card md:px-5"
+        />
       ) : (
         <p className="rounded-xl border border-dashed border-border bg-card-faint px-4 py-4 text-muted-foreground">
           Ikke knyttet til et event

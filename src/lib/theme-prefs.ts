@@ -8,9 +8,8 @@ export { DARK_SCHEME_QUERY, THEME_ATTRIBUTE };
  * "dark" on <html>, or none for "System", where tokens.css follows the device.
  */
 
-export const THEME_PREFS = ["system", "light", "dark"] as const;
-export type ThemePref = (typeof THEME_PREFS)[number];
-export type ResolvedTheme = Exclude<ThemePref, "system">;
+export type ThemePref = "system" | "light" | "dark";
+type ResolvedTheme = Exclude<ThemePref, "system">;
 
 export const THEME_PREF_KEY = "olklubben.theme";
 

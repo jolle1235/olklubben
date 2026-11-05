@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 
 import { FormAlert } from "@/components/features/auth/form-alert";
-import { AppearanceControl } from "@/components/features/profile/appearance-control";
 import { ExternalSignInButton } from "@/components/features/auth/external-sign-in";
+import { AppearanceControl } from "@/components/features/profile/appearance-control";
 import { ChangeEmailForm } from "@/components/features/profile/change-email-form";
 import { ChangePasswordForm } from "@/components/features/profile/change-password-form";
 import { LogoutButton } from "@/components/features/profile/logout-button";
 import { ProfileForm } from "@/components/features/profile/profile-form";
 import { ProfileIdentity } from "@/components/features/profile/profile-identity";
 import { FeedbackLink, ProfileLinks } from "@/components/features/profile/profile-links";
+import { ProfileSection } from "@/components/features/profile/profile-section";
 import { ExternalReauth, SetPasswordForm } from "@/components/features/profile/set-password-form";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionDivider } from "@/components/ui/section-divider";
 import { externalProvider } from "@/env";
@@ -83,144 +83,114 @@ export default async function ProfilePage({
           googleAvailable={externalProvider !== null}
         />
 
-        <Card>
-          <CardHeader>
-            <h2 className="font-heading text-title-sm text-primary-ink">Navn og kælenavn</h2>
-          </CardHeader>
-          <CardContent>
-            <ProfileForm
-              key={JSON.stringify([user.name, user.nickname])}
-              clubId={club.id}
-              name={user.name}
-              nickname={user.nickname}
-            />
-          </CardContent>
-        </Card>
+        <ProfileSection title="Navn og kælenavn">
+          <ProfileForm
+            key={JSON.stringify([user.name, user.nickname])}
+            clubId={club.id}
+            name={user.name}
+            nickname={user.nickname}
+          />
+        </ProfileSection>
 
         {logins.hasPassword || accountProvider ? (
-          <Card role="region" aria-labelledby="profile-email-heading">
-            <CardHeader>
-              <h2
-                id="profile-email-heading"
-                className="font-heading text-title-sm text-primary-ink"
-              >
-                Email
-              </h2>
-            </CardHeader>
-            <CardContent className="grid gap-6">
-              {logins.hasPassword ? (
-                <>
-                  <p className="text-lead text-muted-foreground">
-                    Du logger ind med{" "}
-                    <span className="font-semibold break-all text-foreground">{user.email}</span>.
-                  </p>
-                  {accountProvider ? (
-                    <p className="text-body-sm text-muted-foreground">
-                      Skifter du email, kobles dit {EXTERNAL_PROVIDERS[accountProvider].label}-login
-                      fra. Du kan forbinde det igen med den nye email.
-                    </p>
-                  ) : null}
-                  <ChangeEmailForm key={user.email} clubId={club.id} email={user.email} />
-                </>
-              ) : (
+          <ProfileSection
+            title="Email"
+            headingId="profile-email-heading"
+            contentClassName="grid gap-6"
+          >
+            {logins.hasPassword ? (
+              <>
                 <p className="text-lead text-muted-foreground">
-                  {emailFollowsExternal(EXTERNAL_PROVIDERS[accountProvider ?? "google"].label)}
+                  Du logger ind med{" "}
+                  <span className="font-semibold break-all text-foreground">{user.email}</span>.
                 </p>
-              )}
-            </CardContent>
-          </Card>
+                {accountProvider ? (
+                  <p className="text-body-sm text-muted-foreground">
+                    Skifter du email, kobles dit {EXTERNAL_PROVIDERS[accountProvider].label}-login
+                    fra. Du kan forbinde det igen med den nye email.
+                  </p>
+                ) : null}
+                <ChangeEmailForm key={user.email} clubId={club.id} email={user.email} />
+              </>
+            ) : (
+              <p className="text-lead text-muted-foreground">
+                {emailFollowsExternal(EXTERNAL_PROVIDERS[accountProvider ?? "google"].label)}
+              </p>
+            )}
+          </ProfileSection>
         ) : null}
 
         {logins.hasPassword || externalOnly ? (
-          <Card role="region" aria-labelledby="profile-password-heading">
-            <CardHeader>
-              <h2
-                id="profile-password-heading"
-                className="font-heading text-title-sm text-primary-ink"
-              >
-                {logins.hasPassword ? "Skift password" : "Tilføj password"}
-              </h2>
-            </CardHeader>
-            <CardContent>
-              {logins.hasPassword ? (
-                <ChangePasswordForm clubId={club.id} email={user.email} />
-              ) : accountProvider === undefined ? null : freshLogin ? (
-                <SetPasswordForm
-                  clubId={club.id}
-                  email={user.email}
-                  provider={accountProvider}
-                  available={accountProvider === externalProvider}
-                />
-              ) : (
-                <ExternalReauth
-                  clubId={club.id}
-                  email={user.email}
-                  provider={accountProvider}
-                  available={accountProvider === externalProvider}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <ProfileSection
+            title={logins.hasPassword ? "Skift password" : "Tilføj password"}
+            headingId="profile-password-heading"
+          >
+            {logins.hasPassword ? (
+              <ChangePasswordForm clubId={club.id} email={user.email} />
+            ) : accountProvider === undefined ? null : freshLogin ? (
+              <SetPasswordForm
+                clubId={club.id}
+                email={user.email}
+                provider={accountProvider}
+                available={accountProvider === externalProvider}
+              />
+            ) : (
+              <ExternalReauth
+                clubId={club.id}
+                email={user.email}
+                provider={accountProvider}
+                available={accountProvider === externalProvider}
+              />
+            )}
+          </ProfileSection>
         ) : null}
 
         {externalProvider && configured && (logins.hasPassword || hasConfigured) ? (
-          <Card role="region" aria-labelledby="profile-external-heading">
-            <CardHeader>
-              <h2
-                id="profile-external-heading"
-                className="font-heading text-title-sm text-primary-ink"
-              >
-                {configured.label}-login
-              </h2>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {externalLinked ? (
-                <FormAlert tone="success">{configured.label} er forbundet.</FormAlert>
-              ) : null}
-              {externalError ? <FormAlert>{externalError}</FormAlert> : null}
-              {hasConfigured ? (
+          <ProfileSection
+            title={`${configured.label}-login`}
+            headingId="profile-external-heading"
+            contentClassName="grid gap-4"
+          >
+            {externalLinked ? (
+              <FormAlert tone="success">{configured.label} er forbundet.</FormAlert>
+            ) : null}
+            {externalError ? <FormAlert>{externalError}</FormAlert> : null}
+            {hasConfigured ? (
+              <p className="text-lead text-muted-foreground">
+                Du kan logge ind med {configured.label}.
+              </p>
+            ) : (
+              <>
                 <p className="text-lead text-muted-foreground">
-                  Du kan logge ind med {configured.label}.
+                  Forbind din {configured.label}-konto, så kan du logge ind med ét tryk.{" "}
+                  {configured.label}-kontoen skal have samme email (
+                  <span className="break-all text-foreground">{user.email}</span>).
                 </p>
-              ) : (
-                <>
-                  <p className="text-lead text-muted-foreground">
-                    Forbind din {configured.label}-konto, så kan du logge ind med ét tryk.{" "}
-                    {configured.label}-kontoen skal have samme email (
-                    <span className="break-all text-foreground">{user.email}</span>).
-                  </p>
-                  <ExternalSignInButton
-                    provider={externalProvider}
-                    intent="link"
-                    callbackURL={`${profileHref(club.id)}?external=linked`}
-                    errorCallbackURL={profileHref(club.id)}
-                    loginHint={user.email}
-                    className="w-full sm:w-auto sm:justify-self-start"
-                  >
-                    {configured.link}
-                  </ExternalSignInButton>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                <ExternalSignInButton
+                  provider={externalProvider}
+                  intent="link"
+                  callbackURL={`${profileHref(club.id)}?external=linked`}
+                  errorCallbackURL={profileHref(club.id)}
+                  loginHint={user.email}
+                  className="w-full sm:w-auto sm:justify-self-start"
+                >
+                  {configured.link}
+                </ExternalSignInButton>
+              </>
+            )}
+          </ProfileSection>
         ) : null}
 
-        <Card role="region" aria-labelledby="profile-appearance-heading">
-          <CardHeader>
-            <h2
-              id="profile-appearance-heading"
-              className="font-heading text-title-sm text-primary-ink"
-            >
-              Udseende
-            </h2>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <p className="text-lead text-muted-foreground">
-              System følger din telefon eller computer. Valget gælder kun på denne enhed.
-            </p>
-            <AppearanceControl />
-          </CardContent>
-        </Card>
+        <ProfileSection
+          title="Udseende"
+          headingId="profile-appearance-heading"
+          contentClassName="grid gap-4"
+        >
+          <p className="text-lead text-muted-foreground">
+            System følger din telefon eller computer. Valget gælder kun på denne enhed.
+          </p>
+          <AppearanceControl />
+        </ProfileSection>
 
         <ProfileLinks clubId={club.id} clubCount={clubs.length} />
         <FeedbackLink />

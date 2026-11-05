@@ -49,15 +49,13 @@ function hex(color: Color): string {
   return formatHex(intoGamut(color));
 }
 
-export function generateScale(input: ScaleInput, theme: Theme): Record<Step, string> {
+function generateScale(input: ScaleInput, theme: Theme): Record<Step, string> {
   const baseHex = theme === "dark" ? (input.darkBase ?? input.base) : input.base;
   const base = toOklch(baseHex);
   if (!base) throw new Error(`Ugyldig farve: ${baseHex}`);
   const curve = CURVES[theme];
-  const hue = base.h ?? 0;
 
   const lightnessOf = (step: Step): number => {
-    if (step === 9) return base.l;
     if (step === 10) return theme === "light" ? base.l - 0.04 : base.l + 0.04;
     // Farvet tekst: højst L 0,5, så den holder 4,5:1 på trin 1–3.
     if (step === 11 && theme === "light") return Math.min(0.5, base.l);
@@ -75,7 +73,7 @@ export function generateScale(input: ScaleInput, theme: Theme): Record<Step, str
             mode: "oklch",
             l: lightnessOf(step),
             c: base.c * curve.chroma[step - 1]!,
-            h: hue,
+            h: base.h ?? 0,
           }));
   }
   return scale;
