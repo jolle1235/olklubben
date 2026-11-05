@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
+import { StatusBarBackdrop } from "@/components/features/status-bar-backdrop";
 
 export type CenteredShellProps = {
   children: React.ReactNode;
@@ -29,6 +30,7 @@ export function CenteredShell({
 }: CenteredShellProps) {
   return (
     <div className="flex min-h-dvh flex-col">
+      <StatusBarBackdrop />
       <div className="relative overflow-hidden surface-frame pt-[calc(env(safe-area-inset-top)+2.25rem)] pb-24 sm:pb-28">
         <div className="flex justify-center px-4">
           <Link href={logoHref} className="rounded-lg">

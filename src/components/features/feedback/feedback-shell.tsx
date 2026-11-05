@@ -3,6 +3,7 @@ import { ArrowLeftIcon } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import { SignedInFooter } from "@/components/features/profile/signed-in-footer";
+import { StatusBarBackdrop } from "@/components/features/status-bar-backdrop";
 
 export type FeedbackShellProps = {
   /** The logged-in user's email, for "Logget ind som …". */
@@ -27,6 +28,7 @@ export function FeedbackShell({ email, children }: FeedbackShellProps) {
       >
         Spring til indhold
       </a>
+      <StatusBarBackdrop />
       <div className="relative overflow-hidden surface-frame pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-12">
         <div className="mx-auto flex w-full max-w-2xl px-4">
           <Link href="/" className="rounded-lg">

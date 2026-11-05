@@ -82,7 +82,11 @@ export function useStarDrag({ onPreview, onRelease }: StarDragOptions) {
     },
 
     onPointerLeave() {
-      if (!press.current) onPreview(null);
+      // A drag has captured the pointer; any other press ends here, since its
+      // release outside the stars never reaches onPointerUp.
+      if (press.current?.dragging) return;
+      press.current = null;
+      onPreview(null);
     },
 
     onClickCapture(event: React.MouseEvent<HTMLDivElement>) {

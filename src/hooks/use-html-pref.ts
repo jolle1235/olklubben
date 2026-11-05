@@ -10,6 +10,8 @@ export type HtmlPref<T> = {
   /** Client only. */
   read: () => T;
   set: (value: T) => void;
+  /** Client only. Applies the stored value again, e.g. after React reset <html>'s attributes. */
+  restore: () => void;
 };
 
 export function createHtmlPref<T extends string | number>({
@@ -40,6 +42,17 @@ export function createHtmlPref<T extends string | number>({
       } catch {
         // Storage blocked: the attribute still applies until the next hard load.
       }
+      for (const listener of listeners) listener();
+    },
+    restore() {
+      let stored: string | null;
+      try {
+        stored = window.localStorage.getItem(storageKey);
+      } catch {
+        // Storage blocked: the attribute is all there is.
+        stored = document.documentElement.getAttribute(attribute);
+      }
+      apply(parse(stored));
       for (const listener of listeners) listener();
     },
   };

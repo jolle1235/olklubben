@@ -17,7 +17,6 @@ import {
 function Toaster(props: ToasterProps) {
   return (
     <Sonner
-      theme="light"
       position="top-center"
       richColors
       duration={4000}

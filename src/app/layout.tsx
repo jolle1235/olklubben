@@ -5,7 +5,7 @@ import { fontVariables } from "@/components/brand/fonts";
 import { FlashToast } from "@/components/features/flash-toast";
 import { SongbookPrefsScript } from "@/components/features/songs/songbook-prefs-script";
 import { ThemePrefsScript } from "@/components/features/theme/theme-prefs-script";
-import { Toaster } from "@/components/ui/sonner";
+import { ThemedToaster } from "@/components/features/theme/themed-toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BROWSER_THEME_COLOR } from "@/styles/tokens/browser-colors";
 import "./globals.css";
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
-        <Toaster />
+        <ThemedToaster />
         <Suspense fallback={null}>
           <FlashToast />
         </Suspense>
