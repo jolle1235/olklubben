@@ -2,6 +2,7 @@ import { capitalize } from "@/components/features/calendar/event-format";
 import { formatLongDate, formatShortDate, formatTime, formatWeekdayShort } from "@/lib/format/date";
 import { formatDanishList } from "@/lib/format/list";
 import { TIE_CHOICE_MESSAGES, tieChoiceSchema } from "@/lib/validation/poll";
+import { PLACE_UNDECIDED_LABEL, TIME_UNDECIDED_LABEL } from "@/server/domain/events/undecided";
 import type { PollCategory } from "@/server/domain/polls/options";
 
 import { timeLeftLabel, votedSummaryLabel } from "./poll-labels";
@@ -134,9 +135,13 @@ export function tieChoiceFormSchema(tied: readonly PollCategory[]) {
 
 // ── The outcome ─────────────────────────────────────────────────────────────
 
-/** "Lørdag 21. november · 18:30" (+ the year outside the current one). */
-export function outcomeDateLabel(startsAt: Date, now: Date): string {
-  return `${capitalize(formatLongDate(startsAt, now))} · ${formatTime(startsAt)}`;
+/** "Lørdag 21. november · 18:30" (+ the year outside the current one), or "· Tid følger" (D-175). */
+export function outcomeDateLabel(
+  event: { startsAt: Date; hasStartTime: boolean },
+  now: Date,
+): string {
+  const time = event.hasStartTime ? formatTime(event.startsAt) : TIME_UNDECIDED_LABEL;
+  return `${capitalize(formatLongDate(event.startsAt, now))} · ${time}`;
 }
 
 /** "Vært: Mads" · "Værter: Mads og Anders" · "Ingen vært endnu" (E34: nobody could be chosen). */
@@ -201,7 +206,7 @@ export function pollCardState(
 export function pollCardHeadline(
   state: PollCardState,
   creator: Creator,
-  decided: { startsAt: Date; placeName: string } | null,
+  decided: { startsAt: Date; placeName: string | null } | null,
   now: Date,
 ): string {
   switch (state) {
@@ -217,7 +222,7 @@ export function pollCardHeadline(
         : "Uafgjort 🤝 – en admin vælger";
     case "decided":
       return decided
-        ? `🎉 Afgjort: ${formatLongDate(decided.startsAt, now)} · ${decided.placeName}`
+        ? `🎉 Afgjort: ${formatLongDate(decided.startsAt, now)} · ${decided.placeName ?? PLACE_UNDECIDED_LABEL}`
         : "🎉 Afgjort";
   }
 }

@@ -23,18 +23,15 @@ function unique(ids: readonly string[]): string[] {
 
 /**
  * The hosts an event gets when the form sends none: the place's owners who are
- * members (input order, no duplicates, at most MAX_EVENT_HOSTS), else the first
- * fallback user who is a member, else nobody.
+ * members (input order, no duplicates, at most MAX_EVENT_HOSTS), else nobody.
  */
 export function defaultHostIds(input: {
   ownerIds: readonly string[];
-  fallbackUserIds: readonly string[];
   memberIds: ReadonlySet<string>;
 }): string[] {
-  const owners = unique(input.ownerIds).filter((id) => input.memberIds.has(id));
-  if (owners.length > 0) return owners.slice(0, MAX_EVENT_HOSTS);
-  const fallback = input.fallbackUserIds.find((id) => input.memberIds.has(id));
-  return fallback === undefined ? [] : [fallback];
+  return unique(input.ownerIds)
+    .filter((id) => input.memberIds.has(id))
+    .slice(0, MAX_EVENT_HOSTS);
 }
 
 export type ResolvedHosts = { ok: true; hostIds: string[] } | { ok: false; userIds: string[] };
@@ -48,7 +45,6 @@ export type ResolvedHosts = { ok: true; hostIds: string[] } | { ok: false; userI
 export function resolveHostIds(input: {
   requested: readonly string[];
   ownerIds: readonly string[];
-  fallbackUserIds: readonly string[];
   memberIds: ReadonlySet<string>;
   existingHostIds: readonly string[];
 }): ResolvedHosts {
@@ -72,14 +68,8 @@ export function suggestHosts(input: {
   ownerIds: readonly string[];
   memberIds: ReadonlySet<string>;
 }): HostSuggestion {
-  const owners = defaultHostIds({
-    ownerIds: input.ownerIds,
-    fallbackUserIds: [],
-    memberIds: input.memberIds,
-  });
-  return owners.length > 0
-    ? { hostIds: owners, reason: "owners" }
-    : { hostIds: [], reason: "none" };
+  const hostIds = defaultHostIds(input);
+  return { hostIds, reason: hostIds.length > 0 ? "owners" : "none" };
 }
 
 /** True when both lists hold the same ids (order and duplicates ignored). */

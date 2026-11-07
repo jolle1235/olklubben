@@ -37,6 +37,7 @@ test.describe("Runde 2: Definition of Done", () => {
       title: "Ølsmagning #1",
       date,
       startTime: "19:00",
+      endDate: date,
       endTime: "23:30",
       place: "Hos Medlemmet",
       theme: "Tjekkiske øl",

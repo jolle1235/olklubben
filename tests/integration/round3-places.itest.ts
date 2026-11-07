@@ -87,6 +87,7 @@ async function eventAt(placeId: string, by: TestUser = admin): Promise<string> {
     hostIds: [],
     startsAt: new Date(Date.now() - 3 * DAY),
     endsAt: null,
+    hasStartTime: true,
   });
   return id;
 }

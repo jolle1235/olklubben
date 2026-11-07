@@ -58,6 +58,7 @@ export default async function NewEventPage({
               title,
               date: dateKey && isDateKey(dateKey) ? dateKey : "",
               startTime: DEFAULT_EVENT_START_TIME,
+              endDate: "",
               endTime: "",
               theme: "",
               description: "",

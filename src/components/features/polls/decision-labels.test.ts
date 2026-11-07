@@ -122,10 +122,15 @@ describe("tieChoiceFormSchema", () => {
 
 describe("the outcome", () => {
   it("dates and hosts", () => {
-    expect(outcomeDateLabel(SAT, NOW)).toBe("Lørdag 21. november · 18:30");
-    expect(outcomeDateLabel(new Date("2027-01-09T17:30:00Z"), NOW)).toBe(
-      "Lørdag 9. januar 2027 · 18:30",
+    expect(outcomeDateLabel({ startsAt: SAT, hasStartTime: true }, NOW)).toBe(
+      "Lørdag 21. november · 18:30",
     );
+    expect(outcomeDateLabel({ startsAt: SAT, hasStartTime: false }, NOW)).toBe(
+      "Lørdag 21. november · Tid følger",
+    );
+    expect(
+      outcomeDateLabel({ startsAt: new Date("2027-01-09T17:30:00Z"), hasStartTime: true }, NOW),
+    ).toBe("Lørdag 9. januar 2027 · 18:30");
     expect(hostsLabel(["Mads"])).toBe("Vært: Mads");
     expect(hostsLabel(["Anders", "Mads"])).toBe("Værter: Anders og Mads");
     expect(hostsLabel([])).toBe("Ingen vært endnu");

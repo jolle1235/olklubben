@@ -34,8 +34,8 @@ export type EventWriteData = {
   description: string | null;
   startsAt: Date;
   endsAt: Date | null;
-  /** False: "Tid følger" (D-175). Defaults to true. */
-  hasStartTime?: boolean;
+  /** False: "Tid følger" (D-175). */
+  hasStartTime: boolean;
   place: EventPlaceChoice;
   hostIds: readonly string[];
 };
@@ -118,7 +118,6 @@ export async function createEvent(
     const hosts = resolveHostIds({
       requested,
       ownerIds,
-      fallbackUserIds: [],
       memberIds,
       existingHostIds: [],
     });
@@ -173,7 +172,6 @@ export async function updateEvent(
     const hosts = resolveHostIds({
       requested,
       ownerIds,
-      fallbackUserIds: [],
       memberIds,
       existingHostIds: existing.map((host) => host.userId),
     });

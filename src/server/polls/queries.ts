@@ -7,7 +7,6 @@ import { compareByDisplayName, getDisplayName } from "@/lib/format/display-name"
 import { isValidId } from "@/lib/ids";
 import { db } from "@/server/db";
 import { isUpcomingOrOngoing } from "@/server/domain/events/status";
-import { placeNameOrUndecided } from "@/server/domain/events/undecided";
 import { comparePlacesByName } from "@/server/domain/places/name";
 import type { BallotVotes } from "@/server/domain/polls/ballot";
 import { votedMemberIds } from "@/server/domain/polls/lifecycle";
@@ -158,7 +157,10 @@ export type PollView = {
     id: string;
     title: string;
     startsAt: Date;
-    placeName: string;
+    /** False when the event was later edited to "Tid følger" (D-175). */
+    hasStartTime: boolean;
+    /** Null when the event was later edited to have no place (D-175). */
+    placeName: string | null;
     hosts: PollPerson[];
   } | null;
 };
@@ -217,6 +219,7 @@ const viewSelect = {
       id: true,
       title: true,
       startsAt: true,
+      hasStartTime: true,
       place: { select: { name: true } },
       hosts: { select: { user: { select: personSelect } } },
     },
@@ -395,7 +398,8 @@ export async function getPollView(
           id: event.id,
           title: event.title,
           startsAt: event.startsAt,
-          placeName: placeNameOrUndecided(event.place),
+          hasStartTime: event.hasStartTime,
+          placeName: event.place?.name ?? null,
           hosts: event.hosts.map((host) => person(host.user)).sort(compareByDisplayName),
         }
       : null,
@@ -422,7 +426,8 @@ export type OverviewPollItem = {
   /** "Fører lige nu" (OPEN only): the leading/fixed date and place; null on any tie. */
   leader: { startsAt: Date | null; placeName: string | null } | null;
   /** CLOSED: the event it created. */
-  event: { id: string; startsAt: Date; placeName: string; hostNames: string[] } | null;
+  /** placeName is null when the event was later edited to have no place (D-175). */
+  event: { id: string; startsAt: Date; placeName: string | null; hostNames: string[] } | null;
 };
 
 /** A CLOSED poll stays on Overblik this long after closedAt (while its event has not ended). */
@@ -538,7 +543,7 @@ export async function listOverviewPolls(
           ? {
               id: event.id,
               startsAt: event.startsAt,
-              placeName: placeNameOrUndecided(event.place),
+              placeName: event.place?.name ?? null,
               hostNames: event.hosts
                 .map((host) => host.user)
                 .sort(compareByDisplayName)

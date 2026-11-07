@@ -186,6 +186,7 @@ test.describe("Runde 3: Definition of Done", () => {
       title: "Forrige smagning",
       date: dayFromToday(-3),
       startTime: "18:30",
+      endDate: dayFromToday(-3),
       endTime: "23:00",
       place: "Hos Admin",
     });

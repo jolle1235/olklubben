@@ -50,6 +50,7 @@ const EVENT_TEXT_FIELDS = [
   "title",
   "date",
   "startTime",
+  "endDate",
   "endTime",
   "placeId",
   "newPlaceName",
@@ -137,7 +138,7 @@ function parseEventForm(
 
 /**
  * "Opret event" (SPEC §10.4). Form fields: clubId (hidden), title, date,
- * startTime, endTime, placeId ("new" for "＋ Nyt sted" with newPlaceName,
+ * startTime, endDate, endTime, placeId ("new" for "＋ Nyt sted" with newPlaceName,
  * newPlaceAddress, newPlaceMine), hostIds[] (empty = default), theme,
  * description. Opens the new event.
  */

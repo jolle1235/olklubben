@@ -24,8 +24,8 @@ export const metadata: Metadata = { title: "Rediger event" };
  *
  * The event's place stays selectable even when it has been archived since
  * (E30), and hosts who have left the club show as ticked chips that may stay
- * (§7.4). Times come back as Copenhagen wall-clock values; an end on the next
- * day shows as an earlier time, which the overnight rule reads the same way.
+ * (§7.4). Days and times come back as Copenhagen wall-clock values, the end
+ * with its own day (D-176).
  */
 export default async function EditEventPage({
   params,

@@ -121,6 +121,7 @@ function eventInput(
     description: null,
     startsAt: options.startsAt ?? new Date(Date.now() + 7 * DAY),
     endsAt: options.endsAt ?? null,
+    hasStartTime: true,
     place: placeChoice,
     hostIds: options.hostIds ?? [],
   };

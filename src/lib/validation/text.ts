@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { isValidId } from "@/lib/ids";
 import { stripNul } from "@/lib/text";
+import { isDateKey, normalizeTimeOfDay } from "@/server/domain/events/time";
 
 /**
  * Building blocks for the Zod schemas in src/lib/validation (D-090): every
@@ -97,4 +98,72 @@ export function idListSchema(max: number, messages: { tooMany: string; invalid: 
       }),
     )
     .transform((ids) => [...new Set(ids)]);
+}
+
+// ── Dates and times ─────────────────────────────────────────────────────────
+
+export const DATE_INVALID = "Datoen findes ikke. Vælg en anden dato.";
+/** A raw date or time longer than this is refused before it is trimmed or parsed (D-090). */
+const DATE_TIME_RAW_MAX_LENGTH = 20;
+
+/** A required "HH:mm". `abort: true`: an empty field shows only "required", not also "invalid". */
+export const timeField = (required: string, invalid: string) =>
+  z
+    .string({ error: required })
+    .max(DATE_TIME_RAW_MAX_LENGTH, { error: invalid, abort: true })
+    .trim()
+    .min(1, { error: required, abort: true })
+    .refine((value) => normalizeTimeOfDay(value) !== null, invalid)
+    .transform((value) => normalizeTimeOfDay(value) as string);
+
+/** An optional "HH:mm": "" (or missing) stays "". */
+export const optionalTimeField = (invalid: string) =>
+  z
+    .string()
+    .max(DATE_TIME_RAW_MAX_LENGTH, { error: invalid, abort: true })
+    .nullish()
+    .transform((value) => (value ?? "").trim())
+    .refine((value) => value === "" || normalizeTimeOfDay(value) !== null, { message: invalid })
+    .transform((value) => (value === "" ? "" : (normalizeTimeOfDay(value) as string)));
+
+/**
+ * A required "YYYY-MM-DD". One check instead of min(1, { abort: true }) +
+ * refine: an aborted issue would make Zod skip the object-level checks (F-037).
+ */
+export const dateField = (required: string) =>
+  z
+    .string({ error: required })
+    .max(DATE_TIME_RAW_MAX_LENGTH, { error: DATE_INVALID, abort: true })
+    .trim()
+    .superRefine((value, ctx) => {
+      if (value === "") ctx.addIssue({ code: "custom", message: required });
+      else if (!isDateKey(value)) ctx.addIssue({ code: "custom", message: DATE_INVALID });
+    });
+
+/** An optional "YYYY-MM-DD": "" (or missing) stays "". */
+export const optionalDateField = () =>
+  z
+    .string()
+    .max(DATE_TIME_RAW_MAX_LENGTH, { error: DATE_INVALID, abort: true })
+    .nullish()
+    .transform((value) => (value ?? "").trim())
+    .refine((value) => value === "" || isDateKey(value), { message: DATE_INVALID });
+
+// ── Object-level checks ─────────────────────────────────────────────────────
+
+/**
+ * A `when` for an object-level check: run it only when the fields it reads are
+ * valid, also while other fields are not (F-037).
+ */
+export function whenValid<S extends z.ZodRawShape>(
+  schema: z.ZodObject<S>,
+  ...keys: (keyof S & string)[]
+) {
+  return (payload: { value: unknown }) => {
+    const value = payload.value as Record<string, unknown>;
+    return keys.every((key) => {
+      const field = schema.shape[key];
+      return field !== undefined && z.safeParse(field, value[key]).success;
+    });
+  };
 }

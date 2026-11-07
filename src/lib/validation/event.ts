@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isValidId } from "@/lib/ids";
 import { stripNul } from "@/lib/text";
 import { MAX_EVENT_HOSTS } from "@/server/domain/events/hosts";
-import { isDateKey, normalizeTimeOfDay, resolveEventTimes } from "@/server/domain/events/time";
+import { resolveEventTimes, type EventTimesResult } from "@/server/domain/events/time";
 import {
   cleanPlaceName,
   PLACE_ADDRESS_MAX_LENGTH,
@@ -13,9 +13,13 @@ import {
 import {
   checkboxSchema,
   cleanOptionalText,
+  dateField,
   idListSchema,
+  optionalDateField,
   optionalText,
+  optionalTimeField,
   rawTextLimit,
+  whenValid,
 } from "./text";
 
 /**
@@ -29,7 +33,10 @@ import {
  * 18:30 is a UI default (DEFAULT_EVENT_START_TIME), not part of the schema.
  *
  *   * startTime: optional (D-175). Empty = the time is not decided yet; the
- *     event then spans its date and cannot have an end time.
+ *     event then spans its date (or until its endDate) and has no end time.
+ *   * endDate + endTime: the end, always explicit (D-176) – never "the next
+ *     day" by rule. With a start time both or neither; without one, only
+ *     endDate. See resolveEventTimes.
  *   * placeId: optional (D-175). Empty = no place yet; one of the club's
  *     places; or EVENT_PLACE_NEW ("new") for
  *     "＋ Nyt sted" – then newPlaceName (required), newPlaceAddress and
@@ -43,9 +50,8 @@ import {
  *
  * Output: trimmed texts without U+0000 (Postgres text cannot store it; empty
  * optional texts → null, line breaks in the description kept as "\n"), UTC
- * instants `startsAt`/`endsAt`, the place choice and the host ids. Overnight
- * rule (src/server/domain/events/time.ts): an end time before the start time
- * ends the next day; an end time equal to the start time is refused.
+ * instants `startsAt`/`endsAt`, the place choice and the host ids. The end
+ * must lie after the start.
  * Events in the past are allowed (registering old tastings, §9.2).
  *
  * Field names and the output type are part of the round-3 contract.
@@ -76,15 +82,6 @@ export type EventPlaceChoice =
   | { kind: "existing"; placeId: string }
   | { kind: "new"; name: string; address: string | null; ownedByCreator: boolean };
 
-/** An optional "HH:mm": "" (or missing) stays "", anything else must be a time of day. */
-const optionalTimeField = (invalid: string) =>
-  z
-    .string()
-    .nullish()
-    .transform((value) => (value ?? "").trim())
-    .refine((value) => value === "" || normalizeTimeOfDay(value) !== null, { message: invalid })
-    .transform((value) => (value === "" ? "" : (normalizeTimeOfDay(value) as string)));
-
 export const eventFieldsSchema = z.object({
   title: z
     .string({ error: "Giv eventet en titel." })
@@ -95,19 +92,10 @@ export const eventFieldsSchema = z.object({
   // One check instead of min(1, { abort: true }) + refine: an aborted issue
   // makes Zod skip the object-level refinement below, so "same start and end"
   // would only show once the date was fixed.
-  date: z
-    .string({ error: "Vælg en dato." })
-    .trim()
-    .superRefine((value, ctx) => {
-      if (value === "") ctx.addIssue({ code: "custom", message: "Vælg en dato." });
-      else if (!isDateKey(value)) {
-        ctx.addIssue({ code: "custom", message: "Datoen findes ikke. Vælg en anden dato." });
-      }
-    }),
+  date: dateField("Vælg en dato."),
   startTime: optionalTimeField("Skriv tiden som tt:mm, fx 18:30."),
-  endTime: optionalTimeField("Skriv sluttiden som tt:mm, fx 23:00.").transform((value) =>
-    value === "" ? null : value,
-  ),
+  endDate: optionalDateField(),
+  endTime: optionalTimeField("Skriv sluttiden som tt:mm, fx 23:00."),
   // "" or missing = no place yet; anything but "new" or an id → invalid.
   placeId: z
     .string()
@@ -150,33 +138,43 @@ export const eventFieldsSchema = z.object({
   ),
 });
 
-export const SAME_START_AND_END_MESSAGE = "Sluttiden skal være en anden end starttiden.";
 export const END_WITHOUT_START_MESSAGE = "Vælg et starttidspunkt, før du sætter en sluttid.";
+export const END_BEFORE_START_MESSAGE = "Slut skal ligge efter start.";
+
+/** The Danish message for a refused combination of dates and times (D-176). */
+function timesMessage(error: Extract<EventTimesResult, { ok: false }>): string {
+  switch (error.reason) {
+    case "end-without-start":
+      return END_WITHOUT_START_MESSAGE;
+    case "end-before-start":
+      return END_BEFORE_START_MESSAGE;
+    case "missing":
+      return error.field === "endDate" ? "Vælg en slutdag." : "Vælg et sluttidspunkt.";
+    case "invalid":
+      return "Datoen eller tiden findes ikke. Vælg en anden.";
+  }
+}
 
 /** The object-level checks below also run while other fields (e.g. the title) are invalid (F-037). */
-const newPlaceFields = eventFieldsSchema.pick({
-  placeId: true,
-  newPlaceName: true,
-  newPlaceAddress: true,
-});
-const whenNewPlaceFieldsParse = (payload: { value: unknown }) =>
-  newPlaceFields.safeParse(payload.value).success;
+const whenNewPlaceFieldsParse = whenValid(
+  eventFieldsSchema,
+  "placeId",
+  "newPlaceName",
+  "newPlaceAddress",
+);
+const whenTimesParse = whenValid(eventFieldsSchema, "date", "startTime", "endDate", "endTime");
 const isNewPlace = (values: { placeId: string }) => values.placeId === EVENT_PLACE_NEW;
 
-const whenTimesParse = (payload: { value: unknown }) =>
-  eventFieldsSchema.pick({ startTime: true, endTime: true }).safeParse(payload.value).success;
-
 export const eventFormSchema = eventFieldsSchema
-  .refine((values) => values.endTime === null || values.startTime !== "", {
-    message: END_WITHOUT_START_MESSAGE,
-    path: ["endTime"],
-    when: whenTimesParse,
-  })
-  .refine((values) => values.endTime === null || values.endTime !== values.startTime, {
-    message: SAME_START_AND_END_MESSAGE,
-    path: ["endTime"],
-    when: whenTimesParse,
-  })
+  .superRefine(
+    (values, ctx) => {
+      const times = resolveEventTimes(values);
+      if (!times.ok) {
+        ctx.addIssue({ code: "custom", path: [times.field], message: timesMessage(times) });
+      }
+    },
+    { when: whenTimesParse },
+  )
   .refine((values) => !isNewPlace(values) || values.newPlaceName !== "", {
     message: NEW_PLACE_NAME_REQUIRED_MESSAGE,
     path: ["newPlaceName"],
@@ -198,26 +196,10 @@ export const eventFormSchema = eventFieldsSchema
       when: whenNewPlaceFieldsParse,
     },
   )
-  .transform((values, ctx) => {
-    const times = resolveEventTimes({
-      date: values.date,
-      startTime: values.startTime,
-      endTime: values.endTime,
-    });
-    if (!times.ok) {
-      // Only reachable inside a DST gap (the fields themselves are valid here).
-      ctx.addIssue({
-        code: "custom",
-        path: [times.field],
-        message:
-          times.reason === "same-as-start"
-            ? SAME_START_AND_END_MESSAGE
-            : times.reason === "end-without-start"
-              ? END_WITHOUT_START_MESSAGE
-              : "Tidspunktet findes ikke den dag (sommertid). Vælg et andet.",
-      });
-      return z.NEVER;
-    }
+  .transform((values) => {
+    const times = resolveEventTimes(values);
+    // The superRefine above has already refused every other result.
+    if (!times.ok) throw new Error(`eventFormSchema: unrefused times (${times.reason})`);
     const place: EventPlaceChoice =
       values.placeId === ""
         ? { kind: "none" }

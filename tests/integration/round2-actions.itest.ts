@@ -45,7 +45,7 @@ let otherClubEventId: string;
 let otherClubBeerId: string;
 
 // Round 3: the place is "＋ Nyt sted" by name (the interim form); no hosts
-// chosen = the default (the place's owners, else the creator).
+// chosen = the default (the place's owners, else nobody, D-175).
 const eventFields = (overrides: Record<string, string> = {}) => ({
   title: "Ølsmagning #7",
   date: "2026-11-20",
@@ -76,6 +76,7 @@ async function insertEvent(createdBy: TestUser, title = "Itest-smagning", hostId
     hostIds,
     startsAt: new Date(Date.now() + 10 * DAY),
     endsAt: null,
+    hasStartTime: true,
   });
   return id;
 }
@@ -104,6 +105,7 @@ beforeAll(async () => {
     hostIds: [],
     startsAt: new Date(Date.now() + 5 * DAY),
     endsAt: null,
+    hasStartTime: true,
   }));
   ({ id: otherClubBeerId } = await createBeer({
     clubId: otherClubId,
@@ -122,7 +124,10 @@ describe("createEventAction", () => {
     const url = await expectRedirect(
       createEventAction(
         null,
-        formData({ clubId, ...eventFields({ endTime: "01:00", theme: " Belgiske  øl " }) }),
+        formData({
+          clubId,
+          ...eventFields({ endDate: "2026-11-21", endTime: "01:00", theme: " Belgiske  øl " }),
+        }),
       ),
       new RegExp(`^/c/${clubId}/events/(${UUID})\\?toast=event-created$`),
     );
@@ -131,7 +136,7 @@ describe("createEventAction", () => {
     expect(event.clubId).toBe(clubId);
     expect(event.createdById).toBe(member.id);
     expect(event.theme).toBe("Belgiske øl");
-    // 18:30 CET (winter time) = 17:30 UTC; 01:00 is the next day.
+    // 18:30 CET (winter time) = 17:30 UTC; the end is 01:00 on the chosen next day (D-176).
     expect(event.startsAt.toISOString()).toBe("2026-11-20T17:30:00.000Z");
     expect(event.endsAt?.toISOString()).toBe("2026-11-21T00:00:00.000Z");
   });
@@ -140,14 +145,16 @@ describe("createEventAction", () => {
     setActor(member);
     const state = await createEventAction(
       null,
-      formData({ clubId, ...eventFields({ title: " ", date: "", endTime: "18:30" }) }),
+      formData({
+        clubId,
+        ...eventFields({ title: " ", endDate: "2026-11-20", endTime: "01:00" }),
+      }),
     );
     expect(state?.ok).toBe(false);
     expect(state?.error.code).toBe(ACTION_ERROR_CODES.VALIDATION);
     expect(state?.error.fieldErrors).toEqual({
       title: ["Giv eventet en titel."],
-      date: ["Vælg en dato."],
-      endTime: ["Sluttiden skal være en anden end starttiden."],
+      endTime: ["Slut skal ligge efter start."],
     });
     expect(state?.values.newPlaceName).toBe("Hos Itest");
   });

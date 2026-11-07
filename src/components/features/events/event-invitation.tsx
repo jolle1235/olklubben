@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { SectionDivider } from "@/components/ui/section-divider";
 import { formatLongDate, formatTime, toDateKey } from "@/lib/format/date";
 import { editPlaceHref, mapsSearchUrl, placeHref } from "@/lib/routes";
-import { heroState, heroStateLabel, isHeroHighlighted } from "@/server/domain/events/status";
+import {
+  heroState,
+  heroStateLabel,
+  isHeroHighlighted,
+  laterEnd,
+} from "@/server/domain/events/status";
 import { PLACE_UNDECIDED_LABEL, TIME_UNDECIDED_LABEL } from "@/server/domain/events/undecided";
 
 import { EventHosts, type EventHostView } from "./event-hosts";
@@ -54,6 +59,7 @@ export function EventInvitation({
 }: EventInvitationProps) {
   const state = heroState(event, now);
   const { place } = event;
+  const later = laterEnd(event);
 
   return (
     <article className="rounded-3xl border border-border bg-card px-5 pt-8 pb-6 text-center shadow-raised sm:px-10 sm:pt-10">
@@ -88,7 +94,7 @@ export function EventInvitation({
       {event.hasStartTime ? (
         <p className="mt-1 text-title-sm text-foreground tabular-nums">
           <time dateTime={event.startsAt.toISOString()}>{formatTime(event.startsAt)}</time>
-          {event.endsAt ? (
+          {event.endsAt && !later ? (
             <>
               <span aria-hidden>–</span>
               <span className="sr-only"> til </span>
@@ -99,6 +105,16 @@ export function EventInvitation({
       ) : (
         <p className="mt-1 text-title-sm text-muted-foreground">{TIME_UNDECIDED_LABEL}</p>
       )}
+      {later ? (
+        // Several days (D-176): "Til og med søndag 25. oktober kl. 14:00".
+        <p className="mt-1 text-lead text-muted-foreground first-letter:uppercase">
+          {event.hasStartTime ? "til " : "til og med "}
+          <time dateTime={later.toISOString()}>
+            {formatLongDate(later, now)}
+            {event.hasStartTime ? ` kl. ${formatTime(later)}` : ""}
+          </time>
+        </p>
+      ) : null}
 
       <SectionDivider className="my-7" />
 

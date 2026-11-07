@@ -1,10 +1,12 @@
 import {
   formatLongDate,
   formatShortDate,
+  formatTime,
   formatTimeRange,
   formatWeekday,
   formatWeekdayDateTime,
 } from "@/lib/format/date";
+import { laterEnd } from "@/server/domain/events/status";
 import { zonedDateTimeToUtc, type DateKey } from "@/server/domain/events/time";
 import { placeNameOrUndecided, TIME_UNDECIDED_LABEL } from "@/server/domain/events/undecided";
 
@@ -134,9 +136,17 @@ export function capitalize(text: string): string {
 
 type EventTimes = Pick<CalendarEvent, "startsAt" | "endsAt" | "hasStartTime">;
 
-/** "18:30", "18:30–23:30" (en dash) or "Tid følger" (D-175). */
+/**
+ * "18:30", "18:30–23:30" (en dash), "18:30 – søndag 25/10 kl. 14:00" (several
+ * days, D-176), "Tid følger" (D-175) or "Tid følger · til og med søndag 25/10".
+ */
 export function eventTimeText(event: EventTimes): string {
-  if (!event.hasStartTime) return TIME_UNDECIDED_LABEL;
+  const later = laterEnd(event);
+  const laterDay = later ? `${formatWeekday(later)} ${formatShortDate(later)}` : "";
+  if (!event.hasStartTime) {
+    return later ? `${TIME_UNDECIDED_LABEL} · til og med ${laterDay}` : TIME_UNDECIDED_LABEL;
+  }
+  if (later) return `${formatTime(event.startsAt)} – ${laterDay} kl. ${formatTime(later)}`;
   return formatTimeRange(event.startsAt, event.endsAt);
 }
 

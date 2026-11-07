@@ -160,79 +160,103 @@ export type EventTimesInput = {
   date: string;
   /** "HH:mm", or null/"" when the time is not decided yet (D-175). */
   startTime?: string | null;
-  /** "HH:mm", or null/"" for no end time. Needs a start time. */
+  /** "YYYY-MM-DD", or null/"" for no end (D-176). */
+  endDate?: string | null;
+  /** "HH:mm", or null/"" for no end. Needs a start time and an end date. */
   endTime?: string | null;
 };
+
+export type EventTimeField = "date" | "startTime" | "endDate" | "endTime";
 
 export type EventTimesResult =
   | {
       ok: true;
       startsAt: Date;
       endsAt: Date | null;
-      endsNextDay: boolean;
-      /** False: no start time; startsAt/endsAt span the whole date (D-175). */
+      /** False: no start time; startsAt is midnight of the date (D-175). */
       hasStartTime: boolean;
     }
   | {
       ok: false;
-      field: "date" | "startTime" | "endTime";
-      reason: "invalid" | "same-as-start" | "end-without-start";
+      field: EventTimeField;
+      reason: "invalid" | "missing" | "end-before-start" | "end-without-start";
     };
 
 /**
- * startsAt/endsAt (UTC) from the form's date and times, with the overnight
- * rule: an end time before the start time ends on the next day. An end time
- * equal to the start time is refused. The result always has endsAt > startsAt
- * (the database CHECK), also around a DST change.
+ * Without a start time (D-175) an event is stored from midnight on its date to
+ * the midnight after its last day. midnightAfter encodes the end and lastDayOf
+ * decodes it; nothing else should know the rule.
+ */
+function midnightAfter(dateKey: DateKey): Date | null {
+  const next = addDaysToDateKey(dateKey, 1);
+  return next ? zonedDateTimeToUtc(next, "00:00") : null;
+}
+
+/** The last day of an event without a start time, from its stored endsAt. */
+export function lastDayOf(endsAt: Date): DateKey {
+  const end = utcToZonedParts(endsAt).date;
+  return addDaysToDateKey(end, -1) ?? end;
+}
+
+/**
+ * startsAt/endsAt (UTC) from the form's dates and times (D-176). The end is
+ * always an explicit date and time – an event may last several days, and an
+ * end time is never moved to "the next day" behind the member's back.
  *
- * Without a start time (D-175) the event spans its date: midnight to the next
- * midnight, Copenhagen time, so it stays upcoming all day. An end time then
- * makes no sense and is refused.
+ *   * With a start time: no end, or both an end date and an end time, after
+ *     the start.
+ *   * Without a start time (D-175): no end time. The event lasts until the end
+ *     of its end date (default: its own date), so it stays upcoming all day.
+ *
+ * The result always has endsAt > startsAt (the database CHECK), also around a
+ * DST change; a time inside the spring gap is refused.
  */
 export function resolveEventTimes(input: EventTimesInput): EventTimesResult {
   if (!isDateKey(input.date)) return { ok: false, field: "date", reason: "invalid" };
   const rawStart = input.startTime?.trim() ?? "";
+  const rawEndDate = input.endDate?.trim() ?? "";
   const rawEnd = input.endTime?.trim() ?? "";
+  if (rawEndDate !== "" && !isDateKey(rawEndDate)) {
+    return { ok: false, field: "endDate", reason: "invalid" };
+  }
+  if (rawEndDate !== "" && rawEndDate < input.date) {
+    return { ok: false, field: "endDate", reason: "end-before-start" };
+  }
 
   if (rawStart === "") {
     if (rawEnd !== "") return { ok: false, field: "endTime", reason: "end-without-start" };
-    const nextDate = addDaysToDateKey(input.date, 1);
     // Midnight exists every day in Copenhagen (the clock changes at 02:00/03:00).
     const startsAt = zonedDateTimeToUtc(input.date, "00:00");
-    const endsAt = nextDate ? zonedDateTimeToUtc(nextDate, "00:00") : null;
+    const endsAt = midnightAfter(rawEndDate || input.date);
     if (!startsAt || !endsAt) return { ok: false, field: "date", reason: "invalid" };
-    return { ok: true, startsAt, endsAt, endsNextDay: false, hasStartTime: false };
+    return { ok: true, startsAt, endsAt, hasStartTime: false };
   }
 
   const start = normalizeTimeOfDay(rawStart);
   if (!start) return { ok: false, field: "startTime", reason: "invalid" };
   const startsAt = zonedDateTimeToUtc(input.date, start);
-  if (!startsAt) return { ok: false, field: "date", reason: "invalid" };
+  if (!startsAt) return { ok: false, field: "startTime", reason: "invalid" };
 
-  if (rawEnd === "") {
-    return { ok: true, startsAt, endsAt: null, endsNextDay: false, hasStartTime: true };
+  if (rawEndDate === "" && rawEnd === "") {
+    return { ok: true, startsAt, endsAt: null, hasStartTime: true };
   }
+  if (rawEndDate === "") return { ok: false, field: "endDate", reason: "missing" };
+  if (rawEnd === "") return { ok: false, field: "endTime", reason: "missing" };
 
   const end = normalizeTimeOfDay(rawEnd);
   if (!end) return { ok: false, field: "endTime", reason: "invalid" };
-  if (end === start) return { ok: false, field: "endTime", reason: "same-as-start" };
-
-  // "HH:mm" strings compare like times of day.
-  const endsNextDay = end < start;
-  const endDate = endsNextDay ? addDaysToDateKey(input.date, 1) : input.date;
-  const endsAt = endDate ? zonedDateTimeToUtc(endDate, end) : null;
-  // Only inside a DST gap can the end land before the start (02:30 → 03:30 vs 03:00).
-  if (!endsAt || endsAt.getTime() <= startsAt.getTime()) {
-    return { ok: false, field: "endTime", reason: "invalid" };
+  const endsAt = zonedDateTimeToUtc(rawEndDate, end);
+  if (!endsAt) return { ok: false, field: "endTime", reason: "invalid" };
+  if (endsAt.getTime() <= startsAt.getTime()) {
+    return { ok: false, field: "endTime", reason: "end-before-start" };
   }
-  return { ok: true, startsAt, endsAt, endsNextDay, hasStartTime: true };
+  return { ok: true, startsAt, endsAt, hasStartTime: true };
 }
 
 /**
- * The form values of a stored event (edit form): its Copenhagen date, start
- * time and end time ("" without an end). An end on the next day comes back as
- * an earlier time, which the overnight rule reads the same way again. Without
- * a start time both times are "" (D-175).
+ * The form values of a stored event (edit form): its Copenhagen start date and
+ * time and its end date and time ("" without an end). Without a start time the
+ * end date is the last day it lasts, "" when that is its own date (D-175, D-176).
  */
 export function eventTimesToFormValues(event: {
   startsAt: Date;
@@ -241,13 +265,16 @@ export function eventTimesToFormValues(event: {
 }): {
   date: DateKey;
   startTime: TimeOfDay | "";
+  endDate: DateKey | "";
   endTime: TimeOfDay | "";
 } {
   const start = utcToZonedParts(event.startsAt);
-  if (!event.hasStartTime) return { date: start.date, startTime: "", endTime: "" };
-  return {
-    date: start.date,
-    startTime: start.time,
-    endTime: event.endsAt ? utcToZonedParts(event.endsAt).time : "",
-  };
+  if (!event.hasStartTime) {
+    const lastDay = event.endsAt ? lastDayOf(event.endsAt) : start.date;
+    const endDate = lastDay !== start.date ? lastDay : "";
+    return { date: start.date, startTime: "", endDate, endTime: "" };
+  }
+  if (!event.endsAt) return { date: start.date, startTime: start.time, endDate: "", endTime: "" };
+  const end = utcToZonedParts(event.endsAt);
+  return { date: start.date, startTime: start.time, endDate: end.date, endTime: end.time };
 }

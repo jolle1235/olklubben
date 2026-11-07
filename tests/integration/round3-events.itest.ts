@@ -102,6 +102,7 @@ async function insertEvent(createdBy: TestUser, placeId: string, hostIds: string
     hostIds,
     startsAt: new Date(Date.now() + 10 * DAY),
     endsAt: null,
+    hasStartTime: true,
   });
   return id;
 }
@@ -401,6 +402,7 @@ describe("updateEventAction og deleteEventAction: opretter, vært eller admin (D
       hostIds: [],
       startsAt: new Date(Date.now() + 3 * DAY),
       endsAt: null,
+      hasStartTime: true,
     });
     setActor(admin);
     await expectNotFound(

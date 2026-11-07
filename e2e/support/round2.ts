@@ -106,6 +106,8 @@ export type EventInput = {
   title?: string;
   date: string;
   startTime?: string;
+  /** "Slutdag" (D-176): needed together with endTime. */
+  endDate?: string;
   endTime?: string;
   place: EventPlaceInput;
   /** Display names of the hosts to tick (e.g. "Mads", "Kaptajnen (dig)"); none = the default. */
@@ -159,6 +161,7 @@ export async function createEventViaForm(
   if (input.title !== undefined) await page.getByLabel("Titel").fill(input.title);
   await page.getByLabel("Dato").fill(input.date);
   if (input.startTime) await page.getByLabel("Starttid").fill(input.startTime);
+  if (input.endDate) await page.getByLabel(/^Slutdag/).fill(input.endDate);
   if (input.endTime) await page.getByLabel(/^Sluttid/).fill(input.endTime);
   await choosePlace(page, input.place);
   for (const host of input.hosts ?? []) await hostCheckbox(page, host).check();

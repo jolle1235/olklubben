@@ -49,6 +49,23 @@ describe("event texts", () => {
     expect(eventTimeText(event({ endsAt: new Date("2026-10-23T21:30:00Z") }))).toBe("18:30–23:30");
   });
 
+  it("names the last day when the event runs past its evening (D-176)", () => {
+    // Until 01:00 the night after: still the same evening.
+    expect(eventTimeText(event({ endsAt: new Date("2026-10-23T23:00:00Z") }))).toBe("18:30–01:00");
+    // Until Sunday 14:00.
+    expect(eventTimeText(event({ endsAt: new Date("2026-10-25T13:00:00Z") }))).toBe(
+      "18:30 – søndag 25/10 kl. 14:00",
+    );
+    // No start time: its own date only, or until and including Sunday.
+    const tbd = { hasStartTime: false, startsAt: new Date("2026-10-22T22:00:00Z") };
+    expect(eventTimeText(event({ ...tbd, endsAt: new Date("2026-10-23T22:00:00Z") }))).toBe(
+      "Tid følger",
+    );
+    expect(eventTimeText(event({ ...tbd, endsAt: new Date("2026-10-25T23:00:00Z") }))).toBe(
+      "Tid følger · til og med søndag 25/10",
+    );
+  });
+
   it("place · time for the calendar list (SPEC §9.3)", () => {
     expect(eventPlaceAndTime(event())).toBe("Hos Mads · 18:30");
     expect(eventPlaceAndTime(event({ place: null, hasStartTime: false }))).toBe(

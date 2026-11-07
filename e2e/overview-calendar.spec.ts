@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import { capitalize, dateKeyLabel } from "../src/components/features/calendar/event-format";
 import { formatDayMonthParts } from "../src/lib/format/date";
 import { monthKeyLabel, nextMonthKey } from "../src/server/domain/calendar/month";
-import { utcToZonedParts } from "../src/server/domain/events/time";
+import { addDaysToDateKey, utcToZonedParts } from "../src/server/domain/events/time";
 import { expect, test } from "./fixtures";
 import { insertEvent, sql } from "./support/db";
 import {
@@ -199,6 +199,7 @@ test.describe("Hero-tilstande og tid", () => {
       title: "Vintertidssmagning",
       date: day,
       startTime: "18:30",
+      endDate: addDaysToDateKey(day, 1) ?? day,
       endTime: "01:00",
       place: "Hos Uret",
     });
@@ -209,7 +210,7 @@ test.describe("Hero-tilstande og tid", () => {
       [eventId],
     );
     expect(row?.starts_at.toISOString()).toBe(startsAt.toISOString());
-    // 18:30–01:00 ends the next day: 6½ hours later.
+    // 18:30 until 01:00 on the next day (chosen explicitly, D-176): 6½ hours later.
     expect(row?.ends_at.getTime()).toBe(startsAt.getTime() + 6.5 * HOUR);
 
     // Event page.

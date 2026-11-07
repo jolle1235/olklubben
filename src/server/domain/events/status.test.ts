@@ -18,8 +18,8 @@ const at = (iso: string) => new Date(iso);
 
 // Friday 23 October 2026, 18:30 in Copenhagen (summer time, UTC+2).
 const START = at("2026-10-23T16:30:00Z");
-const withEnd = { startsAt: START, endsAt: at("2026-10-23T21:00:00Z") };
-const noEnd = { startsAt: START, endsAt: null };
+const withEnd = { startsAt: START, endsAt: at("2026-10-23T21:00:00Z"), hasStartTime: true };
+const noEnd = { startsAt: START, endsAt: null, hasStartTime: true };
 
 describe("effectiveEnd", () => {
   it("is endsAt when set", () => {
@@ -122,7 +122,7 @@ describe("heroState (SPEC §9.1)", () => {
   });
 
   it("an overnight event is still ongoing after midnight", () => {
-    const overnight = { startsAt: START, endsAt: at("2026-10-23T23:00:00Z") };
+    const overnight = { startsAt: START, endsAt: at("2026-10-23T23:00:00Z"), hasStartTime: true };
     expect(heroState(overnight, at("2026-10-23T22:30:00Z"))).toEqual({ kind: "ongoing" });
   });
 
@@ -132,7 +132,7 @@ describe("heroState (SPEC §9.1)", () => {
 
   it("counts days across the October change (E20)", () => {
     // Event Monday 26 October 18:30 CET; now Saturday 24 October 12:00 CEST.
-    const monday = { startsAt: at("2026-10-26T17:30:00Z"), endsAt: null };
+    const monday = { startsAt: at("2026-10-26T17:30:00Z"), endsAt: null, hasStartTime: true };
     expect(heroState(monday, at("2026-10-24T10:00:00Z"))).toEqual({ kind: "inDays", days: 2 });
   });
 });

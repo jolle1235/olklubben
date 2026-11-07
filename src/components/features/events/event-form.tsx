@@ -16,14 +16,14 @@ import {
   eventFormSchema,
 } from "@/lib/validation/event";
 import { createEventAction, updateEventAction } from "@/server/actions/events";
-import { MAX_EVENT_YEAR, MIN_EVENT_YEAR, normalizeTimeOfDay } from "@/server/domain/events/time";
+import { MAX_EVENT_YEAR, MIN_EVENT_YEAR } from "@/server/domain/events/time";
 
 import type { HostChoice, PlaceChoice } from "./event-form-state";
 import { HostsPicker } from "./hosts-picker";
 import { PlaceSelector } from "./place-selector";
 import { usePlaceAndHosts } from "./use-place-and-hosts";
 
-type TextField = "title" | "date" | "startTime" | "endTime" | "theme" | "description";
+type TextField = "title" | "date" | "startTime" | "endDate" | "endTime" | "theme" | "description";
 
 /** The fields' starting values ("YYYY-MM-DD", "HH:mm", "" for empty), plus place and hosts. */
 export type EventFormDefaults = Record<TextField, string> & {
@@ -49,18 +49,9 @@ export type EventFormProps = {
   prefillPlaceId?: string | null;
 };
 
-/** "Slutter dagen efter kl. 01:00." when the end time is before the start time. */
-function endTimeHint(startTime: string, endTime: string): string {
-  if (startTime.trim() === "") return "Kræver en starttid.";
-  const start = normalizeTimeOfDay(startTime);
-  const end = normalizeTimeOfDay(endTime);
-  if (start && end && end < start) return `Slutter dagen efter kl. ${end}.`;
-  return "Efter midnat? Så slutter det dagen efter.";
-}
-
 /**
  * Create or edit an event (SPEC §9.2): Titel (suggested "Ølsmagning #N") ·
- * Dato/Starttid/Sluttid (overnight allowed) · Sted (PlaceSelector, with
+ * Dato/Starttid · Slutdag/Sluttid (an explicit end, also days later, D-176) · Sted (PlaceSelector, with
  * "＋ Nyt sted" inline, D-099) · Værter (HostsPicker, D-098) · Tema ·
  * Beskrivelse/plan. Past dates are fine (old tastings may be registered).
  * Only the title and the date are required: the time, the place and the hosts
@@ -87,7 +78,7 @@ export function EventForm({
     { schema: eventFormSchema, arrayFields: EVENT_ARRAY_FIELDS },
   );
   const initial = (field: TextField) => values[field] ?? defaults[field];
-  const [times, setTimes] = useState({ start: initial("startTime"), end: initial("endTime") });
+  const [hasStartTime, setHasStartTime] = useState(initial("startTime").trim() !== "");
 
   const choice = usePlaceAndHosts({
     formRef: formProps.ref,
@@ -102,12 +93,8 @@ export function EventForm({
 
   function handleChange(event: React.FormEvent<HTMLFormElement>) {
     formProps.onChange(event);
-    const { elements } = event.currentTarget;
-    const read = (name: string) => {
-      const element = elements.namedItem(name);
-      return element instanceof HTMLInputElement ? element.value : "";
-    };
-    setTimes({ start: read("startTime"), end: read("endTime") });
+    const start = event.currentTarget.elements.namedItem("startTime");
+    setHasStartTime(start instanceof HTMLInputElement && start.value.trim() !== "");
   }
 
   return (
@@ -128,8 +115,8 @@ export function EventForm({
         hint={editing ? undefined : "Næste nummer i rækken. Skriv gerne noget andet."}
       />
 
-      {/* Stacked on phones: side by side, the hints and errors had no room (D-175). */}
-      <fieldset className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      {/* Stacked on phones; start and end side by side from sm. */}
+      <fieldset className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
         <legend className="sr-only">Hvornår</legend>
         <InputField
           type="date"
@@ -150,13 +137,24 @@ export function EventForm({
           errors={fieldErrors.startTime}
         />
         <InputField
+          type="date"
+          name="endDate"
+          label="Slutdag"
+          optional="valgfri"
+          defaultValue={initial("endDate")}
+          min={`${MIN_EVENT_YEAR}-01-01`}
+          max={`${MAX_EVENT_YEAR}-12-31`}
+          errors={fieldErrors.endDate}
+          hint={hasStartTime ? undefined : "Varer det flere dage? Vælg den sidste dag."}
+        />
+        <InputField
           type="time"
           name="endTime"
           label="Sluttid"
           optional="valgfri"
           defaultValue={initial("endTime")}
           errors={fieldErrors.endTime}
-          hint={endTimeHint(times.start, times.end)}
+          hint={hasStartTime ? undefined : "Kræver en starttid."}
         />
       </fieldset>
 

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { formatWeekdayDateTime } from "@/lib/format/date";
 import { stripNul } from "@/lib/text";
-import { isDateKey, normalizeTimeOfDay, zonedDateTimeToUtc } from "@/server/domain/events/time";
+import { isDateKey, zonedDateTimeToUtc } from "@/server/domain/events/time";
 import {
   cleanPlaceName,
   PLACE_ADDRESS_MAX_LENGTH,
@@ -29,9 +29,13 @@ import {
   checkboxSchema,
   cleanOptionalText,
   idListSchema,
+  DATE_INVALID,
+  dateField,
   optionalId,
   optionalText,
   rawTextLimit,
+  timeField,
+  whenValid,
 } from "./text";
 
 /**
@@ -119,7 +123,6 @@ const DESCRIPTION_TOO_LONG = `Beskrivelsen må højst være ${POLL_DESCRIPTION_M
 
 const DATES_REQUIRED = "Tilføj mindst én dato.";
 const DATES_TOO_MANY = `Der kan højst være ${MAX_POLL_DATE_OPTIONS} datoer.`;
-const DATE_INVALID = "Datoen findes ikke. Vælg en anden dato.";
 const DATE_DUPLICATE = "Du har valgt samme dato to gange.";
 
 const PLACES_TOO_MANY = `Der kan højst være ${MAX_POLL_PLACE_OPTIONS} steder.`;
@@ -219,26 +222,6 @@ export const TIE_CHOICE_MESSAGES = {
 
 // ── Fields ──────────────────────────────────────────────────────────────────
 
-// `abort: true`: an empty field shows only "required", not also "invalid".
-const timeField = (required: string, invalid: string) =>
-  z
-    .string({ error: required })
-    .max(20, { error: invalid, abort: true })
-    .trim()
-    .min(1, { error: required, abort: true })
-    .refine((value) => normalizeTimeOfDay(value) !== null, invalid)
-    .transform((value) => normalizeTimeOfDay(value) as string);
-
-const dateField = (required: string) =>
-  z
-    .string({ error: required })
-    .max(20, { error: DATE_INVALID, abort: true })
-    .trim()
-    .superRefine((value, ctx) => {
-      if (value === "") ctx.addIssue({ code: "custom", message: required });
-      else if (!isDateKey(value)) ctx.addIssue({ code: "custom", message: DATE_INVALID });
-    });
-
 const titleField = z
   .string({ error: TITLE_REQUIRED })
   .max(rawTextLimit(POLL_TITLE_MAX_LENGTH), { error: TITLE_TOO_LONG, abort: true })
@@ -325,15 +308,6 @@ const optionFields = {
 
 const pollFieldsSchema = z.object({ ...textFields, ...optionFields, ...deadlineFields });
 
-/** Runs an object-level check only when the fields it reads are valid (F-037). */
-function whenValid<K extends keyof typeof pollFieldsSchema.shape>(...keys: K[]) {
-  const mask = Object.fromEntries(keys.map((key) => [key, true])) as Partial<
-    Record<keyof typeof pollFieldsSchema.shape, true>
-  >;
-  const picked = pollFieldsSchema.pick(mask);
-  return (payload: { value: unknown }) => picked.safeParse(payload.value).success;
-}
-
 type PollFields = z.output<typeof pollFieldsSchema>;
 
 const placeCount = (values: Pick<PollFields, "placeIds" | "newPlace">) =>
@@ -372,7 +346,7 @@ export const pollFormSchema = pollFieldsSchema
         });
       }
     },
-    { when: whenValid("newPlace", "newPlaceName", "newPlaceAddress") },
+    { when: whenValid(pollFieldsSchema, "newPlace", "newPlaceName", "newPlaceAddress") },
   )
   .superRefine(
     (values, ctx) => {
@@ -385,7 +359,7 @@ export const pollFormSchema = pollFieldsSchema
         ctx.addIssue({ code: "custom", path: ["dates"], message: NOTHING_TO_VOTE_MESSAGE });
       }
     },
-    { when: whenValid("dates", "placeIds", "newPlace") },
+    { when: whenValid(pollFieldsSchema, "dates", "placeIds", "newPlace") },
   )
   .superRefine(
     (values, ctx) => {
@@ -399,7 +373,7 @@ export const pollFormSchema = pollFieldsSchema
         });
       }
     },
-    { when: whenValid("dates", "startTime", "deadlineDate", "deadlineTime") },
+    { when: whenValid(pollFieldsSchema, "dates", "startTime", "deadlineDate", "deadlineTime") },
   )
   .transform((values): PollFormData => {
     const newPlace = values.newPlace

@@ -61,6 +61,7 @@ const eventData = (title: string, startsAt: Date, endsAt: Date | null = null) =>
   hostIds: [],
   startsAt,
   endsAt,
+  hasStartTime: true,
 });
 
 beforeAll(async () => {

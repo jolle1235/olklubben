@@ -40,14 +40,21 @@ export function eventFieldsFromPoll(
   };
 }
 
-/** defaultHostIds({ ownerIds, fallbackUserIds: [creatorId, actorUserId?], memberIds }). */
+/**
+ * The place's owners who are members (defaultHostIds), else the poll's own
+ * fallback (D-009, E11): the creator, else the acting user, while a member.
+ * Events created through the form have no such fallback (D-175).
+ */
 export function pollEventHostIds(input: {
   ownerIds: readonly string[];
   creatorId: string;
   actorUserId: string | null;
   memberIds: ReadonlySet<string>;
 }): string[] {
-  const fallbackUserIds =
-    input.actorUserId === null ? [input.creatorId] : [input.creatorId, input.actorUserId];
-  return defaultHostIds({ ownerIds: input.ownerIds, fallbackUserIds, memberIds: input.memberIds });
+  const owners = defaultHostIds(input);
+  if (owners.length > 0) return owners;
+  const fallback = [input.creatorId, input.actorUserId].find(
+    (id): id is string => id !== null && input.memberIds.has(id),
+  );
+  return fallback === undefined ? [] : [fallback];
 }

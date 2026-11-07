@@ -5,7 +5,7 @@ import { joinClub, placeRadio } from "./support/round2";
 
 /**
  * Events (SPEC §9.2, §10.4, D-064, D-098, D-099, E13, E20, E22): create with
- * the suggested title, overnight end, a DST date and a new place, the
+ * the suggested title, an explicit end the next day, a DST date and a new place, the
  * invitation page, edit, delete (beers stay), and the creator/host/admin rule
  * on the server. Places and hosts in depth: events-places.spec.ts.
  */
@@ -45,11 +45,17 @@ test.describe("Events", () => {
     await expect(page.getByLabel("Titel")).toBeFocused();
     await expect(page).toHaveURL(/\/events\/new$/);
 
-    // 25 October 2026: the clocks go back at 03:00 (E20). 18:30–01:00 ends the next day.
+    // 25 October 2026: the clocks go back at 03:00 (E20). The end is an
+    // explicit day and time; 01:00 is never moved to the next day by itself (D-176).
     await page.getByLabel("Titel").fill("Ølsmagning #1");
     await page.getByLabel("Dato").fill("2026-10-25");
     await page.getByLabel(/^Sluttid/).fill("01:00");
-    await expect(page.getByText("Slutter dagen efter kl. 01:00.")).toBeVisible();
+    await page.getByRole("button", { name: "Opret event" }).click();
+    await expect(page.getByText("Vælg en slutdag.")).toBeVisible();
+    await page.getByLabel(/^Slutdag/).fill("2026-10-25");
+    await page.getByRole("button", { name: "Opret event" }).click();
+    await expect(page.getByText("Slut skal ligge efter start.")).toBeVisible();
+    await page.getByLabel(/^Slutdag/).fill("2026-10-26");
     await placeRadio(page, "＋ Nyt sted").check();
     await page.getByLabel("Navn på stedet").fill("Hos Mads");
     await page.getByLabel(/^Adresse/).fill("Søndergade 12, Tilst");
@@ -88,6 +94,7 @@ test.describe("Events", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Rediger event" })).toBeVisible();
     await expect(page.getByLabel("Dato")).toHaveValue("2026-10-25");
     await expect(page.getByLabel("Starttid")).toHaveValue("18:30");
+    await expect(page.getByLabel(/^Slutdag/)).toHaveValue("2026-10-26");
     await expect(page.getByLabel(/^Sluttid/)).toHaveValue("01:00");
     await expect(placeRadio(page, "Hos Mads")).toBeChecked();
     await expect(page.getByLabel(/^Beskrivelse/)).toHaveValue(

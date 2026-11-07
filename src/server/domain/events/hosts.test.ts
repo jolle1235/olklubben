@@ -10,68 +10,44 @@ const OUTSIDER = "outsider";
 
 const members = new Set([MADS, ANDERS, JESPER, BO]);
 
-describe("defaultHostIds (SPEC §9.2, D-098)", () => {
-  it("uses the place's owners", () => {
-    expect(
-      defaultHostIds({ ownerIds: [MADS, ANDERS], fallbackUserIds: [JESPER], memberIds: members }),
-    ).toEqual([MADS, ANDERS]);
-  });
-
-  it("leaves out an owner who left the club", () => {
-    expect(
-      defaultHostIds({ ownerIds: [OUTSIDER, MADS], fallbackUserIds: [JESPER], memberIds: members }),
-    ).toEqual([MADS]);
-  });
-
-  it("falls back to the creator when the place has no owners (or none are members)", () => {
-    expect(defaultHostIds({ ownerIds: [], fallbackUserIds: [JESPER], memberIds: members })).toEqual(
-      [JESPER],
-    );
-    expect(
-      defaultHostIds({ ownerIds: [OUTSIDER], fallbackUserIds: [JESPER], memberIds: members }),
-    ).toEqual([JESPER]);
-  });
-
-  it("falls back to the editor when the creator left (edit)", () => {
-    expect(
-      defaultHostIds({ ownerIds: [], fallbackUserIds: [OUTSIDER, BO], memberIds: members }),
-    ).toEqual([BO]);
-  });
-
-  it("gives nobody when no fallback is a member", () => {
-    expect(
-      defaultHostIds({ ownerIds: [], fallbackUserIds: [OUTSIDER], memberIds: members }),
-    ).toEqual([]);
-    expect(defaultHostIds({ ownerIds: [], fallbackUserIds: [], memberIds: members })).toEqual([]);
+describe("defaultHostIds (SPEC §9.2, D-098, D-175)", () => {
+  it("uses the place's owners who are members, else nobody", () => {
+    expect(defaultHostIds({ ownerIds: [MADS, ANDERS], memberIds: members })).toEqual([
+      MADS,
+      ANDERS,
+    ]);
+    expect(defaultHostIds({ ownerIds: [OUTSIDER, MADS], memberIds: members })).toEqual([MADS]);
+    expect(defaultHostIds({ ownerIds: [OUTSIDER], memberIds: members })).toEqual([]);
+    expect(defaultHostIds({ ownerIds: [], memberIds: members })).toEqual([]);
   });
 
   it("removes duplicate owners and keeps their order", () => {
-    expect(
-      defaultHostIds({ ownerIds: [ANDERS, MADS, ANDERS], fallbackUserIds: [], memberIds: members }),
-    ).toEqual([ANDERS, MADS]);
+    expect(defaultHostIds({ ownerIds: [ANDERS, MADS, ANDERS], memberIds: members })).toEqual([
+      ANDERS,
+      MADS,
+    ]);
   });
 
   it("never gives more than MAX_EVENT_HOSTS", () => {
     const many = Array.from({ length: 25 }, (_, i) => `u${i}`);
-    expect(
-      defaultHostIds({ ownerIds: many, fallbackUserIds: [], memberIds: new Set(many) }),
-    ).toHaveLength(MAX_EVENT_HOSTS);
+    expect(defaultHostIds({ ownerIds: many, memberIds: new Set(many) })).toHaveLength(
+      MAX_EVENT_HOSTS,
+    );
   });
 });
 
 describe("resolveHostIds", () => {
   const base = {
     ownerIds: [MADS],
-    fallbackUserIds: [JESPER],
     memberIds: members,
     existingHostIds: [] as string[],
   };
 
-  it("uses the default for an empty request", () => {
+  it("uses the place's owners for an empty request, else nobody (D-175)", () => {
     expect(resolveHostIds({ ...base, requested: [] })).toEqual({ ok: true, hostIds: [MADS] });
     expect(resolveHostIds({ ...base, ownerIds: [], requested: [] })).toEqual({
       ok: true,
-      hostIds: [JESPER],
+      hostIds: [],
     });
   });
 

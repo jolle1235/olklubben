@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { validationError } from "@/lib/action-result";
 
 import { beerFormSchema, beerRefSchema } from "./beer";
-import { eventFormSchema, SAME_START_AND_END_MESSAGE } from "./event";
+import { END_BEFORE_START_MESSAGE, eventFormSchema } from "./event";
 import { idSchema } from "./id";
 import { RATING_VALUE_MESSAGE, ratingValueSchema } from "./rating";
 
@@ -65,9 +65,39 @@ describe("eventFormSchema (SPEC §9.2)", () => {
     expect(parsed.theme).toBe("Tyske øl");
   });
 
-  it("resolves an end time after midnight to the next day", () => {
-    const parsed = eventFormSchema.parse({ ...valid, endTime: "01:00" });
-    expect(parsed.endsAt).toEqual(new Date("2026-10-23T23:00:00Z"));
+  it("takes the end as an explicit day and time, also days later (D-176)", () => {
+    const overnight = eventFormSchema.parse({ ...valid, endDate: "2026-10-24", endTime: "01:00" });
+    expect(overnight.endsAt).toEqual(new Date("2026-10-23T23:00:00Z"));
+    const weekend = eventFormSchema.parse({ ...valid, endDate: "2026-10-25", endTime: "14:00" });
+    expect(weekend.endsAt).toEqual(new Date("2026-10-25T13:00:00Z"));
+  });
+
+  it("never moves an end time to the next day by itself (D-176)", () => {
+    expect(
+      fieldErrors(eventFormSchema.safeParse({ ...valid, endDate: "2026-10-23", endTime: "01:00" })),
+    ).toEqual({ endTime: [END_BEFORE_START_MESSAGE] });
+  });
+
+  it("wants both an end day and an end time, or neither", () => {
+    expect(fieldErrors(eventFormSchema.safeParse({ ...valid, endTime: "23:00" }))).toEqual({
+      endDate: ["Vælg en slutdag."],
+    });
+    expect(fieldErrors(eventFormSchema.safeParse({ ...valid, endDate: "2026-10-24" }))).toEqual({
+      endTime: ["Vælg et sluttidspunkt."],
+    });
+    expect(
+      fieldErrors(eventFormSchema.safeParse({ ...valid, endDate: "2026-10-22", endTime: "23:00" })),
+    ).toEqual({ endDate: [END_BEFORE_START_MESSAGE] });
+  });
+
+  it("without a start time, an end day alone makes it last several days", () => {
+    const parsed = eventFormSchema.parse({ ...valid, startTime: "", endDate: "2026-10-25" });
+    expect(parsed).toMatchObject({
+      hasStartTime: false,
+      startsAt: new Date("2026-10-22T22:00:00Z"),
+      // The midnight after Sunday 25 October (winter time).
+      endsAt: new Date("2026-10-25T23:00:00Z"),
+    });
   });
 
   it("allows events in the past", () => {
@@ -145,34 +175,14 @@ describe("eventFormSchema (SPEC §9.2)", () => {
     expect(eventFormSchema.parse({ ...valid, description: " \u0000 " }).description).toBeNull();
   });
 
-  it("refuses an end time equal to the start time, also while other fields are invalid", () => {
-    expect(fieldErrors(eventFormSchema.safeParse({ ...valid, endTime: "18:30" }))).toEqual({
-      endTime: [SAME_START_AND_END_MESSAGE],
+  it("refuses an end at the start, also while other fields are invalid", () => {
+    const end = { endDate: "2026-10-23", endTime: "18:30" };
+    expect(fieldErrors(eventFormSchema.safeParse({ ...valid, ...end }))).toEqual({
+      endTime: [END_BEFORE_START_MESSAGE],
     });
-    expect(
-      fieldErrors(eventFormSchema.safeParse({ ...valid, title: "", endTime: "18:30" })),
-    ).toEqual({ title: ["Giv eventet en titel."], endTime: [SAME_START_AND_END_MESSAGE] });
-    // Also while the date is missing (an aborted date check used to hide it).
-    expect(
-      fieldErrors(eventFormSchema.safeParse({ ...valid, date: "", endTime: "18:30" })),
-    ).toEqual({ date: ["Vælg en dato."], endTime: [SAME_START_AND_END_MESSAGE] });
-    expect(
-      fieldErrors(eventFormSchema.safeParse({ ...valid, date: "2026-02-30", endTime: "18:30" })),
-    ).toEqual({
-      date: ["Datoen findes ikke. Vælg en anden dato."],
-      endTime: [SAME_START_AND_END_MESSAGE],
-    });
-  });
-
-  it("refuses a start time inside the spring-forward gap only when the end comes first", () => {
-    const result = eventFormSchema.safeParse({
-      ...valid,
-      date: "2026-03-29",
-      startTime: "02:30",
-      endTime: "03:00",
-    });
-    expect(fieldErrors(result)).toEqual({
-      endTime: ["Tidspunktet findes ikke den dag (sommertid). Vælg et andet."],
+    expect(fieldErrors(eventFormSchema.safeParse({ ...valid, ...end, title: "" }))).toEqual({
+      title: ["Giv eventet en titel."],
+      endTime: [END_BEFORE_START_MESSAGE],
     });
   });
 });

@@ -5,6 +5,7 @@ import { BigDate } from "@/components/ui/big-date";
 import { Button } from "@/components/ui/button";
 import { getDisplayName } from "@/lib/format/display-name";
 import { eventHref } from "@/lib/routes";
+import { PLACE_UNDECIDED_LABEL } from "@/server/domain/events/undecided";
 import type { PollView } from "@/server/polls/queries";
 
 import {
@@ -62,15 +63,13 @@ export function PollOutcome({ clubId, view, now }: PollOutcomeProps) {
           </div>
           <div className="grid min-w-0 grid-cols-1 gap-2">
             <p className="text-title-sm font-semibold break-words text-feature-foreground">
-              <time dateTime={event.startsAt.toISOString()}>
-                {outcomeDateLabel(event.startsAt, now)}
-              </time>
+              <time dateTime={event.startsAt.toISOString()}>{outcomeDateLabel(event, now)}</time>
             </p>
             <p className="flex items-start gap-2.5 text-body-lg text-feature-foreground">
               <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-highlight" />
               <span className="min-w-0 break-words hyphens-auto">
                 <span className="sr-only">Sted: </span>
-                {event.placeName}
+                {event.placeName ?? PLACE_UNDECIDED_LABEL}
               </span>
             </p>
             <p className="flex items-start gap-2.5 text-body-lg text-feature-foreground">
