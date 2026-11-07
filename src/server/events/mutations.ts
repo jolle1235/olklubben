@@ -18,12 +18,13 @@ export type { EventPlaceChoice };
  *
  * Invariants decided here under locks (src/server/db/locks.ts), never by
  * catching a database error inside the transaction:
- *   * the place is in the club (composite FK) and active – an archived place
- *     is only allowed when it already is the event's place (E30);
+ *   * no place is fine (D-175); a chosen place is in the club (composite FK)
+ *     and active – an archived place is only allowed when it already is the
+ *     event's place (E30);
  *   * a new place reuses an ACTIVE place with the same name (D-099);
  *   * new hosts are members at write time (their memberships FOR SHARE);
  *     existing hosts who left may stay (history, §7.4). Empty hostIds = the
- *     default: the place's owners, else the creator (on edit: else the editor).
+ *     default: the place's owners, else nobody (D-175).
  */
 
 /** What the event form stores (= EventFormData from src/lib/validation/event.ts). */
@@ -33,6 +34,8 @@ export type EventWriteData = {
   description: string | null;
   startsAt: Date;
   endsAt: Date | null;
+  /** False: "Tid følger" (D-175). Defaults to true. */
+  hasStartTime?: boolean;
   place: EventPlaceChoice;
   hostIds: readonly string[];
 };
@@ -60,7 +63,7 @@ export class InvalidEventHostsError extends Error {
 type Tx = TransactionClient;
 
 /**
- * The event's place inside the transaction: an existing one locked FOR SHARE
+ * The event's place inside the transaction: none (D-175), an existing one locked FOR SHARE
  * (it cannot be archived or deleted until the event is written), or a new one
  * found or created by name. `allowArchivedId` is the event's current place on
  * edit (E30).
@@ -71,10 +74,11 @@ async function resolvePlaceTx(
     clubId: string;
     createdById: string;
     place: EventPlaceChoice;
-    allowArchivedId?: string;
+    allowArchivedId?: string | null;
   },
-): Promise<{ placeId: string; ownerIds: string[] }> {
+): Promise<{ placeId: string | null; ownerIds: string[] }> {
   const { clubId, place } = input;
+  if (place.kind === "none") return { placeId: null, ownerIds: [] };
   if (place.kind === "new") {
     const created = await findOrCreatePlaceTx(tx, {
       clubId,
@@ -105,16 +109,16 @@ async function resolvePlaceTx(
  */
 export async function createEvent(
   input: { clubId: string; createdById: string } & EventWriteData,
-): Promise<{ id: string; placeId: string }> {
+): Promise<{ id: string; placeId: string | null }> {
   const { clubId, createdById, place, hostIds: requested, ...fields } = input;
   return db.$transaction(async (tx) => {
     const { placeId, ownerIds } = await resolvePlaceTx(tx, { clubId, createdById, place });
 
-    const memberIds = await lockMemberIds(tx, clubId, [...ownerIds, ...requested, createdById]);
+    const memberIds = await lockMemberIds(tx, clubId, [...ownerIds, ...requested]);
     const hosts = resolveHostIds({
       requested,
       ownerIds,
-      fallbackUserIds: [createdById],
+      fallbackUserIds: [],
       memberIds,
       existingHostIds: [],
     });
@@ -161,12 +165,7 @@ export async function updateEvent(
       allowArchivedId: row.placeId,
     });
 
-    const memberIds = await lockMemberIds(tx, clubId, [
-      ...ownerIds,
-      ...requested,
-      row.createdById,
-      actorUserId,
-    ]);
+    const memberIds = await lockMemberIds(tx, clubId, [...ownerIds, ...requested]);
     const existing = await tx.eventHost.findMany({
       where: { eventId },
       select: { userId: true },
@@ -174,7 +173,7 @@ export async function updateEvent(
     const hosts = resolveHostIds({
       requested,
       ownerIds,
-      fallbackUserIds: [row.createdById, actorUserId],
+      fallbackUserIds: [],
       memberIds,
       existingHostIds: existing.map((host) => host.userId),
     });

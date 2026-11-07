@@ -244,29 +244,34 @@ model Invite {
 /// Write ONLY with unchecked scalar inputs (clubId, placeId, createdById …),
 /// never `connect` on club or place.
 model Event {
-  id          String    @id @default(uuid(7))
-  clubId      String    @map("club_id")
-  club        Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  title       String
-  theme       String?
-  description String?
-  startsAt    DateTime  @map("starts_at") @db.Timestamptz(3)
+  id           String    @id @default(uuid(7))
+  clubId       String    @map("club_id")
+  club         Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  title        String
+  theme        String?
+  description  String?
+  /// Without a start time (D-175): midnight Copenhagen on the event's date.
+  startsAt     DateTime  @map("starts_at") @db.Timestamptz(3)
   /// Optional. Without it the event counts as ongoing until startsAt + 6 h (§9.1).
-  endsAt      DateTime? @map("ends_at") @db.Timestamptz(3)
-  /// Required (§9.2). Composite FK (place_id, club_id) → places(id, club_id): the
-  /// place is in the event's club (D-096). RESTRICT: used places are archived,
-  /// never deleted (D-004, D-100).
-  placeId     String    @map("place_id")
-  place       Place     @relation(fields: [placeId, clubId], references: [id, clubId], onDelete: Restrict)
-  createdById String    @map("created_by_id")
-  createdBy   User      @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  /// Without a start time: the next midnight, so the event stays upcoming all day.
+  endsAt       DateTime? @map("ends_at") @db.Timestamptz(3)
+  /// False: the time is not decided yet ("Tid følger", D-175).
+  hasStartTime Boolean   @default(true) @map("has_start_time")
+  /// Optional (D-175): the place can be decided later. Composite FK
+  /// (place_id, club_id) → places(id, club_id): the place is in the event's
+  /// club (D-096); NULL skips the check (MATCH SIMPLE). RESTRICT: used places
+  /// are archived, never deleted (D-004, D-100).
+  placeId      String?   @map("place_id")
+  place        Place?    @relation(fields: [placeId, clubId], references: [id, clubId], onDelete: Restrict)
+  createdById  String    @map("created_by_id")
+  createdBy    User      @relation("EventCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   /// Set when a poll created the event (§9.7.7). UNIQUE = idempotent close (D-007).
   /// Composite (poll_id, club_id) → polls(id, club_id) RESTRICT: same club; polls
   /// are only deleted by deleteClub, after its events (D-130).
-  pollId      String?   @unique @map("poll_id")
-  poll        Poll?     @relation(fields: [pollId, clubId], references: [id, clubId], onDelete: Restrict)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  pollId       String?   @unique @map("poll_id")
+  poll         Poll?     @relation(fields: [pollId, clubId], references: [id, clubId], onDelete: Restrict)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   beers Beer[]
   hosts EventHost[]

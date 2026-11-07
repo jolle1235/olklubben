@@ -34,8 +34,9 @@ export type PlaceSelectorProps = {
 };
 
 /**
- * "Sted" in the event form (SPEC §9.2, D-099): the club's places as native
- * radio cards, last used first, and "＋ Nyt sted" last. With more than six
+ * "Sted" in the event form (SPEC §9.2, D-099): "Ikke bestemt endnu" first
+ * (the place is optional, D-175), the club's places as native radio cards,
+ * last used first, and "＋ Nyt sted" last. With more than six
  * places the first five show and the rest sit in "Vis alle N steder".
  * Choosing "＋ Nyt sted" reveals its fields with CSS, so it works before
  * hydration; the server creates the place in the event's transaction, or
@@ -63,8 +64,6 @@ export function PlaceSelector({
   // Rendered open once if the chosen place is hidden; after that the member decides.
   const [initiallyOpen] = useState(moreOpen);
   const existing = value === EVENT_PLACE_NEW ? existingPlaceForName(places, newPlaceName) : null;
-  // Creating in a club without places: "＋ Nyt sted" is pre-selected and open.
-  const noPlaces = places.length === 0;
 
   // React resets the form after a server answer; keep the chosen radio (F-053).
   useCheckedAfterReset(groupRef, "placeId", [value], resetSignal);
@@ -77,11 +76,7 @@ export function PlaceSelector({
   }
 
   return (
-    <ChoiceFieldset
-      legend="Sted"
-      errors={errors.placeId}
-      hint={noPlaces ? "Klubben har ingen steder endnu. Skriv, hvor I mødes." : undefined}
-    >
+    <ChoiceFieldset legend="Sted" optional="valgfrit" errors={errors.placeId}>
       {(control) => {
         const card = (place: PlaceChoice) => (
           <PlaceChoiceCard
@@ -97,6 +92,16 @@ export function PlaceSelector({
         );
         return (
           <div ref={groupRef} className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <PlaceChoiceCard
+              id={`${baseId}-none`}
+              value=""
+              checked={value === ""}
+              onSelect={onChange}
+              label="Ikke bestemt endnu"
+              meta="Vælg stedet senere"
+              describedBy={control["aria-describedby"]}
+              className="sm:col-span-2"
+            />
             {shown.map(card)}
             {more.length > 0 ? (
               <details ref={moreRef} open={initiallyOpen} className="group/more sm:col-span-2">

@@ -41,7 +41,10 @@ export type EventSummary = {
   theme: string | null;
   startsAt: Date;
   endsAt: Date | null;
-  place: EventPlace;
+  /** False: "Tid følger"; startsAt/endsAt span the date (D-175). */
+  hasStartTime: boolean;
+  /** Null: no place yet (D-175). */
+  place: EventPlace | null;
 };
 
 /** A host; isMember is false for a host who has left the club (history, §7.4). */
@@ -89,6 +92,7 @@ const summarySelect = {
   theme: true,
   startsAt: true,
   endsAt: true,
+  hasStartTime: true,
   place: placeSelect,
 } satisfies Prisma.EventSelect;
 
@@ -102,7 +106,8 @@ function toSummary(row: SummaryRow): EventSummary {
     theme: event.theme,
     startsAt: event.startsAt,
     endsAt: event.endsAt,
-    place: {
+    hasStartTime: event.hasStartTime,
+    place: place && {
       id: place.id,
       name: place.name,
       address: place.address,

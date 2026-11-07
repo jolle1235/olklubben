@@ -78,13 +78,11 @@ describe("eventFormSchema: place and hosts (SPEC §9.2, D-098, D-099)", () => {
     startTime: "18:30",
   };
 
-  it("requires a place", () => {
-    expect(fieldErrors(eventFormSchema.safeParse(base))).toEqual({
-      placeId: ["Vælg et sted, eller opret et nyt."],
-    });
-    expect(fieldErrors(eventFormSchema.safeParse({ ...base, placeId: "  " }))).toEqual({
-      placeId: ["Vælg et sted, eller opret et nyt."],
-    });
+  it("allows no place yet (D-175)", () => {
+    for (const placeId of [undefined, "", "  "]) {
+      const parsed = eventFormSchema.safeParse({ ...base, placeId });
+      expect(parsed.success && parsed.data.place).toEqual({ kind: "none" });
+    }
   });
 
   it("refuses a garbage placeId with one message", () => {

@@ -158,31 +158,60 @@ export function utcToZonedParts(instant: Date): { date: DateKey; time: TimeOfDay
 export type EventTimesInput = {
   /** "YYYY-MM-DD" */
   date: string;
-  /** "HH:mm" */
-  startTime: string;
-  /** "HH:mm", or null/"" for no end time. */
+  /** "HH:mm", or null/"" when the time is not decided yet (D-175). */
+  startTime?: string | null;
+  /** "HH:mm", or null/"" for no end time. Needs a start time. */
   endTime?: string | null;
 };
 
 export type EventTimesResult =
-  | { ok: true; startsAt: Date; endsAt: Date | null; endsNextDay: boolean }
-  | { ok: false; field: "date" | "startTime" | "endTime"; reason: "invalid" | "same-as-start" };
+  | {
+      ok: true;
+      startsAt: Date;
+      endsAt: Date | null;
+      endsNextDay: boolean;
+      /** False: no start time; startsAt/endsAt span the whole date (D-175). */
+      hasStartTime: boolean;
+    }
+  | {
+      ok: false;
+      field: "date" | "startTime" | "endTime";
+      reason: "invalid" | "same-as-start" | "end-without-start";
+    };
 
 /**
  * startsAt/endsAt (UTC) from the form's date and times, with the overnight
  * rule: an end time before the start time ends on the next day. An end time
  * equal to the start time is refused. The result always has endsAt > startsAt
  * (the database CHECK), also around a DST change.
+ *
+ * Without a start time (D-175) the event spans its date: midnight to the next
+ * midnight, Copenhagen time, so it stays upcoming all day. An end time then
+ * makes no sense and is refused.
  */
 export function resolveEventTimes(input: EventTimesInput): EventTimesResult {
   if (!isDateKey(input.date)) return { ok: false, field: "date", reason: "invalid" };
-  const start = normalizeTimeOfDay(input.startTime);
+  const rawStart = input.startTime?.trim() ?? "";
+  const rawEnd = input.endTime?.trim() ?? "";
+
+  if (rawStart === "") {
+    if (rawEnd !== "") return { ok: false, field: "endTime", reason: "end-without-start" };
+    const nextDate = addDaysToDateKey(input.date, 1);
+    // Midnight exists every day in Copenhagen (the clock changes at 02:00/03:00).
+    const startsAt = zonedDateTimeToUtc(input.date, "00:00");
+    const endsAt = nextDate ? zonedDateTimeToUtc(nextDate, "00:00") : null;
+    if (!startsAt || !endsAt) return { ok: false, field: "date", reason: "invalid" };
+    return { ok: true, startsAt, endsAt, endsNextDay: false, hasStartTime: false };
+  }
+
+  const start = normalizeTimeOfDay(rawStart);
   if (!start) return { ok: false, field: "startTime", reason: "invalid" };
   const startsAt = zonedDateTimeToUtc(input.date, start);
   if (!startsAt) return { ok: false, field: "date", reason: "invalid" };
 
-  const rawEnd = input.endTime?.trim() ?? "";
-  if (rawEnd === "") return { ok: true, startsAt, endsAt: null, endsNextDay: false };
+  if (rawEnd === "") {
+    return { ok: true, startsAt, endsAt: null, endsNextDay: false, hasStartTime: true };
+  }
 
   const end = normalizeTimeOfDay(rawEnd);
   if (!end) return { ok: false, field: "endTime", reason: "invalid" };
@@ -196,20 +225,26 @@ export function resolveEventTimes(input: EventTimesInput): EventTimesResult {
   if (!endsAt || endsAt.getTime() <= startsAt.getTime()) {
     return { ok: false, field: "endTime", reason: "invalid" };
   }
-  return { ok: true, startsAt, endsAt, endsNextDay };
+  return { ok: true, startsAt, endsAt, endsNextDay, hasStartTime: true };
 }
 
 /**
  * The form values of a stored event (edit form): its Copenhagen date, start
  * time and end time ("" without an end). An end on the next day comes back as
- * an earlier time, which the overnight rule reads the same way again.
+ * an earlier time, which the overnight rule reads the same way again. Without
+ * a start time both times are "" (D-175).
  */
-export function eventTimesToFormValues(event: { startsAt: Date; endsAt: Date | null }): {
+export function eventTimesToFormValues(event: {
+  startsAt: Date;
+  endsAt: Date | null;
+  hasStartTime: boolean;
+}): {
   date: DateKey;
-  startTime: TimeOfDay;
+  startTime: TimeOfDay | "";
   endTime: TimeOfDay | "";
 } {
   const start = utcToZonedParts(event.startsAt);
+  if (!event.hasStartTime) return { date: start.date, startTime: "", endTime: "" };
   return {
     date: start.date,
     startTime: start.time,

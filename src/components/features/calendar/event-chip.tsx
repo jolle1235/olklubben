@@ -4,6 +4,7 @@ import { formatLongDate, formatTime } from "@/lib/format/date";
 import { eventHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { hasEnded } from "@/server/domain/events/status";
+import { TIME_UNDECIDED_LABEL } from "@/server/domain/events/undecided";
 
 import type { CalendarEvent } from "./event-format";
 
@@ -38,14 +39,17 @@ export function EventChip({ clubId, event, now }: EventChipProps) {
       <span className="line-clamp-3 text-label-lg-tight font-semibold break-words hyphens-auto">
         {event.title}
       </span>
-      <span className="sr-only">, {formatLongDate(event.startsAt, now)} kl. </span>
+      <span className="sr-only">
+        , {formatLongDate(event.startsAt, now)}
+        {event.hasStartTime ? " kl. " : ", "}
+      </span>
       <span
         className={cn(
           "mt-0.5 block text-label-md-tight tabular-nums",
           past ? "text-muted-foreground group-hover/chip:text-foreground" : "text-primary-ink",
         )}
       >
-        {formatTime(event.startsAt)}
+        {event.hasStartTime ? formatTime(event.startsAt) : TIME_UNDECIDED_LABEL}
       </span>
     </Link>
   );

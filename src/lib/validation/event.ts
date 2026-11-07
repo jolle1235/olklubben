@@ -28,14 +28,17 @@ import {
  * (<input type="date">, <input type="time">). The form's default start time
  * 18:30 is a UI default (DEFAULT_EVENT_START_TIME), not part of the schema.
  *
- *   * placeId: one of the club's places, or EVENT_PLACE_NEW ("new") for
+ *   * startTime: optional (D-175). Empty = the time is not decided yet; the
+ *     event then spans its date and cannot have an end time.
+ *   * placeId: optional (D-175). Empty = no place yet; one of the club's
+ *     places; or EVENT_PLACE_NEW ("new") for
  *     "＋ Nyt sted" – then newPlaceName (required), newPlaceAddress and
  *     newPlaceMine ("Det er mit sted") describe it. The new-place fields are
  *     ignored when an existing place is chosen. Whether the place exists in the
  *     club and is not archived is checked on the server
  *     (PlaceNotSelectableError → fieldErrors.placeId).
  *   * hostIds: the chosen hosts (repeated field). Empty = the default (the
- *     place's owners, else the creator); the server checks membership
+ *     place's owners, else nobody, D-175); the server checks membership
  *     (InvalidEventHostsError → fieldErrors.hostIds).
  *
  * Output: trimmed texts without U+0000 (Postgres text cannot store it; empty
@@ -59,7 +62,6 @@ export const EVENT_PLACE_NEW = "new";
 /** Repeated form fields (readFormValues / useActionForm `arrays`). */
 export const EVENT_ARRAY_FIELDS = ["hostIds"] as const;
 
-const PLACE_REQUIRED_MESSAGE = "Vælg et sted, eller opret et nyt.";
 const PLACE_INVALID_MESSAGE = "Vælg et sted fra listen.";
 /** "＋ Nyt sted" without a name: the same words as the place form (placeFieldsSchema). */
 export const NEW_PLACE_NAME_REQUIRED_MESSAGE = "Giv stedet et navn.";
@@ -68,20 +70,20 @@ const NEW_PLACE_ADDRESS_TOO_LONG = `Adressen må højst være ${PLACE_ADDRESS_MA
 /** A raw new-place name longer than this is refused before it is cleaned (D-090). */
 const NEW_PLACE_NAME_RAW_MAX_LENGTH = 2000;
 
-/** Where the event is: an existing place of the club, or a new one created with the event. */
+/** Where the event is: not decided yet, an existing place of the club, or a new one. */
 export type EventPlaceChoice =
+  | { kind: "none" }
   | { kind: "existing"; placeId: string }
   | { kind: "new"; name: string; address: string | null; ownedByCreator: boolean };
 
-// `abort: true`: an empty field shows only "required", not also "invalid" (Zod 4
-// runs the remaining checks after a failed one unless told to stop).
-const timeField = (required: string, invalid: string) =>
+/** An optional "HH:mm": "" (or missing) stays "", anything else must be a time of day. */
+const optionalTimeField = (invalid: string) =>
   z
-    .string({ error: required })
-    .trim()
-    .min(1, { error: required, abort: true })
-    .refine((value) => normalizeTimeOfDay(value) !== null, invalid)
-    .transform((value) => normalizeTimeOfDay(value) as string);
+    .string()
+    .nullish()
+    .transform((value) => (value ?? "").trim())
+    .refine((value) => value === "" || normalizeTimeOfDay(value) !== null, { message: invalid })
+    .transform((value) => (value === "" ? "" : (normalizeTimeOfDay(value) as string)));
 
 export const eventFieldsSchema = z.object({
   title: z
@@ -102,23 +104,19 @@ export const eventFieldsSchema = z.object({
         ctx.addIssue({ code: "custom", message: "Datoen findes ikke. Vælg en anden dato." });
       }
     }),
-  startTime: timeField("Vælg et starttidspunkt.", "Skriv tiden som tt:mm, fx 18:30."),
-  endTime: z
+  startTime: optionalTimeField("Skriv tiden som tt:mm, fx 18:30."),
+  endTime: optionalTimeField("Skriv sluttiden som tt:mm, fx 23:00.").transform((value) =>
+    value === "" ? null : value,
+  ),
+  // "" or missing = no place yet; anything but "new" or an id → invalid.
+  placeId: z
     .string()
     .nullish()
-    .transform((value) => (value ?? "").trim())
-    .refine((value) => value === "" || normalizeTimeOfDay(value) !== null, {
-      message: "Skriv sluttiden som tt:mm, fx 23:00.",
-    })
-    .transform((value) => (value === "" ? null : (normalizeTimeOfDay(value) as string))),
-  // One check with one message: "" → required; anything but "new" or an id → invalid.
-  placeId: z
-    .string({ error: PLACE_REQUIRED_MESSAGE })
+    .transform((value) => value ?? "")
     .superRefine((raw, ctx) => {
       const value = raw.trim();
-      if (value === "") {
-        ctx.addIssue({ code: "custom", message: PLACE_REQUIRED_MESSAGE });
-      } else if (raw.length > 64 || (value !== EVENT_PLACE_NEW && !isValidId(value))) {
+      if (value === "") return;
+      if (raw.length > 64 || (value !== EVENT_PLACE_NEW && !isValidId(value))) {
         ctx.addIssue({ code: "custom", message: PLACE_INVALID_MESSAGE });
       }
     })
@@ -153,6 +151,7 @@ export const eventFieldsSchema = z.object({
 });
 
 export const SAME_START_AND_END_MESSAGE = "Sluttiden skal være en anden end starttiden.";
+export const END_WITHOUT_START_MESSAGE = "Vælg et starttidspunkt, før du sætter en sluttid.";
 
 /** The object-level checks below also run while other fields (e.g. the title) are invalid (F-037). */
 const newPlaceFields = eventFieldsSchema.pick({
@@ -164,12 +163,19 @@ const whenNewPlaceFieldsParse = (payload: { value: unknown }) =>
   newPlaceFields.safeParse(payload.value).success;
 const isNewPlace = (values: { placeId: string }) => values.placeId === EVENT_PLACE_NEW;
 
+const whenTimesParse = (payload: { value: unknown }) =>
+  eventFieldsSchema.pick({ startTime: true, endTime: true }).safeParse(payload.value).success;
+
 export const eventFormSchema = eventFieldsSchema
+  .refine((values) => values.endTime === null || values.startTime !== "", {
+    message: END_WITHOUT_START_MESSAGE,
+    path: ["endTime"],
+    when: whenTimesParse,
+  })
   .refine((values) => values.endTime === null || values.endTime !== values.startTime, {
     message: SAME_START_AND_END_MESSAGE,
     path: ["endTime"],
-    when: (payload) =>
-      eventFieldsSchema.pick({ startTime: true, endTime: true }).safeParse(payload.value).success,
+    when: whenTimesParse,
   })
   .refine((values) => !isNewPlace(values) || values.newPlaceName !== "", {
     message: NEW_PLACE_NAME_REQUIRED_MESSAGE,
@@ -206,24 +212,30 @@ export const eventFormSchema = eventFieldsSchema
         message:
           times.reason === "same-as-start"
             ? SAME_START_AND_END_MESSAGE
-            : "Tidspunktet findes ikke den dag (sommertid). Vælg et andet.",
+            : times.reason === "end-without-start"
+              ? END_WITHOUT_START_MESSAGE
+              : "Tidspunktet findes ikke den dag (sommertid). Vælg et andet.",
       });
       return z.NEVER;
     }
-    const place: EventPlaceChoice = isNewPlace(values)
-      ? {
-          kind: "new",
-          name: values.newPlaceName,
-          address: values.newPlaceAddress,
-          ownedByCreator: values.newPlaceMine,
-        }
-      : { kind: "existing", placeId: values.placeId };
+    const place: EventPlaceChoice =
+      values.placeId === ""
+        ? { kind: "none" }
+        : isNewPlace(values)
+          ? {
+              kind: "new",
+              name: values.newPlaceName,
+              address: values.newPlaceAddress,
+              ownedByCreator: values.newPlaceMine,
+            }
+          : { kind: "existing", placeId: values.placeId };
     return {
       title: values.title,
       theme: values.theme,
       description: values.description,
       startsAt: times.startsAt,
       endsAt: times.endsAt,
+      hasStartTime: times.hasStartTime,
       place,
       hostIds: values.hostIds,
     };
@@ -238,6 +250,8 @@ export type EventFormData = {
   description: string | null;
   startsAt: Date;
   endsAt: Date | null;
+  /** False: "Tid følger" (D-175). */
+  hasStartTime: boolean;
   place: EventPlaceChoice;
   hostIds: string[];
 };

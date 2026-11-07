@@ -7,6 +7,7 @@ import { compareByDisplayName, getDisplayName } from "@/lib/format/display-name"
 import { isValidId } from "@/lib/ids";
 import { db } from "@/server/db";
 import { isUpcomingOrOngoing } from "@/server/domain/events/status";
+import { placeNameOrUndecided } from "@/server/domain/events/undecided";
 import { comparePlacesByName } from "@/server/domain/places/name";
 import type { BallotVotes } from "@/server/domain/polls/ballot";
 import { votedMemberIds } from "@/server/domain/polls/lifecycle";
@@ -394,7 +395,7 @@ export async function getPollView(
           id: event.id,
           title: event.title,
           startsAt: event.startsAt,
-          placeName: event.place.name,
+          placeName: placeNameOrUndecided(event.place),
           hosts: event.hosts.map((host) => person(host.user)).sort(compareByDisplayName),
         }
       : null,
@@ -537,7 +538,7 @@ export async function listOverviewPolls(
           ? {
               id: event.id,
               startsAt: event.startsAt,
-              placeName: event.place.name,
+              placeName: placeNameOrUndecided(event.place),
               hostNames: event.hosts
                 .map((host) => host.user)
                 .sort(compareByDisplayName)

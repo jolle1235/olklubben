@@ -18,8 +18,12 @@ import { dateKeyToDayNumber, utcToZonedParts } from "./time";
 export const EVENT_FALLBACK_DURATION_HOURS = 6;
 export const EVENT_FALLBACK_DURATION_MS = EVENT_FALLBACK_DURATION_HOURS * 60 * 60 * 1000;
 
-/** The part of an event the time rules need. */
-export type EventTiming = { startsAt: Date; endsAt: Date | null };
+/**
+ * The part of an event the time rules need. `hasStartTime: false` ("Tid
+ * følger", D-175): startsAt/endsAt span the date, so it is upcoming all day
+ * but never "ongoing".
+ */
+export type EventTiming = { startsAt: Date; endsAt: Date | null; hasStartTime?: boolean };
 
 /** endsAt, or startsAt + 6 hours when the event has no end time. */
 export function effectiveEnd(event: EventTiming): Date {
@@ -31,8 +35,9 @@ export function isUpcomingOrOngoing(event: EventTiming, now: Date): boolean {
   return now.getTime() < effectiveEnd(event).getTime();
 }
 
-/** Ongoing: started, and the (effective) end has not passed (start ≤ now < end). */
+/** Ongoing: started, and the (effective) end has not passed (start ≤ now < end). Never without a start time. */
 export function isOngoing(event: EventTiming, now: Date): boolean {
+  if (event.hasStartTime === false) return false;
   return event.startsAt.getTime() <= now.getTime() && isUpcomingOrOngoing(event, now);
 }
 
@@ -66,6 +71,8 @@ export type HeroState =
   | { kind: "ongoing" }
   /** Today (Copenhagen), before the start: "I aften! 🍻". */
   | { kind: "tonight" }
+  /** Today, without a start time (D-175): "I dag! 🍻". */
+  | { kind: "today" }
   | { kind: "tomorrow" }
   /** Two or more calendar days ahead. */
   | { kind: "inDays"; days: number }
@@ -76,7 +83,7 @@ export function heroState(event: EventTiming, now: Date): HeroState {
   if (hasEnded(event, now)) return { kind: "ended" };
   if (isOngoing(event, now)) return { kind: "ongoing" };
   const days = calendarDaysBetween(now, event.startsAt);
-  if (days <= 0) return { kind: "tonight" };
+  if (days <= 0) return event.hasStartTime === false ? { kind: "today" } : { kind: "tonight" };
   if (days === 1) return { kind: "tomorrow" };
   return { kind: "inDays", days };
 }
@@ -88,6 +95,8 @@ export function heroStateLabel(state: HeroState): string {
       return "I gang nu";
     case "tonight":
       return "I aften! 🍻";
+    case "today":
+      return "I dag! 🍻";
     case "tomorrow":
       return "I morgen!";
     case "inDays":
@@ -99,5 +108,5 @@ export function heroStateLabel(state: HeroState): string {
 
 /** Highlighted states (the highlight role on the hero card): today and ongoing. */
 export function isHeroHighlighted(state: HeroState): boolean {
-  return state.kind === "tonight" || state.kind === "ongoing";
+  return state.kind === "tonight" || state.kind === "today" || state.kind === "ongoing";
 }

@@ -33,18 +33,15 @@ test.describe("Events", () => {
     await expect(page.getByLabel("Titel")).toHaveValue("Ølsmagning #1");
     await expect(page.getByLabel("Starttid")).toHaveValue("18:30");
 
-    // A club without places: "＋ Nyt sted" is chosen and open (D-099).
-    await expect(placeRadio(page, "＋ Nyt sted")).toBeChecked();
-    await expect(
-      page.getByText("Klubben har ingen steder endnu. Skriv, hvor I mødes."),
-    ).toBeVisible();
+    // The place is optional (D-175): "Ikke bestemt endnu" is chosen.
+    await expect(placeRadio(page, "Ikke bestemt endnu")).toBeChecked();
 
     // Client validation: messages inline, focus on the first invalid field (D-056).
+    // Only the title and the date are required (D-175).
     await page.getByLabel("Titel").fill("");
     await page.getByRole("button", { name: "Opret event" }).click();
     await expect(page.getByText("Giv eventet en titel.")).toBeVisible();
     await expect(page.getByText("Vælg en dato.")).toBeVisible();
-    await expect(page.getByText("Giv stedet et navn.", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Titel")).toBeFocused();
     await expect(page).toHaveURL(/\/events\/new$/);
 
@@ -53,6 +50,7 @@ test.describe("Events", () => {
     await page.getByLabel("Dato").fill("2026-10-25");
     await page.getByLabel(/^Sluttid/).fill("01:00");
     await expect(page.getByText("Slutter dagen efter kl. 01:00.")).toBeVisible();
+    await placeRadio(page, "＋ Nyt sted").check();
     await page.getByLabel("Navn på stedet").fill("Hos Mads");
     await page.getByLabel(/^Adresse/).fill("Søndergade 12, Tilst");
     await page.getByLabel(/^Tema/).fill("Belgiske øl");
@@ -69,13 +67,13 @@ test.describe("Events", () => {
     await expect(page.locator('time[datetime="2026-10-26T00:00:00.000Z"]')).toHaveText("01:00");
     await expect(page.getByText("Tema: Belgiske øl")).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Planen" })).toBeVisible();
-    // The place links to its page, with the address; the creator is the host (no owners).
+    // The place links to its page, with the address; no owners, so no hosts (D-175).
     await expect(page.getByRole("link", { name: "Hos Mads", exact: true })).toHaveAttribute(
       "href",
       new RegExp(`^/c/${clubId}/places/[0-9a-f-]{36}$`),
     );
     await expect(page.getByText("Søndergade 12, Tilst", { exact: true })).toBeVisible();
-    await expect(page.getByText(`Vært: ${owner.name}`)).toBeVisible();
+    await expect(page.getByText(/^Værter?:/)).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Åbn i kort/ })).toHaveAttribute(
       "href",
       /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=S%C3%B8ndergade/,

@@ -88,6 +88,19 @@ describe("calendarDaysBetween", () => {
 });
 
 describe("heroState (SPEC §9.1)", () => {
+  it("without a start time (D-175): today all day, never ongoing", () => {
+    // Friday 23 October 2026, the whole Copenhagen day.
+    const tbd = {
+      startsAt: at("2026-10-22T22:00:00Z"),
+      endsAt: at("2026-10-23T22:00:00Z"),
+      hasStartTime: false,
+    };
+    expect(heroState(tbd, at("2026-10-22T10:00:00Z"))).toEqual({ kind: "tomorrow" });
+    expect(heroState(tbd, at("2026-10-22T22:30:00Z"))).toEqual({ kind: "today" });
+    expect(heroState(tbd, at("2026-10-23T20:00:00Z"))).toEqual({ kind: "today" });
+    expect(heroState(tbd, at("2026-10-23T22:00:00Z"))).toEqual({ kind: "ended" });
+  });
+
   it("more than one day ahead: inDays", () => {
     expect(heroState(withEnd, at("2026-10-20T10:00:00Z"))).toEqual({ kind: "inDays", days: 3 });
   });

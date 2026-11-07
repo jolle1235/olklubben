@@ -98,25 +98,21 @@ describe("resolveHostIds", () => {
 
 describe("suggestHosts (the picker's hint)", () => {
   it("suggests the owners who are members", () => {
-    expect(
-      suggestHosts({ ownerIds: [MADS, OUTSIDER], memberIds: members, fallbackUserId: JESPER }),
-    ).toEqual({ hostIds: [MADS], reason: "owners" });
-  });
-
-  it("suggests the user when the place has no owners", () => {
-    expect(suggestHosts({ ownerIds: [], memberIds: members, fallbackUserId: JESPER })).toEqual({
-      hostIds: [JESPER],
-      reason: "fallback",
+    expect(suggestHosts({ ownerIds: [MADS, OUTSIDER], memberIds: members })).toEqual({
+      hostIds: [MADS],
+      reason: "owners",
     });
-    expect(
-      suggestHosts({ ownerIds: [OUTSIDER], memberIds: members, fallbackUserId: JESPER }),
-    ).toEqual({ hostIds: [JESPER], reason: "fallback" });
   });
 
-  it("suggests the user's own place as owners when the user owns it", () => {
-    expect(
-      suggestHosts({ ownerIds: [JESPER], memberIds: members, fallbackUserId: JESPER }),
-    ).toEqual({ hostIds: [JESPER], reason: "owners" });
+  it("suggests nobody when the place has no owners who are members (D-175)", () => {
+    expect(suggestHosts({ ownerIds: [], memberIds: members })).toEqual({
+      hostIds: [],
+      reason: "none",
+    });
+    expect(suggestHosts({ ownerIds: [OUTSIDER], memberIds: members })).toEqual({
+      hostIds: [],
+      reason: "none",
+    });
   });
 });
 

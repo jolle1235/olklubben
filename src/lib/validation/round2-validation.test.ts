@@ -35,6 +35,7 @@ describe("eventFormSchema (SPEC §9.2)", () => {
       description: null,
       startsAt: new Date("2026-10-23T16:30:00Z"),
       endsAt: null,
+      hasStartTime: true,
       place: { kind: "new", name: "Hos Jesper", address: null, ownedByCreator: false },
       hostIds: [],
     });
@@ -95,17 +96,22 @@ describe("eventFormSchema (SPEC §9.2)", () => {
     });
   });
 
-  it("requires a date and a start time", () => {
+  it("requires only a title and a date (D-175)", () => {
     expect(fieldErrors(eventFormSchema.safeParse({ ...valid, date: "", startTime: "" }))).toEqual({
       date: ["Vælg en dato."],
-      startTime: ["Vælg et starttidspunkt."],
     });
-    expect(fieldErrors(eventFormSchema.safeParse({}))).toMatchObject({
+    expect(fieldErrors(eventFormSchema.safeParse({}))).toEqual({
       title: ["Giv eventet en titel."],
       date: ["Vælg en dato."],
-      startTime: ["Vælg et starttidspunkt."],
-      placeId: ["Vælg et sted, eller opret et nyt."],
     });
+  });
+
+  it("without a start time: no end time, and the event spans the date (D-175)", () => {
+    const parsed = eventFormSchema.safeParse({ ...valid, startTime: "", endTime: "" });
+    expect(parsed.success && parsed.data.hasStartTime).toBe(false);
+    expect(
+      fieldErrors(eventFormSchema.safeParse({ ...valid, startTime: "", endTime: "23:00" })),
+    ).toEqual({ endTime: ["Vælg et starttidspunkt, før du sætter en sluttid."] });
   });
 
   it("enforces the length limits", () => {

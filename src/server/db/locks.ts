@@ -77,7 +77,7 @@ export async function lockPlace(
   return rows[0] ?? null;
 }
 
-export type LockedEvent = { id: string; placeId: string; createdById: string };
+export type LockedEvent = { id: string; placeId: string | null; createdById: string };
 
 /** One event of the club, locked FOR UPDATE (editing it). Null when not found. */
 export async function lockEvent(

@@ -83,6 +83,11 @@ export function useActionForm<S extends ActionFormState>(
     const errors = validate(new FormData(form));
     setClientErrors(errors);
     if (!errors) {
+      // iOS keeps the last field focused when a button is tapped. If the action
+      // redirects with the keyboard still open, fixed elements (the bottom nav)
+      // stay pinned to a stale viewport and scroll with the page (F-095).
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && form.contains(active)) active.blur();
       onValidSubmit?.(form);
       return;
     }

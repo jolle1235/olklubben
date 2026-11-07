@@ -139,9 +139,21 @@ describe("createEventAction: steder (D-099)", () => {
     expect(await hostIdsOf(eventId)).toEqual(sorted([mads.id, anders.id]));
   });
 
-  it("et sted uden ejere → opretteren er vært", async () => {
+  it("et sted uden ejere → ingen værter (D-175)", async () => {
     const eventId = await createVia(bo, { placeId: baren });
-    expect(await hostIdsOf(eventId)).toEqual([bo.id]);
+    expect(await hostIdsOf(eventId)).toEqual([]);
+  });
+
+  it("uden sted og starttid → eventet oprettes og fylder hele datoen (D-175)", async () => {
+    const eventId = await createVia(bo, { placeId: "", startTime: "" });
+    expect(await db.event.findUniqueOrThrow({ where: { id: eventId } })).toMatchObject({
+      placeId: null,
+      hasStartTime: false,
+      // 4 December 2026, midnight to midnight in Copenhagen (winter time).
+      startsAt: new Date("2026-12-03T23:00:00Z"),
+      endsAt: new Date("2026-12-04T23:00:00Z"),
+    });
+    expect(await hostIdsOf(eventId)).toEqual([]);
   });
 
   it("'＋ Nyt sted' med adresse og 'Det er mit sted' → stedet oprettes, og jeg er ejer og vært", async () => {
@@ -160,7 +172,9 @@ describe("createEventAction: steder (D-099)", () => {
       address: "Bogade 1, 8000 Aarhus",
       clubId,
     });
-    const owners = await db.placeOwner.findMany({ where: { placeId: event.place.id } });
+    const owners = await db.placeOwner.findMany({
+      where: { placeId: event.place?.id ?? "missing" },
+    });
     expect(owners.map((owner) => owner.userId)).toEqual([bo.id]);
     expect(await hostIdsOf(eventId)).toEqual([bo.id]);
   });
@@ -181,10 +195,10 @@ describe("createEventAction: steder (D-099)", () => {
     });
     const { placeId } = await db.event.findUniqueOrThrow({ where: { id: eventId } });
     expect(placeId).not.toBe(klubhuset);
-    const place = await db.place.findUniqueOrThrow({ where: { id: placeId } });
+    const place = await db.place.findUniqueOrThrow({ where: { id: placeId ?? "missing" } });
     expect(place.archivedAt).toBeNull();
     // Archive it again, so the other tests see one archived "Det gamle klubhus".
-    await db.place.update({ where: { id: placeId }, data: { archivedAt: new Date() } });
+    await db.place.update({ where: { id: place.id }, data: { archivedAt: new Date() } });
   });
 
   it("de nye steds felter ignoreres, når et eksisterende sted er valgt", async () => {
@@ -220,11 +234,10 @@ describe("createEventAction: steder (D-099)", () => {
     expect(await db.event.count({ where: { clubId } })).toBe(before);
   });
 
-  it("validerer placeId: mangler, er noget sludder eller er for langt", async () => {
+  it("validerer placeId: noget sludder eller for langt", async () => {
     setActor(bo);
     const message = async (placeId: string) =>
       (await createEventAction(null, formData(fields({ placeId }))))?.error.fieldErrors?.placeId;
-    expect(await message("")).toEqual(["Vælg et sted, eller opret et nyt."]);
     expect(await message("hos-mads")).toEqual(["Vælg et sted fra listen."]);
     expect(await message("x".repeat(65))).toEqual(["Vælg et sted fra listen."]);
     expect(
@@ -362,7 +375,7 @@ describe("updateEventAction og deleteEventAction: opretter, vært eller admin (D
     }
   });
 
-  it("ingen valgte værter ved redigering → stedets ejere, ellers eventets opretter", async () => {
+  it("ingen valgte værter ved redigering → stedets ejere, ellers ingen (D-175)", async () => {
     const eventId = await insertEvent(bo, baren, [anders.id]);
     setActor(admin);
     await expectRedirect(
@@ -374,7 +387,7 @@ describe("updateEventAction og deleteEventAction: opretter, vært eller admin (D
       updateEventAction(null, formData({ ...fields({ placeId: baren }), eventId })),
       `/c/${clubId}/events/${eventId}?toast=event-updated`,
     );
-    expect(await hostIdsOf(eventId)).toEqual([bo.id]);
+    expect(await hostIdsOf(eventId)).toEqual([]);
   });
 
   it("en anden klubs event og et ugyldigt event-id giver 404", async () => {
@@ -417,13 +430,13 @@ describe("?placeId= (Opret event her) og stedvalgets standard", () => {
     expect(initialPlaceId({ places, currentPlaceId: klubhuset })).toBe(klubhuset);
   });
 
-  it("åbner '＋ Nyt sted' i en klub uden steder", async () => {
+  it("starter på 'Ikke bestemt endnu', også i en klub med ét eller ingen steder (D-175)", async () => {
     expect(initialPlaceId({ places: toPlaceChoices(await listPlaceOptions(otherClubId)) })).toBe(
-      naboensSted,
+      "",
     );
     const emptyClubId = await createClub(outsider, "Tom klub C");
     expect(initialPlaceId({ places: toPlaceChoices(await listPlaceOptions(emptyClubId)) })).toBe(
-      "new",
+      "",
     );
   });
 });

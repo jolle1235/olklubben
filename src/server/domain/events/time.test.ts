@@ -143,6 +143,7 @@ describe("resolveEventTimes", () => {
       startsAt: new Date("2026-10-23T16:30:00Z"),
       endsAt: null,
       endsNextDay: false,
+      hasStartTime: true,
     });
     expect(resolveEventTimes({ date: "2026-10-23", startTime: "18:30" }).ok).toBe(true);
     expect(resolveEventTimes({ date: "2026-10-23", startTime: "18:30", endTime: null }).ok).toBe(
@@ -224,10 +225,15 @@ describe("eventTimesToFormValues", () => {
       eventTimesToFormValues({
         startsAt: new Date("2026-10-23T16:30:00Z"),
         endsAt: new Date("2026-10-23T23:00:00Z"),
+        hasStartTime: true,
       }),
     ).toEqual({ date: "2026-10-23", startTime: "18:30", endTime: "01:00" });
     expect(
-      eventTimesToFormValues({ startsAt: new Date("2026-10-30T17:30:00Z"), endsAt: null }),
+      eventTimesToFormValues({
+        startsAt: new Date("2026-10-30T17:30:00Z"),
+        endsAt: null,
+        hasStartTime: true,
+      }),
     ).toEqual({ date: "2026-10-30", startTime: "18:30", endTime: "" });
   });
 
@@ -235,8 +241,45 @@ describe("eventTimesToFormValues", () => {
     const stored = {
       startsAt: new Date("2026-10-24T18:00:00Z"),
       endsAt: new Date("2026-10-25T03:00:00Z"),
+      hasStartTime: true,
     };
     const values = eventTimesToFormValues(stored);
+    expect(resolveEventTimes(values)).toMatchObject({ ok: true, ...stored });
+  });
+});
+
+describe("without a start time (D-175)", () => {
+  it("spans the Copenhagen date, also across a clock change", () => {
+    expect(resolveEventTimes({ date: "2026-10-23", startTime: "" })).toEqual({
+      ok: true,
+      startsAt: new Date("2026-10-22T22:00:00Z"),
+      endsAt: new Date("2026-10-23T22:00:00Z"),
+      endsNextDay: false,
+      hasStartTime: false,
+    });
+    // 25 October 2026 has 25 hours (summer time ends).
+    expect(resolveEventTimes({ date: "2026-10-25", startTime: null })).toMatchObject({
+      startsAt: new Date("2026-10-24T22:00:00Z"),
+      endsAt: new Date("2026-10-25T23:00:00Z"),
+    });
+  });
+
+  it("refuses an end time", () => {
+    expect(resolveEventTimes({ date: "2026-10-23", startTime: "", endTime: "23:00" })).toEqual({
+      ok: false,
+      field: "endTime",
+      reason: "end-without-start",
+    });
+  });
+
+  it("gives empty times back to the edit form, and round-trips", () => {
+    const stored = {
+      startsAt: new Date("2026-10-22T22:00:00Z"),
+      endsAt: new Date("2026-10-23T22:00:00Z"),
+      hasStartTime: false,
+    };
+    const values = eventTimesToFormValues(stored);
+    expect(values).toEqual({ date: "2026-10-23", startTime: "", endTime: "" });
     expect(resolveEventTimes(values)).toMatchObject({ ok: true, ...stored });
   });
 });

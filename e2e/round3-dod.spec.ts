@@ -142,14 +142,14 @@ test.describe("Runde 3: Definition of Done", () => {
     ).toBeVisible();
 
     // A tasting somewhere new, created inline with "＋ Nyt sted": the place
-    // has no owners, so the one creating it hosts it; no address, so no map
-    // link, but a way to add one.
+    // has no owners, so nobody hosts it (D-175); no address, so no map link,
+    // but a way to add one.
     const otherId = await createEventViaForm(memberPage, clubId, {
       title: "Havneaften",
       date: dayFromToday(12),
       place: { new: "Bodegaen ved havnen" },
     });
-    await expect(memberPage.getByText("Vært: Skipperen")).toBeVisible();
+    await expect(memberPage.getByText(/^Værter?:/)).toHaveCount(0);
     await expect(memberPage.getByRole("link", { name: /Åbn i kort/ })).toHaveCount(0);
     await expect(memberPage.getByRole("link", { name: "Tilføj adresse" })).toBeVisible();
     await memberPage.getByRole("link", { name: "Bodegaen ved havnen", exact: true }).click();

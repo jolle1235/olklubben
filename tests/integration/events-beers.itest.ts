@@ -89,7 +89,7 @@ describe("events: club scoping", () => {
       place: { name: "Hos Itest", address: null, archived: false },
       createdById: member.id,
       createdBy: { id: member.id, name: "Mads Itest", nickname: null },
-      hostIds: [member.id],
+      hostIds: [],
     });
     expect(await getEvent(otherClubId, id)).toBeNull();
     expect(await getEvent(clubId, "not-an-id")).toBeNull();

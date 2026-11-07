@@ -6,6 +6,7 @@ import {
   formatWeekdayDateTime,
 } from "@/lib/format/date";
 import { zonedDateTimeToUtc, type DateKey } from "@/server/domain/events/time";
+import { placeNameOrUndecided, TIME_UNDECIDED_LABEL } from "@/server/domain/events/undecided";
 
 /**
  * Texts for events – and the dashed "Mulig dato" of polls (round 4, D-137) –
@@ -21,10 +22,12 @@ export type CalendarEvent = {
   id: string;
   title: string;
   theme: string | null;
-  /** Where (EventPlace from src/server/events/queries.ts fits). */
-  place: { name: string };
+  /** Where (EventPlace from src/server/events/queries.ts fits); null = "Sted følger" (D-175). */
+  place: { name: string } | null;
   startsAt: Date;
   endsAt: Date | null;
+  /** False: "Tid følger" (D-175). */
+  hasStartTime: boolean;
 };
 
 /** A past tasting in the history (PastEventSummary from src/server/events/queries.ts fits). */
@@ -129,18 +132,21 @@ export function capitalize(text: string): string {
   return text ? text.charAt(0).toLocaleUpperCase("da") + text.slice(1) : text;
 }
 
-/** "18:30" or "18:30–23:30" (en dash). */
-export function eventTimeText(event: Pick<CalendarEvent, "startsAt" | "endsAt">): string {
+type EventTimes = Pick<CalendarEvent, "startsAt" | "endsAt" | "hasStartTime">;
+
+/** "18:30", "18:30–23:30" (en dash) or "Tid følger" (D-175). */
+export function eventTimeText(event: EventTimes): string {
+  if (!event.hasStartTime) return TIME_UNDECIDED_LABEL;
   return formatTimeRange(event.startsAt, event.endsAt);
 }
 
-/** "Hos Mads · 18:30" (the calendar list, SPEC §9.3). */
+/** "Hos Mads · 18:30" (the calendar list, SPEC §9.3); "Sted følger · Tid følger" before they are decided. */
 export function eventPlaceAndTime(event: CalendarEvent): string {
-  return `${event.place.name} · ${eventTimeText(event)}`;
+  return `${placeNameOrUndecided(event.place)} · ${eventTimeText(event)}`;
 }
 
 /** "Fredag · 18:30" (the hero card, SPEC §9.1; the big date shows day and month). */
-export function eventWeekdayAndTime(event: Pick<CalendarEvent, "startsAt" | "endsAt">): string {
+export function eventWeekdayAndTime(event: EventTimes): string {
   return `${capitalize(formatWeekday(event.startsAt))} · ${eventTimeText(event)}`;
 }
 

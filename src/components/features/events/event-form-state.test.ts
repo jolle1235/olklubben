@@ -4,7 +4,6 @@ import {
   canUseOwners,
   checkedHostIds,
   existingPlaceForName,
-  hostFallbackFor,
   hostSuggestion,
   hostsHint,
   initialHostsState,
@@ -42,15 +41,14 @@ const baren = place("p-bar", { name: "Den lokale bar" });
 const gammel = place("p-old", { name: "Det gamle klubhus", archived: true });
 
 describe("initialPlaceId", () => {
-  it("opens '＋ Nyt sted' when the club has no places", () => {
-    expect(initialPlaceId({ places: [] })).toBe("new");
-    expect(initialPlaceId({ places: [gammel] })).toBe("new");
+  it("starts at 'Ikke bestemt endnu' when nothing points at a place (D-175)", () => {
+    expect(initialPlaceId({ places: [] })).toBe("");
+    expect(initialPlaceId({ places: [hosMads] })).toBe("");
+    expect(initialPlaceId({ places: [hosMads, baren] })).toBe("");
   });
 
-  it("pre-selects the only active place, and nothing when there are more", () => {
-    expect(initialPlaceId({ places: [hosMads] })).toBe("p-mads");
-    expect(initialPlaceId({ places: [hosMads, gammel] })).toBe("p-mads");
-    expect(initialPlaceId({ places: [hosMads, baren] })).toBe("");
+  it("keeps an echoed 'Ikke bestemt endnu' over the event's place", () => {
+    expect(initialPlaceId({ places: [hosMads], echoed: "", currentPlaceId: "p-mads" })).toBe("");
   });
 
   it("honours ?placeId= only for an active place of the club", () => {
@@ -134,17 +132,16 @@ describe("host suggestion", () => {
     expect(ownersOfChoice({ placeId: "", places, newPlaceMine: false, userId: ME })).toBeNull();
   });
 
-  it("suggests the owners who are members, else the fallback", () => {
-    const fallbackUserId = ME;
-    expect(hostSuggestion({ ownerIds: [MADS], memberIds: MEMBERS, fallbackUserId })).toEqual({
+  it("suggests the owners who are members, else nobody", () => {
+    expect(hostSuggestion({ ownerIds: [MADS], memberIds: MEMBERS })).toEqual({
       hostIds: [MADS],
       reason: "owners",
     });
-    expect(hostSuggestion({ ownerIds: [GONE], memberIds: MEMBERS, fallbackUserId })).toEqual({
-      hostIds: [ME],
-      reason: "fallback",
+    expect(hostSuggestion({ ownerIds: [GONE], memberIds: MEMBERS })).toEqual({
+      hostIds: [],
+      reason: "none",
     });
-    expect(hostSuggestion({ ownerIds: null, memberIds: MEMBERS, fallbackUserId })).toBeNull();
+    expect(hostSuggestion({ ownerIds: null, memberIds: MEMBERS })).toBeNull();
   });
 });
 
@@ -169,31 +166,17 @@ describe("server data → form props", () => {
     const option = { ...hosMads, lastUsedAt: new Date() };
     expect(toPlaceChoices([option])).toEqual([hosMads]);
   });
-
-  it("falls back to the event's creator while a member, else the user", () => {
-    const user = person(ME, "Jesper Thomsen", "Kaptajnen");
-    const creator = person(MADS, "Mads");
-    expect(hostFallbackFor({ user, memberIds: MEMBERS })).toEqual({
-      userId: ME,
-      name: "Kaptajnen",
-    });
-    expect(hostFallbackFor({ user, creator, memberIds: MEMBERS })).toEqual({
-      userId: MADS,
-      name: "Mads",
-    });
-    expect(hostFallbackFor({ user, creator, memberIds: new Set([ME]) }).userId).toBe(ME);
-  });
 });
 
 describe("HostsPicker state", () => {
   const owners = { hostIds: [MADS], reason: "owners" as const };
-  const fallback = { hostIds: [ME], reason: "fallback" as const };
+  const none = { hostIds: [], reason: "none" as const };
 
   it("starts untouched when creating, and follows the suggestion", () => {
     const state = initialHostsState({ suggestion: owners });
     expect(state).toEqual({ touched: false, manual: [] });
     expect(checkedHostIds(state, owners)).toEqual([MADS]);
-    expect(checkedHostIds(state, fallback)).toEqual([ME]);
+    expect(checkedHostIds(state, none)).toEqual([]);
     expect(checkedHostIds(state, null)).toEqual([]);
   });
 
@@ -221,38 +204,32 @@ describe("HostsPicker state", () => {
     const added = toggleHost(untouched, owners, ANDERS, true);
     expect(added).toEqual({ touched: true, manual: [MADS, ANDERS] });
     // A place change no longer moves them.
-    expect(checkedHostIds(added, fallback)).toEqual([MADS, ANDERS]);
-    expect(toggleHost(added, fallback, MADS, false)).toEqual({ touched: true, manual: [ANDERS] });
+    expect(checkedHostIds(added, none)).toEqual([MADS, ANDERS]);
+    expect(toggleHost(added, none, MADS, false)).toEqual({ touched: true, manual: [ANDERS] });
   });
 
   it("offers 'Brug stedets ejere' only when the picks differ from the place's owners", () => {
     const own = { touched: true, manual: [ANDERS] };
     expect(canUseOwners(own, owners)).toBe(true);
     expect(canUseOwners({ touched: true, manual: [MADS] }, owners)).toBe(false);
-    expect(canUseOwners(own, fallback)).toBe(false);
+    expect(canUseOwners(own, none)).toBe(false);
     expect(canUseOwners({ touched: false, manual: [] }, owners)).toBe(false);
   });
 
-  it("explains the hosts in plain Danish", () => {
-    const base = { fallbackIsSelf: true, fallbackName: "Mads" };
+  it("explains the hosts in plain Danish, and never makes the user host (D-175)", () => {
     const untouched = { touched: false, manual: [] };
-    expect(hostsHint({ ...base, state: untouched, suggestion: null })).toBe(
-      "Vælg et sted, så foreslår vi værter.",
+    expect(hostsHint({ state: untouched, suggestion: null })).toBe(
+      "Ingen værter endnu. Vælg selv, eller vælg et sted med ejere.",
     );
-    expect(hostsHint({ ...base, state: untouched, suggestion: owners })).toBe(
-      "Udfyldt med stedets ejere.",
+    expect(hostsHint({ state: untouched, suggestion: owners })).toBe("Udfyldt med stedets ejere.");
+    expect(hostsHint({ state: untouched, suggestion: none })).toBe(
+      "Stedet har ingen ejere. Vælg selv værter, eller lad det stå åbent.",
     );
-    expect(hostsHint({ ...base, state: untouched, suggestion: fallback })).toBe(
-      "Stedet har ingen ejere, så du er vært.",
-    );
-    expect(
-      hostsHint({ ...base, fallbackIsSelf: false, state: untouched, suggestion: fallback }),
-    ).toBe("Stedet har ingen ejere, så Mads er vært.");
-    expect(hostsHint({ ...base, state: { touched: true, manual: [ME] }, suggestion: owners })).toBe(
+    expect(hostsHint({ state: { touched: true, manual: [ME] }, suggestion: owners })).toBe(
       "Du har selv valgt værter.",
     );
-    expect(hostsHint({ ...base, state: { touched: true, manual: [] }, suggestion: owners })).toBe(
-      "Vælger du ingen, bliver stedets ejere værter (eller du, hvis stedet ingen har).",
+    expect(hostsHint({ state: { touched: true, manual: [] }, suggestion: owners })).toBe(
+      "Vælger du ingen, bliver stedets ejere værter, hvis det har nogen.",
     );
   });
 });

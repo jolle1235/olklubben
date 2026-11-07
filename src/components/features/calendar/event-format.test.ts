@@ -30,6 +30,7 @@ function event(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     // Friday 23 October 2026, 18:30 Copenhagen (summer time).
     startsAt: new Date("2026-10-23T16:30:00Z"),
     endsAt: null,
+    hasStartTime: true,
     ...overrides,
   };
 }
@@ -50,6 +51,9 @@ describe("event texts", () => {
 
   it("place · time for the calendar list (SPEC §9.3)", () => {
     expect(eventPlaceAndTime(event())).toBe("Hos Mads · 18:30");
+    expect(eventPlaceAndTime(event({ place: null, hasStartTime: false }))).toBe(
+      "Sted følger · Tid følger",
+    );
   });
 
   it("weekday · time for the hero card (SPEC §9.1)", () => {

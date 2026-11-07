@@ -8,6 +8,7 @@ import { SectionDivider } from "@/components/ui/section-divider";
 import { formatLongDate, formatTime, toDateKey } from "@/lib/format/date";
 import { editPlaceHref, mapsSearchUrl, placeHref } from "@/lib/routes";
 import { heroState, heroStateLabel, isHeroHighlighted } from "@/server/domain/events/status";
+import { PLACE_UNDECIDED_LABEL, TIME_UNDECIDED_LABEL } from "@/server/domain/events/undecided";
 
 import { EventHosts, type EventHostView } from "./event-hosts";
 import { EventPollNote } from "./event-poll-note";
@@ -17,9 +18,12 @@ export type EventInvitationProps = {
   event: {
     title: string;
     theme: string | null;
-    place: { id: string; name: string; address: string | null; archived: boolean };
+    /** Null: "Sted følger" (D-175). */
+    place: { id: string; name: string; address: string | null; archived: boolean } | null;
     startsAt: Date;
     endsAt: Date | null;
+    /** False: "Tid følger" (D-175). */
+    hasStartTime: boolean;
   };
   /** "Vært: …" / "Værter: …", sorted by display name. */
   hosts: readonly EventHostView[];
@@ -37,7 +41,8 @@ export type EventInvitationProps = {
  * the place (a link to it, "Arkiveret" when archived, its address), "Åbn i
  * kort" – only with an address (D-101), else a small "Tilføj adresse" to the
  * place's edit page – and the hosts and who created it, plus "Valgt ved
- * afstemning 🗳" when a poll chose it (round 4). Server Component.
+ * afstemning 🗳" when a poll chose it (round 4). Before the place or the
+ * time is decided it says "Sted følger" / "Tid følger" (D-175). Server Component.
  */
 export function EventInvitation({
   clubId,
@@ -49,7 +54,6 @@ export function EventInvitation({
 }: EventInvitationProps) {
   const state = heroState(event, now);
   const { place } = event;
-  const mapsUrl = place.address ? mapsSearchUrl(place.address) : null;
 
   return (
     <article className="rounded-3xl border border-border bg-card px-5 pt-8 pb-6 text-center shadow-raised sm:px-10 sm:pt-10">
@@ -81,19 +85,54 @@ export function EventInvitation({
       <p className="mt-5 text-title-sm font-semibold text-foreground first-letter:uppercase">
         <time dateTime={toDateKey(event.startsAt)}>{formatLongDate(event.startsAt, now)}</time>
       </p>
-      <p className="mt-1 text-title-sm text-foreground tabular-nums">
-        <time dateTime={event.startsAt.toISOString()}>{formatTime(event.startsAt)}</time>
-        {event.endsAt ? (
-          <>
-            <span aria-hidden>–</span>
-            <span className="sr-only"> til </span>
-            <time dateTime={event.endsAt.toISOString()}>{formatTime(event.endsAt)}</time>
-          </>
-        ) : null}
-      </p>
+      {event.hasStartTime ? (
+        <p className="mt-1 text-title-sm text-foreground tabular-nums">
+          <time dateTime={event.startsAt.toISOString()}>{formatTime(event.startsAt)}</time>
+          {event.endsAt ? (
+            <>
+              <span aria-hidden>–</span>
+              <span className="sr-only"> til </span>
+              <time dateTime={event.endsAt.toISOString()}>{formatTime(event.endsAt)}</time>
+            </>
+          ) : null}
+        </p>
+      ) : (
+        <p className="mt-1 text-title-sm text-muted-foreground">{TIME_UNDECIDED_LABEL}</p>
+      )}
 
       <SectionDivider className="my-7" />
 
+      {place ? (
+        <EventPlaceBlock clubId={clubId} place={place} />
+      ) : (
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-title-sm font-semibold text-muted-foreground">
+          <MapPinIcon aria-hidden className="size-5 shrink-0" />
+          {PLACE_UNDECIDED_LABEL}
+        </p>
+      )}
+
+      <div className="mt-7 grid grid-cols-1 gap-2 border-t border-dashed border-border pt-4">
+        <EventHosts hosts={hosts} />
+        <p className="text-body-sm break-words text-muted-foreground">
+          Oprettet af <span className="font-semibold text-foreground">{creatorName}</span>
+        </p>
+        {pollId ? <EventPollNote clubId={clubId} pollId={pollId} /> : null}
+      </div>
+    </article>
+  );
+}
+
+/** The place: a link to it ("Arkiveret" when archived), its address, and "Åbn i kort" or "Tilføj adresse". */
+function EventPlaceBlock({
+  clubId,
+  place,
+}: {
+  clubId: string;
+  place: NonNullable<EventInvitationProps["event"]["place"]>;
+}) {
+  const mapsUrl = place.address ? mapsSearchUrl(place.address) : null;
+  return (
+    <>
       <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-title-sm font-semibold text-foreground">
         <MapPinIcon aria-hidden className="size-5 shrink-0 text-primary-ink" />
         <span className="sr-only">Sted: </span>
@@ -127,14 +166,6 @@ export function EventInvitation({
           Tilføj adresse
         </Link>
       )}
-
-      <div className="mt-7 grid grid-cols-1 gap-2 border-t border-dashed border-border pt-4">
-        <EventHosts hosts={hosts} />
-        <p className="text-body-sm break-words text-muted-foreground">
-          Oprettet af <span className="font-semibold text-foreground">{creatorName}</span>
-        </p>
-        {pollId ? <EventPollNote clubId={clubId} pollId={pollId} /> : null}
-      </div>
-    </article>
+    </>
   );
 }

@@ -20,7 +20,6 @@ export type UsePlaceAndHostsInput = {
   places: readonly PlaceChoice[];
   hostChoices: readonly HostChoice[];
   currentUserId: string;
-  hostFallback: { userId: string; name: string };
   prefillPlaceId?: string | null;
   /** Edit: the event's place and hosts. Create: null. */
   defaults: { placeId: string | null; hostIds: string[] | null };
@@ -46,7 +45,6 @@ export function usePlaceAndHosts({
   places,
   hostChoices,
   currentUserId,
-  hostFallback,
   prefillPlaceId,
   defaults,
   echo,
@@ -68,7 +66,6 @@ export function usePlaceAndHosts({
   const suggestion = hostSuggestion({
     ownerIds: ownersOfChoice({ placeId, places, newPlaceMine, userId: currentUserId }),
     memberIds,
-    fallbackUserId: hostFallback.userId,
   });
   const [hosts, setHosts] = useState<HostsState>(() =>
     initialHostsState({ echoed: echo.hostIds, existing: defaults.hostIds, suggestion }),

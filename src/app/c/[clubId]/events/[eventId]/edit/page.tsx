@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { EventForm } from "@/components/features/events/event-form";
-import {
-  hostFallbackFor,
-  toHostChoices,
-  toPlaceChoices,
-} from "@/components/features/events/event-form-state";
+import { toHostChoices, toPlaceChoices } from "@/components/features/events/event-form-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { eventHref } from "@/lib/routes";
@@ -40,10 +36,9 @@ export default async function EditEventPage({
   await rememberActiveClub(user, club.id);
 
   const [places, members] = await Promise.all([
-    listPlaceOptions(club.id, { includePlaceId: event.place.id }),
+    listPlaceOptions(club.id, { includePlaceId: event.place?.id }),
     listMemberOptions(club.id),
   ]);
-  const memberIds = new Set(members.map((member) => member.id));
 
   return (
     <>
@@ -63,13 +58,12 @@ export default async function EditEventPage({
               event.hosts.filter((host) => !host.isMember),
             )}
             currentUserId={user.id}
-            hostFallback={hostFallbackFor({ user, creator: event.createdBy, memberIds })}
             defaults={{
               title: event.title,
               ...eventTimesToFormValues(event),
               theme: event.theme ?? "",
               description: event.description ?? "",
-              placeId: event.place.id,
+              placeId: event.place?.id ?? null,
               hostIds: event.hostIds,
             }}
           />

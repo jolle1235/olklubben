@@ -37,7 +37,50 @@ function hostsGroup(page: import("@playwright/test").Page) {
 }
 
 test.describe("Events med steder og værter", () => {
-  test("en klub uden steder: '＋ Nyt sted' er valgt, 'Det er mit sted' gør mig til ejer og vært, og 'Åbn i kort' bruger adressen", async ({
+  test("kun titel og dato: eventet oprettes uden sted, tid og værter og viser 'Sted følger' og 'Tid følger' (D-175)", async ({
+    page,
+  }, testInfo) => {
+    const owner = newUser(testInfo, "senere");
+    const clubId = await signUpWithClub(page, owner, clubName(testInfo, "Senere"));
+    await insertPlace({ clubId, name: "Hos Mig", createdByEmail: owner.email });
+
+    await page.goto(`/c/${clubId}/events/new`);
+    await expectHydrated(placeRadio(page, "Hos Mig"));
+    await page.getByLabel("Dato").fill(dayFromToday(3));
+    await page.getByLabel(/^Starttid/).fill("");
+    await page.getByRole("button", { name: "Opret event" }).click();
+    await expect(page).toHaveURL(new RegExp(`/c/${clubId}/events/${UUID}$`));
+    const eventId = new URL(page.url()).pathname.split("/").pop() ?? "";
+
+    await expect(page.getByText("Tid følger", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sted følger", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^Værter?:/)).toHaveCount(0);
+    const [row] = await sql<{ place_id: string | null; has_start_time: boolean }>(
+      "SELECT place_id, has_start_time FROM events WHERE id = $1",
+      [eventId],
+    );
+    expect(row).toEqual({ place_id: null, has_start_time: false });
+    expect(await hostIdsOf(eventId)).toEqual([]);
+
+    // Overblik's hero says the same.
+    await page.goto(`/c/${clubId}`);
+    await expect(page.getByText("Sted: Sted følger")).toBeVisible();
+    await expect(page.getByText(/· Tid følger$/)).toBeVisible();
+
+    // Later: the place and the time are added on edit.
+    await page.goto(`/c/${clubId}/events/${eventId}/edit`);
+    await expect(placeRadio(page, "Ikke bestemt endnu")).toBeChecked();
+    await expect(page.getByLabel(/^Starttid/)).toHaveValue("");
+    await expectHydrated(placeRadio(page, "Hos Mig"));
+    await placeRadio(page, "Hos Mig").check();
+    await page.getByLabel(/^Starttid/).fill("19:00");
+    await page.getByRole("button", { name: "Gem ændringer" }).click();
+    await expect(page).toHaveURL(new RegExp(`/events/${eventId}$`));
+    await expect(page.getByRole("link", { name: "Hos Mig", exact: true })).toBeVisible();
+    await expect(page.getByText("Tid følger", { exact: true })).toHaveCount(0);
+  });
+
+  test("en klub uden steder: intet sted er valgt, 'Det er mit sted' gør mig til ejer og vært, og 'Åbn i kort' bruger adressen", async ({
     page,
   }, testInfo) => {
     const owner = newUser(testInfo, "nytsted");
@@ -45,11 +88,13 @@ test.describe("Events med steder og værter", () => {
 
     await page.goto(`/c/${clubId}/events/new`);
     await expectHydrated(placeRadio(page, "＋ Nyt sted"));
-    await expect(placeRadio(page, "＋ Nyt sted")).toBeChecked();
+    // The place is optional (D-175): nothing is chosen, and I am not made host.
+    await expect(placeRadio(page, "Ikke bestemt endnu")).toBeChecked();
+    await expect(page.getByLabel("Navn på stedet")).toBeHidden();
+    await placeRadio(page, "＋ Nyt sted").check();
     await expect(page.getByLabel("Navn på stedet")).toBeVisible();
-    // No owners yet: I am the host.
-    await expect(hostCheckbox(page, `${owner.name} (dig)`)).toBeChecked();
-    await expect(hostsGroup(page)).toContainText("Stedet har ingen ejere, så du er vært.");
+    await expect(hostCheckbox(page, `${owner.name} (dig)`)).not.toBeChecked();
+    await expect(hostsGroup(page)).toContainText("Stedet har ingen ejere.");
 
     await page.getByLabel("Dato").fill(dayFromToday(6));
     await page.getByLabel("Navn på stedet").fill("Hos Ejeren");
@@ -102,29 +147,32 @@ test.describe("Events med steder og værter", () => {
 
     await page.goto(`/c/${clubId}/events/new`);
     await expectHydrated(placeRadio(page, "Baren"));
-    // Two places: none is chosen for you, so no hosts are suggested yet.
+    // No place is chosen for you (D-175), so no hosts are suggested yet.
+    await expect(placeRadio(page, "Ikke bestemt endnu")).toBeChecked();
     await expect(placeRadio(page, "Hos Medlemmet")).not.toBeChecked();
-    await expect(placeRadio(page, "Baren")).not.toBeChecked();
-    await expect(hostsGroup(page)).toContainText("Vælg et sted, så foreslår vi værter.");
+    await expect(hostsGroup(page)).toContainText(
+      "Ingen værter endnu. Vælg selv, eller vælg et sted med ejere.",
+    );
     await expect(placeRadio(page, "Hos Medlemmet")).toHaveAccessibleDescription(
       `Ejer: ${member.name}`,
     );
 
-    // Untouched, the hosts follow the place: its owners, else me.
+    // Untouched, the hosts follow the place: its owners, else nobody (D-175).
     await placeRadio(page, "Hos Medlemmet").check();
     await expect(hostCheckbox(page, member.name)).toBeChecked();
     await expect(hostCheckbox(page, `${admin.name} (dig)`)).not.toBeChecked();
     await expect(hostsGroup(page)).toContainText("Udfyldt med stedets ejere.");
     await placeRadio(page, "Baren").check();
-    await expect(hostCheckbox(page, `${admin.name} (dig)`)).toBeChecked();
+    await expect(hostCheckbox(page, `${admin.name} (dig)`)).not.toBeChecked();
     await expect(hostCheckbox(page, member.name)).not.toBeChecked();
+    await expect(hostsGroup(page)).toContainText("Stedet har ingen ejere.");
 
     // Touched, they stay through a place change, until "Brug stedets ejere".
-    await hostCheckbox(page, member.name).check();
+    await hostCheckbox(page, `${admin.name} (dig)`).check();
     await expect(hostsGroup(page)).toContainText("Du har selv valgt værter.");
     await placeRadio(page, "Hos Medlemmet").check();
     await expect(hostCheckbox(page, `${admin.name} (dig)`)).toBeChecked();
-    await expect(hostCheckbox(page, member.name)).toBeChecked();
+    await expect(hostCheckbox(page, member.name)).not.toBeChecked();
     await page.getByRole("button", { name: "Brug stedets ejere" }).click();
     await expect(hostCheckbox(page, `${admin.name} (dig)`)).not.toBeChecked();
     await expect(hostCheckbox(page, member.name)).toBeChecked();
@@ -211,9 +259,10 @@ test.describe("Events med steder og værter", () => {
       /query=Havnegade%203%2C%20Aarhus$/,
     );
 
-    // A new event: only the active place, and as the only one it is chosen.
+    // A new event: only the active place is offered, and nothing is chosen for you (D-175).
     await page.goto(`/c/${clubId}/events/new`);
-    await expect(placeRadio(page, "Det nye sted")).toBeChecked();
+    await expect(placeRadio(page, "Det nye sted")).not.toBeChecked();
+    await expect(placeRadio(page, "Ikke bestemt endnu")).toBeChecked();
     await expect(page.getByRole("radio", { name: /Det gamle sted/ })).toHaveCount(0);
 
     // Editing: the archived place stays chosen and is kept when saved.
@@ -249,7 +298,7 @@ test.describe("Events med steder og værter", () => {
     await page.getByLabel("Titel").fill("Falsk smagning");
     await page.getByLabel("Dato").fill(dayFromToday(9));
     await choosePlace(page, "Hos Dig");
-    await expect(hostCheckbox(page, `${owner.name} (dig)`)).toBeChecked();
+    await hostCheckbox(page, `${owner.name} (dig)`).check();
 
     // Rewrite the submitted place id once, as a forged request would (F-038).
     let forged = 0;

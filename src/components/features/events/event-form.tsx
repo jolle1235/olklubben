@@ -45,14 +45,13 @@ export type EventFormProps = {
   /** The club's members by display name, then hosts who have left (edit). */
   hostChoices: HostChoice[];
   currentUserId: string;
-  /** Host when the place has no owners: the user; on edit the event's creator while a member. */
-  hostFallback: { userId: string; name: string };
   /** ?placeId= ("Opret event her"); only an active place of the club is pre-selected. */
   prefillPlaceId?: string | null;
 };
 
 /** "Slutter dagen efter kl. 01:00." when the end time is before the start time. */
 function endTimeHint(startTime: string, endTime: string): string {
+  if (startTime.trim() === "") return "Kræver en starttid.";
   const start = normalizeTimeOfDay(startTime);
   const end = normalizeTimeOfDay(endTime);
   if (start && end && end < start) return `Slutter dagen efter kl. ${end}.`;
@@ -64,6 +63,8 @@ function endTimeHint(startTime: string, endTime: string): string {
  * Dato/Starttid/Sluttid (overnight allowed) · Sted (PlaceSelector, with
  * "＋ Nyt sted" inline, D-099) · Værter (HostsPicker, D-098) · Tema ·
  * Beskrivelse/plan. Past dates are fine (old tastings may be registered).
+ * Only the title and the date are required: the time, the place and the hosts
+ * can be decided later (D-175).
  *
  * Validated with the shared Zod schema in the browser and again in the Server
  * Action, which also decides the place and hosts under locks. Works without
@@ -78,7 +79,6 @@ export function EventForm({
   places,
   hostChoices,
   currentUserId,
-  hostFallback,
   prefillPlaceId,
 }: EventFormProps) {
   const editing = eventId !== undefined;
@@ -95,7 +95,6 @@ export function EventForm({
     places,
     hostChoices,
     currentUserId,
-    hostFallback,
     prefillPlaceId,
     defaults,
     echo: values,
@@ -129,13 +128,13 @@ export function EventForm({
         hint={editing ? undefined : "Næste nummer i rækken. Skriv gerne noget andet."}
       />
 
-      <fieldset className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      {/* Stacked on phones: side by side, the hints and errors had no room (D-175). */}
+      <fieldset className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <legend className="sr-only">Hvornår</legend>
         <InputField
           type="date"
           name="date"
           label="Dato"
-          className="col-span-2 sm:col-span-1"
           defaultValue={initial("date")}
           min={`${MIN_EVENT_YEAR}-01-01`}
           max={`${MAX_EVENT_YEAR}-12-31`}
@@ -146,8 +145,8 @@ export function EventForm({
           type="time"
           name="startTime"
           label="Starttid"
+          optional="valgfri"
           defaultValue={initial("startTime")}
-          required
           errors={fieldErrors.startTime}
         />
         <InputField
@@ -187,7 +186,6 @@ export function EventForm({
         state={choice.hosts}
         onStateChange={choice.changeHosts}
         suggestion={choice.suggestion}
-        fallback={{ isSelf: hostFallback.userId === currentUserId, name: hostFallback.name }}
         errors={fieldErrors.hostIds}
         resetSignal={state}
       />

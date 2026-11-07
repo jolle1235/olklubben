@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 
 import { EventForm } from "@/components/features/events/event-form";
-import {
-  hostFallbackFor,
-  toHostChoices,
-  toPlaceChoices,
-} from "@/components/features/events/event-form-state";
+import { toHostChoices, toPlaceChoices } from "@/components/features/events/event-form-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { overviewHref } from "@/lib/routes";
@@ -57,10 +53,6 @@ export default async function NewEventPage({
             places={toPlaceChoices(places)}
             hostChoices={toHostChoices(members)}
             currentUserId={user.id}
-            hostFallback={hostFallbackFor({
-              user,
-              memberIds: new Set(members.map((member) => member.id)),
-            })}
             prefillPlaceId={firstParam(placeId) ?? null}
             defaults={{
               title,

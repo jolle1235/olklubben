@@ -6,6 +6,7 @@ import {
 } from "@/components/features/calendar/event-format";
 import { BigDate } from "@/components/ui/big-date";
 import { cn } from "@/lib/utils";
+import { placeNameOrUndecided } from "@/server/domain/events/undecided";
 import {
   heroState,
   heroStateLabel,
@@ -79,7 +80,7 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
               <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-highlight" />
               <span className="min-w-0 break-words">
                 <span className="sr-only">Sted: </span>
-                {event.place.name}
+                {placeNameOrUndecided(event.place)}
               </span>
             </li>
           </ul>

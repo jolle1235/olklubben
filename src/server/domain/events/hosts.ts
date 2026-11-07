@@ -2,8 +2,8 @@
  * Event hosts (SPEC §9.2 "Værter", D-098).
  *
  *   * The form sends the chosen hosts. EMPTY means "the default": the place's
- *     owners who are members, else the creator (on edit: the event's creator,
- *     else the editor).
+ *     owners who are members, else nobody – the creator is never made host
+ *     automatically (D-175). Polls keep their own fallback (D-009).
  *   * Chosen hosts must be current members. A host who has left may stay on an
  *     event they already host (history, §7.4), but cannot be added again.
  *   * At most MAX_EVENT_HOSTS.
@@ -63,29 +63,23 @@ export function resolveHostIds(input: {
 
 export type HostSuggestion = {
   hostIds: string[];
-  /** "owners": the place's owners. "fallback": the place has none, so the user. */
-  reason: "owners" | "fallback";
+  /** "owners": the place's owners. "none": the place has no owners who are members. */
+  reason: "owners" | "none";
 };
 
-/**
- * The picker's suggestion for a place (the same rule as defaultHostIds): its
- * owners who are members, else the user filling in the form.
- */
+/** The picker's suggestion for a place (the same rule as the server): its owners who are members. */
 export function suggestHosts(input: {
   ownerIds: readonly string[];
   memberIds: ReadonlySet<string>;
-  fallbackUserId: string;
 }): HostSuggestion {
   const owners = defaultHostIds({
     ownerIds: input.ownerIds,
     fallbackUserIds: [],
     memberIds: input.memberIds,
   });
-  if (owners.length > 0) return { hostIds: owners, reason: "owners" };
-  return {
-    hostIds: input.memberIds.has(input.fallbackUserId) ? [input.fallbackUserId] : [],
-    reason: "fallback",
-  };
+  return owners.length > 0
+    ? { hostIds: owners, reason: "owners" }
+    : { hostIds: [], reason: "none" };
 }
 
 /** True when both lists hold the same ids (order and duplicates ignored). */

@@ -23,10 +23,8 @@ export type HostsPickerProps = {
   currentUserId: string;
   state: HostsState;
   onStateChange: (state: HostsState) => void;
-  /** What the chosen place suggests (its owners, else the fallback); null without a place. */
+  /** What the chosen place suggests (its owners); null without a place. */
   suggestion: HostSuggestion | null;
-  /** The suggestion's fallback when the place has no owners: the user, or (edit) the event's creator. */
-  fallback: { isSelf: boolean; name: string };
   errors?: string[];
   /** Changes with every server answer: React resets the form then (F-053). */
   resetSignal: unknown;
@@ -35,7 +33,7 @@ export type HostsPickerProps = {
 /**
  * "Værter" in the event form (SPEC §9.2, D-098): one native checkbox chip per
  * member (avatar, display name, "(dig)"). While untouched, the chips follow
- * the chosen place (its owners, else the user); once the member ticks
+ * the chosen place's owners (nobody when it has none, D-175); once the member ticks
  * something, the choice is theirs, and "Brug stedets ejere" goes back.
  * Nothing ticked = the server's default. On edit, hosts who have left show as
  * ticked "(tidligere medlem)" chips and can be unticked.
@@ -48,18 +46,12 @@ export function HostsPicker({
   state,
   onStateChange,
   suggestion,
-  fallback,
   errors,
   resetSignal,
 }: HostsPickerProps) {
   const listRef = useRef<HTMLUListElement>(null);
   const checked = new Set(checkedHostIds(state, suggestion));
-  const hint = hostsHint({
-    state,
-    suggestion,
-    fallbackIsSelf: fallback.isSelf,
-    fallbackName: fallback.name,
-  });
+  const hint = hostsHint({ state, suggestion });
 
   // React resets the form after a server answer; keep the ticks (F-053).
   useCheckedAfterReset(listRef, "hostIds", [...checked], resetSignal);

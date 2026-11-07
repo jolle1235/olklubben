@@ -70,34 +70,17 @@ export function toHostChoices(
   ];
 }
 
-/**
- * Who hosts when the place has no owners (the server's fallback order,
- * D-098): creating → the user; editing → the event's creator while a member,
- * else the user editing it.
- */
-export function hostFallbackFor(input: {
-  user: Pick<Person, "id" | "name" | "nickname">;
-  creator?: Pick<Person, "id" | "name" | "nickname"> | null;
-  memberIds: ReadonlySet<string>;
-}): { userId: string; name: string } {
-  const person =
-    input.creator && input.memberIds.has(input.creator.id) ? input.creator : input.user;
-  return { userId: person.id, name: getDisplayName(person) };
-}
-
 /** With more places than this, the rest sit in "Vis alle N steder". */
 export const PLACE_SELECTOR_LIMIT = 6;
 /** How many cards show before "Vis alle N steder". */
 export const PLACE_SELECTOR_SHOWN = 5;
 
 /**
- * Which place starts selected:
+ * Which place starts selected ("" = "Ikke bestemt endnu", D-175):
  *   1. the echo of a failed submit (no-JS round trip), if it is still offered;
  *   2. on edit, the event's place (offered even when archived, E30);
  *   3. ?placeId= when it is one of the club's active places ("Opret event her");
- *   4. no places at all → "＋ Nyt sted";
- *   5. exactly one active place → that one;
- *   6. otherwise nothing: a wrong default house is worse than one tap.
+ *   4. otherwise none: the place can be decided later.
  */
 export function initialPlaceId(input: {
   places: readonly PlaceChoice[];
@@ -107,16 +90,14 @@ export function initialPlaceId(input: {
 }): string {
   const { places } = input;
   const offered = (id: string | null | undefined) =>
-    id === EVENT_PLACE_NEW || places.some((place) => place.id === id);
-  if (input.echoed && offered(input.echoed)) return input.echoed;
+    id === "" || id === EVENT_PLACE_NEW || places.some((place) => place.id === id);
+  if (input.echoed != null && offered(input.echoed)) return input.echoed;
   if (input.currentPlaceId && offered(input.currentPlaceId)) return input.currentPlaceId;
 
   const active = places.filter((place) => !place.archived);
   if (input.prefillPlaceId && active.some((place) => place.id === input.prefillPlaceId)) {
     return input.prefillPlaceId;
   }
-  if (active.length === 0) return EVENT_PLACE_NEW;
-  if (active.length === 1) return active[0]?.id ?? "";
   return "";
 }
 
@@ -186,14 +167,9 @@ export function ownersOfChoice(input: {
 export function hostSuggestion(input: {
   ownerIds: readonly string[] | null;
   memberIds: ReadonlySet<string>;
-  fallbackUserId: string;
 }): HostSuggestion | null {
   if (input.ownerIds === null) return null;
-  return suggestHosts({
-    ownerIds: input.ownerIds,
-    memberIds: input.memberIds,
-    fallbackUserId: input.fallbackUserId,
-  });
+  return suggestHosts({ ownerIds: input.ownerIds, memberIds: input.memberIds });
 }
 
 /** The picker's own state: untouched follows the suggestion; touched keeps the user's picks. */
@@ -237,29 +213,18 @@ export function toggleHost(
 
 /**
  * The polite live hint under the chips (SPEC §9.2 "Udfyldes automatisk med
- * stedets ejere … Kan justeres").
+ * stedets ejere … Kan justeres"). Nobody is made host automatically (D-175).
  */
-export function hostsHint(input: {
-  state: HostsState;
-  suggestion: HostSuggestion | null;
-  /** The suggestion's fallback is the person filling in the form ("du"). */
-  fallbackIsSelf: boolean;
-  /** Display name of the fallback when it is someone else (edit: the event's creator). */
-  fallbackName: string;
-}): string {
+export function hostsHint(input: { state: HostsState; suggestion: HostSuggestion | null }): string {
   const { state, suggestion } = input;
   if (state.touched) {
     return state.manual.length === 0
-      ? `Vælger du ingen, bliver stedets ejere værter (eller ${
-          input.fallbackIsSelf ? "du" : input.fallbackName
-        }, hvis stedet ingen har).`
+      ? "Vælger du ingen, bliver stedets ejere værter, hvis det har nogen."
       : "Du har selv valgt værter.";
   }
-  if (suggestion === null) return "Vælg et sted, så foreslår vi værter.";
+  if (suggestion === null) return "Ingen værter endnu. Vælg selv, eller vælg et sted med ejere.";
   if (suggestion.reason === "owners") return "Udfyldt med stedets ejere.";
-  return input.fallbackIsSelf
-    ? "Stedet har ingen ejere, så du er vært."
-    : `Stedet har ingen ejere, så ${input.fallbackName} er vært.`;
+  return "Stedet har ingen ejere. Vælg selv værter, eller lad det stå åbent.";
 }
 
 /** "Brug stedets ejere" is offered when the user's own picks differ from the place's owners. */

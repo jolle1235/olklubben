@@ -261,10 +261,29 @@ describe("createEvent/updateEvent: sted og værter", () => {
     expect(await hostIdsOf(id)).toEqual([mads.id]);
   });
 
-  it("gør opretteren til vært, når stedet ingen ejere har", async () => {
+  it("gør ingen til vært, når stedet ingen ejere har (D-175)", async () => {
     const bar = await place(clubId, admin, "Den lokale bar");
     const { id } = await createEvent(eventInput(clubId, anders.id, existing(bar)));
-    expect(await hostIdsOf(id)).toEqual([anders.id]);
+    expect(await hostIdsOf(id)).toEqual([]);
+  });
+
+  it("opretter et event uden sted og uden starttid (D-175)", async () => {
+    const startsAt = new Date("2026-12-03T23:00:00Z");
+    const endsAt = new Date("2026-12-04T23:00:00Z");
+    const { id, placeId } = await createEvent({
+      ...eventInput(clubId, anders.id, { kind: "none" }),
+      startsAt,
+      endsAt,
+      hasStartTime: false,
+    });
+    expect(placeId).toBeNull();
+    expect(await db.event.findUniqueOrThrow({ where: { id } })).toMatchObject({
+      placeId: null,
+      hasStartTime: false,
+      startsAt,
+      endsAt,
+    });
+    expect(await hostIdsOf(id)).toEqual([]);
   });
 
   it("bruger de valgte værter (uden dubletter)", async () => {
@@ -298,7 +317,9 @@ describe("createEvent/updateEvent: sted og værter", () => {
     const archived = await place(clubId, admin, "Det gamle klubhus", { archived: true });
     const fresh = await createEvent(eventInput(clubId, bo.id, newPlace("Det Gamle Klubhus")));
     expect(fresh.placeId).not.toBe(archived);
-    expect(await db.place.findUniqueOrThrow({ where: { id: fresh.placeId } })).toMatchObject({
+    expect(
+      await db.place.findUniqueOrThrow({ where: { id: fresh.placeId ?? "missing" } }),
+    ).toMatchObject({
       name: "Det Gamle Klubhus",
       nameKey: placeNameKey("Det gamle klubhus"),
       archivedAt: null,
@@ -390,32 +411,25 @@ describe("createEvent/updateEvent: sted og værter", () => {
     if (!refused.ok) expect(refused.error).toBeInstanceOf(InvalidEventHostsError);
   });
 
-  it("falder på redigering tilbage til eventets opretter og ellers redaktøren", async () => {
-    const quitter = await person("Event Quitter");
-    await db.membership.create({ data: { clubId, userId: quitter.id, role: "MEMBER" } });
+  it("gør heller ikke opretteren eller redaktøren til vært ved redigering (D-175)", async () => {
     const noOwners = await place(clubId, admin, "Ejerløst sted");
-    const { id } = await createEvent(eventInput(clubId, quitter.id, existing(noOwners)));
-    expect(await hostIdsOf(id)).toEqual([quitter.id]);
+    const { id } = await createEvent(eventInput(clubId, anders.id, existing(noOwners)));
+    expect(await hostIdsOf(id)).toEqual([]);
 
     await updateEvent({
-      ...eventInput(clubId, quitter.id, existing(noOwners)),
+      ...eventInput(clubId, anders.id, existing(noOwners)),
       eventId: id,
       actorUserId: bo.id,
     });
-    expect(await hostIdsOf(id)).toEqual([quitter.id]);
+    expect(await hostIdsOf(id)).toEqual([]);
 
-    await removeMember({
-      clubId,
-      actorUserId: admin.id,
-      targetUserId: quitter.id,
-      now: new Date(),
-    });
+    // Removing the place keeps the event; it just has none.
     await updateEvent({
-      ...eventInput(clubId, quitter.id, existing(noOwners)),
+      ...eventInput(clubId, anders.id, { kind: "none" }),
       eventId: id,
       actorUserId: bo.id,
     });
-    expect(await hostIdsOf(id)).toEqual([bo.id]);
+    expect((await db.event.findUniqueOrThrow({ where: { id } })).placeId).toBeNull();
   });
 
   it("returnerer false for et event i en anden klub og rører det ikke", async () => {
