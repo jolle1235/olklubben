@@ -67,3 +67,7 @@ next-env.d.ts
 # privat sangbogsmateriale (sangbog-design, trin 0)
 *.pdf
 *.zip
+
+# task flow run state (local)
+.flow/
+/e2e/_flow-*
