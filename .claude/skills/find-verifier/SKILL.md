@@ -10,10 +10,10 @@ signal, turns every later stage into theatre. This skill makes choosing the veri
 own, and keeps what worked in a catalog so the next task starts from experience instead of a blank
 page.
 
-Two catalogs: the shared techniques in
-[`references/verifier-catalog.md`](references/verifier-catalog.md), and the project's recipes and
-log (profile → Verifier catalog, in `.claude/flow/`). Where both cover a technique, the project's
-recipe wins.
+Two sources: the shared techniques in
+[`references/verifier-catalog.md`](references/verifier-catalog.md), and the project's
+`verifier-notes.md` (profile → Verifier notes) with its recipes, log and lessons. Where both cover
+a technique, the project's recipe wins.
 
 ## 1. Brief the scout
 
@@ -21,9 +21,10 @@ Spawn one read-only `Explore` agent. Give it paths, not summaries:
 
 > Find the best way to prove the change described in `.flow/<slug>/brief.md` (read it first; the
 > plan, if any, is `.flow/<slug>/plan.md`). Read `.claude/flow/profile.md`,
-> `.claude/skills/find-verifier/references/verifier-catalog.md`, the project catalog and the last
-> 20 lines of the project log (both named in the profile under Verifier catalog), then the code the
-> brief touches, its existing tests, and the matching feature file (profile → Verify). Also read
+> `.claude/skills/find-verifier/references/verifier-catalog.md`, the project's verifier notes
+> (profile → Verifier notes: all recipes and lessons, the last 20 log lines), then the code the
+> brief touches, its existing tests, and the matching feature file (profile → Verify → Feature
+> map). Also read
 > `.claude/skills/principle-test-behavior-not-implementation/SKILL.md`.
 >
 > Return 1 to 3 proposals, best first. For each:
@@ -49,17 +50,18 @@ red. A verifier that stays green when the behaviour is broken proves nothing, so
 Write the chosen proposal into `plan.md` under `## Proof`, including the break that turned it red.
 `before-after` runs it.
 
-## 4. Feed the catalog
+## 4. Feed the notes
 
-Append one line to the project log:
+Append one line to `## Log` in the project's verifier notes:
 
 ```
 <date> | <task slug> | <task kind> | <technique> | caught something: yes/no | note
 ```
 
-If the technique was new, or a recipe was wrong or missing a step, edit the **project** catalog in
-the same PR. A lesson that holds for any project goes to the shared catalog instead, through a PR
-on the shared skills repo (see its README). The catalogs only grow from runs that happened.
+If the technique was new, or a recipe was wrong or missing a step, edit `## Recipes` in the
+project's notes in the same PR; if the verifier first stayed green on the break, add a `## Lessons`
+line. A lesson that holds for any project goes to the shared catalog instead, through a PR on the
+shared skills repo (see its README). Both only grow from runs that happened.
 
 ## Private data
 

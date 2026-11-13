@@ -1,6 +1,6 @@
 ---
 name: before-after
-description: Prove a change with one check run twice on the real app - on the base commit (BEFORE) and on the change (AFTER) - using the project's isolated verify instances. Bugs and features go red to green; refactors must print identical output. Covers the proof script, red-first unit tests, the implementation in between, smoke for regressions, and the feature map. Use when implementing any task that changes code, to reproduce a bug before fixing it, or when asked to "prove it", "show before and after". Stage 5 of `deliver`.
+description: Prove a change with one check run twice on the real app - on the base commit (BEFORE) and on the change (AFTER) - using the project's isolated verify instances (the `verify` skill). Bugs and features go red to green; refactors must print identical output. Covers the proof script, red-first unit tests, the implementation in between, smoke for regressions, and the feature map. Use when implementing any task that changes code, to reproduce a bug before fixing it, or when asked to "prove it", "show before and after". Stage 5 of `deliver`.
 ---
 
 # Before / after
@@ -12,7 +12,8 @@ refactor must keep); the AFTER run shows the brief is met. Read
 writing tests.
 
 Commands come from `.claude/flow/profile.md` (see `deliver`): `<up>`, `<doctor>`, `<smoke>` and
-`<down>` are profile → Verify, `<tests>` is profile → Gates → Tests.
+`<down>` are profile → Verify, `<tests>` is profile → Gates → Tests. Start, drive and stop instances
+by the rules in `.claude/skills/verify/SKILL.md`.
 
 ## Inputs
 
@@ -30,7 +31,7 @@ console, page or API problem the driver saw, and exits 1 if anything failed.
 - Print values, not only verdicts (`detail`), so a diff of two runs explains itself.
 - **Refactor:** print the normalised characterization output instead (no ids, no timestamps) and
   always exit 0; the proof is that BEFORE and AFTER print the same thing.
-- Not a UI task? The check can be a unit test file or a replay script from the verifier catalog.
+- Not a UI task? The check can be a unit test file or a replay script from the verifier catalog or the project's verifier notes.
   Same rules: one run on base, one on the change, saved to `evidence/`.
 
 ## 2. BEFORE, on the base commit
@@ -55,7 +56,7 @@ the failure (`evidence/unit-before.txt`). It goes in the same commit as the fix.
 ## 4. Implement
 
 Follow the plan's steps. Fix the cause where it starts, not where it shows up. When user-visible
-behaviour changes, update the feature file (profile → Verify → Feature files) in the same branch,
+behaviour changes, update the feature file (profile → Verify → Feature map) in the same branch,
 and add fixture data (profile → Verify → Fixtures) if the check needs it.
 
 ## 5. AFTER, on the change

@@ -2,9 +2,10 @@
 
 <!--
 Copy to `.claude/flow/profile.md` in the project and fill in every section.
-The shared flow skills (deliver, scope-task, plan-critique, find-verifier, before-after,
-thermonuclear-review, solid-check, commit, merge-verdict) read this file instead of hardcoding
-project names. They refer to sections as "profile → <Section>". Keep the headings as they are;
+The shared flow skills (deliver and its stages, verify, setup-verify, update-verify) read this
+file instead of hardcoding project names. It is the only place for project-specific rules, together
+with the files it points to in `.claude/flow/` (feature map, verifier notes); never add a
+project-local skill. They refer to sections as "profile → <Section>". Keep the headings as they are;
 write "none" where a section does not apply.
 -->
 
@@ -19,10 +20,12 @@ write "none" where a section does not apply.
 
 ## Verify
 
-How a stage starts an isolated instance of the real app and drives it.
+How a stage starts an isolated instance of the real app and drives it. The shared `verify`
+skill reads this section; `setup-verify` writes it and the harness, `update-verify` keeps both
+honest. No harness yet: "none" (then `deliver` offers `setup-verify`).
 
-- Skill: `verify-<app>` (`.claude/skills/verify-<app>/SKILL.md`)
-- Feature files: `<path to the feature map>`
+- Harness: `<where the harness code lives, e.g. scripts/verify/>`
+- Feature map: `.claude/flow/features/` (README index + one file per feature)
 - Fixtures: `<path to synthetic seed data>`
 - Up: `<command> --id <id> [--ref <sha>]` (working tree when `--ref` is left out)
 - Doctor: `<command> <id>`
@@ -30,6 +33,9 @@ How a stage starts an isolated instance of the real app and drives it.
 - Down: `<command> <id>`; all: `<command>`
 - Driver: `<module the check script imports>`
 - Private data: <how a run uses production-like data, e.g. `--data snapshot`, or "none">
+- Isolation: <what keeps instances apart (own worktree, port, database), and whether several can run at once>
+- Evidence: <where screenshots and logs go; they survive Down>
+- Gotchas: <what a driver must know that the code doesn't say: first-run downloads, waits, expected noise>
 
 ## Check script
 
@@ -96,7 +102,7 @@ What the `bugs` reviewer probes in this app (dates and time zones, optimistic up
 Where request input can do harm here (database queries, server-side fetch, HTML, uploads,
 secrets, auth checks), and the helper that must guard each.
 
-## Verifier catalog
+## Verifier notes
 
-- Project catalog: `.claude/flow/verifier-catalog.md` (project-specific recipes; extends the shared one)
-- Log: `.claude/flow/verifier-log.md`
+`.claude/flow/verifier-notes.md` (from `verifier-notes-template.md`): the project's proof recipes,
+the task log, and the lessons: what failed or was misunderstood in earlier sessions.

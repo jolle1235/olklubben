@@ -32,8 +32,9 @@ without guessing, that guess is your first question.
 
 ## 2. Look before you ask
 
-- `CLAUDE.md`, `.claude/flow/profile.md` (including the docs under Repo → Read first), and the
-  feature files (profile → Verify → Feature files) for the features the task touches.
+- `CLAUDE.md`, `.claude/flow/profile.md` (including the docs under Repo → Read first), the
+  feature files for the features the task touches (profile → Verify → Feature map), and the
+  `## Lessons` in profile → Verifier notes.
 - The code: grep the names the request uses, read the components, hooks, routes and server modules
   on the path. `git log -p` on the area when "it used to work".
 - **The running app**, when the task is about behaviour: start a fixture instance (profile →

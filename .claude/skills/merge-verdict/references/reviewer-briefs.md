@@ -8,8 +8,8 @@ first, and the diff at `.flow/<slug>/reviews/pr.diff`.
 
 > You did not write this change. Do not edit the branch. You may write scratch files under
 > `.flow/<slug>/reviews/<role>/` and start your own verification instance with profile → Verify →
-> Up (`--id verdict-<role>-<round> --ref <head sha>`, fixtures only; see the verify skill the
-> profile names), and you must stop it when done (profile → Verify → Down).
+> Up (`--id verdict-<role>-<round> --ref <head sha>`, fixtures only; follow
+> `.claude/skills/verify/SKILL.md`), and you must stop it when done (profile → Verify → Down).
 >
 > A finding needs evidence: a command and its output that show the failure, or, when it cannot be
 > run, the exact code path from input to failure with `file:line` at each step. Opinions without

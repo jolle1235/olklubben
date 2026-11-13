@@ -1,9 +1,9 @@
 # Verifier catalog (shared)
 
 Techniques for proving a change, independent of any one project. Each entry: **Use when**,
-**Signal**, **Recipe**, **Cost**, **Blind spots**. The project's own catalog
-(`.claude/flow/verifier-catalog.md`, see profile → Verifier catalog) holds the concrete recipes
-with its tools and wins where both cover a technique. Add a lesson here only when it holds for any
+**Signal**, **Recipe**, **Cost**, **Blind spots**. The project's
+`.claude/flow/verifier-notes.md` (profile → Verifier notes) holds the concrete recipes with its
+tools and wins where both cover a technique. Add a lesson here only when it holds for any
 project, and only from a run that happened.
 
 Tools every recipe assumes: the project's verify instances (profile → Verify: up with `--ref`,
@@ -151,7 +151,7 @@ doctor, smoke, down, the driver), its test runner, and git.
 - **Use when:** caching, service workers, security headers, cookies, anything that differs between
   dev and prod.
 - **Signal:** behaviour of a production build and start: offline mode, cache hits, cookie flags.
-- **Recipe:** a production-mode instance (if the verify skill supports one), then the task's
+- **Recipe:** a production-mode instance (if the project's harness supports one, profile → Verify), then the task's
   `check.mjs` and smoke against it. Confirm the build really ran in the instance logs.
 - **Cost:** a build plus the checks.
 - **Blind spots:** host-specific behaviour (the hosting platform's image optimizer, edge, env per

@@ -20,15 +20,15 @@ wins; fix this file.
 
 ## Verify
 
-**Interim:** there is no `verify-olklubben` skill yet. Until there is, the Playwright E2E setup is
-the instance: `next dev` on port 3100 against `olklubben_test` (`.env.test`, refuses any database
+**Interim:** there is no isolated verify harness yet. Until there is, the Playwright E2E setup is
+the instance (the shared `verify` skill has the rules, this section the facts): `next dev` on port 3100 against `olklubben_test` (`.env.test`, refuses any database
 whose name doesn't end in `_test`). Only one instance can run at a time, so BEFORE and AFTER run one
 after the other, never in parallel, and reviewers in `merge-verdict` share it in turn.
-Generate the real skill with `create-verification-skill` (isolated port and database per id), then
-replace this section.
+Build the real harness with `/setup-verify` (isolated port and database per id, in the project's
+code), then replace this section.
 
-- Skill: none yet (`create-verification-skill` → `.claude/skills/verify-olklubben/`)
-- Feature files: `e2e/*.spec.ts` and the table under "Tests" in `README.md`
+- Harness: none yet (`/setup-verify` builds it); interim: Playwright (`playwright.config.ts`, `e2e/`)
+- Feature map: none yet (`/setup-verify` seeds `.claude/flow/features/`); interim: `e2e/*.spec.ts` and the table under "Tests" in `README.md`
 - Fixtures: none committed; each test creates its own users and clubs through the UI (`e2e/fixtures.ts`, `e2e/support/`)
 - Up (working tree): nothing to do; Playwright starts the server (stop a server already on port 3100 that runs other code)
 - Up (`--ref <sha>`): `git worktree add .flow/<slug>/base <sha> && ln -s "$PWD/node_modules" .flow/<slug>/base/node_modules && (cd .flow/<slug>/base && npx prisma generate)`, then run the check from that folder
@@ -40,7 +40,7 @@ replace this section.
 
 ## Check script
 
-Until `verify-olklubben` exists, the check is a Playwright spec at `e2e/_flow-<slug>.spec.ts`
+Until the harness exists, the check is a Playwright spec at `e2e/_flow-<slug>.spec.ts`
 (inside `testDir`, gitignored by `/e2e/_flow-*`; keep a copy in `.flow/<slug>/`). Run it with
 `npx playwright test e2e/_flow-<slug>.spec.ts > .flow/<slug>/evidence/<before|after>.txt`; for
 BEFORE, copy it into the base worktree's `e2e/` and run it from there. One `test` per line of
@@ -162,7 +162,7 @@ none recorded yet; add files here when a review flags them.
 - Secrets in `src/env.ts` reaching client code or logs; anything committed.
 - Songbook content (private; never committed, logged or posted).
 
-## Verifier catalog
+## Verifier notes
 
-- Project catalog: `.claude/flow/verifier-catalog.md`
-- Log: `.claude/flow/verifier-log.md`
+`.claude/flow/verifier-notes.md`: this repo's proof recipes, the task log, and the lessons from
+earlier sessions.

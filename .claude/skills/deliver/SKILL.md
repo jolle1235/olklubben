@@ -15,8 +15,13 @@ Every stage reads `.claude/flow/profile.md` for the project's commands and rules
 verify instance commands, gates, commit gate, merge, conventions. "profile → X" below means
 section `## X` there. **No profile?** Stop, copy [`references/profile-template.md`](references/profile-template.md)
 to `.claude/flow/profile.md`, fill in what the repo shows, ask the user only what it doesn't, and
-let them review it before the first run. Without a verify skill (`profile → Verify`), offer
-`create-verification-skill` first.
+let them review it before the first run. profile → Verify is "none"? Offer `setup-verify` first.
+No `.claude/flow/verifier-notes.md`? Copy
+[`references/verifier-notes-template.md`](references/verifier-notes-template.md) there.
+
+Project-specific knowledge lives only in `.claude/flow/` (the profile and the files it names).
+Never create or edit a skill inside the project; a rule for every project goes to the shared skills
+repo instead.
 
 ## Stages
 
@@ -129,6 +134,13 @@ Run `merge-verdict` with the PR number and the round. Then:
 
 Never merge on your own, never skip a stage because a round "only" touched a little, and never
 pass `--no-verify`.
+
+## Lessons
+
+Whenever a run hits something the next session should know, append a line to `## Lessons` in
+profile → Verifier notes, in the same branch: a FIX verdict and its cause, a brief the user
+corrected, a check that could not fail, a wrong assumption about the app, a gate that surprised.
+Format and rules in the template. `scope-task` and `find-verifier` read them before starting.
 
 ## Asking the user
 

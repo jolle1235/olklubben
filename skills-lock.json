@@ -1,238 +1,245 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
     "animate": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/animate/SKILL.md",
-      "computedHash": "7598d33e7f60dd5c24531eaaa897621cc3bdb48e8050324211627973bc59c4ce"
+      "computedHash": "588a8f7b37c3f37762ad10a552a74b6d6b608c720ea00d9dd798e0d50416100a"
     },
     "animate-expo": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/animate-expo/SKILL.md",
-      "computedHash": "5de09593d564091f9db60aabede7bed760251e118548272050a247c653c417d2"
+      "computedHash": "3cbc0a9466a1404de98bec73eb6789257556e632f82c58319308a64ff42a5771"
     },
     "animation-performance": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/animation-performance/SKILL.md",
-      "computedHash": "b68ba704106e27b1f83df0cb817e09ec947abb76825d86eabdee2954b6c1bb84"
+      "computedHash": "7d30550a55e485e50e29342f2f32186f7c487a48c1f2b57fa4a7238bc2629869"
     },
     "animation-vocabulary": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/animation-vocabulary/SKILL.md",
-      "computedHash": "0058036865ecbb864fd0c4132efcc62425355d6e99c7e6ef6a936742d62a5dea"
+      "computedHash": "1c50a737b755ff021f5216c7b89af3734ba0f9a908d0b540d3e9979f52fef3e2"
     },
     "apple-design": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/apple-design/SKILL.md",
-      "computedHash": "0190417d092a0df447b000154e39733ea6d97efad6d3bec8a6ce3845aeb88914"
+      "computedHash": "118d450c2d6ca54fee5f56cf8883fa3231bc2d917bb8f5a3f87488162c55fac9"
     },
     "ask-sonner": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/ask-sonner/SKILL.md",
-      "computedHash": "8bd257b845985f4b35b603b510a126604176521094af79c4b7347ffeb8a8f7ab"
+      "computedHash": "3d53f948bd8b19993b70d66929f70fa5ddb44bca6018e2c29f9cec6c8bf2b9cf"
     },
     "before-after": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/before-after/SKILL.md",
-      "computedHash": "d03c144126c0aff7dbcbb9428f8080d7f7a1f6953263d4b818955a761f2b380b"
+      "computedHash": "1f12ace1bf017cf9bfb2ad32aec7a52fe46aa1041945fd61f365f3b1adebb4a4"
     },
     "break-ui": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/break-ui/SKILL.md",
-      "computedHash": "60ada67662925f4df5e3c6ff41cac3ab241b66f8898100a5ffcd7ba7196cb868"
+      "computedHash": "accfc40025b4cc57475bebdcef52153a1598beec2794d6f11dec5cbbd79481c9"
     },
     "commit": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/commit/SKILL.md",
-      "computedHash": "cc205a43734965b710101b9c99b379b74c85e5d2e438b1b2c1ddabbfbb5f8a70"
-    },
-    "create-verification-skill": {
-      "source": "git@github-jolle:jolle1235/agent-skills.git",
-      "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
-      "sourceType": "git",
-      "skillPath": "skills/create-verification-skill/SKILL.md",
-      "computedHash": "9e0888cbafee1e5d883eb44a401b98f6d005886659ee773152f27859dd75781a"
+      "computedHash": "3e429b1052c5efc447562f7b5c9cb6cf6bc9e757bb5f66e8094bffcc1451c3a6"
     },
     "deliver": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/deliver/SKILL.md",
-      "computedHash": "db5cd1e5069b91af654ce52467bf6a841884462662dbb205118f0fa08d158a5c"
+      "computedHash": "3db93293e59b3b3bf862433cad8ddd037ab2edc3453c06659784e0efba6175d8"
     },
     "emil-design-eng": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/emil-design-eng/SKILL.md",
-      "computedHash": "51f2537e04d15911b41d78e2de24c36a0e26d41beae15e82a954fe5496a5eda9"
+      "computedHash": "8c563f971b37710a80a95b88d5f2ea6758b3ec4b66ec15f5bb41850830e8f5ed"
     },
     "fallow": {
       "source": "fallow-rs/fallow-skills",
       "sourceType": "github",
       "skillPath": "fallow/skills/fallow/SKILL.md",
-      "computedHash": "9a5d1e7651ead781eef406ffb07912d3531867d1aad95fc03a975bf84c4a9be5"
+      "computedHash": ""
     },
     "fallow-review": {
       "source": "fallow-rs/fallow-skills",
       "sourceType": "github",
       "skillPath": "fallow/skills/fallow-review/SKILL.md",
-      "computedHash": "69c217c143cca0baad8cdf2a33f012fd0fa60e82158fd0d7fafd17605283267b"
+      "computedHash": ""
     },
     "find-animation-opportunities": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/find-animation-opportunities/SKILL.md",
-      "computedHash": "465d087c41768e4f14ed640dd049036009f613feb55baaa5831b68b33178f9d2"
+      "computedHash": "6912a27a684feba9dd220349940d8a44e0d7b720cab71042f268a7ed93bf4bab"
     },
     "find-verifier": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/find-verifier/SKILL.md",
-      "computedHash": "88b95146f38ded72ab05b40742299ac16e1801c685403ec64cbc47d0435ba17a"
+      "computedHash": "6d8a3810c52cd245e3e341e731c901e8e8e36d1b5ff2008ce9c40357f52d4880"
     },
     "improve-animations": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/improve-animations/SKILL.md",
-      "computedHash": "524ea241e41d58bbdd8e288700fe24f5725e2a2f3ae7186ad7cebf9055058356"
-    },
-    "maintain-verification-skill": {
-      "source": "git@github-jolle:jolle1235/agent-skills.git",
-      "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
-      "sourceType": "git",
-      "skillPath": "skills/maintain-verification-skill/SKILL.md",
-      "computedHash": "2b04e514d333000c0a19c2ac16f3bfeca0bfd891cf8c0f8061676dcadac975a2"
+      "computedHash": "59a9e59e5c4dee0ee2adc9f3fe5663f5f22e0f96fdae5f727812f84c0ae89c54"
     },
     "merge-verdict": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/merge-verdict/SKILL.md",
-      "computedHash": "31570e2996c9a02d984152ab274ae676d8f8aa5eeacb7ad7431e10e256dc20c5"
+      "computedHash": "5eb214db2046f5b0c9e528b1831978f3b6ae5b4045df1f5af516605ebccd21fd"
     },
     "mobile-native": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/mobile-native/SKILL.md",
-      "computedHash": "f221cea36642168df6d3d6d7f236237cbf1ae669138ff7df07775674223d49ad"
+      "computedHash": "2141766c0a370128cbee3dc004d3f254a411e54f8352e154e73b040e52070e38"
     },
     "pick-ui-library": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/pick-ui-library/SKILL.md",
-      "computedHash": "5d2a77bf0ecafbda85aa95fb49999b6d77945d9066ec83d970b62e5b388cd686"
+      "computedHash": "c5d418c22e298c1c85856dc838190ec366782c0b476752dfae71d32ae8342cd5"
     },
     "plan-critique": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/plan-critique/SKILL.md",
-      "computedHash": "cb01729af90bccce2cb93dad895789b60ed82558161fe7ac58f0604bf5a4c331"
+      "computedHash": "7f1d65725e693e909283f2b490bffc482b746f981106fbfd1bc897bb619ec8e4"
     },
     "principle-fix-root-causes": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/principle-fix-root-causes/SKILL.md",
-      "computedHash": "20de9609f7bcfd9b7ea28affea7be053664c79c4fed60f56e849d74b927a9fc5"
+      "computedHash": "b2e78e89bd35244dc510e4709e4c2cc0c65de3928f880a766ebe1ea780e70c2c"
     },
     "principle-minimize-reader-load": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/principle-minimize-reader-load/SKILL.md",
-      "computedHash": "4ab073d8af312cdcb932bf3b15590607080fe632503cd35cfa119963a2e0c700"
+      "computedHash": "6c4e00afa83049005219f608b26a713e10abf8ff1917e3ea0221dc391b7863c5"
     },
     "principle-model-the-domain": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/principle-model-the-domain/SKILL.md",
-      "computedHash": "931568e605cf407c800fa52a1d0fc7a1e7c650df771604d2e85627ca76c8856f"
+      "computedHash": "2f8c7d82fcf956e688979162bdd559c1ed703a9cb64640d77d2edf5c8a34a2af"
     },
     "principle-prove-it-works": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/principle-prove-it-works/SKILL.md",
-      "computedHash": "5120554109f62b0349580ddaaf50b610fdc9e0e104cdd34426f57963f445b382"
+      "computedHash": "2b963ba6c2075cad884511e317e32bb073c8932a045eb17c61d35bac72e7cfa9"
     },
     "principle-subtract-before-you-add": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/principle-subtract-before-you-add/SKILL.md",
-      "computedHash": "c54269602a3ff7f6b8021e7c9411cff3fd62f5c0654b10e17ba3d33da3656afd"
+      "computedHash": "b1e42c673f0f231b5a504625824ab1b7a2faf9c98b47ffb207bf723f64f7ac13"
     },
     "principle-test-behavior-not-implementation": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/principle-test-behavior-not-implementation/SKILL.md",
-      "computedHash": "bdd0299d2aa2536f3ab17398367329cf92470a449b06bf038e92d4a0b49ef273"
+      "computedHash": "0224c8c96e876f73f4f1d469ba66fc17edf6c593305b13e5642f69cdee73cba1"
     },
     "prototype": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/prototype/SKILL.md",
-      "computedHash": "77be567d8c946608fdd15e61b62ab383cdf289a194dce2479828b7eda860d3ba"
+      "computedHash": "c9b2890f9c5f4cff4e05d097549dd633c3f17db3c7378b5b7baa823c9f220bf2"
     },
     "remove-animations": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/remove-animations/SKILL.md",
-      "computedHash": "5d738305c722c25e054a9e3b67e68d4429617d9fbae4bc8861b73cc25c8ba84c"
+      "computedHash": "f6eec22d000b9d9779b7f1b1734f930d37d37ead204f36f1b4b097cd47f9f16d"
     },
     "review-animations": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/review-animations/SKILL.md",
-      "computedHash": "b4e5f0f4fe3e2743c85bf7354108f48a0b9d502cb20ef5c4a9c195da91f93736"
+      "computedHash": "f3c25b26369923340e82b181569cdcca7e803a2f19600cfdca85d559f92e6e8f"
     },
     "scope-task": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/scope-task/SKILL.md",
-      "computedHash": "3d9e064d08316fdb6be0408a870bc5970f07df6ad6d1c7190f88078df5888c84"
+      "computedHash": "a76ae8bb2e1ef6a5a3191a2675803019715a42fad6f2605e09bb7602d2d22561"
+    },
+    "setup-verify": {
+      "source": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceType": "git",
+      "skillPath": "skills/setup-verify/SKILL.md",
+      "computedHash": "98f2856c24866347f8eb2a97425b1f8b00a291611e757d3dc39e6ec919eb51b1"
     },
     "solid-check": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/solid-check/SKILL.md",
-      "computedHash": "93746e8cf11d1e4bee30af22c81ac171cd990af0d5a90b3ffc97b614f69df39e"
+      "computedHash": "92a07e9689d8fed1916115327e5c7fe5766f6e0a2e207a108628e0321815d842"
     },
     "thermo-nuclear-code-quality-review": {
       "source": "Pawel-Kica/claude-code-100",
       "sourceType": "github",
       "skillPath": "skills/engineering/thermo-nuclear-code-quality-review/SKILL.md",
-      "computedHash": "c37633c83955cd2949f400e20905d852fd749950a796d30b6bfcfb4674baaf4a"
+      "computedHash": ""
     },
     "thermonuclear-review": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceType": "git",
       "skillPath": "skills/thermonuclear-review/SKILL.md",
-      "computedHash": "d4514ec97c9236a2ee5ea4798b426d422da4231047f4de66f22061728ed3c00d"
+      "computedHash": "17466ac4cf93701808fe6ce794780f669fc2d18d42afc4767a03abca444f50ce"
+    },
+    "update-verify": {
+      "source": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceType": "git",
+      "skillPath": "skills/update-verify/SKILL.md",
+      "computedHash": "d921541a296898be46ae9dba9c6f6c9554ddc7ae8347f46e3b169879990ed734"
+    },
+    "verify": {
+      "source": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceType": "git",
+      "skillPath": "skills/verify/SKILL.md",
+      "computedHash": "531ce5fa17ebe8d5aec19685577d043c5c6bcbf8c673a6680bf6a62d6ac15dc4"
     },
     "write-swift": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/write-swift/SKILL.md",
-      "computedHash": "f20bb9cf51dbee1900b264820a12f1d3d378dc4d23ac758e7ba9e644c49a2459"
+      "computedHash": "aba96f69500a765c53e6230e036aacaf1e98f81d5eefd1a15d10d6706dd27b97"
     }
   }
 }
