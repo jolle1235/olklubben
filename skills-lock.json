@@ -221,6 +221,13 @@
       "skillPath": "skills/thermonuclear-review/SKILL.md",
       "computedHash": "17466ac4cf93701808fe6ce794780f669fc2d18d42afc4767a03abca444f50ce"
     },
+    "ui-design-expert": {
+      "source": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
+      "sourceType": "git",
+      "skillPath": "skills/ui-design-expert/SKILL.md",
+      "computedHash": "58274156fe20b5be76f1a3f215b07ad117d959d9c5e692a2b9324b5fdcde9518"
+    },
     "update-verify": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
       "sourceUrl": "git@github-jolle:jolle1235/agent-skills.git",
