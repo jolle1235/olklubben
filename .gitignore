@@ -71,3 +71,6 @@ next-env.d.ts
 # task flow run state (local)
 .flow/
 /e2e/_flow-*
+
+# Skills are installed from skills-lock.json (npx skills experimental_install), never committed
+/.claude/skills/
