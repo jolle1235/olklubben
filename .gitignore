@@ -74,3 +74,4 @@ next-env.d.ts
 
 # Skills are installed from skills-lock.json (npx skills experimental_install), never committed
 /.claude/skills/
+/.agents/skills/

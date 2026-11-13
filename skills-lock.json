@@ -74,13 +74,13 @@
       "source": "fallow-rs/fallow-skills",
       "sourceType": "github",
       "skillPath": "fallow/skills/fallow/SKILL.md",
-      "computedHash": ""
+      "computedHash": "146de59a36a3892074121ecaed3a0acf6b3b3606413114314ff91e88cb0912cd"
     },
     "fallow-review": {
       "source": "fallow-rs/fallow-skills",
       "sourceType": "github",
       "skillPath": "fallow/skills/fallow-review/SKILL.md",
-      "computedHash": ""
+      "computedHash": "9765b465bcbc5a1aa407ec306c85cf81e005ae57a1ee9e197958af6474f34296"
     },
     "find-animation-opportunities": {
       "source": "emilkowalski/skills",
@@ -212,7 +212,7 @@
       "source": "Pawel-Kica/claude-code-100",
       "sourceType": "github",
       "skillPath": "skills/engineering/thermo-nuclear-code-quality-review/SKILL.md",
-      "computedHash": ""
+      "computedHash": "7eb099c4a07390e872dc997c3d4d24b82fb229b57afd743d144b05f641d921e1"
     },
     "thermonuclear-review": {
       "source": "git@github-jolle:jolle1235/agent-skills.git",
