@@ -1,7 +1,17 @@
 import { expect } from "@playwright/test";
 
 import { createReport, openApp, type App, type Login } from "./driver";
-import { BEERS, CLUBS, EVENTS, POLLS, SEED_PASSWORD, SONGS, USERS } from "./fixtures";
+import {
+  BEERS,
+  CLUBS,
+  EVENTS,
+  FEEDBACK,
+  PLACES,
+  POLLS,
+  SEED_PASSWORD,
+  SONGS,
+  USERS,
+} from "./fixtures";
 
 const DRENGENE = `/c/${CLUBS.drengene.id}`;
 const TORSDAG = `/c/${CLUBS.torsdag.id}`;
@@ -118,6 +128,114 @@ const JOURNEYS: Journey[] = [
       await expect(page.getByRole("heading", { level: 1, name: SONGS.skaal.title })).toBeVisible();
       await expect(page.getByRole("navigation", { name: "Forrige og næste sang" })).toBeVisible();
       await app.shot("smoke-song");
+    },
+  },
+  {
+    name: "calendar: månedsgitteret og listen med tidligere ølsmagninger",
+    as: "jesper",
+    drive: async (app) => {
+      const { page } = app;
+      await app.goto(`${DRENGENE}/calendar`);
+      await expect(page.getByRole("heading", { level: 1, name: "Kalender" })).toBeVisible();
+      await expect(page.getByRole("table", { name: /^Kalender for / })).toBeVisible();
+      await page
+        .getByRole("navigation", { name: "Visning" })
+        .getByRole("link", { name: "Liste" })
+        .click();
+      await expect(
+        page.getByRole("link", { name: new RegExp(`^${EVENTS.juleoel.title} ,`) }),
+      ).toBeVisible();
+      const past = page.getByRole("region", { name: "Tidligere ølsmagninger", exact: true });
+      await expect(
+        past.getByRole("link", { name: new RegExp(`^${EVENTS.past12.title} ,`) }),
+      ).toBeVisible();
+      await app.shot("smoke-calendar");
+    },
+  },
+  {
+    name: "places: stederne, et arkiveret, Hos Mads med ejer",
+    as: "jesper",
+    drive: async (app) => {
+      const { page } = app;
+      await app.goto(`${DRENGENE}/places`);
+      await expect(page.getByRole("heading", { level: 1, name: "Steder" })).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: new RegExp(`^${PLACES.lokaleBar.name}`) }),
+      ).toBeVisible();
+      await expect(page.getByText("Arkiverede steder (1)")).toBeVisible();
+      await page.getByRole("link", { name: /^Hos Mads Søndergade/ }).click();
+      await expect(
+        page.getByRole("heading", { level: 1, name: PLACES.hosMads.name }),
+      ).toBeVisible();
+      await expect(page.getByRole("region", { name: "Ejere" }).getByText("Mads")).toBeVisible();
+      await expect(page.getByRole("link", { name: "Opret event her" })).toBeVisible();
+      await app.shot("smoke-place");
+    },
+  },
+  {
+    name: "club: medlemmer med roller og invitationslinket",
+    as: "jesper",
+    drive: async (app) => {
+      const { page } = app;
+      await app.goto(`${DRENGENE}/club`);
+      await expect(
+        page.getByRole("heading", { level: 1, name: CLUBS.drengene.name }),
+      ).toBeVisible();
+      const members = page.getByRole("region", { name: "Medlemmer" }).getByRole("listitem");
+      await expect(members).toHaveCount(3);
+      await expect(members.first()).toContainText("Kaptajnen (Jesper Thomsen) (dig)");
+      await expect(page.getByLabel("Invitationslink")).toHaveValue(
+        new RegExp(`/join/${CLUBS.drengene.inviteCode}$`),
+      );
+      await app.shot("smoke-club");
+    },
+  },
+  {
+    name: "profile: navn, kælenavn og email",
+    as: "jesper",
+    drive: async (app) => {
+      const { page } = app;
+      await app.goto(`${DRENGENE}/profile`);
+      await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+      await expect(page.getByLabel("Navn", { exact: true })).toHaveValue(USERS.jesper.name);
+      await expect(page.getByRole("textbox", { name: /^Kælenavn/ })).toHaveValue(
+        USERS.jesper.nickname,
+      );
+      await expect(page.getByRole("region", { name: "Email" })).toContainText(USERS.jesper.email);
+      await app.shot("smoke-profile");
+    },
+  },
+  {
+    name: "feedback: listen og en rapport med app-admins tekniske info",
+    as: "jesper",
+    drive: async (app) => {
+      const { page } = app;
+      await app.goto("/feedback");
+      await expect(page.getByRole("heading", { level: 1, name: "Feedback" })).toBeVisible();
+      const reports = page.getByRole("list", { name: "Rapporter" });
+      await expect(
+        reports.getByRole("link", { name: new RegExp(FEEDBACK.darkTheme.title) }),
+      ).toBeVisible();
+      await reports.getByRole("link", { name: new RegExp(FEEDBACK.calendarBug.title) }).click();
+      await expect(
+        page.getByRole("heading", { level: 1, name: FEEDBACK.calendarBug.title }),
+      ).toBeVisible();
+      await expect(page.getByRole("region", { name: /^Teknisk info/ })).toBeVisible();
+      await expect(page.getByLabel("Status", { exact: true })).toHaveValue("NEW");
+      await app.shot("smoke-feedback");
+    },
+  },
+  {
+    name: "join: Anders ser invitationen til Torsdagsklubben",
+    as: "anders",
+    drive: async (app) => {
+      const { page } = app;
+      await app.goto(`/join/${CLUBS.torsdag.inviteCode}`);
+      await expect(
+        page.getByRole("heading", { level: 1, name: `Du er inviteret til ${CLUBS.torsdag.name}` }),
+      ).toBeVisible();
+      await expect(page.getByRole("button", { name: "Join klub" })).toBeVisible();
+      await app.shot("smoke-join");
     },
   },
 ];

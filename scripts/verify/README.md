@@ -63,19 +63,22 @@ og afslutter med exit 1 ved fejl.
 Seedet i `prisma/seed.ts`, med de faste id'er, check-scripts bruger, i `fixtures.ts`. Den fulde tabel
 står i README.md "Testbrugere". Alt er opdigtet, også sangene. Password for alle: `olklubben123`.
 
-| Konstant                          | Hvad                                                                         |
-| --------------------------------- | ---------------------------------------------------------------------------- |
-| `USERS.jesper`                    | "Kaptajnen". Admin i Drengene & Bajere, medlem af Torsdagsklubben, app-admin |
-| `USERS.mads`                      | Medlem af Drengene & Bajere, admin i Torsdagsklubben. Lander i klubvælgeren  |
-| `USERS.anders`                    | Kun medlem af Drengene & Bajere                                              |
-| `CLUBS.drengene`, `CLUBS.torsdag` | De to klubber                                                                |
-| `EVENTS.next13`                   | Om 3 dage, Hos Jesper, oprettet af en afstemning                             |
-| `EVENTS.past12`                   | For 3 uger siden, fire øl                                                    |
-| `BEERS.westmalle`                 | 3 ratings, Kaptajnens er 5                                                   |
-| `BEERS.mikkeller`                 | Ingen ratings, intet event                                                   |
-| `POLLS.open`                      | Åben, Kaptajnen mangler at stemme                                            |
-| `POLLS.tie`                       | Uafgjort om stedet i Torsdagsklubben                                         |
-| `SONGS.skaal`, `SONGS.aalborg`    | Opdigtede sange i Torsdagsklubben                                            |
+| Konstant                                     | Hvad                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `USERS.jesper`                               | "Kaptajnen". Admin i Drengene & Bajere, medlem af Torsdagsklubben, app-admin          |
+| `USERS.mads`                                 | Medlem af Drengene & Bajere, admin i Torsdagsklubben. Lander i klubvælgeren           |
+| `USERS.anders`                               | Kun medlem af Drengene & Bajere                                                       |
+| `CLUBS.drengene`, `CLUBS.torsdag`            | De to klubber                                                                         |
+| `EVENTS.next13`                              | Om 3 dage, Hos Jesper, oprettet af en afstemning                                      |
+| `EVENTS.past12`                              | For 3 uger siden, fire øl                                                             |
+| `BEERS.westmalle`                            | 3 ratings, Kaptajnens er 5                                                            |
+| `BEERS.mikkeller`                            | Ingen ratings, intet event                                                            |
+| `POLLS.open`                                 | Åben, Kaptajnen mangler at stemme                                                     |
+| `POLLS.tie`                                  | Uafgjort om stedet i Torsdagsklubben                                                  |
+| `SONGS.skaal`, `SONGS.aalborg`               | Opdigtede sange i Torsdagsklubben                                                     |
+| `PLACES.hosMads`, `PLACES.lokaleBar`         | Hos Mads (ejer Mads, med i den åbne afstemning); Den lokale bar (ubrugt, ingen ejere) |
+| `FEEDBACK.calendarBug`, `FEEDBACK.darkTheme` | En ny fejlrapport fra Mads og et planlagt ønske fra Anders                            |
+| `CLUBS.<klub>.inviteCode`                    | `BAJER234` og `TRSDAG78` (Anders er ikke medlem af Torsdagsklubben)                   |
 
 Datoer er relative til den dag, instansen blev startet. `verify:smoke` fejler, hvis seed og
 `fixtures.ts` glider fra hinanden.

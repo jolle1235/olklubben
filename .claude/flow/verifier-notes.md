@@ -60,4 +60,7 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-14 | setup-verify | a full-page screenshot taken before hydration made React report a hydration mismatch (Playwright hides the caret with an inline style) → `app.shot()` uses `caret: "initial"`; don't call `page.screenshot` directly without it
 2026-11-14 | setup-verify | `pkill -f "<pattern>"` in a shell command matched the shell itself and killed it → never kill by pattern; use the recorded pid (`verify:down`)
 2026-11-14 | setup-verify | HTML escapes "&" (`Drengene &amp; Bajere`), so a raw-HTML `includes()` on a club name failed → assert on text without special characters, or through the driver's locators
+2026-11-14 | setup-verify | assumed a logged-out `/join/<code>` redirects to `/login`; it shows its own teaser page ("Du er inviteret til en ølklub 🍺") → check the page before writing the journey (join.md)
+2026-11-14 | setup-verify | `getByLabel("Kælenavn (valgfrit)")` matched nothing ("(valgfrit)" is a separate part of the label) → `getByRole("textbox", { name: /^Kælenavn/ })` (profile.md)
+2026-11-14 | setup-verify | clicking 👍 on the calendar bug as Anders removed his vote: every seed user has already voted → use a new user to add a vote (feedback.md)
 ```

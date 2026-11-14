@@ -39,18 +39,24 @@ index, then the feature file for what you drive. Harness facts (commands, isolat
 
 ## Features
 
-| Feature               | File                       | Smoke journey |
-| --------------------- | -------------------------- | ------------- |
-| Login and logout      | [login.md](login.md)       | `login:`      |
-| Overblik (club home)  | [overview.md](overview.md) | `overview:`   |
-| Events                | [events.md](events.md)     | `events:`     |
-| Ølkatalog and ratings | [beers.md](beers.md)       | `beers:`      |
-| Afstemninger (polls)  | [polls.md](polls.md)       | `polls:`      |
-| Sangbog               | [songs.md](songs.md)       | `songs:`      |
+| Feature                   | File                       | Smoke journey |
+| ------------------------- | -------------------------- | ------------- |
+| Login and logout          | [login.md](login.md)       | `login:`      |
+| Overblik (club home)      | [overview.md](overview.md) | `overview:`   |
+| Events                    | [events.md](events.md)     | `events:`     |
+| Ølkatalog and ratings     | [beers.md](beers.md)       | `beers:`      |
+| Afstemninger (polls)      | [polls.md](polls.md)       | `polls:`      |
+| Sangbog                   | [songs.md](songs.md)       | `songs:`      |
+| Kalender                  | [calendar.md](calendar.md) | `calendar:`   |
+| Steder                    | [places.md](places.md)     | `places:`     |
+| Klubbens side and members | [club.md](club.md)         | `club:`       |
+| Profil                    | [profile.md](profile.md)   | `profile:`    |
+| Feedback                  | [feedback.md](feedback.md) | `feedback:`   |
+| Invitations and join      | [join.md](join.md)         | `join:`       |
 
-Not mapped yet (add a file and a smoke journey when a task touches them): Kalender, Steder,
-Klubbens side and members, Profil (nickname, password, email), invitations and join, onboarding and
-the club picker, Feedback, the songbook PDF import, the poll cron.
+Not mapped in detail yet (add to the matching file, or a new file plus a smoke journey, when a task
+touches them): onboarding and creating a club, the club picker `/clubs`, "Glemt password" and reset
+links, the songbook PDF import, the poll cron, beer images.
 
 ## Feature entry contract
 

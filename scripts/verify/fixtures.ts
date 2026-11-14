@@ -22,8 +22,29 @@ export const USERS = {
 export type SeedUser = keyof typeof USERS;
 
 export const CLUBS = {
-  drengene: { id: "5eed0000-0000-7000-8000-0000000000c1", name: "Drengene & Bajere" },
-  torsdag: { id: "5eed0000-0000-7000-8000-0000000000c2", name: "Torsdagsklubben" },
+  drengene: {
+    id: "5eed0000-0000-7000-8000-0000000000c1",
+    name: "Drengene & Bajere",
+    /** /join/BAJER234, shown as "BAJE-R234". */
+    inviteCode: "BAJER234",
+  },
+  torsdag: {
+    id: "5eed0000-0000-7000-8000-0000000000c2",
+    name: "Torsdagsklubben",
+    /** /join/TRSDAG78. Anders is not a member, so he can join it. */
+    inviteCode: "TRSDAG78",
+  },
+} as const;
+
+export const PLACES = {
+  /** Drengene & Bajere, owner Mads, address, used by Ølsmagning #12, in the open poll. */
+  hosMads: { id: "5eed0000-0000-7000-8000-0000000000f1", name: "Hos Mads" },
+  /** Drengene & Bajere, owner Kaptajnen, no address. */
+  hosJesper: { id: "5eed0000-0000-7000-8000-0000000000f2", name: "Hos Jesper" },
+  /** Drengene & Bajere, archived, still shown on Ølsmagning #10. */
+  gamleKlubhus: { id: "5eed0000-0000-7000-8000-0000000000f6", name: "Det gamle klubhus" },
+  /** Drengene & Bajere, never used, no owners: can be deleted outright. */
+  lokaleBar: { id: "5eed0000-0000-7000-8000-0000000000f7", name: "Den lokale bar" },
 } as const;
 
 export const EVENTS = {
@@ -57,6 +78,17 @@ export const SONGS = {
   aalborg: { id: "5eed0000-0000-7000-8000-0000000000d4", title: "Aalborg-valsen" },
 } as const;
 
+/** App-wide reports (not per club). */
+export const FEEDBACK = {
+  /** Bug, Ny, by Mads, 3 👍 (Kaptajnen's among them), page /calendar. */
+  calendarBug: {
+    id: "5eed0000-0000-7000-8000-0000000002f1",
+    title: "Kalenderen viser forkert dato på mobil",
+  },
+  /** Wish, Planlagt, by Anders, with an app-admin answer. */
+  darkTheme: { id: "5eed0000-0000-7000-8000-0000000002f2", title: "Mørkt tema" },
+} as const;
+
 /** Pages `verify:up` opens once as Kaptajnen (and /login logged out), so `next dev` has compiled them. */
 export const WARM_PATHS = [
   `/c/${CLUBS.drengene.id}`,
@@ -66,4 +98,11 @@ export const WARM_PATHS = [
   `/c/${CLUBS.drengene.id}/polls/${POLLS.open.id}`,
   `/c/${CLUBS.torsdag.id}/songs`,
   `/c/${CLUBS.torsdag.id}/songs/${SONGS.skaal.id}`,
+  `/c/${CLUBS.drengene.id}/calendar`,
+  `/c/${CLUBS.drengene.id}/places`,
+  `/c/${CLUBS.drengene.id}/places/${PLACES.hosMads.id}`,
+  `/c/${CLUBS.drengene.id}/club`,
+  `/c/${CLUBS.drengene.id}/profile`,
+  "/feedback",
+  `/feedback/${FEEDBACK.calendarBug.id}`,
 ] as const;
