@@ -38,5 +38,5 @@
     ".next-e2e/dev/types/**/*.ts",
     ".next-e2e/dev/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next-e2e"]
+  "exclude": ["node_modules", ".next-e2e", ".flow"]
 }

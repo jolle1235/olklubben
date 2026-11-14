@@ -317,6 +317,8 @@ Reglerne står også i `src/app/c/[clubId]/layout.tsx`. Feedbackens sider under 
 
 **Status (2026-10-18):** 1093 unit tests (91 filer), 339 integrationstests (15 filer) og 214 E2E-tests (107 tests × desktop/375 px i 24 filer), alle grønne; hele E2E-suiten to kørsler i træk uden retries. Sangbogen testes manuelt (se nedenfor).
 
+**Verify-instanser (agent-flowet):** `npm run verify:up -- --id <id> [--ref <sha>]` starter en isoleret kopi af appen med sin egen seedede database og port, og `npm run verify:down -- --id <id>` rydder op. AI-agenten bruger dem til at bevise en ændring før og efter. Se `scripts/verify/README.md` og SPEC D-177.
+
 **E2E (Playwright):** `npm run test:e2e`. Første gang: `npx playwright install chromium`.
 
 ```bash
