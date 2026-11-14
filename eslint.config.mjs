@@ -44,6 +44,8 @@ const eslintConfig = defineConfig([
     ".next-e2e/**",
     // The orchestrator's git-ignored working files (plans, snapshots, scratch scripts).
     ".work/**",
+    // Task run state and per-task check scripts of the agent flow (gitignored).
+    ".flow/**",
     "src/generated/**",
     "playwright-report/**",
     "test-results/**",

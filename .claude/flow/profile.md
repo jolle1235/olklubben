@@ -20,45 +20,93 @@ wins; fix this file.
 
 ## Verify
 
-**Interim:** there is no isolated verify harness yet. Until there is, the Playwright E2E setup is
-the instance (the shared `verify` skill has the rules, this section the facts): `next dev` on port 3100 against `olklubben_test` (`.env.test`, refuses any database
-whose name doesn't end in `_test`). Only one instance can run at a time, so BEFORE and AFTER run one
-after the other, never in parallel, and reviewers in `merge-verdict` share it in turn.
-Build the real harness with `/setup-verify` (isolated port and database per id, in the project's
-code), then replace this section.
+The harness lives in `scripts/verify/` (README there). Every instance is its own git worktree,
+database and port, so BEFORE, AFTER and the `merge-verdict` reviewers can run side by side.
 
-- Harness: none yet (`/setup-verify` builds it); interim: Playwright (`playwright.config.ts`, `e2e/`)
-- Feature map: none yet (`/setup-verify` seeds `.claude/flow/features/`); interim: `e2e/*.spec.ts` and the table under "Tests" in `README.md`
-- Fixtures: none committed; each test creates its own users and clubs through the UI (`e2e/fixtures.ts`, `e2e/support/`)
-- Up (working tree): nothing to do; Playwright starts the server (stop a server already on port 3100 that runs other code)
-- Up (`--ref <sha>`): `git worktree add .flow/<slug>/base <sha> && ln -s "$PWD/node_modules" .flow/<slug>/base/node_modules && (cd .flow/<slug>/base && npx prisma generate)`, then run the check from that folder
-- Doctor: `curl -fsS http://localhost:3100/api/auth/ok`
-- Smoke: `npx playwright test e2e/smoke.spec.ts e2e/round4-dod.spec.ts`
-- Down: stop the Playwright server; `git worktree remove --force .flow/<slug>/base`; all: `git worktree prune`
-- Driver: `@playwright/test` with `e2e/fixtures.ts` (`test`, `openPage`) and `e2e/support/*`
-- Private data: none (local dev database only; never production)
+- Harness: `scripts/verify/` (`cli.ts` up/doctor/smoke/down/list, `driver.ts`, `fixtures.ts`)
+- Feature map: `.claude/flow/features/` (README index + one file per feature)
+- Fixtures: the seed `prisma/seed.ts`, run by `up` against the instance's database; fixed ids and
+  names for checks in `scripts/verify/fixtures.ts`, listed in `scripts/verify/README.md`
+- Up: `npm run verify:up -- --id <id> [--ref <sha>]` (working tree when `--ref` is left out). Prints
+  `READY <id> <url>` once the database is seeded and the mapped pages answer (~15 s). The same id
+  again reuses the instance and re-syncs the working tree into it (next dev hot-reloads).
+- Doctor: `npm run verify:doctor -- --id <id>` (prints `DOCTOR OK <id> <url>`)
+- Smoke: `npm run verify:smoke -- --id <id>` (one journey per feature file, ends with `RESULT PASS`)
+- Down: `npm run verify:down -- --id <id>`; all: `npm run verify:down -- --all`; list: `npm run verify:list`
+- Driver: `scripts/verify/driver.ts` → `openApp(id, { as, viewport, evidence })`, `createReport()`
+- Private data: none. Instances only ever have the synthetic seed; never point one at the dev or
+  production database, and never run `songbook:import` against one.
+- Isolation: worktree in `~/.cache/olklubben-verify/<id>/app` (outside the repo, hard-linked
+  `node_modules`, no `.env` files), database `olklubben_verify_<id>` on the local Postgres, first free
+  port in 3200–3299, own outbox. Several instances run at once (proven with two side by side,
+  2026-11-14). Never touches `olklubben_dev`, `_test` or `_itest`.
+- Evidence: `.flow/verify/<id>/` (smoke screenshots, `server.log` copied by Down) and the task's
+  `.flow/<slug>/evidence/`; gitignored, kept by Down.
+- Gotchas:
+  - Ids: `a-z`, `0-9`, `-`, at most 40 characters. Use `<slug>-before` / `<slug>-after`.
+  - A `--ref` instance runs that commit's own migrations and seed. If the seed changed since, the
+    constants in `fixtures.ts` may not match it; check the old `prisma/seed.ts`.
+  - A working-tree instance runs what was synced at the last `up`. Edit, then `up` the same id again
+    before driving; it doesn't watch the repo.
+  - `next dev` compiles a route on its first hit; `up` warms the mapped pages, other routes take 1–3 s
+    the first time. Give first visits a generous timeout.
+  - Every mutation persists for the instance's life. One instance per task and side; start fresh
+    (`down`, then `up`) instead of undoing in the database.
+  - Opening a club makes it the user's last active club and decides where their next login lands.
+  - Full-page screenshots at 375 px draw the fixed bottom nav where the viewport ended, over content.
+    That is the screenshot, not the app.
+  - Kill instances with Down, never by process name: `next dev` forks `next-server`, and killing only
+    the parent leaves the server running on its port.
+  - `node_modules` is hard-linked: never `npm install` inside an instance (it would write through to
+    the repo's files).
 
 ## Check script
 
-Until the harness exists, the check is a Playwright spec at `e2e/_flow-<slug>.spec.ts`
-(inside `testDir`, gitignored by `/e2e/_flow-*`; keep a copy in `.flow/<slug>/`). Run it with
-`npx playwright test e2e/_flow-<slug>.spec.ts > .flow/<slug>/evidence/<before|after>.txt`; for
-BEFORE, copy it into the base worktree's `e2e/` and run it from there. One `test` per line of
-`## Expected after`, named in the brief's Danish words; Playwright's list reporter prints the value
-it saw on a failure.
+A per-task check is `.flow/<slug>/check.mts` (gitignored, outside `tsc` and eslint), run against an
+instance id: `npx tsx .flow/<slug>/check.mts <id> | tee .flow/<slug>/evidence/<before|after>.txt`.
+`.mts` because tsx runs `.ts` as CommonJS, where top-level `await` fails. One `report.check` per line
+of `## Expected after`, named in the brief's Danish words. It prints `PASS|FAIL <name> | <detail>` and
+`PROBLEM <text>` per console error, page error, failed request or 5xx, ends with `RESULT PASS|FAIL`,
+and exits 1 on any failure. BEFORE and AFTER run the same file against `<slug>-before`
+(`--ref <base sha>`) and `<slug>-after` (working tree), at the same time if you like.
 
 ```ts
+// npx tsx .flow/<slug>/check.mts <instance-id>
 import { expect } from "@playwright/test";
-import { test } from "./fixtures";
 
-test("<Expected after line, verbatim>", async ({ page }) => {
-  // drive the path the brief describes; follow the nearest e2e/*.spec.ts for signup and club setup
-  await expect(page.getByRole("heading", { name: "…" })).toBeVisible();
+import { createReport, openApp } from "../../scripts/verify/driver";
+import { BEERS, CLUBS } from "../../scripts/verify/fixtures";
+
+const id = process.argv[2];
+if (!id) throw new Error("Brug: npx tsx .flow/<slug>/check.mts <instance-id>");
+
+const report = createReport();
+const app = await openApp(id, {
+  as: "jesper",
+  viewport: "mobile",
+  evidence: ".flow/<slug>/evidence",
 });
+const { page } = app;
+
+await report.check("<Expected after line, verbatim>", async () => {
+  // the path the feature file describes
+  await app.goto(`/c/${CLUBS.drengene.id}/beers/${BEERS.mikkeller.id}`);
+  await expect(page.getByRole("heading", { level: 1, name: BEERS.mikkeller.name })).toBeVisible();
+  const rows = await app.sql<{ value: number }>(
+    "SELECT value FROM beer_ratings WHERE beer_id = $1",
+    [BEERS.mikkeller.id],
+  );
+  await app.shot("<name>");
+  return `ratings: ${rows.length}`; // the value it saw, printed on the PASS line
+});
+
+const problems = app.problems();
+await app.close();
+report.finish(problems);
 ```
 
-If the check should outlive the task, rename it to a normal `e2e/<feature>.spec.ts` in the same
-branch.
+A check that should outlive the task becomes a normal `e2e/<feature>.spec.ts` (Playwright suite,
+port 3100, `olklubben_test`) in the same branch.
 
 ## Gates
 
@@ -82,7 +130,7 @@ branch.
 ## Merge
 
 - Command: `gh pr merge <n> --squash --delete-branch`
-- After merge: `git worktree prune`; make sure no E2E server is still running on port 3100
+- After merge: `npm run verify:down -- --all`, `git worktree prune`; make sure no E2E server is still running on port 3100
 
 ## After each task
 
