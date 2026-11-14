@@ -12,6 +12,8 @@ login (`?next=`). "Log ud" ends the session and returns to `/login`.
 - `logout` logs out from the sidebar (desktop) or Profil (mobile).
 - `forgot-password` "Glemt password?" sends a reset link to the instance's outbox (not mapped in
   detail yet).
+- `login-google` "Fortsæt med Google" above an "eller" divider (only with Google configured,
+  D-178).
 
 ## How to get to it (user POV)
 
@@ -44,8 +46,12 @@ Preconditions:
 
 ## Gotchas
 
-- "Log ind" also matches "Log ind med Google" when Google is configured; always `exact: true`. The
-  instance has no Google or Auth0, so those buttons are absent.
+- "Log ind" also matches "Log ind med Google igen" on Profil; always `exact: true`. Without
+  `--google` the instance has no Google, so "Fortsæt med Google" and the "eller" divider are absent.
+- With `--google` (fake credentials): "Fortsæt med Google" sits above the "eller" divider and the
+  form. Clicking it sends the browser to `accounts.google.com` with
+  `redirect_uri=<url>/api/auth/callback/google` and `prompt=select_account`; capture that request
+  with `page.route(...)` + `route.fulfill(...)`. The real Google login can't be driven.
 - The Overblik h1 is visually hidden: use `toBeAttached()`, not `toBeVisible()`.
 - The Profil page has a second "Log ud" button on desktop; scope with `getByRole("main")`.
 - `openApp(id, { as: "<user>" })` logs in through the API, not the form. Use `as: null` and the form

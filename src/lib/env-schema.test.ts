@@ -61,37 +61,31 @@ describe("parseEnv", () => {
     ).toBe(true);
   });
 
-  it("enables Auth0 only when domain, id and secret are set, and lets it win over Google (D-166)", () => {
+  it("ignores AUTH0_* and warns once they are set, leaving Google free to turn on (D-178)", () => {
+    const google = { GOOGLE_CLIENT_ID: "gid", GOOGLE_CLIENT_SECRET: "gsecret" };
     const auth0 = {
       AUTH0_DOMAIN: "olklubben.eu.auth0.com",
       AUTH0_CLIENT_ID: "id",
       AUTH0_CLIENT_SECRET: "secret",
     };
-    const google = { GOOGLE_CLIENT_ID: "gid", GOOGLE_CLIENT_SECRET: "gsecret" };
+    const unused = expect.stringContaining("Auth0 bruges ikke længere");
 
-    expect(parseEnv(required).externalProvider).toBeNull();
-    expect(parseEnv({ ...required, ...google }).externalProvider).toBe("google");
-    expect(parseEnv({ ...required, ...auth0 })).toMatchObject({
-      isAuth0Configured: true,
-      externalProvider: "auth0",
-      warnings: [],
-    });
     expect(parseEnv({ ...required, ...auth0, ...google })).toMatchObject({
-      externalProvider: "auth0",
-      warnings: ["Google-login er slået fra, fordi Auth0 er sat op (Google ligger i Auth0)."],
+      isGoogleConfigured: true,
+      warnings: [unused],
     });
-    expect(parseEnv({ ...required, AUTH0_DOMAIN: auth0.AUTH0_DOMAIN })).toMatchObject({
-      isAuth0Configured: false,
-      externalProvider: null,
-      warnings: [expect.stringContaining("AUTH0_CLIENT_SECRET")],
-    });
+    expect(parseEnv({ ...required, AUTH0_CLIENT_ID: "id" }).warnings).toEqual([unused]);
+    expect(
+      parseEnv({ ...required, AUTH0_DOMAIN: "", AUTH0_CLIENT_ID: " ", AUTH0_CLIENT_SECRET: "" })
+        .warnings,
+    ).toEqual([]);
   });
 
-  it("rejects an AUTH0_DOMAIN with a scheme or a path", () => {
+  it("no longer validates AUTH0_DOMAIN: a stale value only warns (D-178)", () => {
     for (const value of ["https://olklubben.eu.auth0.com", "olklubben.eu.auth0.com/", "x"]) {
-      expect(() => parseEnv({ ...required, AUTH0_DOMAIN: value })).toThrowError(
-        /AUTH0_DOMAIN: skal være et domænenavn uden https:\/\//,
-      );
+      expect(parseEnv({ ...required, AUTH0_DOMAIN: value }).warnings).toEqual([
+        expect.stringContaining("Auth0 bruges ikke længere"),
+      ]);
     }
   });
 

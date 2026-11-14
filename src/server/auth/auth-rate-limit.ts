@@ -14,7 +14,7 @@ import { hashRateLimitPart, rateLimit, type RateLimitOptions } from "@/server/ra
  *
  *   1. "Glemt password" is rejected up front when no email can be sent
  *      (production without SMTP, SPEC §6.4, D-024).
- *   2. External login only with parameters the app itself sends (D-166).
+ *   2. Google login only with parameters the app itself sends (D-165, D-178).
  *   3. Rate limits.
  *
  * Why a hook instead of Better Auth's `rateLimit.customRules`: Better Auth only
@@ -54,14 +54,14 @@ export function assertPasswordResetDeliverable(
 const EXTERNAL_LOGIN_PATHS = new Set(["/sign-in/social", "/link-social"]);
 
 /**
- * External logins only via the redirect flow with the app's own parameters
- * (D-166):
+ * Google logins only via the redirect flow with the app's own parameters
+ * (D-165, D-178):
  *
  *   * `idToken` is refused on every path: it would log in without the
  *     redirect, PKCE and nonce, and on /link-social skip the account hooks.
  *   * `scopes` and `additionalParams` are refused on the login endpoints (no
- *     other Auth0 connection, audience or offline_access), except exactly
- *     `{ prompt: "login" }` ("Log ind med … igen"), which only adds strictness.
+ *     extra scopes, offline access or a prompt that overrides the client's
+ *     "select_account"). `loginHint` is its own field and allowed.
  */
 export function assertOwnExternalLoginParams(path: string, body: unknown): void {
   if (typeof body !== "object" || body === null) return;
@@ -73,19 +73,12 @@ export function assertOwnExternalLoginParams(path: string, body: unknown): void 
     });
   }
   if (!EXTERNAL_LOGIN_PATHS.has(path)) return;
-  if (fields.scopes !== undefined || !isAllowedAdditionalParams(fields.additionalParams)) {
+  if (fields.scopes !== undefined || fields.additionalParams !== undefined) {
     throw new APIError("BAD_REQUEST", {
       code: "EXTERNAL_LOGIN_PARAMS_NOT_ALLOWED",
       message: "Login-parametrene er ikke tilladt.",
     });
   }
-}
-
-function isAllowedAdditionalParams(value: unknown): boolean {
-  if (value === undefined) return true;
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const entries = Object.entries(value);
-  return entries.length === 1 && entries[0]?.[0] === "prompt" && entries[0][1] === "login";
 }
 
 type AuthRateLimitRule = RateLimitOptions & {

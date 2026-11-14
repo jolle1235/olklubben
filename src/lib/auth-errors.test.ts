@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   AUTH_ERROR_MESSAGES,
-  emailFollowsExternal,
+  EMAIL_FOLLOWS_GOOGLE,
   getAuthErrorMessage,
   getOAuthErrorMessage,
 } from "./auth-errors";
@@ -43,7 +43,7 @@ describe("getAuthErrorMessage", () => {
       "Det nuværende password er forkert.",
     );
     expect(getAuthErrorMessage({ code: "CREDENTIAL_ACCOUNT_NOT_FOUND" }, "change-password")).toBe(
-      "Du logger ind med Google eller Auth0 og har intet password her.",
+      "Du logger ind med Google og har intet password her.",
     );
     expect(getAuthErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "change-password")).toBe(
       "Password skal være mindst 8 tegn.",
@@ -105,22 +105,20 @@ describe("getOAuthErrorMessage", () => {
     );
   });
 
-  it("names the configured provider (D-166)", () => {
-    expect(getOAuthErrorMessage("account_not_linked", "Auth0")).toContain(
-      "og forbind Auth0 på din profil.",
+  it("names Google in every text (D-178)", () => {
+    expect(getOAuthErrorMessage("account_not_linked")).toContain(
+      "og forbind Google på din profil.",
     );
-    expect(getOAuthErrorMessage("email_not_verified", "Auth0")).toBe(
-      "Auth0 har ikke bekræftet din email, så vi kan ikke bruge Auth0-kontoen.",
+    expect(getOAuthErrorMessage("connection_not_allowed")).toBe(
+      "Den måde at logge ind på er ikke tilladt her. Brug Google eller email og password.",
     );
-    expect(getOAuthErrorMessage("connection_not_allowed", "Auth0")).toBe(
-      "Den måde at logge ind på i Auth0 er ikke tilladt her. Brug Google eller email og password.",
-    );
-    expect(emailFollowsExternal("Auth0")).toBe(
-      "Du logger ind med Auth0, så din email følger din Auth0-konto.",
+    expect(EMAIL_FOLLOWS_GOOGLE).toBe(
+      "Du logger ind med Google, så din email følger din Google-konto.",
     );
   });
 
   it("never shows the code itself, and has a fallback for unknown codes", () => {
+    expect(getOAuthErrorMessage("constructor")).toBe("Google-login mislykkedes. Prøv igen.");
     expect(getOAuthErrorMessage("<script>alert(1)</script>")).toBe(
       "Google-login mislykkedes. Prøv igen.",
     );

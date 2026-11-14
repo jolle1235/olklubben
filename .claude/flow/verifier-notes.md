@@ -46,6 +46,7 @@ One line per task that chose a verifier (`find-verifier`) or ran `before-after`.
 ```
 date       | task slug | kind | technique | caught something | note
 2026-11-14 | setup-verify | chore | 1. UI drive | yes | the harness's own screenshot caused a hydration-mismatch PROBLEM; fixed in the driver (caret: "initial")
+2026-11-14 | google-only-auth | feature | 1. UI drive (--google, captured redirect) + 8. data-state (scratch-DB migration itest) | yes | BEFORE showed "Log ind med Google igen" sending prompt=login to Google (F-097), found by plan-critique
 ```
 
 ## Lessons
@@ -63,4 +64,9 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-14 | setup-verify | assumed a logged-out `/join/<code>` redirects to `/login`; it shows its own teaser page ("Du er inviteret til en ølklub 🍺") → check the page before writing the journey (join.md)
 2026-11-14 | setup-verify | `getByLabel("Kælenavn (valgfrit)")` matched nothing ("(valgfrit)" is a separate part of the label) → `getByRole("textbox", { name: /^Kælenavn/ })` (profile.md)
 2026-11-14 | setup-verify | clicking 👍 on the calendar bug as Anders removed his vote: every seed user has already voted → use a new user to add a vote (feedback.md)
+2026-11-14 | google-only-auth | `prisma migrate deploy` from the repo root reads `.env.local`, whose `DIRECT_URL` wins over a `DATABASE_URL` you pass → prove a migration with a scratch-database itest (`remove-auth0-migration.itest.ts`, `round3-migration.itest.ts`), never the CLI against an instance from the root
+2026-11-14 | google-only-auth | raw `INSERT INTO accounts` failed: `id` has no database default (Prisma makes the uuid in the client) → give raw inserts `gen_random_uuid()`
+2026-11-14 | google-only-auth | a `console.warn` spy set up in `vi.hoisted` had an empty `mock.calls` in the test: the history is cleared before each test, and `@/env` warns at import → collect the calls into your own array in the spy's implementation
+2026-11-14 | google-only-auth | smoke run after the check script failed on Mads (the check had removed his password) → run smoke before any check that changes seed users
+2026-11-14 | google-only-auth | smoke's beers journey failed 4/4 on base and change alike: the click on a catalogue card landed during hydration and was lost → the driver's `app.goto()` now waits until the page's h1 has React props (not just <body>: a streamed loading.tsx boundary hydrates after the shell); a FAIL also prints Playwright's `Locator:` line
 ```

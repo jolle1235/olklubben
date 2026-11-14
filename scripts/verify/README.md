@@ -5,7 +5,7 @@ flow-skillsene via `.claude/flow/profile.md` → Verify; feature-kortet ligger i
 `.claude/flow/features/`.
 
 ```sh
-npm run verify:up -- --id <id> [--ref <sha>]   # start (eller genbrug) en instans, printer READY <id> <url>
+npm run verify:up -- --id <id> [--ref <sha>] [--google]   # start (eller genbrug) en instans, printer READY <id> <url>
 npm run verify:doctor -- --id <id>             # read-only sundhedstjek
 npm run verify:smoke -- --id <id>              # driver hvert kortlagt feature én gang
 npm run verify:down -- --id <id>               # stop og ryd op (evidens bliver)
@@ -25,6 +25,10 @@ npm run verify:list
   migreret og seedet med kopiens egen `prisma/seed.ts`.
 - **Server:** `next dev` på den første ledige port i 3200–3299 med `NODE_ENV=test` og et komplet miljø
   sat af harnessen. Kopien har ingen `.env`-filer. Mails skrives til instansens outbox.
+- **Google:** uden `--google` er Google slået fra, som i test og på previews. Med `--google` får
+  instansen falske `GOOGLE_*`, så "Fortsæt med Google" vises, og redirecten til Google kan fanges
+  (`page.route(...)` + `route.fulfill(...)`). Et rigtigt Google-login kan ikke drives. Samme id med et
+  andet flag afvises; kør `down` først.
 - **Markør:** `up` opretter brugeren `verify-<id>@example.test` gennem appen. Doctor logger ind som
   den, og det lykkes kun, når serveren læser instansens egen database.
 - **Evidens:** `.flow/verify/<id>/` (screenshots fra smoke, `server.log` kopieret ved `down`).

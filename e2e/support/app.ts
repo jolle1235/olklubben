@@ -88,7 +88,7 @@ export async function logOut(page: Page) {
 }
 
 /** The club id in the current URL (/c/<id>/…). */
-export function clubIdFromUrl(page: Page): string {
+function clubIdFromUrl(page: Page): string {
   const match = CLUB_URL.exec(new URL(page.url()).pathname);
   if (!match?.[1]) throw new Error(`E2E: ingen klub i URL'en ${page.url()}`);
   return match[1];
@@ -150,7 +150,10 @@ export function memberRows(page: Page) {
  * Waits until React has hydrated the element (its props are attached). A
  * click on a JavaScript-only control (a dialog trigger, the rating stars)
  * right after a full page load can otherwise land before hydration and do
- * nothing. Links and forms work before hydration and need no wait.
+ * nothing. Links and forms work before hydration, but a link clicked while the
+ * page hydrates can still be lost when the client re-renders the list it sits
+ * in (the beer catalogue, 2026-11-14): wait for the page first if a test
+ * clicks right after loading it.
  */
 export async function expectHydrated(locator: Locator): Promise<void> {
   await expect
