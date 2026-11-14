@@ -15,7 +15,7 @@ const SKIP_DIRS = ["src/styles/tokens", "src/generated"];
 /** Bevidst faste farver, fx logoet (D-162). */
 const ALLOWED_COLOR_FILES = [
   "src/components/brand/logo.tsx",
-  "src/components/features/auth/external-sign-in.tsx",
+  "src/components/features/auth/google-sign-in.tsx",
   "src/server/email/templates.ts",
 ];
 /** Logoets ordmærke (D-162). */

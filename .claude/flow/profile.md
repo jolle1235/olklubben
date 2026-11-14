@@ -27,7 +27,9 @@ database and port, so BEFORE, AFTER and the `merge-verdict` reviewers can run si
 - Feature map: `.claude/flow/features/` (README index + one file per feature)
 - Fixtures: the seed `prisma/seed.ts`, run by `up` against the instance's database; fixed ids and
   names for checks in `scripts/verify/fixtures.ts`, listed in `scripts/verify/README.md`
-- Up: `npm run verify:up -- --id <id> [--ref <sha>]` (working tree when `--ref` is left out). Prints
+- Up: `npm run verify:up -- --id <id> [--ref <sha>] [--google]` (working tree when `--ref` is left out;
+  `--google` sets fake Google credentials, so "Fortsæt med Google" shows and its redirect can be
+  captured, never a real Google login). Prints
   `READY <id> <url>` once the database is seeded and the mapped pages answer (~15 s). The same id
   again reuses the instance and re-syncs the working tree into it (next dev hot-reloads).
 - Doctor: `npm run verify:doctor -- --id <id>` (prints `DOCTOR OK <id> <url>`)
@@ -44,6 +46,14 @@ database and port, so BEFORE, AFTER and the `merge-verdict` reviewers can run si
   `.flow/<slug>/evidence/`; gitignored, kept by Down.
 - Gotchas:
   - Ids: `a-z`, `0-9`, `-`, at most 40 characters. Use `<slug>-before` / `<slug>-after`.
+  - Run smoke before a check script that changes seed users (a password removed, a session aged):
+    smoke logs in as Kaptajnen, Mads and Anders with the seed password.
+  - Google redirects: capture with `page.route("https://accounts.google.com/**")` +
+    `route.fulfill(...)`, never `route.abort()` (the driver reports `ERR_FAILED` as a PROBLEM).
+  - `app.goto()` waits until the page's h1 is hydrated (it sits inside the page's streamed
+    loading.tsx boundary, which hydrates after the shell): a click during hydration can be lost
+    when the client re-renders (the catalogue's beer links were). After a click that navigates,
+    wait for the new page's heading before the next click.
   - A `--ref` instance runs that commit's own migrations and seed. If the seed changed since, the
     constants in `fixtures.ts` may not match it; check the old `prisma/seed.ts`.
   - A working-tree instance runs what was synced at the last `up`. Edit, then `up` the same id again
@@ -146,7 +156,7 @@ Before publishing, update SPEC.md (rules 2–6 in §19.1):
 - Next.js 16 App Router: read `node_modules/next/dist/docs/` before using an API; `src/proxy.ts` is the middleware.
 - Server Actions in `src/server/actions/` return `ActionResult` (`src/lib/action-result.ts`); pages are server components.
 - Prisma 7 with the pg adapter on Postgres (Neon in production); always the shared `db` from `src/server/db`.
-- Better Auth for sessions (`src/server/auth/`); Auth0 or Google login are optional.
+- Better Auth for sessions (`src/server/auth/`); Google is the one optional external login (`isGoogleConfigured`, D-178), next to email/password.
 - Every feature authorizes on the server (Definition of Done, §15.1); club isolation is non-negotiable (§4.4): any read or write of club data is scoped to a club the user is a member of.
 - Tailwind with the design tokens from `src/styles/tokens` (`npm run tokens`, checked by `check:tokens`); UI primitives in `src/components/ui/`.
 - All URL state through `src/lib/routes.ts`; invalid params are ignored, never a 404.

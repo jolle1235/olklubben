@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { FormAlert } from "@/components/features/auth/form-alert";
-import { ExternalSignInButton } from "@/components/features/auth/external-sign-in";
+import { GoogleSignInButton } from "@/components/features/auth/google-sign-in";
 import { AppearanceControl } from "@/components/features/profile/appearance-control";
 import { ChangeEmailForm } from "@/components/features/profile/change-email-form";
 import { ChangePasswordForm } from "@/components/features/profile/change-password-form";
@@ -10,13 +10,12 @@ import { ProfileForm } from "@/components/features/profile/profile-form";
 import { ProfileIdentity } from "@/components/features/profile/profile-identity";
 import { FeedbackLink, ProfileLinks } from "@/components/features/profile/profile-links";
 import { ProfileSection } from "@/components/features/profile/profile-section";
-import { ExternalReauth, SetPasswordForm } from "@/components/features/profile/set-password-form";
+import { GoogleReauth, SetPasswordForm } from "@/components/features/profile/set-password-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionDivider } from "@/components/ui/section-divider";
-import { externalProvider } from "@/env";
-import { emailFollowsExternal, getOAuthErrorMessage } from "@/lib/auth-errors";
+import { isGoogleConfigured } from "@/env";
+import { EMAIL_FOLLOWS_GOOGLE, getOAuthErrorMessage } from "@/lib/auth-errors";
 import { firstParam } from "@/lib/auth-links";
-import { EXTERNAL_PROVIDERS } from "@/lib/auth-providers";
 import { profileHref } from "@/lib/routes";
 import { getSession, getUserClubs, requireClubPage } from "@/server/auth/session";
 import { isFreshLogin } from "@/server/domain/users/login-freshness";
@@ -31,15 +30,14 @@ export const metadata: Metadata = { title: "Profil" };
  * "Udseende" (per device, §13.2), "Feedback (fejl og ønsker)" (the app-wide
  * reports, §9.9, D-147), and log out.
  *
- *   * Email: password logins get "Skift email"; accounts with only an external
- *     login (Google or Auth0, D-166) are told that their email follows it.
- *   * Password: password logins get "Skift password". Accounts with only an
- *     external login get "Tilføj password" while that login is less than 10
- *     minutes old, else the reason and "Log ind med … igen" (isFreshLogin on
- *     the session, cached per request; the action also checks Auth0's
- *     auth_time).
- *   * "{label}-login" (the configured external login, D-165, D-166): a
- *     password account without it gets "Forbind …" (linkSocial; the external
+ *   * Email: password logins get "Skift email"; accounts with only a Google
+ *     login are told that their email follows it.
+ *   * Password: password logins get "Skift password". Accounts with only a
+ *     Google login get "Tilføj password" while that login is less than 10
+ *     minutes old, else the reason and "Log ind med Google igen" (isFreshLogin
+ *     on the session, cached per request; the action checks again, D-152).
+ *   * "Google-login" (only when Google is configured, D-165, D-178): a
+ *     password account without it gets "Forbind Google" (linkSocial; the Google
  *     account must have the same, verified email). It comes back with
  *     ?external=linked (shown only when the account really has it now) or
  *     ?error=<code>.
@@ -58,17 +56,11 @@ export default async function ProfilePage({
     getAccountLogins(user.id),
     getSession(),
   ]);
-  // The account's own external login (for "Tilføj password" and the email text).
-  const accountProvider = logins.external[0];
-  const externalOnly = accountProvider !== undefined && !logins.hasPassword;
+  const hasLogin = logins.hasPassword || logins.hasGoogle;
   const freshLogin = session !== null && isFreshLogin(session.session.createdAt, new Date());
-  // The configured external login (the "Forbind …" card).
-  const configured = externalProvider ? EXTERNAL_PROVIDERS[externalProvider] : null;
-  const hasConfigured = externalProvider !== null && logins.external.includes(externalProvider);
-  const externalError = configured
-    ? getOAuthErrorMessage(firstParam(query.error), configured.label)
-    : null;
-  const externalLinked = hasConfigured && firstParam(query.external) === "linked";
+  // "Forbind Google" lands here with ?external=linked, or ?error=<code> when it failed.
+  const googleError = getOAuthErrorMessage(firstParam(query.error));
+  const googleLinked = logins.hasGoogle && firstParam(query.external) === "linked";
 
   return (
     <>
@@ -80,7 +72,7 @@ export default async function ProfilePage({
           nickname={user.nickname}
           email={user.email}
           image={user.image}
-          googleAvailable={externalProvider !== null}
+          googleAvailable={isGoogleConfigured}
         />
 
         <ProfileSection title="Navn og kælenavn">
@@ -92,7 +84,7 @@ export default async function ProfilePage({
           />
         </ProfileSection>
 
-        {logins.hasPassword || accountProvider ? (
+        {hasLogin ? (
           <ProfileSection
             title="Email"
             headingId="profile-email-heading"
@@ -104,78 +96,61 @@ export default async function ProfilePage({
                   Du logger ind med{" "}
                   <span className="font-semibold break-all text-foreground">{user.email}</span>.
                 </p>
-                {accountProvider ? (
+                {logins.hasGoogle ? (
                   <p className="text-body-sm text-muted-foreground">
-                    Skifter du email, kobles dit {EXTERNAL_PROVIDERS[accountProvider].label}-login
-                    fra. Du kan forbinde det igen med den nye email.
+                    Skifter du email, kobles dit Google-login fra. Du kan forbinde det igen med den
+                    nye email.
                   </p>
                 ) : null}
                 <ChangeEmailForm key={user.email} clubId={club.id} email={user.email} />
               </>
             ) : (
-              <p className="text-lead text-muted-foreground">
-                {emailFollowsExternal(EXTERNAL_PROVIDERS[accountProvider ?? "google"].label)}
-              </p>
+              <p className="text-lead text-muted-foreground">{EMAIL_FOLLOWS_GOOGLE}</p>
             )}
           </ProfileSection>
         ) : null}
 
-        {logins.hasPassword || externalOnly ? (
+        {hasLogin ? (
           <ProfileSection
             title={logins.hasPassword ? "Skift password" : "Tilføj password"}
             headingId="profile-password-heading"
           >
             {logins.hasPassword ? (
               <ChangePasswordForm clubId={club.id} email={user.email} />
-            ) : accountProvider === undefined ? null : freshLogin ? (
-              <SetPasswordForm
-                clubId={club.id}
-                email={user.email}
-                provider={accountProvider}
-                available={accountProvider === externalProvider}
-              />
+            ) : freshLogin ? (
+              <SetPasswordForm clubId={club.id} email={user.email} available={isGoogleConfigured} />
             ) : (
-              <ExternalReauth
-                clubId={club.id}
-                email={user.email}
-                provider={accountProvider}
-                available={accountProvider === externalProvider}
-              />
+              <GoogleReauth clubId={club.id} email={user.email} available={isGoogleConfigured} />
             )}
           </ProfileSection>
         ) : null}
 
-        {externalProvider && configured && (logins.hasPassword || hasConfigured) ? (
+        {isGoogleConfigured && hasLogin ? (
           <ProfileSection
-            title={`${configured.label}-login`}
-            headingId="profile-external-heading"
+            title="Google-login"
+            headingId="profile-google-heading"
             contentClassName="grid gap-4"
           >
-            {externalLinked ? (
-              <FormAlert tone="success">{configured.label} er forbundet.</FormAlert>
-            ) : null}
-            {externalError ? <FormAlert>{externalError}</FormAlert> : null}
-            {hasConfigured ? (
-              <p className="text-lead text-muted-foreground">
-                Du kan logge ind med {configured.label}.
-              </p>
+            {googleLinked ? <FormAlert tone="success">Google er forbundet.</FormAlert> : null}
+            {googleError ? <FormAlert>{googleError}</FormAlert> : null}
+            {logins.hasGoogle ? (
+              <p className="text-lead text-muted-foreground">Du kan logge ind med Google.</p>
             ) : (
               <>
                 <p className="text-lead text-muted-foreground">
-                  Forbind din {configured.label}-konto, så kan du logge ind med ét tryk.{" "}
-                  {configured.label}-kontoen skal have samme email (
-                  <span className="break-all text-foreground">{user.email}</span>).
+                  Forbind din Google-konto, så kan du logge ind med ét tryk. Google-kontoen skal
+                  have samme email (<span className="break-all text-foreground">{user.email}</span>
+                  ).
                 </p>
-                <ExternalSignInButton
-                  provider={externalProvider}
+                <GoogleSignInButton
                   intent="link"
                   callbackURL={`${profileHref(club.id)}?external=linked`}
                   errorCallbackURL={profileHref(club.id)}
                   loginHint={user.email}
                   className="w-full sm:w-auto sm:justify-self-start"
                 >
-                  {configured.link}
-                </ExternalSignInButton>
+                  Forbind Google
+                </GoogleSignInButton>
               </>
             )}
           </ProfileSection>

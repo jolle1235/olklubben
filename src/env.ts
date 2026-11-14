@@ -20,8 +20,10 @@ for (const warning of parsed.warnings) {
 export const env = parsed.env;
 /** The app's base URL without a trailing "/" (D-164). Use getAppUrl()/appUrl() from @/lib/app-url. */
 export const appBaseUrl = parsed.appBaseUrl;
-/** The one external login, "auth0" | "google" | null (D-166). */
-export const externalProvider = parsed.externalProvider;
+/** The Google client (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET), or null: Google is off (D-178). */
+export const googleClient = parsed.google;
+/** googleClient !== null. Pages use this to show or hide the Google buttons. */
+export const isGoogleConfigured = parsed.isGoogleConfigured;
 export const isSmtpConfigured = parsed.isSmtpConfigured;
 /** Rate limiting is off (RATE_LIMIT_DISABLED, never in production). */
 export const isRateLimitDisabled = parsed.isRateLimitDisabled;

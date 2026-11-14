@@ -9,7 +9,7 @@ import { up } from "./up";
 /**
  * The verify harness (profile → Verify, scripts/verify/README.md):
  *
- *   npm run verify:up -- --id <id> [--ref <sha>]
+ *   npm run verify:up -- --id <id> [--ref <sha>] [--google]
  *   npm run verify:doctor -- --id <id>
  *   npm run verify:smoke -- --id <id>
  *   npm run verify:down -- --id <id>   |   npm run verify:down -- --all
@@ -23,12 +23,13 @@ async function main(): Promise<boolean> {
       ref: { type: "string" },
       all: { type: "boolean" },
       headed: { type: "boolean" },
+      google: { type: "boolean" },
     },
   });
 
   switch (positionals[0]) {
     case "up":
-      await up(assertId(values.id), values.ref);
+      await up(assertId(values.id), values.ref, { google: Boolean(values.google) });
       return true;
     case "doctor":
       return doctor(assertId(values.id));

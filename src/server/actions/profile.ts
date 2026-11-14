@@ -13,8 +13,7 @@ import {
   type ActionError,
   type FormFailure,
 } from "@/lib/action-result";
-import { AUTH_ERROR_MESSAGES, emailFollowsExternal } from "@/lib/auth-errors";
-import { EXTERNAL_PROVIDERS } from "@/lib/auth-providers";
+import { AUTH_ERROR_MESSAGES, EMAIL_FOLLOWS_GOOGLE } from "@/lib/auth-errors";
 import { withToast } from "@/lib/flash-toast";
 import { readFormValues } from "@/lib/form-data";
 import { profileHref } from "@/lib/routes";
@@ -28,7 +27,6 @@ import {
 } from "@/lib/validation/profile";
 import { auth } from "@/server/auth/auth";
 import { toAuthActionError } from "@/server/auth/errors";
-import { claimsFromIdToken } from "@/server/auth/external-claims";
 import { revokePasswordResetTokens } from "@/server/auth/reset-link";
 import { getSession, requireMembership } from "@/server/auth/session";
 import { isAppAdmin } from "@/server/domain/feedback/app-admin";
@@ -41,7 +39,7 @@ import {
   revokeOtherSessions,
   updateUserProfile,
 } from "@/server/users/mutations";
-import { getAccountLogins, getExternalIdToken } from "@/server/users/queries";
+import { getAccountLogins } from "@/server/users/queries";
 
 /**
  * Server Actions for Profil (SPEC §9.8, D-105, D-106, D-151, D-152): name +
@@ -93,9 +91,7 @@ const EMAIL_IN_USE = "Den email bruges allerede af en anden konto.";
 const EMAIL_UNCHANGED = "Det er allerede din email.";
 const EMAIL_SESSIONS_NOT_REVOKED =
   "Din email er skiftet, men vi kunne ikke logge dine andre enheder ud. Prøv at skifte password.";
-function reauthRequired(label: string): string {
-  return `Log ind med ${label} igen for at tilføje et password.`;
-}
+const REAUTH_REQUIRED_MESSAGE = "Log ind med Google igen for at tilføje et password.";
 const PASSWORD_SET_SESSIONS_NOT_REVOKED =
   "Dit password er gemt, men vi kunne ikke logge dine andre enheder ud. Prøv at skifte password.";
 
@@ -156,7 +152,7 @@ function passwordFailure(result: { ok: false; error: ActionError }): ChangePassw
  *
  * Rate limited per user (here) and per IP (Better Auth's before hook). A wrong
  * current password becomes a field error on currentPassword; an account
- * without a password (Google or Auth0 only) gets a form error. Passwords are never
+ * without a password (Google only) gets a form error. Passwords are never
  * echoed. Form fields: clubId (hidden), currentPassword, newPassword,
  * confirmPassword.
  */
@@ -222,17 +218,17 @@ function readEmailValues(formData: FormData): ChangeEmailFormValues {
  *
  *   1. Rate limited per user (here) and per IP (/verify-password, Better
  *      Auth's before hook).
- *   2. An account with only an external login gets a form error: its email
- *      follows that account (Google or Auth0).
+ *   2. An account with only a Google login gets a form error: its email
+ *      follows the Google account.
  *   3. Its own email → "Det er allerede din email." (before the password).
  *   4. The current password through auth.api.verifyPassword; wrong → a field
  *      error on currentPassword.
  *   5. An address in APP_ADMIN_EMAILS gets exactly the "in use" answer, so
  *      app-admin cannot be claimed and the list cannot be probed (D-142).
  *   6. One UPDATE (changeUserEmail); the unique index decides a race. The
- *      email is stored lowercase and unverified, and every external login
- *      (Google, Auth0) is removed in the same transaction: it belonged to the
- *      old email (D-165, D-166, TG-064). The toast then says so.
+ *      email is stored lowercase and unverified, and the Google login is
+ *      removed in the same transaction: it belonged to the old email (D-165,
+ *      TG-064). The toast then says so.
  *   7. Every other session and every outstanding reset link is revoked
  *      (D-047); this device stays logged in.
  *
@@ -263,10 +259,7 @@ export async function changeEmailAction(
   const logins = await getAccountLogins(user.id);
   if (!logins.hasPassword) {
     return {
-      ...fail(
-        ACTION_ERROR_CODES.FORBIDDEN,
-        emailFollowsExternal(EXTERNAL_PROVIDERS[logins.external[0] ?? "google"].label),
-      ),
+      ...fail(ACTION_ERROR_CODES.FORBIDDEN, EMAIL_FOLLOWS_GOOGLE),
       values,
     };
   }
@@ -322,19 +315,18 @@ function setPasswordFailure(result: { ok: false; error: ActionError }): SetPassw
 }
 
 /**
- * "Tilføj password" (§9.8, D-152, D-166): an account with only an external
- * login (Google or Auth0) picks its first password, so it can also log in
- * with email and password. There is no current password to confirm, and
- * Better Auth's setPassword has no freshness check, so the session must come
- * from an external login less than 10 minutes ago (isFreshLogin on
- * session.createdAt), and for Auth0 so must the stored id token's auth_time;
- * otherwise REAUTH_REQUIRED and Better Auth is never called. Profil then offers "Log
- * ind med … igen" (with prompt=login for Auth0).
+ * "Tilføj password" (§9.8, D-152): an account with only a Google login picks
+ * its first password, so it can also log in with email and password. There is
+ * no current password to confirm, and Better Auth's setPassword has no
+ * freshness check, so the session must come from a Google login less than 10
+ * minutes ago (isFreshLogin on session.createdAt); otherwise REAUTH_REQUIRED
+ * and Better Auth is never called. Profil then offers "Log ind med Google
+ * igen" (prompt=select_account with the account's email as login_hint).
  *
  * An account that already has a password (fx set in another tab) gets a form
  * error, from the check here or from Better Auth (PASSWORD_ALREADY_SET).
  * Afterwards every other session and every outstanding reset link is revoked
- * (D-047); this device stays logged in. The external login stays, so admin
+ * (D-047); this device stays logged in. The Google login stays, so admin
  * reset links stay refused (D-046). Passwords are never echoed.
  * Form fields: clubId (hidden), newPassword, confirmPassword.
  */
@@ -357,21 +349,10 @@ export async function setPasswordAction(
   if (logins.hasPassword) {
     return setPasswordFailure(fail("PASSWORD_ALREADY_SET", AUTH_ERROR_MESSAGES.passwordAlreadySet));
   }
-  // Neither an external login nor a password: nothing this form is meant for.
-  const provider = logins.external[0];
-  if (!provider) return setPasswordFailure(unexpectedError());
-  const reauth = fail(
-    ACTION_ERROR_CODES.REAUTH_REQUIRED,
-    reauthRequired(EXTERNAL_PROVIDERS[provider].label),
-  );
-
-  const now = new Date();
-  if (!isFreshLogin(session.session.createdAt, now)) return setPasswordFailure(reauth);
-  // Auth0's single sign-on can create a session without a real login (fx from
-  // another app on the tenant); auth_time is when the user really logged in.
-  if (logins.external.includes("auth0")) {
-    const authTime = claimsFromIdToken(await getExternalIdToken(user.id, "auth0"))?.authTime;
-    if (!authTime || !isFreshLogin(authTime, now)) return setPasswordFailure(reauth);
+  // Neither a Google login nor a password: nothing this form is meant for.
+  if (!logins.hasGoogle) return setPasswordFailure(unexpectedError());
+  if (!isFreshLogin(session.session.createdAt, new Date())) {
+    return setPasswordFailure(fail(ACTION_ERROR_CODES.REAUTH_REQUIRED, REAUTH_REQUIRED_MESSAGE));
   }
 
   const limited = await rateLimit(`password:set:user:${user.id}`, SET_PASSWORD_LIMIT);

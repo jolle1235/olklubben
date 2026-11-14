@@ -6,7 +6,7 @@ import { auth } from "@/server/auth/auth";
 import { db } from "@/server/db";
 import { changeUserEmail } from "@/server/users/mutations";
 
-import { signUpWithPassword, type TestUser } from "./helpers";
+import { authPost, signUpWithPassword, type TestUser } from "./helpers";
 
 /**
  * "Fortsæt med Google" and "Forbind Google" through Better Auth's real HTTP
@@ -23,12 +23,8 @@ vi.mock("@/env", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/env")>();
   return {
     ...actual,
-    env: {
-      ...actual.env,
-      GOOGLE_CLIENT_ID: "itest-client-id",
-      GOOGLE_CLIENT_SECRET: "itest-secret",
-    },
-    externalProvider: "google",
+    googleClient: { clientId: "itest-client-id", clientSecret: "itest-secret" },
+    isGoogleConfigured: true,
     isRateLimitDisabled: true,
   };
 });
@@ -350,5 +346,45 @@ describe("endpoints the app does not use are closed (D-165)", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ code: "ID_TOKEN_SIGN_IN_DISABLED" });
     expect(await db.user.findUnique({ where: { email } })).toBeNull();
+  });
+});
+
+describe("Google login only with the app's own parameters (D-165, D-178, F-097)", () => {
+  it("refuses scopes and every additionalParams, prompt=login included, on both paths", async () => {
+    const user = await passwordUser();
+    const base = { provider: "google", callbackURL: "/ok" };
+    for (const extra of [
+      { scopes: ["offline_access"] },
+      { additionalParams: { access_type: "offline" } },
+      { additionalParams: { prompt: "login" } },
+    ]) {
+      for (const path of ["/sign-in/social", "/link-social"]) {
+        const response = await authPost(path, { ...base, ...extra }, user.cookie);
+        expect(response.status, `${path} ${JSON.stringify(extra)}`).toBe(400);
+        expect(await response.json()).toMatchObject({ code: "EXTERNAL_LOGIN_PARAMS_NOT_ALLOWED" });
+      }
+    }
+  });
+
+  it("'Log ind med Google igen' asks with select_account and the account's email", async () => {
+    const response = await authPost("/sign-in/social", {
+      provider: "google",
+      callbackURL: "/ok",
+      loginHint: "jesper@example.test",
+    });
+    expect(response.status).toBe(200);
+    const url = new URL(((await response.json()) as { url: string }).url);
+    expect(url.searchParams.get("prompt")).toBe("select_account");
+    expect(url.searchParams.get("login_hint")).toBe("jesper@example.test");
+  });
+});
+
+describe("Log ud (§9.8)", () => {
+  it("ends the session locally and returns no provider logout URL", async () => {
+    const user = await passwordUser();
+    const response = await authPost("/sign-out", {}, user.cookie);
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { url?: string }).url).toBeUndefined();
+    expect(await db.session.count({ where: { userId: user.id } })).toBe(0);
   });
 });

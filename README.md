@@ -306,7 +306,7 @@ Reglerne står også i `src/app/c/[clubId]/layout.tsx`. Feedbackens sider under 
 
 **Unit (Vitest):** `npm test`. Filer hedder `src/**/*.test.ts` og kører i Node. Domænelogik testes uden database (SPEC §4.2, §15.3). Moduler, der importerer `server-only`, kan godt testes.
 
-**Integration (Vitest):** `npm run test:integration`. Filer hedder `tests/integration/**/*.itest.ts` og kalder de rigtige Server Actions, Better Auth og rate limiteren mod Postgres (SPEC §15.3), fx at ikke-medlemmer får 404, at kun admins kan lave en ny kode eller et nulstillingslink, og at join med en ukendt, tilbagekaldt eller udløbet kode giver E18. Runde 2: `events-beers.itest.ts` tester datalaget (klub-scoping, kommende/igangværende events, gennemsnit, E13, E14, CHECK-constraints), og `round2-actions.itest.ts` tester Server Actions for events, øl og ratings (ikke-medlem og anden klubs id → 404, kun opretter, vært eller admin må rette/slette, dublet-advarsel, event fra en anden klub, ratingværdier, redirects med toast). Runde 3: `round3-migration.itest.ts` kører migreringen på en midlertidig database med svære fixtures, `round3-data.itest.ts` tester datalaget (sammensatte FK'er, CHECKs, låse og samtidighed i løkker, `endMembership`, `deleteClub`, steder og værter), og `round3-events`, `round3-places`, `round3-members` og `round3-profile` tester runde 3's Server Actions (værter, steder fra andre klubber, navnedubletter, sidste admin, forlad og slet, kælenavn, skift password og rate limit). `profile-account.itest.ts` tester "Skift email" (forkert password, email i brug skrevet med store bogstaver, egen email, en adresse i `APP_ADMIN_EMAILS` giver samme svar som en email i brug, lowercase og uverificeret, andre sessions og nulstillingslinks ryddes, login med ny og gammel email, Google-login kobles fra i samme transaction og bliver ved en email i brug, rene Google-konti afvises) og "Tilføj password" (frisk Google-login, login ældre end 10 minutter, konto med password, valideringsfejl, rate limit og 404). Runde 4: `round4-polls-data.itest.ts` tester afstemningernes datalag (CHECKs og sammensatte FK'er, én stemme på sted pr. stemmeseddel, lukning med event i samme transaction, idempotent lukning, E5, `endMembership`, `deleteClub`, ret datoer og steder uden stemmer (uændrede valgmuligheder beholder deres id, også et tidligere medlems stemme låser dem, "＋ Nyt sted" rulles tilbage) og 12 samtidighedsløkker, fx at to samtidige lukninger kun giver ét event, og at den første stemme og en rettelse af valgmulighederne aldrig begge lykkes), `round4-poll-actions.itest.ts` opret, ret og stem (404, rettigheder, frist og datoer, datoer og steder før og efter første stemme, ufuldstændige og forfalskede stemmesedler, stemme efter fristen), og `round4-poll-lifecycle.itest.ts` afslut, annullér, vælg vinder, Overblikkets og Kalenderens forespørgsler og cron-ruten (503 uden `CRON_SECRET`, 401, 200). Feedback: `feedback.itest.ts` tester, at kun app-admin (ikke en klub-admin og ikke den, der skrev rapporten) kan ændre status og se teknisk info, 👍 (aldrig på egen rapport, idempotent, 1 + stemmer), ret/slet kun mens rapporten er ny, dublet-reglerne (E28), at klub-id'et fjernes fra siden (E26), grænsen på 10 rapporter i døgnet, 404, logget ud, en bruger uden klubber, en slettet forfatter (E27) og CHECKs. Testene sætter deres egen app-admin ved at mocke `appAdminEmails` fra `@/env` og markere emailen som bekræftet (en ubekræftet adresse på listen afvises, D-165). Google: `google-oauth.itest.ts` kører "Fortsæt med Google" og "Forbind Google" gennem Better Auths rigtige handler med Googles token-endpoint mocket (ny bruger, ingen automatisk kobling på en password-konto, ubekræftet Google-email, forkert/genbrugt state, kobling med samme/anden email, race med emailskift, emailskift kobler Google fra, lukkede endpoints og id-token-login slået fra). Auth0: `auth0-oauth.itest.ts` gør det samme for Auth0 med rigtigt RS256-signerede id-tokens mod en mocket JWKS: fremmed nøgle, forkert nonce, ikke-tilladte forbindelser, ubekræftet database-email, kun appens egne login-parametre, log ud via Auth0, Google ikke registreret ved siden af Auth0, og "Tilføj password" afvist, når `auth_time` er gammel. `auth0-discovery.itest.ts` viser, at Auth0 uden `jwks_uri` ikke registreres, og at password-login stadig virker.
+**Integration (Vitest):** `npm run test:integration`. Filer hedder `tests/integration/**/*.itest.ts` og kalder de rigtige Server Actions, Better Auth og rate limiteren mod Postgres (SPEC §15.3), fx at ikke-medlemmer får 404, at kun admins kan lave en ny kode eller et nulstillingslink, og at join med en ukendt, tilbagekaldt eller udløbet kode giver E18. Runde 2: `events-beers.itest.ts` tester datalaget (klub-scoping, kommende/igangværende events, gennemsnit, E13, E14, CHECK-constraints), og `round2-actions.itest.ts` tester Server Actions for events, øl og ratings (ikke-medlem og anden klubs id → 404, kun opretter, vært eller admin må rette/slette, dublet-advarsel, event fra en anden klub, ratingværdier, redirects med toast). Runde 3: `round3-migration.itest.ts` kører migreringen på en midlertidig database med svære fixtures, `round3-data.itest.ts` tester datalaget (sammensatte FK'er, CHECKs, låse og samtidighed i løkker, `endMembership`, `deleteClub`, steder og værter), og `round3-events`, `round3-places`, `round3-members` og `round3-profile` tester runde 3's Server Actions (værter, steder fra andre klubber, navnedubletter, sidste admin, forlad og slet, kælenavn, skift password og rate limit). `profile-account.itest.ts` tester "Skift email" (forkert password, email i brug skrevet med store bogstaver, egen email, en adresse i `APP_ADMIN_EMAILS` giver samme svar som en email i brug, lowercase og uverificeret, andre sessions og nulstillingslinks ryddes, login med ny og gammel email, Google-login kobles fra i samme transaction og bliver ved en email i brug, rene Google-konti afvises) og "Tilføj password" (frisk Google-login, login ældre end 10 minutter, konto med password, valideringsfejl, rate limit og 404). Runde 4: `round4-polls-data.itest.ts` tester afstemningernes datalag (CHECKs og sammensatte FK'er, én stemme på sted pr. stemmeseddel, lukning med event i samme transaction, idempotent lukning, E5, `endMembership`, `deleteClub`, ret datoer og steder uden stemmer (uændrede valgmuligheder beholder deres id, også et tidligere medlems stemme låser dem, "＋ Nyt sted" rulles tilbage) og 12 samtidighedsløkker, fx at to samtidige lukninger kun giver ét event, og at den første stemme og en rettelse af valgmulighederne aldrig begge lykkes), `round4-poll-actions.itest.ts` opret, ret og stem (404, rettigheder, frist og datoer, datoer og steder før og efter første stemme, ufuldstændige og forfalskede stemmesedler, stemme efter fristen), og `round4-poll-lifecycle.itest.ts` afslut, annullér, vælg vinder, Overblikkets og Kalenderens forespørgsler og cron-ruten (503 uden `CRON_SECRET`, 401, 200). Feedback: `feedback.itest.ts` tester, at kun app-admin (ikke en klub-admin og ikke den, der skrev rapporten) kan ændre status og se teknisk info, 👍 (aldrig på egen rapport, idempotent, 1 + stemmer), ret/slet kun mens rapporten er ny, dublet-reglerne (E28), at klub-id'et fjernes fra siden (E26), grænsen på 10 rapporter i døgnet, 404, logget ud, en bruger uden klubber, en slettet forfatter (E27) og CHECKs. Testene sætter deres egen app-admin ved at mocke `appAdminEmails` fra `@/env` og markere emailen som bekræftet (en ubekræftet adresse på listen afvises, D-165). Google: `google-oauth.itest.ts` kører "Fortsæt med Google" og "Forbind Google" gennem Better Auths rigtige handler med Googles token-endpoint mocket (ny bruger, ingen automatisk kobling på en password-konto, ubekræftet Google-email, forkert/genbrugt state, kobling med samme/anden email, race med emailskift, emailskift kobler Google fra, lukkede endpoints, id-token-login slået fra, kun appens egne login-parametre (heller ikke `prompt=login`), "Log ind med Google igen" med `select_account` og `login_hint`, og log ud uden udbyder-URL). `remove-auth0-migration.itest.ts` kører migreringen, der sletter Auth0-logins, på en scratch-database (D-178).
 
 - Testene bruger deres egen database, **`olklubben_itest`**, på samme server som `.env.test`'s `DATABASE_URL` (eller `ITEST_DATABASE_URL`, hvis den er sat). Konfigurationen nægter at køre mod en database, hvis navn ikke ender på `_itest`, så hverken udviklings- eller E2E-databasen bliver rørt, og E2E og integrationstests kan køre samtidig.
 - Før hver kørsel oprettes databasen, hvis den mangler, migrations anvendes (`prisma migrate deploy`), og alle tabeller tømmes. Efter kørslen tømmes de igen (`tests/integration/global-setup.ts`). Må din Postgres-bruger ikke oprette databaser, så opret den selv én gang (som i lokal opsætning, trin 3).
@@ -387,60 +387,39 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/clos
 
 Uden besøg kan et event fra en afstemning derfor dukke op op til ca. et døgn efter fristen (TG-050). Der sendes ingen notifikationer (SPEC §9.7.8 [SENERE]).
 
-## Auth0-login (Universal Login)
-
-Valgfrit (D-166). Med `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` og `AUTH0_CLIENT_SECRET` viser login- og opret-siden **"Fortsæt med Auth0"**. Den sender til Auth0's Universal Login, hvor man fx vælger Google, og bruger samme Auth0-identitet som jeres andre apps på samme tenant. Email og password virker som før. Er Auth0 sat op, er den direkte Google-knap slået fra (Google ligger inde i Auth0).
-
-Auth0 er koblet på via Better Auths `genericOAuth`-plugin, ikke `@auth0/nextjs-auth0`. Så er der kun ét sessionssystem, og alle regler for eksterne logins gælder også for Auth0:
-
-- ingen automatisk kobling (D-165),
-- bekræftet email, som skal være kontoens,
-- "Skift email" kobler fra,
-- id-tokens verificeres mod tenantens nøgler,
-- kun Google- og database-forbindelser.
-
-"Log ud" logger også ud af Auth0.
-
-**I appen er det ét sæt credentials** (de tre variabler ovenfor). Skal Google være på Auth0's side, skal der desuden en Google OAuth-klient ind **i Auth0** (ikke i appen).
-
-1. **Tenant.** Brug den tenant, jeres andre apps bruger ("de samme folk").
-   - Tjek regionen. EU holder login-data i EU (SPEC §4.8), og regionen kan ikke ændres bagefter.
-   - Er tenanten delt, så gennemgå M2M-apps med `update:users` og Actions, der kobler konti automatisk. Ingen af dem må kunne sætte `email_verified` på en fremmed adresse.
-   - Admin-kontoen skal have MFA. Slå **Attack Protection** til.
-2. **Applications → Create Application → "Regular Web Application"** ("Ølklubben produktion"):
-   - Allowed Callback URLs: kun `https://olklubben-six.vercel.app/api/auth/callback/auth0`
-   - Allowed Logout URLs: kun `https://olklubben-six.vercel.app/login` (præcis URL, ingen wildcard, ingen query)
-   - Allowed Web Origins og Allowed Origins (CORS): tomme. Cross-Origin Authentication: slået fra.
-   - Advanced → Grant Types: kun **Authorization Code**.
-   - Advanced → OAuth: **RS256** og **OIDC Conformant** slået til.
-   - ID Token Expiration: fx **3600** sekunder.
-   - **Connections-fanen:** kun **Google** og **Database** (evt. Passwordless email). Ølklubben afviser alle andre forbindelser (`connection_not_allowed`).
-3. **En separat app "Ølklubben lokal"** med `http://localhost:3000/api/auth/callback/auth0` og `http://localhost:3000/login`, så produktionens secret aldrig ligger lokalt.
-4. **Authentication → Social → Google:** din egen Google OAuth-klient (Google Cloud → Clients → Web application, redirect-URI `https://<din tenant>/login/callback`). Auth0's udviklernøgler er ikke til produktion.
-5. **Authentication → Database:** kræv bekræftet email. Ubekræftede emails afvises af Ølklubben.
-6. **Vercel → Settings → Environment Variables:** de tre `AUTH0_*` fra produktionsappen, kun **Production**, markeret **Sensitive**. Redeploy. Sæt ikke `GOOGLE_*`.
-7. **Lokalt:** den lokale apps tre værdier i `.env.local`.
-
-Auth0's quickstart for Next.js er skrevet til `@auth0/nextjs-auth0` og passer ikke her. `APP_BASE_URL` og `AUTH0_SECRET` bruges ikke (appen bruger `BETTER_AUTH_URL` og `BETTER_AUTH_SECRET`). Quickstartens "Add the required Allowed URLs" sætter `/auth/callback`, så sæt URL'erne fra trin 2 og 3 i hånden.
-
-Discovery hentes én gang pr. serverinstans. Er Auth0 nede i det øjeblik, er Auth0-login slået fra for den instans, mens email/password virker. Har man en password-konto i forvejen, logger man ind med password og trykker **"Forbind Auth0"** på Profil. Det bekræfter også emailen, og det kræver app-admin.
-
 ## Google-login (OAuth)
 
-Valgfrit og **kun uden Auth0**. Uden `GOOGLE_CLIENT_ID` og `GOOGLE_CLIENT_SECRET` vises knappen "Fortsæt med Google" ikke. Login går direkte mod Google via Better Auth (D-165).
+Google er det eneste eksterne login, ved siden af email og password (D-165, D-178). Login går direkte mod Google via Better Auth. Uden `GOOGLE_CLIENT_ID` og `GOOGLE_CLIENT_SECRET` vises "Fortsæt med Google" ikke, og appen kører kun med email og password, som i test og på previews.
 
-1. [Google Cloud Console](https://console.cloud.google.com/) på en Google-konto **med 2-trinsbekræftelse** → opret projektet "Ølklubben". Tilføj gerne en ejer mere under IAM, så projektet ikke hænger på én konto.
-2. **Google Auth Platform:**
-   - **Branding:** appnavn "Ølklubben" og en support-email.
-   - **Audience:** "External" → **Publish app**. Med kun basis-scopes kræver Google ingen verifikation; i "Testing" kan kun testbrugere logge ind.
-   - **Data access:** kun `openid`, `.../auth/userinfo.email` og `.../auth/userinfo.profile`.
-3. **Clients → Create client → Web application**, to klienter, så en dev-nøgle på en laptop aldrig virker mod produktionen:
-   - "Ølklubben produktion", redirect-URI `https://<dit domæne>/api/auth/callback/google`. Domænet står under Vercel → Settings → Domains (gæt det ikke: `olklubben.vercel.app` tilhører en anden).
-   - "Ølklubben lokal", redirect-URI `http://localhost:3000/api/auth/callback/google`.
-   - Lad "Authorized JavaScript origins" stå tomt. Kopiér client secret med det samme; den vises kun én gang.
-4. **Vercel → Settings → Environment Variables:** `GOOGLE_CLIENT_ID` og `GOOGLE_CLIENT_SECRET` fra produktionsklienten, **kun Production**, markeret **Sensitive**. Redeploy.
-5. **Lokalt:** dev-klientens værdier i `.env.local`. Genstart `npm run dev`.
-6. **Rotation:** lækker et secret, så tilføj et nyt secret på klienten, opdatér Vercel, redeploy, og deaktivér det gamle.
+Appen bruger præcis to variabler:
+
+| Variabel               | Hvad                          | Hvor                                                             |
+| ---------------------- | ----------------------------- | ---------------------------------------------------------------- |
+| `GOOGLE_CLIENT_ID`     | OAuth 2.0-klientens Client ID | `.env.local` (dev-klient), Vercel Production (produktionsklient) |
+| `GOOGLE_CLIENT_SECRET` | Klientens Client secret       | Samme steder, markeret **Sensitive** i Vercel                    |
+
+Redirect-URI'en er appens base-URL + `/api/auth/callback/google`: `BETTER_AUTH_URL` lokalt, produktionsdomænet i Vercel Production (D-164). Der er ingen andre variabler at sætte.
+
+### TODO: opsætning i Google Cloud (manuelt, Jesper)
+
+- [ ] **Projekt:** [Google Cloud Console](https://console.cloud.google.com/) på en Google-konto **med 2-trinsbekræftelse**. Opret projektet "Ølklubben", hvis det ikke findes. Tilføj gerne en ejer mere under IAM, så projektet ikke hænger på én konto.
+- [ ] **Samtykkeskærm** (Google Auth Platform):
+  - **Branding:** appnavn "Ølklubben" og en support-email.
+  - **Audience:** "External" → **Publish app**. Med kun basis-scopes kræver Google ingen verifikation; i "Testing" kan kun testbrugere logge ind.
+  - **Data access:** kun `openid`, `.../auth/userinfo.email` og `.../auth/userinfo.profile`.
+- [ ] **OAuth 2.0-klienter** (Clients → Create client → Web application). To klienter, så en dev-nøgle på en laptop aldrig virker mod produktionen:
+  - "Ølklubben produktion": redirect-URI `https://<dit domæne>/api/auth/callback/google`. Domænet står under Vercel → Settings → Domains (gæt det ikke: `olklubben.vercel.app` tilhører en anden).
+  - "Ølklubben lokal": redirect-URI `http://localhost:3000/api/auth/callback/google`.
+  - **Authorized JavaScript origins:** lad feltet stå tomt. Appen sender browseren til Google fra serveren (redirect-flowet), så ingen origins er nødvendige.
+  - Kopiér client secret med det samme; den vises kun én gang.
+- [ ] **Miljøvariabler lokalt:** dev-klientens `GOOGLE_CLIENT_ID` og `GOOGLE_CLIENT_SECRET` i `.env.local` (skabelon i `.env.example`). Genstart `npm run dev`.
+- [ ] **Miljøvariabler i Vercel:** produktionsklientens værdier under Settings → Environment Variables, **kun Production**, markeret **Sensitive**. Slet samtidig de gamle `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` og `AUTH0_CLIENT_SECRET`, hvis de står der (appen ignorerer dem, men skriver en advarsel i loggen). Redeploy.
+- [ ] **Før deploy:** tjek, at ingen står uden login, når migreringen sletter de gamle Auth0-logins. Kør read-only mod produktionsdatabasen; svaret skal være 0:
+      `SELECT count(*) FROM accounts a WHERE provider_id = 'auth0' AND NOT EXISTS (SELECT 1 FROM accounts b WHERE b.user_id = a.user_id AND b.provider_id <> 'auth0');`
+- [ ] **Test i development:** `npm run dev` → `/login` → "Fortsæt med Google" → vælg kontoen → du lander i appen. På Profil: "Forbind Google" på en password-konto. Med en konto, der kun har Google: "Tilføj password" → "Log ind med Google igen" (efter 10 minutter).
+- [ ] **Test i produktion:** samme tre trin på produktionsdomænet efter redeploy. Log ud og ind igen.
+
+**Rotation:** lækker et secret, så tilføj et nyt secret på klienten, opdatér Vercel, redeploy, og deaktivér det gamle.
 
 Google tillader ikke wildcard-URI'er, og preview-URL'er skifter for hvert deploy. Previews bruger derfor email/password. Kommer der et eget domæne, skal det tilføjes som redirect-URI; appens egen base-URL følger med (D-164).
 

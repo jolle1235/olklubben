@@ -42,8 +42,8 @@ export const AUTH_ERROR_MESSAGES = {
   resetUnavailable: "Kontakt en admin i din klub for at få et nulstillingslink.",
   /** "Skift password" (§9.8, D-106): shown on the current-password field. */
   currentPasswordWrong: "Det nuværende password er forkert.",
-  /** "Skift password" for an account without a password login (Google or Auth0 only). */
-  noPasswordLogin: "Du logger ind med Google eller Auth0 og har intet password her.",
+  /** "Skift password" for an account without a password login (Google only). */
+  noPasswordLogin: "Du logger ind med Google og har intet password her.",
   /** "Tilføj password" when the account already has one (D-152, fx a second tab). */
   passwordAlreadySet: "Du har allerede et password. Brug 'Skift password'.",
   rateLimited: DEFAULT_ERROR_MESSAGES.RATE_LIMITED,
@@ -109,40 +109,37 @@ export function getAuthErrorMessage(
   }
 }
 
-/** "Skift email" for an account with only an external login (D-151), also shown on Profil. */
-export function emailFollowsExternal(label: string): string {
-  return `Du logger ind med ${label}, så din email følger din ${label}-konto.`;
-}
+/** "Skift email" for an account with only a Google login (D-151), also shown on Profil. */
+export const EMAIL_FOLLOWS_GOOGLE =
+  "Du logger ind med Google, så din email følger din Google-konto.";
 
 /**
- * Message for the `?error=<code>` Better Auth adds when an external login
- * (`label`: "Google" or "Auth0") or "Forbind …" fails (onAPIError.errorURL in
+ * Message for the `?error=<code>` Better Auth adds when "Fortsæt med Google"
+ * or "Forbind Google" fails (onAPIError.errorURL in
  * auth.ts). Only fixed texts: the code itself is never shown. Returns null
  * when there is no error.
  */
-export function getOAuthErrorMessage(
-  code: string | null | undefined,
-  label = "Google",
-): string | null {
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  // E19, D-165: never linked implicitly.
+  account_not_linked:
+    "Der findes allerede en konto med den email. Log ind med email og password, og forbind Google på din profil. Kender du ikke passwordet, så brug “Glemt password”.",
+  email_does_not_match:
+    "Google-kontoen har en anden email end din konto her. Vælg den Google-konto, der har samme email.",
+  email_not_verified: "Google har ikke bekræftet din email, så vi kan ikke bruge Google-kontoen.",
+  unable_to_link_account:
+    "Google har ikke bekræftet din email, så vi kan ikke bruge Google-kontoen.",
+  connection_not_allowed:
+    "Den måde at logge ind på er ikke tilladt her. Brug Google eller email og password.",
+  account_already_linked_to_different_user:
+    "Google-kontoen er allerede koblet til en anden bruger.",
+  access_denied: "Google-login blev afbrudt.",
+  email_not_found: "Google gav os ikke din email, så vi kan ikke bruge Google-kontoen.",
+};
+
+export function getOAuthErrorMessage(code: string | null | undefined): string | null {
   if (!code) return null;
-  switch (code) {
-    case "account_not_linked":
-      // E19, D-165: never linked implicitly.
-      return `Der findes allerede en konto med den email. Log ind med email og password, og forbind ${label} på din profil. Kender du ikke passwordet, så brug “Glemt password”.`;
-    case "email_does_not_match":
-      return `${label}-kontoen har en anden email end din konto her. Vælg den ${label}-konto, der har samme email.`;
-    case "email_not_verified":
-    case "unable_to_link_account":
-      return `${label} har ikke bekræftet din email, så vi kan ikke bruge ${label}-kontoen.`;
-    case "connection_not_allowed":
-      return `Den måde at logge ind på i ${label} er ikke tilladt her. Brug Google eller email og password.`;
-    case "account_already_linked_to_different_user":
-      return `${label}-kontoen er allerede koblet til en anden bruger.`;
-    case "access_denied":
-      return `${label}-login blev afbrudt.`;
-    case "email_not_found":
-      return `${label} gav os ikke din email, så vi kan ikke bruge ${label}-kontoen.`;
-    default:
-      return `${label}-login mislykkedes. Prøv igen.`;
-  }
+  // Object.hasOwn: a code like "constructor" must get the fallback, never a prototype member.
+  return Object.hasOwn(OAUTH_ERROR_MESSAGES, code)
+    ? (OAUTH_ERROR_MESSAGES[code] ?? null)
+    : "Google-login mislykkedes. Prøv igen.";
 }

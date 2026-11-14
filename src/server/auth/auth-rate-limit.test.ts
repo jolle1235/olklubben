@@ -31,8 +31,8 @@ function catchError(run: () => unknown): unknown {
   throw new Error("expected an error");
 }
 
-describe("assertOwnExternalLoginParams (D-166)", () => {
-  const login = { provider: "auth0", callbackURL: "/", errorCallbackURL: "/login" };
+describe("assertOwnExternalLoginParams (D-165, D-178)", () => {
+  const login = { provider: "google", callbackURL: "/", errorCallbackURL: "/login" };
 
   it("afviser et id-token på alle stier", () => {
     for (const path of ["/sign-in/social", "/link-social", "/some-future-plugin"]) {
@@ -43,14 +43,12 @@ describe("assertOwnExternalLoginParams (D-166)", () => {
     }
   });
 
-  it("afviser scopes og fremmede additionalParams på login-endpoints", () => {
+  it("afviser scopes og alle additionalParams på login-endpoints, også prompt=login", () => {
     for (const extra of [
       { scopes: ["offline_access"] },
-      { additionalParams: { connection: "samlp-corp" } },
-      { additionalParams: { prompt: "login", audience: "https://api" } },
-      { additionalParams: { prompt: "none" } },
+      { additionalParams: { prompt: "login" } },
+      { additionalParams: {} },
       { additionalParams: "prompt=login" },
-      { additionalParams: [] },
     ]) {
       for (const path of ["/sign-in/social", "/link-social"]) {
         expect(
@@ -61,14 +59,10 @@ describe("assertOwnExternalLoginParams (D-166)", () => {
     }
   });
 
-  it("tillader appens egne kald, også prompt=login til 'Log ind med … igen'", () => {
+  it("tillader appens egne kald, også login_hint til 'Log ind med Google igen' (D-152)", () => {
     expect(() => assertOwnExternalLoginParams("/sign-in/social", login)).not.toThrow();
     expect(() =>
-      assertOwnExternalLoginParams("/sign-in/social", {
-        ...login,
-        loginHint: "a@example.com",
-        additionalParams: { prompt: "login" },
-      }),
+      assertOwnExternalLoginParams("/sign-in/social", { ...login, loginHint: "a@example.com" }),
     ).not.toThrow();
     expect(() => assertOwnExternalLoginParams("/sign-in/email", { email: "a@b.c" })).not.toThrow();
     expect(() => assertOwnExternalLoginParams("/get-session", undefined)).not.toThrow();

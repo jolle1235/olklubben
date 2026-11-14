@@ -1,14 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
 
-import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { pgConfig } from "@/server/db/pg-config";
 import { placeNameKey } from "@/server/domain/places/name";
 
 import { assertItestDatabaseUrl, withDatabaseName } from "./env.mjs";
+import {
+  createScratchDatabase,
+  dropScratchDatabase,
+  migrationDirs,
+  readMigration,
+  withClient,
+} from "./scratch-db";
 
 /**
  * The round-3 migration's data section (D-022 → places, D-097) on a scratch
@@ -25,19 +28,7 @@ const SCRATCH_DB = "olklubben_r3mig_itest";
 const scratchUrl = withDatabaseName(itestUrl, SCRATCH_DB);
 const maintenanceUrl = withDatabaseName(itestUrl, "postgres");
 
-const MIGRATIONS_DIR = path.join(process.cwd(), "prisma", "migrations");
 const ROUND3_SUFFIX = "_round3_places_hosts_nickname";
-
-function migrationDirs(): string[] {
-  return readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
-}
-
-function readMigration(dir: string): string {
-  return readFileSync(path.join(MIGRATIONS_DIR, dir, "migration.sql"), "utf8");
-}
 
 const dirs = migrationDirs();
 const round3Index = dirs.findIndex((dir) => dir.endsWith(ROUND3_SUFFIX));
@@ -48,22 +39,6 @@ function migrationWhitespaceClass(): string {
   const match = /'(\[\[:space:\][^']*\])\+'/.exec(round3Sql);
   if (!match?.[1]) throw new Error("Fandt ikke whitespace-klassen i round-3-migrationen.");
   return match[1];
-}
-
-async function withClient<T>(url: string, run: (client: Client) => Promise<T>): Promise<T> {
-  const client = new Client(pgConfig(url));
-  await client.connect();
-  try {
-    return await run(client);
-  } finally {
-    await client.end();
-  }
-}
-
-async function dropScratch(): Promise<void> {
-  await withClient(maintenanceUrl, (client) =>
-    client.query(`DROP DATABASE IF EXISTS "${SCRATCH_DB}" WITH (FORCE)`),
-  );
 }
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
@@ -221,13 +196,7 @@ function placeNamed(clubId: string, name: string): PlaceRow {
 
 beforeAll(async () => {
   expect(round3Index, "round-3-migrationen findes").toBeGreaterThan(0);
-  await dropScratch();
-  await withClient(maintenanceUrl, (client) =>
-    client.query(
-      `CREATE DATABASE "${SCRATCH_DB}" TEMPLATE template0 ENCODING 'UTF8' ` +
-        `LC_COLLATE 'C.UTF-8' LC_CTYPE 'C.UTF-8'`,
-    ),
-  );
+  await createScratchDatabase(maintenanceUrl, SCRATCH_DB);
 
   await withClient(scratchUrl, async (client) => {
     for (const dir of dirs.slice(0, round3Index)) await client.query(readMigration(dir));
@@ -261,7 +230,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await dropScratch();
+  await dropScratchDatabase(maintenanceUrl, SCRATCH_DB);
 });
 
 describe("round-3-migrationen: fritekst → steder (D-097)", () => {

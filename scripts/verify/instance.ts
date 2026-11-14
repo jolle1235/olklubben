@@ -67,6 +67,8 @@ export type InstanceState = {
   cronSecret: string;
   markerEmail: string;
   startedAt: string;
+  /** Started with `--google`: fake Google credentials, so the Google button and its redirect show. Absent in older state files. */
+  google?: boolean;
   /** Set when `up` finished (marker user created, pages warmed); only then is the instance reused. */
   readyAt?: string;
 };
@@ -226,6 +228,9 @@ export async function queryInstance<T extends object>(
 
 // ─── Environment ────────────────────────────────────────────────────────────
 
+/** The client id `--google` instances send to Google; visible as client_id in the captured redirect. */
+const FAKE_GOOGLE_CLIENT_ID = "verify-fake.apps.googleusercontent.com";
+
 /**
  * The complete environment of the instance's server, migrate and seed. Every
  * variable the app reads (src/lib/env-schema.ts) is set here, and the copy has
@@ -238,6 +243,8 @@ export function instanceEnv(options: {
   authSecret: string;
   cronSecret: string;
   outboxDir: string;
+  /** Fake Google credentials (`--google`): enough for the button and the redirect to Google, never a real login. */
+  google: boolean;
 }): NodeJS.ProcessEnv {
   const url = databaseUrl(options.database);
   return {
@@ -253,11 +260,8 @@ export function instanceEnv(options: {
     DIRECT_URL: url,
     BETTER_AUTH_SECRET: options.authSecret,
     BETTER_AUTH_URL: `http://localhost:${options.port}`,
-    GOOGLE_CLIENT_ID: "",
-    GOOGLE_CLIENT_SECRET: "",
-    AUTH0_DOMAIN: "",
-    AUTH0_CLIENT_ID: "",
-    AUTH0_CLIENT_SECRET: "",
+    GOOGLE_CLIENT_ID: options.google ? FAKE_GOOGLE_CLIENT_ID : "",
+    GOOGLE_CLIENT_SECRET: options.google ? "verify-fake-google-secret" : "",
     SMTP_HOST: "",
     SMTP_USER: "",
     SMTP_PASSWORD: "",

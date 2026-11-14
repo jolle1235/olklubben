@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import type { ExternalProviderId } from "@/lib/auth-providers";
-
 /**
  * Pure parsing of the server environment (SPEC §4.7–4.8).
  *
@@ -42,7 +40,7 @@ export function parseAppAdminEmails(raw: string | undefined): {
   return { emails, invalid };
 }
 
-export const envSchema = z
+const envSchema = z
   .object({
     DATABASE_URL: postgresUrl,
     DIRECT_URL: postgresUrl.optional(),
@@ -66,13 +64,6 @@ export const envSchema = z
 
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
-
-    AUTH0_DOMAIN: z
-      .string()
-      .regex(HOSTNAME, "skal være et domænenavn uden https:// (fx olklubben.eu.auth0.com)")
-      .optional(),
-    AUTH0_CLIENT_ID: optionalString,
-    AUTH0_CLIENT_SECRET: optionalString,
 
     SMTP_HOST: optionalString,
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(465),
@@ -132,12 +123,10 @@ export type ParsedEnv = {
    * else BETTER_AUTH_URL.
    */
   appBaseUrl: string;
-  /** Both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set. */
+  /** The Google client when both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set, else null (D-178). */
+  google: { clientId: string; clientSecret: string } | null;
+  /** google !== null: Google is the one external login. */
   isGoogleConfigured: boolean;
-  /** AUTH0_DOMAIN, AUTH0_CLIENT_ID and AUTH0_CLIENT_SECRET are all set. */
-  isAuth0Configured: boolean;
-  /** The one external login (D-166): Auth0 wins over Google (Google is inside Auth0). */
-  externalProvider: ExternalProviderId | null;
   /** SMTP_HOST, SMTP_USER and SMTP_PASSWORD are all set. */
   isSmtpConfigured: boolean;
   /** RATE_LIMIT_DISABLED is set and NODE_ENV is not "production". */
@@ -149,6 +138,9 @@ export type ParsedEnv = {
 };
 
 type RawEnv = Record<string, string | undefined>;
+
+/** Auth0 was removed (D-178); a leftover value is ignored with a warning, never an error. */
+const STALE_AUTH0_KEYS = ["AUTH0_DOMAIN", "AUTH0_CLIENT_ID", "AUTH0_CLIENT_SECRET"] as const;
 
 /** Treats empty strings ("" from a copied .env.example) as "not set". */
 function withoutEmptyValues(source: RawEnv): RawEnv {
@@ -192,29 +184,24 @@ export function parseEnv(source: RawEnv): ParsedEnv {
     );
   }
 
-  const googleParts = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET];
-  const isGoogleConfigured = googleParts.every(Boolean);
-  if (!isGoogleConfigured && googleParts.some(Boolean)) {
+  const google =
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET }
+      : null;
+  const isGoogleConfigured = google !== null;
+  if (!google && (env.GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_SECRET)) {
     warnings.push(
       "Google-login er slået fra: både GOOGLE_CLIENT_ID og GOOGLE_CLIENT_SECRET skal være sat.",
     );
   }
 
-  const auth0Parts = [env.AUTH0_DOMAIN, env.AUTH0_CLIENT_ID, env.AUTH0_CLIENT_SECRET];
-  const isAuth0Configured = auth0Parts.every(Boolean);
-  if (!isAuth0Configured && auth0Parts.some(Boolean)) {
+  // Read from the raw source: the schema no longer knows these keys (D-178).
+  const staleAuth0 = STALE_AUTH0_KEYS.filter((key) => source[key]?.trim());
+  if (staleAuth0.length > 0) {
     warnings.push(
-      "Auth0-login er slået fra: AUTH0_DOMAIN, AUTH0_CLIENT_ID og AUTH0_CLIENT_SECRET skal alle være sat.",
+      `${staleAuth0.join(", ")} er sat, men Auth0 bruges ikke længere (D-178): slet variablerne, fx i Vercel.`,
     );
   }
-  if (isAuth0Configured && isGoogleConfigured) {
-    warnings.push("Google-login er slået fra, fordi Auth0 er sat op (Google ligger i Auth0).");
-  }
-  const externalProvider: ExternalProviderId | null = isAuth0Configured
-    ? "auth0"
-    : isGoogleConfigured
-      ? "google"
-      : null;
 
   const smtpParts = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASSWORD];
   const isSmtpConfigured = smtpParts.every(Boolean);
@@ -241,9 +228,8 @@ export function parseEnv(source: RawEnv): ParsedEnv {
   return {
     env,
     appBaseUrl,
+    google,
     isGoogleConfigured,
-    isAuth0Configured,
-    externalProvider,
     isSmtpConfigured,
     isRateLimitDisabled,
     appAdminEmails,
