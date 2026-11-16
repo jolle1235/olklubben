@@ -2,12 +2,14 @@
 
 A tasting has its own page `/c/<clubId>/events/<eventId>` that reads like an invitation: title, theme,
 time, place with "Åbn i kort" (or "Tilføj adresse"), hosts, "Planen", and "Øl smagt til dette event"
-with "+ Tilføj øl". The creator, the hosts and admins can edit and delete it. New events come from
-"Opret event" (`/c/<clubId>/events/new`).
+with "+ Tilføj øl". The beers are sorted by the club's rating (best first, unrated last), and a ↻
+button ("Hent nye ratings") at the right of that heading fetches new ratings without a reload. A beer
+card opens the beer page "from the event" (`?from=event`, see beers.md). The creator, the hosts and
+admins can edit and delete it. New events come from "Opret event" (`/c/<clubId>/events/new`).
 
 ## Sub-features
 
-- `event-page` shows time, place, hosts, plan and the event's beers.
+- `event-page` shows time, place, hosts, plan and the event's beers (sorted by rating, ↻ "Hent nye ratings").
 - `event-create` creates an event: title (suggested "Ølsmagning #N"), date, start time, optional end
   day and time, place, hosts, theme, plan.
 - `event-edit` edits it ("Rediger").

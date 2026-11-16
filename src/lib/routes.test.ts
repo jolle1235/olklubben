@@ -10,6 +10,8 @@ import {
   editFeedbackHref,
   editPlaceHref,
   editPollHref,
+  eventBeerHref,
+  isFromEventParam,
   eventHref,
   feedbackHref,
   feedbackListHref,
@@ -62,6 +64,15 @@ describe("club routes (SPEC §8.2)", () => {
     expect(beerHref(CLUB, BEER)).toBe(`/c/${CLUB}/beers/${BEER}`);
     expect(editBeerHref(CLUB, BEER)).toBe(`/c/${CLUB}/beers/${BEER}/edit`);
     expect(songsHref(CLUB)).toBe(`/c/${CLUB}/songs`);
+  });
+
+  it("marks a beer opened from its event, and reads only ?from=event back", () => {
+    expect(eventBeerHref(CLUB, BEER)).toBe(`/c/${CLUB}/beers/${BEER}?from=event`);
+    expect(isFromEventParam("event")).toBe(true);
+    expect(isFromEventParam(["event", "x"])).toBe(true);
+    expect(isFromEventParam(undefined)).toBe(false);
+    expect(isFromEventParam("Event")).toBe(false);
+    expect(isFromEventParam(["x", "event"])).toBe(false);
   });
 
   it("builds the place, club and profile routes (round 3, D-108)", () => {

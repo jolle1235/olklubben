@@ -78,7 +78,13 @@ function compareAverageDesc(a: number | null, b: number | null): number {
   return b - a;
 }
 
-const COMPARATORS: Record<BeerSort, (a: CatalogBeer, b: CatalogBeer) => number> = {
+/** What the sort orders read (the event page's beers sort the same way). */
+type SortableBeer = Pick<
+  CatalogBeer,
+  "id" | "name" | "abv" | "createdAt" | "averageStars" | "ratingCount"
+>;
+
+const COMPARATORS: Record<BeerSort, (a: SortableBeer, b: SortableBeer) => number> = {
   // Unrated last; then higher average, more ratings, name.
   rating: (a, b) =>
     compareAverageDesc(a.averageStars, b.averageStars) ||
@@ -97,7 +103,7 @@ const COMPARATORS: Record<BeerSort, (a: CatalogBeer, b: CatalogBeer) => number> 
 };
 
 /** A sorted copy (the input is not changed). Every sort has a full tie-breaker. */
-export function sortBeers<T extends CatalogBeer>(beers: readonly T[], sort: BeerSort): T[] {
+export function sortBeers<T extends SortableBeer>(beers: readonly T[], sort: BeerSort): T[] {
   return [...beers].sort(COMPARATORS[sort]);
 }
 

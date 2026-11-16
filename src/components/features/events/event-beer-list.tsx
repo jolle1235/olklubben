@@ -3,13 +3,13 @@ import { PlusIcon } from "lucide-react";
 
 import { BeerCard, type BeerCardBeer } from "@/components/features/beers/beer-card";
 import { Button } from "@/components/ui/button";
-import { beerHref, beerImageHref } from "@/lib/routes";
+import { beerImageHref, eventBeerHref } from "@/lib/routes";
 
 export type EventBeerListItem = BeerCardBeer & { id: string; imageVersion: number | null };
 
 export type EventBeerListProps = {
   clubId: string;
-  /** The event's beers in the order they were added (getEventBeers). */
+  /** The event's beers, best club rating first, unrated last (getEventBeers). */
   beers: readonly EventBeerListItem[];
   /** "+ Tilføj øl" with the event pre-filled. */
   addBeerHref: string;
@@ -18,10 +18,11 @@ export type EventBeerListProps = {
 };
 
 /**
- * "Øl smagt til dette event" (SPEC §9.2): the beers in the order they were
- * added, as the catalogue's cards (ABV, the club's rating and "Din: –" for
- * what you have not rated yet, §10.5), each linking to the beer page. Then
- * "+ Tilføj øl" with the event pre-filled.
+ * "Øl smagt til dette event" (SPEC §9.2): the beers as the catalogue's cards
+ * (ABV, the club's rating and "Din: –" for what you have not rated yet,
+ * §10.5), best rated first, each linking to the beer page
+ * opened "from the event" (back link, "Din rating" first). Then "+ Tilføj øl"
+ * with the event pre-filled.
  */
 export function EventBeerList({ clubId, beers, addBeerHref, emphasizeAdd }: EventBeerListProps) {
   return (
@@ -36,7 +37,7 @@ export function EventBeerList({ clubId, beers, addBeerHref, emphasizeAdd }: Even
             <li key={beer.id}>
               <BeerCard
                 beer={beer}
-                href={beerHref(clubId, beer.id)}
+                href={eventBeerHref(clubId, beer.id)}
                 imageUrl={beerImageHref(clubId, beer.id, beer.imageVersion, { thumb: true })}
               />
             </li>

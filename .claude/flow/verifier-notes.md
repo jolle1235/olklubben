@@ -63,4 +63,6 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-14 | setup-verify | assumed a logged-out `/join/<code>` redirects to `/login`; it shows its own teaser page ("Du er inviteret til en ølklub 🍺") → check the page before writing the journey (join.md)
 2026-11-14 | setup-verify | `getByLabel("Kælenavn (valgfrit)")` matched nothing ("(valgfrit)" is a separate part of the label) → `getByRole("textbox", { name: /^Kælenavn/ })` (profile.md)
 2026-11-14 | setup-verify | clicking 👍 on the calendar bug as Anders removed his vote: every seed user has already voted → use a new user to add a vote (feedback.md)
+2026-11-16 | event-beer-rating-ux | plan's E2E grep looked for click-then-toHaveURL only; `e2e/events.spec.ts` also asserted the event card's exact `href` → when a link's URL changes, grep `e2e/` for the href builder's output (`toHaveAttribute("href"`) too
+2026-11-16 | event-beer-rating-ux | `TastedAt` already links to the event, so a back-link check by name matched two links → match the back link with `exact: true` and its position above the h1
 ```

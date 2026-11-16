@@ -117,7 +117,7 @@ test.describe("Events", () => {
     await page.reload();
     await expect(page.getByRole("link", { name: /Testøl Dubbel/ })).toHaveAttribute(
       "href",
-      `/c/${clubId}/beers/${beerId}`,
+      `/c/${clubId}/beers/${beerId}?from=event`,
     );
 
     // Delete with the confirmation from §9.2 → Overblik. The beer stays (E13).

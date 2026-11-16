@@ -7,6 +7,7 @@ import { EventBeerList } from "@/components/features/events/event-beer-list";
 import { EventInvitation } from "@/components/features/events/event-invitation";
 import { EventManageActions } from "@/components/features/events/event-manage-actions";
 import { EventSection } from "@/components/features/events/event-section";
+import { RefreshBeersButton } from "@/components/features/events/refresh-beers-button";
 import { eventPrimaryAction } from "@/components/features/events/primary-action";
 import { Button } from "@/components/ui/button";
 import { LinkPendingIcon } from "@/components/ui/link-pending";
@@ -29,8 +30,9 @@ export async function generateMetadata({
  * Event detail, "som en invitation, ikke en formular" (SPEC §9.2): the
  * invitation (place, address, "Åbn i kort" or "Tilføj adresse", hosts),
  * Rediger/Slet for the creator, the hosts and admins (D-098), the plan and
- * the beers tasted at the event. An event a poll created links back to it
- * ("Valgt ved afstemning 🗳", §9.2, D-137).
+ * the beers tasted at the event, best rated first, with ↻ to fetch new
+ * ratings. An event a poll created links back to it ("Valgt ved afstemning
+ * 🗳", §9.2, D-137).
  *
  * The guard layout has already given a real 404 for an event that is not in
  * this club (E22, TG-008); requireEventPage() returns it and remembers the
@@ -99,7 +101,11 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
           </EventSection>
         ) : null}
 
-        <EventSection id="event-beers" title="Øl smagt til dette event">
+        <EventSection
+          id="event-beers"
+          title="Øl smagt til dette event"
+          action={<RefreshBeersButton />}
+        >
           <EventBeerList
             clubId={club.id}
             beers={beers}
