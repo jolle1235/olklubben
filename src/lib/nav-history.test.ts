@@ -26,7 +26,16 @@ describe("recordVisit", () => {
     expect(recordVisit(tasting, event)).toEqual([club, event]);
   });
 
-  it("pushes a new visit to an earlier page when another page came in between", () => {
+  it("rewinds over side trips from the event: its place, its poll, another event (bugs-r2-1)", () => {
+    for (const sideTrip of [`${club}/places/p1`, `${club}/polls/q1`, `${club}/events/e2`]) {
+      expect(recordVisit([`${club}/calendar`, event, sideTrip], event)).toEqual([
+        `${club}/calendar`,
+        event,
+      ]);
+    }
+  });
+
+  it("pushes a new visit to an earlier page when a main page came in between", () => {
     const stack = [`${club}/calendar`, event, club];
     expect(recordVisit(stack, event)).toEqual([...stack, event]);
   });
@@ -69,6 +78,25 @@ describe("backTarget", () => {
       stack = recordVisit(stack, url);
     }
     expect(backTarget(stack, event, club, fallback)).toBe(`${club}/calendar`);
+  });
+
+  it("does not bounce between the event and its place (bugs-r2-1)", () => {
+    let stack: string[] = [];
+    for (const url of [
+      `${club}/calendar`,
+      event,
+      `${club}/places/p1`,
+      event,
+      `${club}/places/p1`,
+    ]) {
+      stack = recordVisit(stack, url);
+    }
+    expect(backTarget(stack, event, club, fallback)).toBe(`${club}/calendar`);
+  });
+
+  it("goes to a main page reached via a side trip, e.g. Steder → place → event", () => {
+    const stack = [`${club}/places`, `${club}/places/p1`];
+    expect(backTarget(stack, event, club, fallback)).toBe(`${club}/places/p1`);
   });
 
   it("goes to the page the event was opened from this time (bugs-2, intent-1)", () => {

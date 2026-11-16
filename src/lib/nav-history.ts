@@ -15,24 +15,30 @@ const FORM_PATH = /\/(new|edit|import)$/;
 
 const pathOf = (url: string) => url.split(/[?#]/, 1)[0] ?? url;
 
-/** Create, edit and import forms, and beer pages: detours from the page they started on. */
-const isDetour = (url: string) =>
-  FORM_PATH.test(pathOf(url)) || /\/beers\/[^/]+$/.test(pathOf(url));
+/**
+ * The app's main pages (the navigation's destinations): Overblik, Kalender,
+ * Ølkatalog, Sangbog, Profil, Klubben, Steder, Feedback. Everything else
+ * (an event, a place, a poll, a beer, a form) is a side trip from where you were.
+ */
+const MAIN_PAGE =
+  /^(\/c\/[^/]+(\/(calendar|beers|songs|profile|club|places))?|\/profile|\/feedback)$/;
+const isMainPage = (url: string) => MAIN_PAGE.test(pathOf(url));
 
 /**
  * The stack after visiting `url` (path + query). Pages are compared by path:
  * the current page again (e.g. its ?toast= removed, another month) replaces
- * it. Back on an earlier page with only detours since (forms, beers: event →
- * "Tilføj øl" → the beer → "Smagt til" → event) rewinds to it, so "Tilbage"
- * does not bounce between the event and the beer. Anything else, also an
- * earlier page reached from somewhere new, is pushed (D-179, F-097).
+ * it. Back on an earlier page without a main page in between, the pages since
+ * were side trips from it (event → its place, its poll, "Tilføj øl" → the
+ * beer → "Smagt til"), so the stack rewinds to it and "Tilbage" never bounces
+ * between the two. With a main page in between it is a new visit, pushed
+ * (Kalender → event → Overblik → event goes back to Overblik). D-179, F-097.
  */
 export function recordVisit(stack: readonly string[], url: string): string[] {
   const path = pathOf(url);
   const last = stack.at(-1);
   if (last !== undefined && pathOf(last) === path) return [...stack.slice(0, -1), url];
   const earlier = stack.findLastIndex((visited) => pathOf(visited) === path);
-  if (earlier >= 0 && stack.slice(earlier + 1).every(isDetour)) {
+  if (earlier >= 0 && !stack.slice(earlier + 1).some(isMainPage)) {
     return [...stack.slice(0, earlier), url];
   }
   return [...stack, url].slice(-MAX_ENTRIES);
