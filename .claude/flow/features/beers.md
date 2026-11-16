@@ -5,8 +5,10 @@ rating ("Din: ★ 4,5"), with search, six sort orders and an event filter, all i
 has "Klubbens rating", "Din rating" (five stars with half points, saved at once with "Gemt ✓"),
 "Smagt til" and everyone's ratings. Opened from an event's list (`?from=event`) it is focused:
 "← <event title>" above the name (back to the event), then "Din rating", "Klubbens rating" and a
-smaller photo. The next beer of a tasting comes from the top bar's "+", which pre-fills the event.
-The person who added a beer and admins can edit and delete it.
+smaller photo. The next beer of a tasting is added from the event page ("Tilføj øl", pre-fills the
+event); the catalogue has "Tilføj øl" under its title (no "+" in the top bar, D-179). Last on a
+beer's page: "Tilføjet af <navn> · <dato>" with "Rediger"/"Slet øl" for the person who added it and
+admins.
 
 ## Sub-features
 

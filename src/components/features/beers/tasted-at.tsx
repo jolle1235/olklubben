@@ -13,11 +13,14 @@ export type TastedAtProps = {
 /**
  * "Smagt til" on the beer page (SPEC §9.5): "Ølsmagning #12 · 14. sep 2026"
  * as a link to the event, or "Ikke knyttet til et event". The next beer of
- * the same tasting comes from the top bar's "+" (§10.5).
+ * the same tasting is added from the event page (§10.5, D-179).
  */
 export function TastedAt({ clubId, event }: TastedAtProps) {
   return (
-    <section aria-labelledby="tasted-at-heading" className="grid grid-cols-1 gap-3">
+    <section
+      aria-labelledby="tasted-at-heading"
+      className="grid grid-cols-1 content-start gap-3 self-start"
+    >
       <h2 id="tasted-at-heading" className="text-title-md text-primary-ink">
         Smagt til
       </h2>

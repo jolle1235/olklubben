@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FileUpIcon, PlusIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
 import { SongbookBrowser } from "@/components/features/songs/songbook-browser";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -35,35 +34,26 @@ export default async function SongsPage({ params }: PageProps<"/c/[clubId]/songs
 
   return (
     <>
-      {canManage ? (
-        <TopBarAction>
-          <Button asChild size="icon" variant="highlight">
-            <Link href={addHref} aria-label="Tilføj sang">
-              <PlusIcon aria-hidden />
-            </Link>
-          </Button>
-        </TopBarAction>
-      ) : null}
-
       <PageHeader
         title="Sangbog"
         description={songCountLabel(entries.length)}
         action={
           canManage && entries.length > 0 ? (
-            <div className="flex gap-3">
-              <Button asChild variant="outline">
+            <>
+              <Button asChild variant="outline" className="max-md:w-full">
                 <Link href={importSongsHref(club.id)}>
                   <FileUpIcon aria-hidden />
                   Importér fra PDF
                 </Link>
               </Button>
-              <Button asChild className="hidden md:inline-flex">
+              {/* The primary first on mobile, where the buttons stack. */}
+              <Button asChild className="max-md:order-first max-md:w-full">
                 <Link href={addHref}>
                   <PlusIcon aria-hidden />
                   Tilføj sang
                 </Link>
               </Button>
-            </div>
+            </>
           ) : undefined
         }
       />

@@ -453,7 +453,7 @@ describe("Tilføj password for an Auth0-only account (D-152, D-166)", () => {
       ok: false,
       error: {
         code: ACTION_ERROR_CODES.REAUTH_REQUIRED,
-        message: "Log ind med Auth0 igen for at tilføje et password.",
+        message: "Log ind med Google igen for at tilføje et password.",
       },
     });
     expect(await db.account.count({ where: { userId: user.id, providerId: "credential" } })).toBe(

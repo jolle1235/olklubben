@@ -43,7 +43,7 @@ describe("getAuthErrorMessage", () => {
       "Det nuværende password er forkert.",
     );
     expect(getAuthErrorMessage({ code: "CREDENTIAL_ACCOUNT_NOT_FOUND" }, "change-password")).toBe(
-      "Du logger ind med Google eller Auth0 og har intet password her.",
+      "Du logger ind med Google og har intet password her.",
     );
     expect(getAuthErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "change-password")).toBe(
       "Password skal være mindst 8 tegn.",
@@ -112,8 +112,8 @@ describe("getOAuthErrorMessage", () => {
     expect(getOAuthErrorMessage("email_not_verified", "Auth0")).toBe(
       "Auth0 har ikke bekræftet din email, så vi kan ikke bruge Auth0-kontoen.",
     );
-    expect(getOAuthErrorMessage("connection_not_allowed", "Auth0")).toBe(
-      "Den måde at logge ind på i Auth0 er ikke tilladt her. Brug Google eller email og password.",
+    expect(getOAuthErrorMessage("connection_not_allowed", "Google")).toBe(
+      "Den måde at logge ind på er ikke tilladt her. Brug Google eller email og password.",
     );
     expect(emailFollowsExternal("Auth0")).toBe(
       "Du logger ind med Auth0, så din email følger din Auth0-konto.",

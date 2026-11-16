@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PencilIcon, PlusIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
 import { BackLink } from "@/components/features/back-link";
 import { BeerPhoto } from "@/components/features/beers/beer-photo";
 import { BeerRating } from "@/components/features/beers/beer-rating";
@@ -15,13 +14,7 @@ import { LinkPendingIcon } from "@/components/ui/link-pending";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatCompactDate, toDateKey } from "@/lib/format/date";
 import { getDisplayName } from "@/lib/format/display-name";
-import {
-  beerImageHref,
-  editBeerHref,
-  eventHref,
-  isFromEventParam,
-  newBeerHref,
-} from "@/lib/routes";
+import { beerImageHref, editBeerHref, eventHref, isFromEventParam } from "@/lib/routes";
 import { requireBeer, requireBeerPage } from "@/server/beers/access";
 import type { BeerDetail } from "@/server/beers/queries";
 import { formatAbv } from "@/server/domain/beers/abv";
@@ -38,8 +31,8 @@ export async function generateMetadata({
 
 /**
  * Øl-detail (SPEC §9.5): the club's rating, your own (tap to rate, §10.5),
- * which event it was tasted at, and everyone's ratings. Edit and delete for
- * the creator or an admin (§5.1, D-063).
+ * which event it was tasted at, and everyone's ratings. Last, "Tilføjet af"
+ * with edit and delete for the creator or an admin (§5.1, D-063, D-179).
  *
  * Opened from its event's list (?from=event, eventBeerHref) the page is
  * focused on rating: "← <event>" above the name, "Din rating" right under
@@ -58,22 +51,12 @@ export default async function BeerPage({
   const { user, membership, club, beer } = await requireBeerPage(clubId, beerId);
   const focusEvent = isFromEventParam((await searchParams).from) ? beer.event : null;
 
-  // During a tasting the next beer usually belongs to the same event (§10.5).
-  const addHref = newBeerHref(club.id, { eventId: beer.event?.id });
   const canEdit = canEditBeer(membership, beer, user.id);
   const canDelete = canDeleteBeer(membership, beer, user.id);
   const imageUrl = beerImageHref(club.id, beer.id, beer.imageVersion);
 
   return (
     <>
-      <TopBarAction>
-        <Button asChild size="icon" variant="highlight">
-          <Link href={addHref} aria-label="Tilføj øl">
-            <PlusIcon aria-hidden />
-          </Link>
-        </Button>
-      </TopBarAction>
-
       {focusEvent ? (
         <BackLink href={eventHref(club.id, focusEvent.id)}>{focusEvent.title}</BackLink>
       ) : null}
@@ -87,36 +70,7 @@ export default async function BeerPage({
       />
 
       <div className="mt-8 grid gap-8 md:mt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] md:gap-10">
-        <div className="grid grid-cols-1 content-start gap-8">
-          <TastedAt clubId={club.id} event={beer.event} />
-
-          <section aria-label="Om øllen" className="grid grid-cols-1 gap-3">
-            <p className="text-body-sm text-muted-foreground">
-              Tilføjet af {getDisplayName(beer.createdBy)} ·{" "}
-              <time dateTime={toDateKey(beer.createdAt)}>{formatCompactDate(beer.createdAt)}</time>
-            </p>
-            {canEdit || canDelete ? (
-              <div className="flex flex-wrap gap-3">
-                {canEdit ? (
-                  <Button asChild variant="outline">
-                    <Link href={editBeerHref(club.id, beer.id)}>
-                      <LinkPendingIcon icon={<PencilIcon aria-hidden />} />
-                      Rediger
-                    </Link>
-                  </Button>
-                ) : null}
-                {canDelete ? (
-                  <DeleteBeerButton
-                    clubId={club.id}
-                    beerId={beer.id}
-                    beerName={beer.name}
-                    ratingCount={beer.ratingCount}
-                  />
-                ) : null}
-              </div>
-            ) : null}
-          </section>
-        </div>
+        <TastedAt clubId={club.id} event={beer.event} />
 
         <section aria-labelledby="ratings-heading" className="grid grid-cols-1 content-start gap-3">
           <h2 id="ratings-heading" className="text-title-md text-primary-ink">
@@ -130,6 +84,36 @@ export default async function BeerPage({
           <RatingsList ratings={beer.ratings} currentUserId={user.id} />
         </section>
       </div>
+
+      <section
+        aria-label="Om øllen"
+        className="mt-10 grid grid-cols-1 gap-3 border-t border-border pt-6"
+      >
+        <p className="text-body-sm text-muted-foreground">
+          Tilføjet af {getDisplayName(beer.createdBy)} ·{" "}
+          <time dateTime={toDateKey(beer.createdAt)}>{formatCompactDate(beer.createdAt)}</time>
+        </p>
+        {canEdit || canDelete ? (
+          <div className="flex flex-wrap gap-3">
+            {canEdit ? (
+              <Button asChild variant="outline">
+                <Link href={editBeerHref(club.id, beer.id)}>
+                  <LinkPendingIcon icon={<PencilIcon aria-hidden />} />
+                  Rediger
+                </Link>
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <DeleteBeerButton
+                clubId={club.id}
+                beerId={beer.id}
+                beerName={beer.name}
+                ratingCount={beer.ratingCount}
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </section>
     </>
   );
 }

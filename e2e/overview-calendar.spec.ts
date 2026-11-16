@@ -39,9 +39,9 @@ function hero(page: Page) {
   return page.getByRole("region", { name: "Næste ølsmagning" });
 }
 
-/** The mobile top bar (< md), where the page's + action sits. */
-function topBar(page: Page) {
-  return page.getByRole("banner");
+/** The top bar's slot (TopBarAction): empty on the overview (D-179). */
+function topBarAction(page: Page) {
+  return page.locator("#top-bar-action");
 }
 
 test.describe("Overblik", () => {
@@ -118,9 +118,9 @@ test.describe("Overblik", () => {
     await expect(hero(page)).toContainText("Smagning i morgen");
     await expect(hero(page)).toContainText("I morgen!");
     await expect(hero(page).getByRole("link", { name: "Tilføj øl" })).toHaveCount(0);
-    if (isMobile(testInfo)) {
-      await expect(topBar(page).getByRole("link", { name: "Opret event" })).toBeVisible();
-    }
+    // No action in the top bar (D-179): "Opret event" is in the page.
+    await expect(page.getByRole("main").getByRole("link", { name: "Opret event" })).toBeVisible();
+    if (isMobile(testInfo)) await expect(topBarAction(page)).toBeEmpty();
 
     const now = Date.now();
     const ongoingId = await insertEvent({
@@ -141,12 +141,7 @@ test.describe("Overblik", () => {
       "href",
       `/c/${clubId}/songs`,
     );
-    // The top bar's + follows the hero (like the event page, D-080).
-    if (isMobile(testInfo)) {
-      const plus = topBar(page).getByRole("link", { name: "Tilføj øl" });
-      await expect(plus).toHaveAttribute("href", `/c/${clubId}/beers/new?eventId=${ongoingId}`);
-      await expect(topBar(page).getByRole("link", { name: "Opret event" })).toHaveCount(0);
-    }
+    if (isMobile(testInfo)) await expect(topBarAction(page)).toBeEmpty();
     // Tomorrow's event moves to "Kommende arrangementer".
     await expect(
       page

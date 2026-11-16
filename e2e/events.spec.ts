@@ -201,3 +201,44 @@ test.describe("Events", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Rediger event" })).toBeVisible();
   });
 });
+
+test.describe("Tilbage fra eventet (D-179)", () => {
+  test("går til siden man kom fra, springer formularen over, og til Kalender når den åbnes direkte", async ({
+    page,
+  }, testInfo) => {
+    const owner = newUser(testInfo, "tilbage");
+    const clubId = await signUpWithClub(page, owner, clubName(testInfo, "Tilbage"));
+    const eventId = await insertEvent({
+      clubId,
+      createdByEmail: owner.email,
+      title: "Smagning om tre dage",
+      startsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+    });
+    const main = page.getByRole("main");
+    const back = main.getByRole("link", { name: "Tilbage", exact: true });
+
+    // Opened directly: the calendar.
+    await page.goto(`/c/${clubId}/events/${eventId}`);
+    await expectHydrated(back);
+    await expect(back).toHaveAttribute("href", `/c/${clubId}/calendar`);
+
+    // From the overview's hero: back to the overview.
+    await page.goto(`/c/${clubId}`);
+    const seeEvent = main.getByRole("link", { name: "Se event" });
+    await expectHydrated(seeEvent);
+    await seeEvent.click();
+    await expect(page).toHaveURL(new RegExp(`/events/${eventId}$`));
+    await back.click();
+    await expect(page).toHaveURL(new RegExp(`/c/${clubId}$`));
+
+    // Created through the form from the overview: back past the form.
+    await main.getByRole("link", { name: "Opret event" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Opret event" })).toBeVisible();
+    await page.getByLabel("Dato").fill("2026-12-20");
+    await page.getByRole("button", { name: "Opret event" }).click();
+    // Wait until the toast has left the URL, so the click doesn't race that replace.
+    await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}$/);
+    await back.click();
+    await expect(page).toHaveURL(new RegExp(`/c/${clubId}$`));
+  });
+});

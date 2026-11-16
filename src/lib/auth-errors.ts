@@ -42,8 +42,8 @@ export const AUTH_ERROR_MESSAGES = {
   resetUnavailable: "Kontakt en admin i din klub for at få et nulstillingslink.",
   /** "Skift password" (§9.8, D-106): shown on the current-password field. */
   currentPasswordWrong: "Det nuværende password er forkert.",
-  /** "Skift password" for an account without a password login (Google or Auth0 only). */
-  noPasswordLogin: "Du logger ind med Google eller Auth0 og har intet password her.",
+  /** "Skift password" for an account without a password login (Google login only, D-179). */
+  noPasswordLogin: "Du logger ind med Google og har intet password her.",
   /** "Tilføj password" when the account already has one (D-152, fx a second tab). */
   passwordAlreadySet: "Du har allerede et password. Brug 'Skift password'.",
   rateLimited: DEFAULT_ERROR_MESSAGES.RATE_LIMITED,
@@ -135,7 +135,8 @@ export function getOAuthErrorMessage(
     case "unable_to_link_account":
       return `${label} har ikke bekræftet din email, så vi kan ikke bruge ${label}-kontoen.`;
     case "connection_not_allowed":
-      return `Den måde at logge ind på i ${label} er ikke tilladt her. Brug Google eller email og password.`;
+      // Without the label: Auth0 is called "Google" too (D-179).
+      return "Den måde at logge ind på er ikke tilladt her. Brug Google eller email og password.";
     case "account_already_linked_to_different_user":
       return `${label}-kontoen er allerede koblet til en anden bruger.`;
     case "access_denied":
