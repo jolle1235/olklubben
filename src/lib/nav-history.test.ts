@@ -20,8 +20,15 @@ describe("recordVisit", () => {
     ]);
   });
 
-  it("treats a visit to the page before the current one as going back", () => {
+  it("rewinds to an earlier visit when only forms and beers came after it", () => {
     expect(recordVisit([club, event, `${club}/beers/b1?from=event`], event)).toEqual([club, event]);
+    const tasting = [club, event, `${club}/beers/new?eventId=e1`, `${club}/beers/b1`];
+    expect(recordVisit(tasting, event)).toEqual([club, event]);
+  });
+
+  it("pushes a new visit to an earlier page when another page came in between", () => {
+    const stack = [`${club}/calendar`, event, club];
+    expect(recordVisit(stack, event)).toEqual([...stack, event]);
   });
 
   it("keeps at most 20 entries", () => {
@@ -49,6 +56,26 @@ describe("backTarget", () => {
   it("does not bounce between the event and a beer opened from it", () => {
     const stack = [`${club}/places/p1`, event, `${club}/beers/b1?from=event`];
     expect(backTarget(stack, event, club, fallback)).toBe(`${club}/places/p1`);
+  });
+
+  it("goes to where the tasting started after adding a beer and returning via the beer (bugs-1)", () => {
+    let stack: string[] = [];
+    for (const url of [
+      `${club}/calendar`,
+      event,
+      `${club}/beers/new?eventId=e1`,
+      `${club}/beers/b1`,
+    ]) {
+      stack = recordVisit(stack, url);
+    }
+    expect(backTarget(stack, event, club, fallback)).toBe(`${club}/calendar`);
+  });
+
+  it("goes to the page the event was opened from this time (bugs-2, intent-1)", () => {
+    const visits = [`${club}/calendar`, event, club];
+    expect(backTarget(visits, event, club, fallback)).toBe(club);
+    const reverse = [club, event, `${club}/calendar`];
+    expect(backTarget(reverse, event, club, fallback)).toBe(`${club}/calendar`);
   });
 
   it("goes past the event itself after its toast left the URL", () => {

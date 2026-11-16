@@ -15,19 +15,26 @@ const FORM_PATH = /\/(new|edit|import)$/;
 
 const pathOf = (url: string) => url.split(/[?#]/, 1)[0] ?? url;
 
+/** Create, edit and import forms, and beer pages: detours from the page they started on. */
+const isDetour = (url: string) =>
+  FORM_PATH.test(pathOf(url)) || /\/beers\/[^/]+$/.test(pathOf(url));
+
 /**
  * The stack after visiting `url` (path + query). Pages are compared by path:
  * the current page again (e.g. its ?toast= removed, another month) replaces
- * it; the page before the current one is a step back (pop, keeping the new
- * query); anything else is pushed. The pop is what stops event → beer →
- * "← event" from bouncing.
+ * it. Back on an earlier page with only detours since (forms, beers: event →
+ * "Tilføj øl" → the beer → "Smagt til" → event) rewinds to it, so "Tilbage"
+ * does not bounce between the event and the beer. Anything else, also an
+ * earlier page reached from somewhere new, is pushed (D-179, F-097).
  */
 export function recordVisit(stack: readonly string[], url: string): string[] {
   const path = pathOf(url);
   const last = stack.at(-1);
-  const previous = stack.at(-2);
   if (last !== undefined && pathOf(last) === path) return [...stack.slice(0, -1), url];
-  if (previous !== undefined && pathOf(previous) === path) return [...stack.slice(0, -2), url];
+  const earlier = stack.findLastIndex((visited) => pathOf(visited) === path);
+  if (earlier >= 0 && stack.slice(earlier + 1).every(isDetour)) {
+    return [...stack.slice(0, earlier), url];
+  }
   return [...stack, url].slice(-MAX_ENTRIES);
 }
 
