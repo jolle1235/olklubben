@@ -11,7 +11,9 @@ the profile.
 - `profile-name` change name and nickname (at most 40 characters).
 - `profile-email` "Skift email": logs other devices out.
 - `profile-password` "Skift password": keeps this device, logs the others out.
-- `profile-google` connect Google or add a password (not available on instances: no Google).
+- `profile-google` connect Google or add a password (not available on instances: no Google). The
+  "Google-login" card shows only for a password account without any Google/Auth0 login; Auth0 is
+  labelled "Google" everywhere (D-179). Proven by unit tests (`external-login-card.test.ts`).
 
 ## How to get to it (user POV)
 

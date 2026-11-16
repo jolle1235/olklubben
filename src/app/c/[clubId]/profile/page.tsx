@@ -19,6 +19,7 @@ import { firstParam } from "@/lib/auth-links";
 import { EXTERNAL_PROVIDERS } from "@/lib/auth-providers";
 import { profileHref } from "@/lib/routes";
 import { getSession, getUserClubs, requireClubPage } from "@/server/auth/session";
+import { externalLoginCard } from "@/server/domain/users/external-login-card";
 import { isFreshLogin } from "@/server/domain/users/login-freshness";
 import { getAccountLogins } from "@/server/users/queries";
 
@@ -38,11 +39,12 @@ export const metadata: Metadata = { title: "Profil" };
  *     minutes old, else the reason and "Log ind med … igen" (isFreshLogin on
  *     the session, cached per request; the action also checks Auth0's
  *     auth_time).
- *   * "{label}-login" (the configured external login, D-165, D-166): a
- *     password account without it gets "Forbind …" (linkSocial; the external
- *     account must have the same, verified email). It comes back with
- *     ?external=linked (shown only when the account really has it now) or
- *     ?error=<code>.
+ *   * "{label}-login" (the configured external login, D-165, D-166, D-179):
+ *     only a password account without any external login gets "Forbind …"
+ *     (linkSocial; the external account must have the same, verified email).
+ *     It comes back with ?external=linked (shown only when the account
+ *     really has it now) or ?error=<code>; without a card the error stands
+ *     alone at the top (externalLoginCard). Auth0 is shown as "Google".
  *
  * Each card is a region named by its heading.
  */
@@ -62,19 +64,26 @@ export default async function ProfilePage({
   const accountProvider = logins.external[0];
   const externalOnly = accountProvider !== undefined && !logins.hasPassword;
   const freshLogin = session !== null && isFreshLogin(session.session.createdAt, new Date());
-  // The configured external login (the "Forbind …" card).
+  // The configured external login (the "Forbind …" card, D-179).
   const configured = externalProvider ? EXTERNAL_PROVIDERS[externalProvider] : null;
-  const hasConfigured = externalProvider !== null && logins.external.includes(externalProvider);
   const externalError = configured
     ? getOAuthErrorMessage(firstParam(query.error), configured.label)
     : null;
-  const externalLinked = hasConfigured && firstParam(query.external) === "linked";
+  const externalCard = externalLoginCard({
+    configured: externalProvider,
+    hasPassword: logins.hasPassword,
+    external: logins.external,
+    linkedParam: firstParam(query.external) === "linked",
+  });
 
   return (
     <>
       <PageHeader title="Profil" />
 
       <div className="flex flex-col gap-8">
+        {/* A failed external login with no card to show it in (D-179). */}
+        {externalError && !externalCard ? <FormAlert>{externalError}</FormAlert> : null}
+
         <ProfileIdentity
           name={user.name}
           nickname={user.nickname}
@@ -145,20 +154,15 @@ export default async function ProfilePage({
           </ProfileSection>
         ) : null}
 
-        {externalProvider && configured && (logins.hasPassword || hasConfigured) ? (
+        {externalProvider && configured && externalCard ? (
           <ProfileSection
             title={`${configured.label}-login`}
             headingId="profile-external-heading"
             contentClassName="grid gap-4"
           >
-            {externalLinked ? (
-              <FormAlert tone="success">{configured.label} er forbundet.</FormAlert>
-            ) : null}
             {externalError ? <FormAlert>{externalError}</FormAlert> : null}
-            {hasConfigured ? (
-              <p className="text-lead text-muted-foreground">
-                Du kan logge ind med {configured.label}.
-              </p>
+            {externalCard === "linked" ? (
+              <FormAlert tone="success">{configured.label} er forbundet.</FormAlert>
             ) : (
               <>
                 <p className="text-lead text-muted-foreground">

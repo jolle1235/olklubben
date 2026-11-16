@@ -16,7 +16,7 @@ remove from the club.
 
 ## How to get to it (user POV)
 
-- The club switcher's club page, or "Inviter" in the top bar on mobile.
+- The club switcher's club page; "Inviter" under the club's name (also on mobile, D-179).
 - Profil → "Klubbens side".
 
 ## Driving it with the verify driver

@@ -3,7 +3,11 @@ import { cn } from "@/lib/utils";
 export type PageHeaderProps = {
   title: React.ReactNode;
   description?: React.ReactNode;
-  /** The screen's one primary action (SPEC §13.4), e.g. a <Button>. */
+  /**
+   * The screen's one primary action (SPEC §13.4), e.g. a <Button>. On mobile it
+   * sits on its own line under the title (D-179: no action in the top bar);
+   * give its buttons `max-md:w-full` to fill that line.
+   */
   action?: React.ReactNode;
   className?: string;
 };
@@ -27,7 +31,7 @@ export function PageHeader({ title, description, action, className }: PageHeader
           </p>
         ) : null}
       </div>
-      {action ? <div className="flex shrink-0 flex-wrap gap-3">{action}</div> : null}
+      {action ? <div className="flex shrink-0 flex-wrap gap-3 max-md:w-full">{action}</div> : null}
     </header>
   );
 }

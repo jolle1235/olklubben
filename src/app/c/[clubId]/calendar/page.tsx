@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon, VoteIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
 import { CalendarHistory } from "@/components/features/calendar/calendar-history";
 import { CalendarList } from "@/components/features/calendar/calendar-list";
 import { CalendarMonth } from "@/components/features/calendar/calendar-month";
@@ -85,14 +84,7 @@ export default async function CalendarPage({
     <>
       <CalendarViewToggle clubId={club.id} active="list" month={keptMonth} />
       <div className="flex flex-col gap-10 md:gap-12">
-        <CalendarList
-          clubId={club.id}
-          events={upcoming}
-          pollDates={listPollDates}
-          now={now}
-          newEventHref={newEventHref}
-          newPollHref={newPollHref}
-        />
+        <CalendarList clubId={club.id} events={upcoming} pollDates={listPollDates} now={now} />
         <CalendarHistory
           clubId={club.id}
           events={pastEvents}
@@ -123,31 +115,24 @@ export default async function CalendarPage({
 
   return (
     <>
-      <TopBarAction>
-        <Button asChild size="icon" variant="highlight">
-          <Link href={newEventHref} aria-label="Opret event">
-            <PlusIcon aria-hidden />
-          </Link>
-        </Button>
-      </TopBarAction>
-
       <PageHeader
         title="Kalender"
         action={
-          <div className="hidden flex-wrap items-center gap-3 md:flex">
-            <Button asChild variant="outline">
+          <>
+            <Button asChild variant="outline" className="max-md:w-full">
               <Link href={newPollHref}>
                 <VoteIcon aria-hidden />
                 Planlæg ølsmagning
               </Link>
             </Button>
-            <Button asChild>
+            {/* The primary first on mobile, where the buttons stack. */}
+            <Button asChild className="max-md:order-first max-md:w-full">
               <Link href={newEventHref}>
                 <PlusIcon aria-hidden />
                 Opret event
               </Link>
             </Button>
-          </div>
+          </>
         }
       />
 

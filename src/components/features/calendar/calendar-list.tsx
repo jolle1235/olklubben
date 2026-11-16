@@ -1,7 +1,5 @@
-import Link from "next/link";
-import { CalendarDaysIcon, PlusIcon, VoteIcon } from "lucide-react";
+import { CalendarDaysIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { groupEventsByMonth } from "@/server/domain/calendar/group";
 import { monthKeyLabel } from "@/server/domain/calendar/month";
@@ -17,8 +15,6 @@ export type CalendarListProps = {
   /** Possible dates of the club's OPEN/AWAITING polls from now on (round 4, D-137). */
   pollDates?: CalendarPollDate[];
   now: Date;
-  newEventHref: string;
-  newPollHref: string;
 };
 
 /**
@@ -26,39 +22,16 @@ export type CalendarListProps = {
  * grouped by month ("OKTOBER 2026"), each a big card – with the possible
  * dates of open polls merged in as dashed PollOptionCards ("Mulig dato"),
  * each on its own date. The past tastings follow in their own section
- * (CalendarHistory, D-107).
+ * (CalendarHistory, D-107). Empty, it has no buttons of its own: the page
+ * header holds "Opret event" and "Planlæg ølsmagning" at every width (D-179).
  */
-export function CalendarList({
-  clubId,
-  events,
-  pollDates = [],
-  now,
-  newEventHref,
-  newPollHref,
-}: CalendarListProps) {
+export function CalendarList({ clubId, events, pollDates = [], now }: CalendarListProps) {
   if (events.length === 0 && pollDates.length === 0) {
     return (
       <EmptyState
         icon={<CalendarDaysIcon />}
         title="Ingen kommende ølsmagninger endnu 🍺"
         description="Sæt en dato i kalenderen – eller lad klubben stemme om, hvornår og hvor."
-        actions={
-          // From md the page header holds the same buttons (one primary action, §13.4).
-          <>
-            <Button asChild size="lg" className="md:hidden">
-              <Link href={newEventHref}>
-                <PlusIcon aria-hidden />
-                Opret event
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="md:hidden">
-              <Link href={newPollHref}>
-                <VoteIcon aria-hidden />
-                Planlæg ølsmagning
-              </Link>
-            </Button>
-          </>
-        }
       />
     );
   }

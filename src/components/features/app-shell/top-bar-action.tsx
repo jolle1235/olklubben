@@ -10,12 +10,12 @@ const getSlot = () => document.getElementById(TOP_BAR_ACTION_SLOT_ID);
 const getServerSlot = () => null;
 
 /**
- * Puts a page's primary action in the mobile top bar, to the right of the club
- * name (SPEC §8.1, fx "+"). Render it anywhere in a page inside AppShell. The
- * top bar is hidden from md and up, so also show the action in the page (e.g. in
- * PageHeader with `className="hidden md:inline-flex"`).
+ * Puts a page tool in the mobile top bar, to the right of the club name
+ * (SPEC §8.1), e.g. the song reader's text size. Not for "+"/add actions:
+ * those sit in the page, under the title (PageHeader action, D-179). Render
+ * it anywhere in a page inside AppShell; the top bar is hidden from md up.
  *
- * Use a button that works on the frame: <Button size="icon" variant="highlight" aria-label="Opret event">.
+ * Use buttons that work on the frame (variant "ghost" or "highlight").
  */
 export function TopBarAction({ children }: { children: React.ReactNode }) {
   const slot = useSyncExternalStore(subscribe, getSlot, getServerSlot);

@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PencilIcon, PlusIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
+import { EventBackLink } from "@/components/features/events/event-back-link";
 import { EventBeerList } from "@/components/features/events/event-beer-list";
 import { EventInvitation } from "@/components/features/events/event-invitation";
 import { EventManageActions } from "@/components/features/events/event-manage-actions";
 import { EventSection } from "@/components/features/events/event-section";
 import { RefreshBeersButton } from "@/components/features/events/refresh-beers-button";
 import { eventPrimaryAction } from "@/components/features/events/primary-action";
-import { Button } from "@/components/ui/button";
-import { LinkPendingIcon } from "@/components/ui/link-pending";
 import { getDisplayName } from "@/lib/format/display-name";
 import { editEventHref, newBeerHref } from "@/lib/routes";
 import { canDeleteEvent, canEditEvent } from "@/server/domain/events/permissions";
@@ -52,22 +48,9 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
 
   return (
     <>
-      <TopBarAction>
-        {primary === "edit" ? (
-          <Button asChild size="icon" variant="highlight">
-            <Link href={editHref} aria-label="Rediger event">
-              <LinkPendingIcon icon={<PencilIcon aria-hidden />} />
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild size="icon" variant="highlight">
-            <Link href={addBeerHref} aria-label="Tilføj øl">
-              <PlusIcon aria-hidden />
-            </Link>
-          </Button>
-        )}
-      </TopBarAction>
-
+      <div className="mx-auto max-w-2xl">
+        <EventBackLink clubId={club.id} eventId={event.id} />
+      </div>
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
         <EventInvitation
           clubId={club.id}

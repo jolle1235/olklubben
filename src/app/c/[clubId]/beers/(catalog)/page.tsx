@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BeerIcon, PlusIcon, SearchXIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
 import { BeerCard } from "@/components/features/beers/beer-card";
 import { CatalogControls } from "@/components/features/beers/catalog-controls";
 import {
@@ -60,19 +59,11 @@ export default async function BeersPage({ params, searchParams }: PageProps<"/c/
 
   return (
     <>
-      <TopBarAction>
-        <Button asChild size="icon" variant="highlight">
-          <Link href={addHref} aria-label="Tilføj øl">
-            <PlusIcon aria-hidden />
-          </Link>
-        </Button>
-      </TopBarAction>
-
       <PageHeader
         title="Ølkatalog"
         action={
           isEmpty ? undefined : (
-            <Button asChild className="hidden md:inline-flex">
+            <Button asChild className="max-md:w-full">
               <Link href={addHref}>
                 <PlusIcon aria-hidden />
                 Tilføj øl
