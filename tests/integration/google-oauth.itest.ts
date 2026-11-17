@@ -349,7 +349,7 @@ describe("endpoints the app does not use are closed (D-165)", () => {
   });
 });
 
-describe("Google login only with the app's own parameters (D-165, D-178, F-097)", () => {
+describe("Google login only with the app's own parameters (D-165, D-180, F-098)", () => {
   it("refuses scopes and every additionalParams, prompt=login included, on both paths", async () => {
     const user = await passwordUser();
     const base = { provider: "google", callbackURL: "/ok" };

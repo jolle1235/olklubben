@@ -2,7 +2,7 @@ import type { EventTiming } from "@/server/domain/events/status";
 
 /**
  * The event page's one primary action (SPEC §13.4.5), shown highlighted in
- * the page and as the mobile top bar action:
+ * the page (D-179: not in the mobile top bar):
  *
  *   * Before the start, for the creator, a host or an admin: "Rediger". Until the
  *     tasting, fixing the time, place or plan is what they come for.

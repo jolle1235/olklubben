@@ -8,7 +8,7 @@ export type TopBarProps = {
   className?: string;
 };
 
-/** Mobile top bar (< md): the club name (ClubSwitcher) and a slot for the page's primary action. */
+/** Mobile top bar (< md): the club name (ClubSwitcher) and a slot for a page tool (TopBarAction). */
 export function TopBar({ club, clubs, className }: TopBarProps) {
   return (
     <header

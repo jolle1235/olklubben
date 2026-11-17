@@ -1,22 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PlusIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
 import { NextEventHero } from "@/components/features/overview/next-event-hero";
 import { NoEventsState, PlanActions } from "@/components/features/overview/no-events-state";
 import { PastEvents } from "@/components/features/overview/past-events";
 import { UpcomingEvents } from "@/components/features/overview/upcoming-events";
 import { PollCard } from "@/components/features/polls/poll-card";
-import { Button } from "@/components/ui/button";
-import {
-  newBeerHref,
-  newEventHref as newEventPath,
-  newPollHref as newPollPath,
-} from "@/lib/routes";
+import { newEventHref as newEventPath, newPollHref as newPollPath } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
 import { OVERVIEW_HISTORY_LIMIT } from "@/server/domain/events/history";
-import { heroState } from "@/server/domain/events/status";
 import { getNextEvent, listPastEvents, listUpcomingEvents } from "@/server/events/queries";
 import { canManagePoll } from "@/server/domain/polls/permissions";
 import { closeDuePolls } from "@/server/polls/close";
@@ -34,9 +25,9 @@ const UPCOMING_LIMIT = 4;
  * event] and [🗳 Planlæg ølsmagning]. Without an upcoming or ongoing event
  * and without an active poll: "Ingen kommende ølsmagninger endnu 🍺". Last, quietly, the
  * newest past tastings ("Tidligere ølsmagninger", §13.4.2, D-107). The
- * invitation lives on the club page (D-163). The top bar's + follows the
- * hero, like on the event page (D-080): "Tilføj øl" to the event while it is
- * on, else "Opret event".
+ * invitation lives on the club page (D-163). No action in the top bar
+ * (D-179): "Opret event" is in the page, "Tilføj øl" in the hero while an
+ * event is on.
  *
  * The h1 "Overblik" is for screen readers only: the first thing you SEE is
  * the next event (§3.2), the club's name is already in the top bar/sidebar,
@@ -95,25 +86,9 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
         ))}
       </div>
     ) : null;
-  // The hero's state with the same "now": while the event is on, its primary is "Tilføj øl".
-  const ongoing = nextEvent !== null && heroState(nextEvent, now).kind === "ongoing";
 
   return (
     <>
-      <TopBarAction>
-        <Button asChild size="icon" variant="highlight">
-          {ongoing ? (
-            <Link href={newBeerHref(club.id, { eventId: nextEvent.id })} aria-label="Tilføj øl">
-              <PlusIcon aria-hidden />
-            </Link>
-          ) : (
-            <Link href={newEventHref} aria-label="Opret event">
-              <PlusIcon aria-hidden />
-            </Link>
-          )}
-        </Button>
-      </TopBarAction>
-
       <h1 className="sr-only">Overblik</h1>
 
       <div className="flex flex-col gap-8 md:gap-10">

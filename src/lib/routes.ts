@@ -1,3 +1,4 @@
+import { firstParam, type SearchParamValue } from "@/lib/search-params";
 import { feedbackListSearch, type FeedbackListParams } from "@/server/domain/feedback/list-params";
 import { toFeedbackPagePath } from "@/server/domain/feedback/page-path";
 import type { FeedbackType } from "@/server/domain/feedback/status";
@@ -49,6 +50,22 @@ export function beersHref(clubId: string): string {
 
 export function beerHref(clubId: string, beerId: string): string {
   return `${beersHref(clubId)}/${beerId}`;
+}
+
+const FROM_EVENT = "event";
+
+/**
+ * A beer opened from its event's list: the beer page shows "← <event>" and
+ * puts "Din rating" first (SPEC §9.5 "Fra eventet"). The back link's target
+ * comes from the beer's own event, never from the URL.
+ */
+export function eventBeerHref(clubId: string, beerId: string): string {
+  return `${beerHref(clubId, beerId)}?from=${FROM_EVENT}`;
+}
+
+/** True for `?from=event`; anything else is ignored. */
+export function isFromEventParam(from: SearchParamValue): boolean {
+  return firstParam(from) === FROM_EVENT;
 }
 
 /**

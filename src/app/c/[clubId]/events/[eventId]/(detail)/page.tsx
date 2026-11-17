@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PencilIcon, PlusIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
+import { EventBackLink } from "@/components/features/events/event-back-link";
 import { EventBeerList } from "@/components/features/events/event-beer-list";
 import { EventInvitation } from "@/components/features/events/event-invitation";
 import { EventManageActions } from "@/components/features/events/event-manage-actions";
 import { EventSection } from "@/components/features/events/event-section";
+import { RefreshBeersButton } from "@/components/features/events/refresh-beers-button";
 import { eventPrimaryAction } from "@/components/features/events/primary-action";
-import { Button } from "@/components/ui/button";
-import { LinkPendingIcon } from "@/components/ui/link-pending";
 import { getDisplayName } from "@/lib/format/display-name";
 import { editEventHref, newBeerHref } from "@/lib/routes";
 import { canDeleteEvent, canEditEvent } from "@/server/domain/events/permissions";
@@ -29,8 +26,9 @@ export async function generateMetadata({
  * Event detail, "som en invitation, ikke en formular" (SPEC §9.2): the
  * invitation (place, address, "Åbn i kort" or "Tilføj adresse", hosts),
  * Rediger/Slet for the creator, the hosts and admins (D-098), the plan and
- * the beers tasted at the event. An event a poll created links back to it
- * ("Valgt ved afstemning 🗳", §9.2, D-137).
+ * the beers tasted at the event, best rated first, with ↻ to fetch new
+ * ratings. An event a poll created links back to it ("Valgt ved afstemning
+ * 🗳", §9.2, D-137).
  *
  * The guard layout has already given a real 404 for an event that is not in
  * this club (E22, TG-008); requireEventPage() returns it and remembers the
@@ -50,22 +48,9 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
 
   return (
     <>
-      <TopBarAction>
-        {primary === "edit" ? (
-          <Button asChild size="icon" variant="highlight">
-            <Link href={editHref} aria-label="Rediger event">
-              <LinkPendingIcon icon={<PencilIcon aria-hidden />} />
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild size="icon" variant="highlight">
-            <Link href={addBeerHref} aria-label="Tilføj øl">
-              <PlusIcon aria-hidden />
-            </Link>
-          </Button>
-        )}
-      </TopBarAction>
-
+      <div className="mx-auto max-w-2xl">
+        <EventBackLink clubId={club.id} eventId={event.id} />
+      </div>
       <div className="mx-auto flex max-w-2xl flex-col gap-8">
         <EventInvitation
           clubId={club.id}
@@ -99,7 +84,11 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
           </EventSection>
         ) : null}
 
-        <EventSection id="event-beers" title="Øl smagt til dette event">
+        <EventSection
+          id="event-beers"
+          title="Øl smagt til dette event"
+          action={<RefreshBeersButton />}
+        >
           <EventBeerList
             clubId={club.id}
             beers={beers}

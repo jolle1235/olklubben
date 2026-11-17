@@ -156,7 +156,7 @@ Before publishing, update SPEC.md (rules 2–6 in §19.1):
 - Next.js 16 App Router: read `node_modules/next/dist/docs/` before using an API; `src/proxy.ts` is the middleware.
 - Server Actions in `src/server/actions/` return `ActionResult` (`src/lib/action-result.ts`); pages are server components.
 - Prisma 7 with the pg adapter on Postgres (Neon in production); always the shared `db` from `src/server/db`.
-- Better Auth for sessions (`src/server/auth/`); Google is the one optional external login (`isGoogleConfigured`, D-178), next to email/password.
+- Better Auth for sessions (`src/server/auth/`); Google is the one optional external login (`isGoogleConfigured`, D-180), next to email/password.
 - Every feature authorizes on the server (Definition of Done, §15.1); club isolation is non-negotiable (§4.4): any read or write of club data is scoped to a club the user is a member of.
 - Tailwind with the design tokens from `src/styles/tokens` (`npm run tokens`, checked by `check:tokens`); UI primitives in `src/components/ui/`.
 - All URL state through `src/lib/routes.ts`; invalid params are ignored, never a 404.

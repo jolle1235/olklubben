@@ -70,7 +70,7 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
  * UserNotFoundError when the user is gone.
  *
  * In the same transaction every external login (today only Google, and any
- * leftover provider row fails closed) is removed (D-165, D-178): it belongs to
+ * leftover provider row fails closed) is removed (D-165, D-180): it belongs to
  * the old email. Otherwise someone could link their Google, switch
  * to an address they do not own and keep logging in after the real owner
  * resets the password. Returns the stored email and whether an external login

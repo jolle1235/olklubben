@@ -123,7 +123,7 @@ export type ParsedEnv = {
    * else BETTER_AUTH_URL.
    */
   appBaseUrl: string;
-  /** The Google client when both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set, else null (D-178). */
+  /** The Google client when both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set, else null (D-180). */
   google: { clientId: string; clientSecret: string } | null;
   /** google !== null: Google is the one external login. */
   isGoogleConfigured: boolean;
@@ -139,7 +139,7 @@ export type ParsedEnv = {
 
 type RawEnv = Record<string, string | undefined>;
 
-/** Auth0 was removed (D-178); a leftover value is ignored with a warning, never an error. */
+/** Auth0 was removed (D-180); a leftover value is ignored with a warning, never an error. */
 const STALE_AUTH0_KEYS = ["AUTH0_DOMAIN", "AUTH0_CLIENT_ID", "AUTH0_CLIENT_SECRET"] as const;
 
 /** Treats empty strings ("" from a copied .env.example) as "not set". */
@@ -195,11 +195,11 @@ export function parseEnv(source: RawEnv): ParsedEnv {
     );
   }
 
-  // Read from the raw source: the schema no longer knows these keys (D-178).
+  // Read from the raw source: the schema no longer knows these keys (D-180).
   const staleAuth0 = STALE_AUTH0_KEYS.filter((key) => source[key]?.trim());
   if (staleAuth0.length > 0) {
     warnings.push(
-      `${staleAuth0.join(", ")} er sat, men Auth0 bruges ikke længere (D-178): slet variablerne, fx i Vercel.`,
+      `${staleAuth0.join(", ")} er sat, men Auth0 bruges ikke længere (D-180): slet variablerne, fx i Vercel.`,
     );
   }
 

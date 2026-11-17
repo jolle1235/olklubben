@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 /**
  * "Log ud" (SPEC §9.8). Ends the session and goes to /login. Google has no
  * session of ours to end, so the next "Fortsæt med Google" shows Google's
- * account chooser (prompt=select_account, D-178).
+ * account chooser (prompt=select_account, D-180).
  * variant "outline": the button on Profil. "link": inline text, e.g. in the
  * "Logget ind som …" footer on onboarding pages. "sidebar": a row under the
  * user in the desktop sidebar, so logging out needs no trip to Profil.

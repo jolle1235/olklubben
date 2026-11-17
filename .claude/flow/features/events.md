@@ -2,22 +2,29 @@
 
 A tasting has its own page `/c/<clubId>/events/<eventId>` that reads like an invitation: title, theme,
 time, place with "Åbn i kort" (or "Tilføj adresse"), hosts, "Planen", and "Øl smagt til dette event"
-with "+ Tilføj øl". The creator, the hosts and admins can edit and delete it. New events come from
-"Opret event" (`/c/<clubId>/events/new`).
+with "+ Tilføj øl". The beers are sorted by the club's rating (best first, unrated last), and a ↻
+button ("Hent nye ratings") at the right of that heading fetches new ratings without a reload. A beer
+card opens the beer page "from the event" (`?from=event`, see beers.md). The creator, the hosts and
+admins can edit and delete it. "← Tilbage" above the invitation goes to the club page the user came from
+(Overblik, Kalender, a place, a beer; forms skipped), or Kalender when the event was opened directly or
+after a reload (D-179). New events come from "Opret event" (`/c/<clubId>/events/new`).
 
 ## Sub-features
 
-- `event-page` shows time, place, hosts, plan and the event's beers.
+- `event-page` shows time, place, hosts, plan and the event's beers (sorted by rating, ↻ "Hent nye ratings").
 - `event-create` creates an event: title (suggested "Ølsmagning #N"), date, start time, optional end
   day and time, place, hosts, theme, plan.
 - `event-edit` edits it ("Rediger").
 - `event-delete` deletes it ("Slet event"); its beers stay in the catalogue without an event.
+- `event-back` "Tilbage" to where the user came from (tab history in sessionStorage, `src/lib/nav-history.ts`).
+  Drive it by clicking through the app in one page: `page.goto` is a full load and resets the history.
 
 ## How to get to it (user POV)
 
 - Overblik → the hero card or a row under "Kommende arrangementer".
 - Kalender → an event.
-- The "+" in the top bar (mobile) or "Opret event" on Overblik/Kalender for a new one.
+- "Opret event" on Overblik or under the title on Kalender (also on mobile; no "+" in the top bar,
+  D-179), or "Opret event her" on a place, for a new one.
 
 ## Driving it with the verify driver
 

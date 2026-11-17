@@ -31,7 +31,7 @@ function catchError(run: () => unknown): unknown {
   throw new Error("expected an error");
 }
 
-describe("assertOwnExternalLoginParams (D-165, D-178)", () => {
+describe("assertOwnExternalLoginParams (D-165, D-180)", () => {
   const login = { provider: "google", callbackURL: "/", errorCallbackURL: "/login" };
 
   it("afviser et id-token på alle stier", () => {

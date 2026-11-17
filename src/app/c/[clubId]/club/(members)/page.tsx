@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PencilIcon, UserPlusIcon } from "lucide-react";
 
-import { TopBarAction } from "@/components/features/app-shell";
 import { ClubPlacesRow } from "@/components/features/clubs/club-places-row";
 import { DeleteClubDialog } from "@/components/features/clubs/delete-club-dialog";
 import { InviteSection } from "@/components/features/clubs/invite-section";
@@ -56,21 +55,8 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
   ]);
   const roster = new Map(members.map((member) => [member.userId, member.role]));
 
-  const inviteAction = (
-    <a href="#invite" aria-label="Inviter medlemmer">
-      <UserPlusIcon aria-hidden />
-      <span className="max-md:sr-only">Inviter</span>
-    </a>
-  );
-
   return (
     <>
-      <TopBarAction>
-        <Button asChild size="icon" variant="highlight">
-          {inviteAction}
-        </Button>
-      </TopBarAction>
-
       <PageHeader
         title={club.name}
         description={
@@ -95,8 +81,11 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
                 </Link>
               </Button>
             ) : null}
-            <Button asChild variant="outline" className="hidden md:inline-flex">
-              {inviteAction}
+            <Button asChild variant="outline" className="max-md:w-full">
+              <a href="#invite" aria-label="Inviter medlemmer">
+                <UserPlusIcon aria-hidden />
+                Inviter
+              </a>
             </Button>
           </>
         }

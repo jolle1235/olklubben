@@ -105,7 +105,7 @@ describe("getOAuthErrorMessage", () => {
     );
   });
 
-  it("names Google in every text (D-178)", () => {
+  it("names Google in every text (D-180)", () => {
     expect(getOAuthErrorMessage("account_not_linked")).toContain(
       "og forbind Google på din profil.",
     );

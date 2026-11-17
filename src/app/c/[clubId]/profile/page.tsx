@@ -18,6 +18,7 @@ import { EMAIL_FOLLOWS_GOOGLE, getOAuthErrorMessage } from "@/lib/auth-errors";
 import { firstParam } from "@/lib/auth-links";
 import { profileHref } from "@/lib/routes";
 import { getSession, getUserClubs, requireClubPage } from "@/server/auth/session";
+import { externalLoginCard } from "@/server/domain/users/external-login-card";
 import { isFreshLogin } from "@/server/domain/users/login-freshness";
 import { getAccountLogins } from "@/server/users/queries";
 
@@ -36,11 +37,12 @@ export const metadata: Metadata = { title: "Profil" };
  *     Google login get "Tilføj password" while that login is less than 10
  *     minutes old, else the reason and "Log ind med Google igen" (isFreshLogin
  *     on the session, cached per request; the action checks again, D-152).
- *   * "Google-login" (only when Google is configured, D-165, D-178): a
- *     password account without it gets "Forbind Google" (linkSocial; the Google
- *     account must have the same, verified email). It comes back with
- *     ?external=linked (shown only when the account really has it now) or
- *     ?error=<code>.
+ *   * "Google-login" (only when Google is configured, D-165, D-180, D-179):
+ *     only a password account without Google gets "Forbind Google"
+ *     (linkSocial; the Google account must have the same, verified email). It
+ *     comes back with ?external=linked (shown only when the account really has
+ *     it now) or ?error=<code>; without a card the error stands alone at the
+ *     top (externalLoginCard).
  *
  * Each card is a region named by its heading.
  */
@@ -60,13 +62,21 @@ export default async function ProfilePage({
   const freshLogin = session !== null && isFreshLogin(session.session.createdAt, new Date());
   // "Forbind Google" lands here with ?external=linked, or ?error=<code> when it failed.
   const googleError = getOAuthErrorMessage(firstParam(query.error));
-  const googleLinked = logins.hasGoogle && firstParam(query.external) === "linked";
+  const googleCard = externalLoginCard({
+    googleConfigured: isGoogleConfigured && hasLogin,
+    hasPassword: logins.hasPassword,
+    hasGoogle: logins.hasGoogle,
+    linkedParam: firstParam(query.external) === "linked",
+  });
 
   return (
     <>
       <PageHeader title="Profil" />
 
       <div className="flex flex-col gap-8">
+        {/* A failed Google login with no card to show it in (D-179). */}
+        {googleError && !googleCard ? <FormAlert>{googleError}</FormAlert> : null}
+
         <ProfileIdentity
           name={user.name}
           nickname={user.nickname}
@@ -125,16 +135,15 @@ export default async function ProfilePage({
           </ProfileSection>
         ) : null}
 
-        {isGoogleConfigured && hasLogin ? (
+        {googleCard ? (
           <ProfileSection
             title="Google-login"
             headingId="profile-google-heading"
             contentClassName="grid gap-4"
           >
-            {googleLinked ? <FormAlert tone="success">Google er forbundet.</FormAlert> : null}
             {googleError ? <FormAlert>{googleError}</FormAlert> : null}
-            {logins.hasGoogle ? (
-              <p className="text-lead text-muted-foreground">Du kan logge ind med Google.</p>
+            {googleCard === "linked" ? (
+              <FormAlert tone="success">Google er forbundet.</FormAlert>
             ) : (
               <>
                 <p className="text-lead text-muted-foreground">

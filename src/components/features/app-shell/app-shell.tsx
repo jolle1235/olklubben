@@ -1,5 +1,6 @@
 import { BottomNav } from "./bottom-nav";
 import type { ClubSummary } from "./club-switcher";
+import { NavHistoryTracker } from "./nav-history-tracker";
 import { Sidebar, type ShellUser } from "./sidebar";
 import { TopBar } from "./top-bar";
 
@@ -14,6 +15,7 @@ export type AppShellProps = {
  * Frame for every club page (/c/[clubId]/…). Mobile: top bar with the club
  * name + fixed bottom navigation. Desktop (md+): sidebar on the left.
  * Server Component; the interactive parts are client components.
+ * NavHistoryTracker records the tab's pages for "Tilbage" (D-179).
  * data-app-shell is styled in globals.css.
  */
 export function AppShell({ club, clubs, user, children }: AppShellProps) {
@@ -48,6 +50,7 @@ export function AppShell({ club, clubs, user, children }: AppShellProps) {
       </div>
 
       <BottomNav clubId={club.id} />
+      <NavHistoryTracker />
     </div>
   );
 }

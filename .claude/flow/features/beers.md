@@ -3,7 +3,12 @@
 `/c/<clubId>/beers` lists every beer of the club with the club's average, the count, and the user's own
 rating ("Din: ★ 4,5"), with search, six sort orders and an event filter, all in the URL. A beer's page
 has "Klubbens rating", "Din rating" (five stars with half points, saved at once with "Gemt ✓"),
-"Smagt til" and everyone's ratings. The person who added a beer and admins can edit and delete it.
+"Smagt til" and everyone's ratings. Opened from an event's list (`?from=event`) it is focused:
+"← <event title>" above the name (back to the event), then "Din rating", "Klubbens rating" and a
+smaller photo. The next beer of a tasting is added from the event page ("Tilføj øl", pre-fills the
+event); the catalogue has "Tilføj øl" under its title (no "+" in the top bar, D-179). Last on a
+beer's page: "Tilføjet af <navn> · <dato>" with "Rediger"/"Slet øl" for the person who added it and
+admins.
 
 ## Sub-features
 
@@ -41,6 +46,9 @@ Preconditions:
 - **Proof.** `app.shot("rating")`. Recorded run: `.flow/setup-verify/check.mts` (2026-11-14).
 
 ## Gotchas
+
+- The back link and the "Smagt til" row both link to the event: match the back link with
+  `getByRole("link", { name: "<event title>", exact: true })` (the row's name includes the date).
 
 - The stars save after a short pause (debounced, one request per pause). Wait for "Gemt ✓" before
   reading the database or navigating, never a fixed sleep.

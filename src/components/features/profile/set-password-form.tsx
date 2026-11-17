@@ -88,7 +88,7 @@ export function SetPasswordForm({ clubId, email, available }: ReauthProps) {
  * Why "Tilføj password" needs a fresh Google login, with "Log ind med Google
  * igen" (when Google is configured). Google's chooser opens with the account's
  * email pre-selected (prompt=select_account, login_hint; never prompt=login,
- * which Google does not know, F-097), and the login comes back to Profil with
+ * which Google does not know, F-098), and the login comes back to Profil with
  * a new session, so the form shows. Choosing another account in the chooser
  * logs into that account instead (accepted, D-152).
  */

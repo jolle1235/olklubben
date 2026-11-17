@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Log ind" };
 
 /**
  * Log ind (SPEC §6.3). ?next= (e.g. an invite link, §6.5) survives the trip,
- * ?error= shows a failed Google login (D-178), ?reset=1 confirms a new password.
+ * ?error= shows a failed Google login (D-180), ?reset=1 confirms a new password.
  */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;

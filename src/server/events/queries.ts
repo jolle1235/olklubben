@@ -8,6 +8,7 @@ import { isValidId } from "@/lib/ids";
 import { imageVersionOf, imageVersionSelect } from "@/server/beers/queries";
 import { getRatingStats, NO_RATINGS, type RatingStats } from "@/server/beers/rating-stats";
 import { db } from "@/server/db";
+import { sortBeers } from "@/server/domain/beers/catalog";
 import { topRatedBeer } from "@/server/domain/events/history";
 import { fallbackStartCutoff } from "@/server/domain/events/status";
 import { suggestEventTitle } from "@/server/domain/events/title";
@@ -326,8 +327,9 @@ export async function getSuggestedEventTitle(clubId: string): Promise<string> {
 }
 
 /**
- * The beers tasted at an event ("Øl smagt til dette event", §9.2) in the order
- * they were added, with the club's rating and – given a userId – the user's own.
+ * The beers tasted at an event ("Øl smagt til dette event", §9.2), best club
+ * rating first and unrated last (the catalogue's "rating" sort), with the
+ * club's rating and – given a userId – the user's own.
  * Empty for an event of another club.
  */
 export async function getEventBeers(
@@ -345,12 +347,11 @@ export async function getEventBeers(
       createdAt: true,
       image: imageVersionSelect,
     },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   if (beers.length === 0) return [];
 
   const stats = await getRatingStats({ beer: { clubId, eventId } }, userId);
-  return beers.map((beer) => ({
+  const rated = beers.map((beer) => ({
     id: beer.id,
     name: beer.name,
     abv: beer.abv.toNumber(),
@@ -358,4 +359,5 @@ export async function getEventBeers(
     imageVersion: imageVersionOf(beer.image),
     ...(stats.get(beer.id) ?? NO_RATINGS),
   }));
+  return sortBeers(rated, "rating");
 }

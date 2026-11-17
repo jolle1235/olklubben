@@ -166,7 +166,10 @@ test.describe("Runde 2: Definition of Done", () => {
       .getByRole("link", { name: /Westmalle Dubbel/ });
     await expect(beerLink).toHaveAccessibleName(/klubbens rating 4,0 ud af 5 \(2 ratings\)/);
     await expect(beerLink).toHaveAccessibleName(/din rating 4,5 ud af 5/);
+    // Opened from the event: "← Belgisk aften" above the name leads back (§9.5).
     await beerLink.click();
-    await expect(memberPage).toHaveURL(beerUrl);
+    await expect(memberPage).toHaveURL(`${beerUrl}?from=event`);
+    await memberPage.getByRole("link", { name: /^Belgisk aften$/ }).click();
+    await expect(memberPage).toHaveURL(`/c/${clubId}/events/${eventId}`);
   });
 });

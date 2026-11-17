@@ -46,7 +46,7 @@ One line per task that chose a verifier (`find-verifier`) or ran `before-after`.
 ```
 date       | task slug | kind | technique | caught something | note
 2026-11-14 | setup-verify | chore | 1. UI drive | yes | the harness's own screenshot caused a hydration-mismatch PROBLEM; fixed in the driver (caret: "initial")
-2026-11-14 | google-only-auth | feature | 1. UI drive (--google, captured redirect) + 8. data-state (scratch-DB migration itest) | yes | BEFORE showed "Log ind med Google igen" sending prompt=login to Google (F-097), found by plan-critique
+2026-11-14 | google-only-auth | feature | 1. UI drive (--google, captured redirect) + 8. data-state (scratch-DB migration itest) | yes | BEFORE showed "Log ind med Google igen" sending prompt=login to Google (F-098), found by plan-critique
 ```
 
 ## Lessons
@@ -69,4 +69,15 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-14 | google-only-auth | a `console.warn` spy set up in `vi.hoisted` had an empty `mock.calls` in the test: the history is cleared before each test, and `@/env` warns at import → collect the calls into your own array in the spy's implementation
 2026-11-14 | google-only-auth | smoke run after the check script failed on Mads (the check had removed his password) → run smoke before any check that changes seed users
 2026-11-14 | google-only-auth | smoke's beers journey failed 4/4 on base and change alike: the click on a catalogue card landed during hydration and was lost → the driver's `app.goto()` now waits until the page's h1 has React props (not just <body>: a streamed loading.tsx boundary hydrates after the shell); a FAIL also prints Playwright's `Locator:` line
+2026-11-16 | event-beer-rating-ux | plan's E2E grep looked for click-then-toHaveURL only; `e2e/events.spec.ts` also asserted the event card's exact `href` → when a link's URL changes, grep `e2e/` for the href builder's output (`toHaveAttribute("href"`) too
+2026-11-16 | event-beer-rating-ux | `TastedAt` already links to the event, so a back-link check by name matched two links → match the back link with `exact: true` and its position above the h1
+2026-11-16 | ui-add-back-google | a click right after a server-action redirect raced the `?toast=` cleanup (router.replace) and stayed on the page under full-suite load → wait for the toast to leave the URL (`toHaveURL(/…$/)`) before clicking
+2026-11-16 | ui-add-back-google | `page.goto` is a full load: anything kept in module state or reset per document (the nav history) starts over → drive in-app history by clicking, and test the full-load case on purpose
+2026-11-16 | ui-add-back-google | Next's agent upgrade nudge (`experimental.agentUpgrade`) stops every other `next dev`/`next build` start; the E2E webServer deletes `.next-e2e/dev`, where Next keeps its retry receipt, so Playwright's own start never gets past it → start `next dev --port 3100` by hand with the E2E env (twice), Playwright reuses it
+2026-11-16 | ui-add-back-google | `next build` with a custom `NEXT_DIST_DIR` rewrote tsconfig.json (adds its types globs, reflows arrays) → build with the default `.next`, or `git checkout tsconfig.json` afterwards; `next build` also needs `.env.test` sourced in a worktree without `.env`
+2026-11-16 | ui-add-back-google | the songbook title grep has no title list in a worktree; the local dev database only holds the 7 synthetic seed songs → say so in the status row instead of claiming "0 fund"
+2026-11-16 | ui-add-back-google | the plan's history rule ("the previous page is a step back") passed every planned flow but broke the tasting flow and revisits from another tab; merge-verdict reviewers found both → when a rule generalises over navigation, check it on the app's main flows (event → Tilføj øl → beer → Smagt til → event), not only the case it was written for
+2026-11-16 | ui-add-back-google | smoke "beers" failed on a fresh instance of master and the branch alike: a click on a catalogue card right after load sometimes never navigates (1/4 in a loop) → a pre-existing race; compare with a BEFORE smoke run at the same time before blaming the change, and an earlier green smoke is not proof it is stable
+2026-11-16 | ui-add-back-google | a check that creates data (6f adds a beer) makes a later smoke on the same instance fail ("9 øl") → run smoke on a fresh instance, or before the check
+2026-11-16 | ui-add-back-google | round 2 fixed the reported flow by listing "detour" pages (forms, beers) and the next review found the same bounce via places and polls → name the rule by what does NOT belong (the main pages in the nav), not by the cases seen so far
 ```

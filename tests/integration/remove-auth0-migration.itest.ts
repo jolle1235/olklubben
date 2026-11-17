@@ -12,7 +12,7 @@ import {
 } from "./scratch-db";
 
 /**
- * The remove-Auth0 migration (D-178) on a scratch database: every earlier
+ * The remove-Auth0 migration (D-180) on a scratch database: every earlier
  * migration is applied, accounts are inserted as Auth0, Google and password
  * logins left them, and then the migration's SQL runs as `prisma migrate
  * deploy` would send it (scratch-db.ts explains why never the Prisma CLI).
@@ -84,7 +84,7 @@ afterAll(async () => {
   await dropScratchDatabase(maintenanceUrl, SCRATCH_DB);
 });
 
-describe("remove_auth0_accounts (D-178)", () => {
+describe("remove_auth0_accounts (D-180)", () => {
   it("deletes every Auth0 login", async () => {
     expect(before.byProvider.auth0).toBe(2);
     expect((await counts()).byProvider.auth0).toBeUndefined();

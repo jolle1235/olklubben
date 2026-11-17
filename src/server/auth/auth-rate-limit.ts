@@ -14,7 +14,7 @@ import { hashRateLimitPart, rateLimit, type RateLimitOptions } from "@/server/ra
  *
  *   1. "Glemt password" is rejected up front when no email can be sent
  *      (production without SMTP, SPEC §6.4, D-024).
- *   2. Google login only with parameters the app itself sends (D-165, D-178).
+ *   2. Google login only with parameters the app itself sends (D-165, D-180).
  *   3. Rate limits.
  *
  * Why a hook instead of Better Auth's `rateLimit.customRules`: Better Auth only
@@ -55,7 +55,7 @@ const EXTERNAL_LOGIN_PATHS = new Set(["/sign-in/social", "/link-social"]);
 
 /**
  * Google logins only via the redirect flow with the app's own parameters
- * (D-165, D-178):
+ * (D-165, D-180):
  *
  *   * `idToken` is refused on every path: it would log in without the
  *     redirect, PKCE and nonce, and on /link-social skip the account hooks.

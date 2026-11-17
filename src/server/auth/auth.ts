@@ -23,7 +23,7 @@ import { isAllowedUserImage, USER_IMAGE_NOT_ALLOWED_MESSAGE } from "./user-image
 
 /**
  * Better Auth (SPEC §6): email/password, Google as the one external login
- * (D-165, D-178), password reset, sessions in Postgres via Prisma.
+ * (D-165, D-180), password reset, sessions in Postgres via Prisma.
  * Mounted at /api/auth/* (src/app/api/auth/[...all]).
  *
  * Server code reads the session through src/server/auth/session.ts, not
@@ -203,7 +203,7 @@ export const auth = betterAuth({
     },
     account: {
       create: {
-        // SPEC §6.2, D-165, D-178: a Google login always belongs to the
+        // SPEC §6.2, D-165, D-180: a Google login always belongs to the
         // account's own, verified email; any other provider fails closed.
         // Throwing (not returning false) rolls the whole sign-up back, and the
         // callback redirects with the code (/login?error=…).

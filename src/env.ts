@@ -20,7 +20,7 @@ for (const warning of parsed.warnings) {
 export const env = parsed.env;
 /** The app's base URL without a trailing "/" (D-164). Use getAppUrl()/appUrl() from @/lib/app-url. */
 export const appBaseUrl = parsed.appBaseUrl;
-/** The Google client (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET), or null: Google is off (D-178). */
+/** The Google client (GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET), or null: Google is off (D-180). */
 export const googleClient = parsed.google;
 /** googleClient !== null. Pages use this to show or hide the Google buttons. */
 export const isGoogleConfigured = parsed.isGoogleConfigured;

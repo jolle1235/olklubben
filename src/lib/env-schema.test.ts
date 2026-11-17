@@ -61,7 +61,7 @@ describe("parseEnv", () => {
     ).toBe(true);
   });
 
-  it("ignores AUTH0_* and warns once they are set, leaving Google free to turn on (D-178)", () => {
+  it("ignores AUTH0_* and warns once they are set, leaving Google free to turn on (D-180)", () => {
     const google = { GOOGLE_CLIENT_ID: "gid", GOOGLE_CLIENT_SECRET: "gsecret" };
     const auth0 = {
       AUTH0_DOMAIN: "olklubben.eu.auth0.com",
@@ -81,7 +81,7 @@ describe("parseEnv", () => {
     ).toEqual([]);
   });
 
-  it("no longer validates AUTH0_DOMAIN: a stale value only warns (D-178)", () => {
+  it("no longer validates AUTH0_DOMAIN: a stale value only warns (D-180)", () => {
     for (const value of ["https://olklubben.eu.auth0.com", "olklubben.eu.auth0.com/", "x"]) {
       expect(parseEnv({ ...required, AUTH0_DOMAIN: value }).warnings).toEqual([
         expect.stringContaining("Auth0 bruges ikke længere"),

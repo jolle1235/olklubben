@@ -13,7 +13,7 @@ login (`?next=`). "Log ud" ends the session and returns to `/login`.
 - `forgot-password` "Glemt password?" sends a reset link to the instance's outbox (not mapped in
   detail yet).
 - `login-google` "Fortsæt med Google" above an "eller" divider (only with Google configured,
-  D-178).
+  D-180).
 
 ## How to get to it (user POV)
 
