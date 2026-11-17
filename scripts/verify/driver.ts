@@ -28,7 +28,13 @@ export type App = {
   browser: Browser;
   context: BrowserContext;
   page: Page;
-  /** Navigates to a path on the instance and waits for the load event. */
+  /**
+   * Navigates to a path and waits until the page's h1 is hydrated (React has
+   * attached its props). The h1 sits inside the page's own loading.tsx
+   * boundary, which hydrates after the shell; a click before that can be lost
+   * when the client re-renders (a catalogue link was, 2026-11-14). Content that
+   * appears later still needs its own wait.
+   */
   goto: (pagePath: string) => Promise<void>;
   /** Full-page screenshot to <evidence>/<name>.png; returns the path. */
   shot: (name: string) => Promise<string>;
@@ -111,6 +117,11 @@ export async function openApp(
     page,
     goto: async (pagePath) => {
       await page.goto(pagePath);
+      // <body> hydrates with the shell; the page's h1 only with its own (streamed) boundary.
+      await page.waitForFunction(() => {
+        const element = document.querySelector("h1") ?? document.body;
+        return Object.keys(element).some((key) => key.startsWith("__reactProps$"));
+      });
     },
     shot: async (name) => {
       const file = path.join(evidence, `${name}.png`);
@@ -151,8 +162,8 @@ export function createReport() {
         return true;
       } catch (error) {
         failed += 1;
-        const detail = error instanceof Error ? error.message : String(error);
-        console.log(`FAIL ${name} | ${detail.split("\n").find((line) => line.trim()) ?? ""}`);
+        const message = error instanceof Error ? error.message : String(error);
+        console.log(`FAIL ${name} | ${failDetail(message)}`);
         return false;
       }
     },
@@ -164,4 +175,12 @@ export function createReport() {
       process.exit(ok ? 0 : 1);
     },
   };
+}
+
+/** The first line of an error, plus Playwright's "Locator:" line, so a FAIL says what it looked for. */
+function failDetail(message: string): string {
+  const lines = message.split("\n").map((line) => line.trim());
+  const first = lines.find(Boolean) ?? "";
+  const locator = lines.find((line) => line.startsWith("Locator:"));
+  return locator ? `${first} (${locator})` : first;
 }

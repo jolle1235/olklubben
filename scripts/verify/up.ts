@@ -46,9 +46,13 @@ const READY_TIMEOUT_MS = 180_000;
  * first syncs the working tree's current changes into the copy (next dev
  * reloads them).
  */
-export async function up(id: string, ref: string | undefined): Promise<InstanceState> {
+export async function up(
+  id: string,
+  ref: string | undefined,
+  options: { google: boolean },
+): Promise<InstanceState> {
   const existing = readState(id);
-  if (existing?.readyAt && isOurServer(existing)) return reuse(existing, ref);
+  if (existing?.readyAt && isOurServer(existing)) return reuse(existing, ref, options);
   if (existsSync(instanceDir(id))) await down(id, { quiet: true });
 
   const sha = resolveSha(ref ?? "HEAD");
@@ -63,6 +67,7 @@ export async function up(id: string, ref: string | undefined): Promise<InstanceS
     authSecret: randomBytes(32).toString("base64"),
     cronSecret,
     outboxDir: outboxDir(id),
+    google: options.google,
   });
   await prepareDatabase(id, database, env);
 
@@ -70,6 +75,7 @@ export async function up(id: string, ref: string | undefined): Promise<InstanceS
     id,
     sha,
     pinned: Boolean(ref),
+    google: options.google,
     port,
     url: `http://localhost:${port}`,
     database,
@@ -90,11 +96,20 @@ export async function up(id: string, ref: string | undefined): Promise<InstanceS
   return ready;
 }
 
-/** A running instance again: same commit required; a working-tree copy is synced first. */
-async function reuse(existing: InstanceState, ref: string | undefined): Promise<InstanceState> {
+/** A running instance again: same commit and flags required; a working-tree copy is synced first. */
+async function reuse(
+  existing: InstanceState,
+  ref: string | undefined,
+  options: { google: boolean },
+): Promise<InstanceState> {
   if (ref && resolveSha(ref) !== existing.sha) {
     throw new Error(
       `${existing.id} kører allerede på ${existing.sha.slice(0, 8)}; kør verify:down først.`,
+    );
+  }
+  if ((existing.google ?? false) !== options.google) {
+    throw new Error(
+      `${existing.id} kører ${existing.google ? "med" : "uden"} --google; kør verify:down først.`,
     );
   }
   if (!existing.pinned) syncWorkingTree(existing.id);

@@ -249,13 +249,16 @@ export async function smoke(id: string, options: { headed?: boolean }): Promise<
   const report = createReport();
   const problems: string[] = [];
   for (const journey of JOURNEYS) {
-    const app = await openApp(id, { as: journey.as, headed: options.headed });
-    try {
-      await report.check(journey.name, () => journey.drive(app));
-    } finally {
-      problems.push(...app.problems());
-      await app.close();
-    }
+    // A failed login (e.g. a check changed a seed user's password) is that journey's FAIL, not a crash.
+    await report.check(journey.name, async () => {
+      const app = await openApp(id, { as: journey.as, headed: options.headed });
+      try {
+        return await journey.drive(app);
+      } finally {
+        problems.push(...app.problems());
+        await app.close();
+      }
+    });
   }
   return report.finish(problems);
 }

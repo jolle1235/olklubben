@@ -71,7 +71,7 @@ export const nextHeadersModule = {
 // ── Data ────────────────────────────────────────────────────────────────────
 
 /** "better-auth.session_token=…" from Better Auth's Set-Cookie headers. */
-export function sessionCookieFrom(headers: Headers): string {
+function sessionCookieFrom(headers: Headers): string {
   const cookie = headers
     .getSetCookie()
     .map((value) => value.split(";")[0] ?? "")
@@ -100,6 +100,24 @@ export async function signUpWithPassword(
     returnHeaders: true,
   });
   return { id: response.user.id, email, name, cookie: sessionCookieFrom(headers) };
+}
+
+/** The app's own origin as Better Auth sees it: BETTER_AUTH_URL without a trailing "/". */
+const AUTH_BASE = (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
+
+/** A JSON POST to Better Auth's real HTTP handler from the app's own origin, optionally logged in. */
+export function authPost(path: string, body: unknown, cookie?: string): Promise<Response> {
+  return auth.handler(
+    new Request(`${AUTH_BASE}/api/auth${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: AUTH_BASE,
+        ...(cookie ? { cookie } : {}),
+      },
+      body: JSON.stringify(body),
+    }),
+  );
 }
 
 /** Logs in again (another device): a new session cookie, or null when Better Auth refuses. */

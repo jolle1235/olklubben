@@ -1058,9 +1058,9 @@ describe("medlemmer, brugere og Better Auth", () => {
 
   it("getAccountLogins, listUserClubIds, revokeOtherSessions og revokePasswordResetTokens", async () => {
     const user = await createUser("Login Bruger");
-    expect(await getAccountLogins(user.id)).toEqual({ hasPassword: true, external: [] });
+    expect(await getAccountLogins(user.id)).toEqual({ hasPassword: true, hasGoogle: false });
     await addGoogleAccount(user);
-    expect(await getAccountLogins(user.id)).toEqual({ hasPassword: true, external: ["google"] });
+    expect(await getAccountLogins(user.id)).toEqual({ hasPassword: true, hasGoogle: true });
 
     expect(await listUserClubIds(user.id)).toEqual([]);
     const ownClub = await createClub(user, "Login-klubben");
