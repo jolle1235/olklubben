@@ -23,6 +23,7 @@ import {
   joinClub,
   placeRadio,
   tapStars,
+  isMobile,
 } from "./support/round2";
 
 /**
@@ -158,7 +159,14 @@ test.describe("Runde 3: Definition of Done", () => {
     await expect(
       memberPage.getByRole("region", { name: /Ølsmagninger her/ }).getByRole("link"),
     ).toHaveAttribute("href", `/c/${clubId}/events/${otherId}`);
-    await memberPage.getByRole("link", { name: "Alle steder" }).click();
+    if (isMobile(testInfo)) {
+      // Mobile: "Tilbage" in the top bar goes where the member came from (D-182).
+      await memberPage.getByRole("link", { name: "Tilbage", exact: true }).click();
+      await expect(memberPage.getByRole("heading", { level: 1, name: "Havneaften" })).toBeVisible();
+      await memberPage.goto(`/c/${clubId}/places`);
+    } else {
+      await memberPage.getByRole("link", { name: "Alle steder" }).click();
+    }
     await expect(memberPage.getByRole("heading", { level: 1, name: "Steder" })).toBeVisible();
     await expect(memberPage.getByRole("main").getByRole("listitem")).toHaveCount(2);
   });

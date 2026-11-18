@@ -25,17 +25,22 @@ function storedListUrl(clubId: string): string | null {
   }
 }
 
-/**
- * "‹ Sangbog" above the song (SPEC §9.6). Back to the list, with the search
- * the member came from: there is no browser back button in the iOS home
- * screen app. Plain songsHref before hydration.
- */
-export function BackToSongbook({ clubId }: { clubId: string }) {
-  const href = useSyncExternalStore(
+/** The songbook list with the search the member came from; plain songsHref before hydration. */
+export function useSongbookHref(clubId: string): string {
+  return useSyncExternalStore(
     noopSubscribe,
     () => storedListUrl(clubId) ?? songsHref(clubId),
     () => songsHref(clubId),
   );
+}
+
+/**
+ * "‹ Sangbog" above the song (SPEC §9.6). Back to the list, with the search
+ * the member came from: there is no browser back button in the iOS home
+ * screen app. Desktop only; on mobile the top bar's "Tilbage" goes there (D-182).
+ */
+export function BackToSongbook({ clubId }: { clubId: string }) {
+  const href = useSongbookHref(clubId);
 
   return (
     <Link

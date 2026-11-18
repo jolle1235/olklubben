@@ -1,11 +1,12 @@
+import { TopBarTitle } from "@/components/ui/top-bar-title";
 import { cn } from "@/lib/utils";
 
 export type PageHeaderProps = {
-  title: React.ReactNode;
+  title: string;
   description?: React.ReactNode;
   /**
    * The screen's one primary action (SPEC §13.4), e.g. a <Button>. On mobile it
-   * sits on its own line under the title (D-179: no action in the top bar);
+   * sits on its own line under the title (D-179: no add action in the top bar);
    * give its buttons `max-md:w-full` to fill that line.
    */
   action?: React.ReactNode;
@@ -21,6 +22,7 @@ export function PageHeader({ title, description, action, className }: PageHeader
         className,
       )}
     >
+      <TopBarTitle>{title}</TopBarTitle>
       <div className="min-w-0 flex-1 basis-64">
         <h1 className="text-page-title font-bold break-words hyphens-auto text-primary-ink">
           {title}

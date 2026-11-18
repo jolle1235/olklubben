@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLinkIcon, MapPinIcon, PlusIcon } from "lucide-react";
 
+import { TopBarTitle } from "@/components/ui/top-bar-title";
 import { Badge } from "@/components/ui/badge";
 import { BigDate } from "@/components/ui/big-date";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,7 @@ export function EventInvitation({
       <Badge variant={isHeroHighlighted(state) ? "highlight" : "info"} className="mb-3">
         {heroStateLabel(state)}
       </Badge>
+      <TopBarTitle>{event.title}</TopBarTitle>
       <h1 className="text-page-title font-bold break-words hyphens-auto text-primary-ink md:text-display-md">
         {event.title}
       </h1>

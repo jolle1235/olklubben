@@ -86,4 +86,5 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-18 | compact-ui-density | Prettiers Tailwind-plugin sorterer klasser i strenge givet til `cn(...)`, også i tests: `cn("p-card p-4")` blev til `cn("p-4 p-card")` → giv klasserne som separate argumenter, når rækkefølgen er det, der testes
 2026-11-18 | compact-ui-density | `pkill -f "next dev --port 3100"` dræbte også min egen shell (exit 144), igen → stop E2E-serveren via dens baggrundsopgave eller pid fra `lsof -ti :3100`
 2026-11-18 | compact-ui-density | et layout-check, der måler fast seed-tilstand, dækker ikke varianter som "i gang nu"; en className-override (`px-4`) mod en responsiv størrelse (`md:px-7`) slap igennem → når en primitiv får en responsiv størrelse, grep kaldere med en override af samme egenskab og tilføj `md:`-versionen
+2026-11-18 | compact-ui-density | at skjule et in-page link på mobil (`max-md:hidden`) brød en E2E, der klikkede det på mobil (`round2-dod` "Belgisk aften"), som ingen grep efter "Tilbage"/"Alle steder" fandt → når et link skjules på en breakpoint, grep e2e/ efter dets tekst (også event-/øl-navne brugt som linktekst) og kør hele suiten
 ```

@@ -215,7 +215,8 @@ test.describe("Tilbage fra eventet (D-179)", () => {
       startsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
     });
     const main = page.getByRole("main");
-    const back = main.getByRole("link", { name: "Tilbage", exact: true });
+    // In the page on desktop, in the top bar on mobile (D-182): only one is visible.
+    const back = page.getByRole("link", { name: "Tilbage", exact: true });
 
     // Opened directly: the calendar.
     await page.goto(`/c/${clubId}/events/${eventId}`);

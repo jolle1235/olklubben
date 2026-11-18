@@ -66,7 +66,9 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
 
   return (
     <>
-      <BackLink href={placesHref(club.id)}>Alle steder</BackLink>
+      <BackLink href={placesHref(club.id)} className="max-md:hidden">
+        Alle steder
+      </BackLink>
       <PageHeader
         title={place.name}
         action={

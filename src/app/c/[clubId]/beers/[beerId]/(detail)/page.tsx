@@ -58,7 +58,9 @@ export default async function BeerPage({
   return (
     <>
       {focusEvent ? (
-        <BackLink href={eventHref(club.id, focusEvent.id)}>{focusEvent.title}</BackLink>
+        <BackLink href={eventHref(club.id, focusEvent.id)} className="max-md:hidden">
+          {focusEvent.title}
+        </BackLink>
       ) : null}
       <PageHeader title={beer.name} description={formatAbv(beer.abv)} />
 

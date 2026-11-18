@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { backTarget, recordVisit } from "./nav-history";
+import { backTarget, isClubSubpage, isSongPage, parentPage, recordVisit } from "./nav-history";
 
 const club = "/c/c1";
 const event = `${club}/events/e1`;
@@ -122,5 +122,62 @@ describe("backTarget", () => {
     expect(backTarget(["/c/other/calendar"], event, club, fallback)).toBe(fallback);
     expect(backTarget(["/c/c10/calendar"], event, club, fallback)).toBe(fallback);
     expect(backTarget(["/feedback"], event, club, fallback)).toBe(fallback);
+  });
+});
+
+describe("isClubSubpage", () => {
+  it("is true for detail pages, forms and unknown paths in a club, not for its main pages", () => {
+    for (const path of [
+      event,
+      `${club}/beers/b1`,
+      `${club}/places/p1/edit`,
+      `${club}/polls/new`,
+      `${club}/songs/s1`,
+      `${club}/club/edit`,
+      `${club}/nope`,
+    ]) {
+      expect(isClubSubpage(path), path).toBe(true);
+    }
+    for (const path of [
+      club,
+      `${club}/calendar`,
+      `${club}/beers`,
+      `${club}/songs`,
+      `${club}/profile`,
+      `${club}/club`,
+      `${club}/places`,
+      "/feedback/new",
+      "/profile",
+    ]) {
+      expect(isClubSubpage(path), path).toBe(false);
+    }
+  });
+});
+
+describe("parentPage", () => {
+  it("is the area's list: events and polls the calendar, beers, places and songs their lists, club forms the club", () => {
+    expect(parentPage(event, club)).toBe(`${club}/calendar`);
+    expect(parentPage(`${club}/events/new`, club)).toBe(`${club}/calendar`);
+    expect(parentPage(`${club}/polls/p1`, club)).toBe(`${club}/calendar`);
+    expect(parentPage(`${club}/beers/b1`, club)).toBe(`${club}/beers`);
+    expect(parentPage(`${club}/places/p1/edit`, club)).toBe(`${club}/places`);
+    expect(parentPage(`${club}/songs/import`, club)).toBe(`${club}/songs`);
+    expect(parentPage(`${club}/club/edit`, club)).toBe(`${club}/club`);
+    expect(parentPage(`${club}/nope`, club)).toBe(club);
+  });
+});
+
+describe("isSongPage", () => {
+  it("is a song, not the songbook, its forms or another area", () => {
+    expect(isSongPage(`${club}/songs/s1`)).toBe(true);
+    for (const path of [
+      `${club}/songs`,
+      `${club}/songs/new`,
+      `${club}/songs/import`,
+      `${club}/songs/s1/edit`,
+      event,
+    ]) {
+      expect(isSongPage(path), path).toBe(false);
+    }
   });
 });

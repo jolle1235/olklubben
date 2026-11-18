@@ -16,7 +16,7 @@ beer). A club with one member sees "Inviter dine ølbrødre" first.
 
 - Log in: Kaptajnen and Anders land here.
 - "Overblik" in the main navigation (sidebar on desktop, bottom nav on mobile).
-- The club switcher ("<club>. Skift klub") → pick a club.
+- The club switcher ("<club>. Skift klub") → pick a club. On mobile it is in the top bar on main pages only; subpages show "‹ Tilbage" and the page name there (D-182).
 
 ## Driving it with the verify driver
 
