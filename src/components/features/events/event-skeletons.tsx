@@ -14,21 +14,27 @@ export function EventDetailSkeleton() {
       className="mx-auto flex max-w-2xl flex-col gap-section"
     >
       <span className="sr-only">Henter eventet …</span>
-      <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-5 pt-8 pb-6 sm:px-10 sm:pt-10">
-        <Skeleton className="mb-5 size-12 rounded-full" />
+      <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-4 pt-5 pb-4 sm:px-10 sm:pt-10 sm:pb-6">
         <Skeleton className="mb-3 h-6 w-24 rounded-full" />
-        <Skeleton className="h-8 w-64 max-w-full md:h-12" />
-        <Skeleton className="mt-4 h-9 w-48 rounded-2xl" />
-        <Skeleton className="my-7 h-3 w-full" />
-        <Skeleton className="h-20 w-20 md:h-24" />
-        <Skeleton className="mt-3 h-4 w-24" />
-        <Skeleton className="mt-5 h-7 w-56 max-w-full" />
-        <Skeleton className="mt-2 h-7 w-28" />
-        <Skeleton className="my-7 h-3 w-full" />
-        <Skeleton className="h-7 w-40" />
+        <Skeleton className="h-7 w-56 max-w-full md:h-12 md:w-64" />
+        <Skeleton className="mt-3 h-8 w-44 rounded-2xl md:mt-4 md:h-9 md:w-48" />
+        <Skeleton className="my-4 h-px w-full md:my-7" />
+        {/* Mobile: the big date beside weekday and time; from md stacked (EventInvitation). */}
+        <div className="flex items-center gap-4 md:flex-col md:gap-0">
+          <div className="flex flex-col items-center">
+            <Skeleton className="h-12 w-14 md:h-24 md:w-20" />
+            <Skeleton className="mt-2 h-3 w-16 md:mt-3 md:h-4 md:w-24" />
+          </div>
+          <div className="flex flex-col items-start gap-1.5 md:mt-5 md:items-center md:gap-2">
+            <Skeleton className="h-5 w-40 md:h-7 md:w-56" />
+            <Skeleton className="h-5 w-14 md:h-7 md:w-28" />
+          </div>
+        </div>
+        <Skeleton className="my-4 h-px w-full md:my-7" />
+        <Skeleton className="h-6 w-36 md:h-7 md:w-40" />
         <Skeleton className="mt-2 h-5 w-48 max-w-full" />
-        <Skeleton className="mt-4 h-11 w-36" />
-        <Skeleton className="mt-7 h-px w-full" />
+        <Skeleton className="mt-3 h-11 w-36 md:mt-4" />
+        <Skeleton className="mt-4 h-px w-full md:mt-7" />
         <Skeleton className="mt-4 h-9 w-52 max-w-full" />
         <Skeleton className="mt-2 h-4 w-36" />
       </div>
