@@ -18,7 +18,7 @@ export function ProfileSection({
   return (
     <Card role={headingId ? "region" : undefined} aria-labelledby={headingId}>
       <CardHeader>
-        <h2 id={headingId} className="font-heading text-title-sm text-primary-ink">
+        <h2 id={headingId} className="font-heading text-card-title text-primary-ink">
           {title}
         </h2>
       </CardHeader>

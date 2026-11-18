@@ -22,7 +22,6 @@ export type ClubMember = {
   nickname: string | null;
   image: string | null;
   role: ClubRole;
-  joinedAt: Date;
 };
 
 /** All members of a club (unsorted; use sortMembers() for display). */
@@ -32,18 +31,16 @@ export async function getClubMembers(clubId: string): Promise<ClubMember[]> {
     select: {
       id: true,
       role: true,
-      joinedAt: true,
       user: { select: { id: true, name: true, nickname: true, image: true } },
     },
   });
-  return memberships.map(({ id, role, joinedAt, user }) => ({
+  return memberships.map(({ id, role, user }) => ({
     membershipId: id,
     userId: user.id,
     name: user.name,
     nickname: user.nickname,
     image: user.image,
     role,
-    joinedAt,
   }));
 }
 

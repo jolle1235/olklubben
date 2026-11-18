@@ -47,6 +47,7 @@ One line per task that chose a verifier (`find-verifier`) or ran `before-after`.
 date       | task slug | kind | technique | caught something | note
 2026-11-14 | setup-verify | chore | 1. UI drive | yes | the harness's own screenshot caused a hydration-mismatch PROBLEM; fixed in the driver (caret: "initial")
 2026-11-14 | google-only-auth | feature | 1. UI drive (--google, captured redirect) + 8. data-state (scratch-DB migration itest) | yes | BEFORE showed "Log ind med Google igen" sending prompt=login to Google (F-098), found by plan-critique
+2026-11-18 | compact-ui-density | feature (visuel) | 1. UI drive: computed styles og målte højder ved 375 + 1280 | yes | BEFORE 11 FAIL; brud på card-tokenet gav 2 FAIL; niveau-review fandt desktop-padding på hero-knapperne under smagningen, som checket ikke dækker (ikke seedet)
 ```
 
 ## Lessons
@@ -80,4 +81,9 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-16 | ui-add-back-google | smoke "beers" failed on a fresh instance of master and the branch alike: a click on a catalogue card right after load sometimes never navigates (1/4 in a loop) → a pre-existing race; compare with a BEFORE smoke run at the same time before blaming the change, and an earlier green smoke is not proof it is stable
 2026-11-16 | ui-add-back-google | a check that creates data (6f adds a beer) makes a later smoke on the same instance fail ("9 øl") → run smoke on a fresh instance, or before the check
 2026-11-16 | ui-add-back-google | round 2 fixed the reported flow by listing "detour" pages (forms, beers) and the next review found the same bounce via places and polls → name the rule by what does NOT belong (the main pages in the nav), not by the cases seen so far
+2026-11-18 | compact-ui-density | Nexts "1 Insight"-pille (agentUpgrade) ligger over bundnavigationen ved 375 px og fanger klik i E2E, selv med devIndicators slået fra → start E2E-serveren med agentUpgrade slået fra (F-099), og tjek `<nextjs-portal> intercepts pointer events` i call log, før en timeout skyldes ændringen
+2026-11-18 | compact-ui-density | `sed 's/ +"/"/'` "til at rydde op" efter en klasse-erstatning ramte første mellemrum+citationstegn på HVER linje i filen (imports, kommentarer) → erstat klasser med et præcist regex i Python pr. fil, og kør `prettier --check` med det samme
+2026-11-18 | compact-ui-density | Prettiers Tailwind-plugin sorterer klasser i strenge givet til `cn(...)`, også i tests: `cn("p-card p-4")` blev til `cn("p-4 p-card")` → giv klasserne som separate argumenter, når rækkefølgen er det, der testes
+2026-11-18 | compact-ui-density | `pkill -f "next dev --port 3100"` dræbte også min egen shell (exit 144), igen → stop E2E-serveren via dens baggrundsopgave eller pid fra `lsof -ti :3100`
+2026-11-18 | compact-ui-density | et layout-check, der måler fast seed-tilstand, dækker ikke varianter som "i gang nu"; en className-override (`px-4`) mod en responsiv størrelse (`md:px-7`) slap igennem → når en primitiv får en responsiv størrelse, grep kaldere med en override af samme egenskab og tilføj `md:`-versionen
 ```

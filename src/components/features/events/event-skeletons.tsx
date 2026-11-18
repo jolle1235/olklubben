@@ -8,12 +8,16 @@ import { cn } from "@/lib/utils";
 
 export function EventDetailSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite" className="mx-auto flex max-w-2xl flex-col gap-8">
+    <div
+      aria-busy="true"
+      aria-live="polite"
+      className="mx-auto flex max-w-2xl flex-col gap-section"
+    >
       <span className="sr-only">Henter eventet …</span>
       <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-5 pt-8 pb-6 sm:px-10 sm:pt-10">
         <Skeleton className="mb-5 size-12 rounded-full" />
         <Skeleton className="mb-3 h-6 w-24 rounded-full" />
-        <Skeleton className="h-10 w-64 max-w-full md:h-12" />
+        <Skeleton className="h-8 w-64 max-w-full md:h-12" />
         <Skeleton className="mt-4 h-9 w-48 rounded-2xl" />
         <Skeleton className="my-7 h-3 w-full" />
         <Skeleton className="h-20 w-20 md:h-24" />
@@ -45,7 +49,7 @@ export function EventFormSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite" className="max-w-2xl">
       <span className="sr-only">Henter …</span>
-      <Skeleton className="mb-6 h-10 w-56 md:mb-8 md:h-12" />
+      <Skeleton className="mb-header h-8 w-56 md:h-12" />
       <div className="grid gap-7 rounded-xl border border-border bg-card p-5">
         <FieldSkeleton />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

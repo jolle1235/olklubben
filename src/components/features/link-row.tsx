@@ -32,7 +32,7 @@ export function LinkRow({ href, icon: Icon, title, subtitle, className }: LinkRo
         <Icon strokeWidth={2.25} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-heading text-body-lg-tight font-semibold text-primary-ink">
+        <span className="block font-heading text-list-title-tight font-semibold text-primary-ink">
           {title}
         </span>
         <span className="block text-body-sm text-pretty text-muted-foreground">{subtitle}</span>

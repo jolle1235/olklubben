@@ -31,7 +31,7 @@ import { VoteOptionRow } from "./vote-option-row";
 function SectionHeading({ id, title, note }: { id: string; title: string; note: string }) {
   return (
     <legend className="mb-3 flex w-full flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      <h2 id={id} className="text-title-sm font-bold text-primary-ink">
+      <h2 id={id} className="text-card-title font-bold text-primary-ink">
         {title}
       </h2>
       <span className="text-body-sm text-muted-foreground">{note}</span>

@@ -36,7 +36,7 @@ export function FeedbackCard({ item, now }: FeedbackCardProps) {
         {FEEDBACK_TYPE_ICONS[item.type]}
       </span>
       <span className="grid min-w-0 flex-1 grid-cols-1 gap-1.5">
-        <span className="font-heading text-body-lg-tight font-semibold break-words hyphens-auto text-primary-ink group-hover/feedback:underline group-hover/feedback:decoration-highlight group-hover/feedback:decoration-2 group-hover/feedback:underline-offset-4">
+        <span className="font-heading text-list-title-tight font-semibold break-words hyphens-auto text-primary-ink group-hover/feedback:underline group-hover/feedback:decoration-highlight group-hover/feedback:decoration-2 group-hover/feedback:underline-offset-4">
           <span className="sr-only">{FEEDBACK_TYPE_LABELS[item.type]}: </span>
           {item.title}
         </span>

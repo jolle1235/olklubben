@@ -69,11 +69,11 @@ export default async function BeerPage({
         focused={focusEvent !== null}
       />
 
-      <div className="mt-8 grid gap-8 md:mt-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] md:gap-10">
+      <div className="mt-section-loose grid gap-section-loose md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
         <TastedAt clubId={club.id} event={beer.event} />
 
         <section aria-labelledby="ratings-heading" className="grid grid-cols-1 content-start gap-3">
-          <h2 id="ratings-heading" className="text-title-md text-primary-ink">
+          <h2 id="ratings-heading" className="text-section-title text-primary-ink">
             Ratings
             {beer.ratingCount > 0 ? (
               <span className="ml-2 font-sans text-body-lg font-normal text-muted-foreground">
@@ -87,7 +87,7 @@ export default async function BeerPage({
 
       <section
         aria-label="Om øllen"
-        className="mt-10 grid grid-cols-1 gap-3 border-t border-border pt-6"
+        className="mt-section-loose grid grid-cols-1 gap-3 border-t border-border pt-6"
       >
         <p className="text-body-sm text-muted-foreground">
           Tilføjet af {getDisplayName(beer.createdBy)} ·{" "}
@@ -132,7 +132,7 @@ function RatingsAndPhoto({ clubId, beer, imageUrl, focused }: RatingsAndPhotoPro
     <RatingSummary averageStars={beer.averageStars} ratingCount={beer.ratingCount} />
   );
   const myRating = (
-    <div className="rounded-2xl border border-border bg-card px-4 py-5 sm:px-5">
+    <div className="rounded-2xl border border-border bg-card p-card">
       <BeerRating clubId={clubId} beerId={beer.id} myRating={beer.myRating} />
     </div>
   );

@@ -85,7 +85,7 @@ export function PlaceOwners({
         id="place-owners-heading"
         ref={headingRef}
         tabIndex={-1}
-        className="text-title-md text-primary-ink focus:outline-none"
+        className="text-section-title text-primary-ink focus:outline-none"
       >
         Ejere
       </h2>

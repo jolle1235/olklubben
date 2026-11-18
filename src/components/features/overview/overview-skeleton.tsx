@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  */
 export function OverviewSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite" className="flex flex-col gap-8 md:gap-10">
+    <div aria-busy="true" aria-live="polite" className="flex flex-col gap-section-loose">
       <span className="sr-only">Henter Overblik …</span>
 
       <div className="rounded-2xl surface-feature px-5 pt-5 pb-6 sm:px-7 md:px-10 md:pt-8 md:pb-10">

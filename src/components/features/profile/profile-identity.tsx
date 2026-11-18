@@ -33,27 +33,24 @@ export function ProfileIdentity({
       : null;
 
   return (
-    <section
-      aria-label="Din konto"
-      className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-6 sm:text-left"
-    >
+    <section aria-label="Din konto" className="flex items-center gap-4 sm:gap-6">
       <UserAvatar
         name={displayName}
         image={image}
-        size="xl"
+        size="profile"
         decorative
         className="m-1.5 shrink-0"
       />
       <div className="grid max-w-full min-w-0 grid-cols-1">
-        <p className="font-display text-title-md font-semibold break-words hyphens-auto text-primary-ink md:text-title-lg">
+        <p className="font-display text-feature-title font-semibold break-words hyphens-auto text-primary-ink">
           {displayName}
         </p>
         {officialName ? (
-          <p className="mt-0.5 text-lead break-words hyphens-auto text-muted-foreground">
+          <p className="mt-0.5 text-intro break-words hyphens-auto text-muted-foreground">
             ({officialName})
           </p>
         ) : null}
-        <p className="mt-1 text-lead break-all text-foreground">{email}</p>
+        <p className="mt-0.5 text-intro break-all text-foreground md:mt-1">{email}</p>
         {pictureHint ? (
           <p className="mt-2 text-body-sm text-muted-foreground">{pictureHint}</p>
         ) : null}

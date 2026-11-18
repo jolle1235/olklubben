@@ -21,7 +21,7 @@ export function TastedAt({ clubId, event }: TastedAtProps) {
       aria-labelledby="tasted-at-heading"
       className="grid grid-cols-1 content-start gap-3 self-start"
     >
-      <h2 id="tasted-at-heading" className="text-title-md text-primary-ink">
+      <h2 id="tasted-at-heading" className="text-section-title text-primary-ink">
         Smagt til
       </h2>
       {event ? (

@@ -13,7 +13,7 @@ export function PollPageSkeleton() {
     <div
       aria-busy="true"
       aria-live="polite"
-      className="mx-auto flex w-full max-w-2xl flex-col gap-8"
+      className="mx-auto flex w-full max-w-2xl flex-col gap-section"
     >
       <span className="sr-only">Henter afstemningen …</span>
       <div className="grid gap-3">
@@ -31,7 +31,7 @@ export function PollFormSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite" className="max-w-2xl">
       <span className="sr-only">Henter …</span>
-      <Skeleton className="mb-6 h-10 w-64 max-w-full md:mb-8 md:h-12" />
+      <Skeleton className="mb-header h-8 w-64 max-w-full md:h-12" />
       <div className="grid gap-7 rounded-xl border border-border bg-card p-5">
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-28 w-full" />

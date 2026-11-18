@@ -45,7 +45,7 @@ export default async function PollPage({ params }: PageProps<"/c/[clubId]/polls/
   const votingOpen = isVotingOpen(view, now);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-section">
       <PollAutoRefresh active={view.status === "OPEN"} />
       <PollHeader view={view} now={now} />
       <PollStatusPanel clubId={club.id} view={view} canManage={canManage} now={now} />

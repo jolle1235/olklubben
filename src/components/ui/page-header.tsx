@@ -17,12 +17,12 @@ export function PageHeader({ title, description, action, className }: PageHeader
   return (
     <header
       className={cn(
-        "mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-8",
+        "mb-header flex flex-wrap items-end justify-between gap-x-6 gap-y-4",
         className,
       )}
     >
       <div className="min-w-0 flex-1 basis-64">
-        <h1 className="text-headline-md font-bold break-words hyphens-auto text-primary-ink md:text-headline-lg">
+        <h1 className="text-page-title font-bold break-words hyphens-auto text-primary-ink">
           {title}
         </h1>
         {description ? (

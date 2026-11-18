@@ -31,10 +31,10 @@ export function HeroActions({ clubId, event, ongoing, quiet }: HeroActionsProps)
 
   if (!ongoing) {
     return (
-      <div className="mt-6 flex">
+      <div className="mt-4 flex md:mt-6">
         <Button
           asChild
-          size="lg"
+          size="hero"
           variant={primaryVariant}
           className={cn("w-full sm:w-auto", primaryClass)}
         >
@@ -49,14 +49,24 @@ export function HeroActions({ clubId, event, ongoing, quiet }: HeroActionsProps)
 
   // During the tasting: add the beer you are drinking, open the songbook.
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
-      <Button asChild size="lg" variant={primaryVariant} className={cn("px-4", primaryClass)}>
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap md:mt-6">
+      <Button
+        asChild
+        size="hero"
+        variant={primaryVariant}
+        className={cn("px-4 md:px-4", primaryClass)}
+      >
         <Link href={newBeerHref(clubId, { eventId: event.id })}>
           <BeerIcon aria-hidden />
           Tilføj øl
         </Link>
       </Button>
-      <Button asChild size="lg" variant="outline" className={cn("px-4", ON_HARBOR_OUTLINE)}>
+      <Button
+        asChild
+        size="hero"
+        variant="outline"
+        className={cn("px-4 md:px-4", ON_HARBOR_OUTLINE)}
+      >
         <Link href={songsHref(clubId)}>
           <MusicIcon aria-hidden />
           Sangbog
@@ -64,7 +74,7 @@ export function HeroActions({ clubId, event, ongoing, quiet }: HeroActionsProps)
       </Button>
       <Button
         asChild
-        size="lg"
+        size="hero"
         variant="ghost"
         className="col-span-2 text-feature-foreground hover:bg-feature-hover sm:col-span-1"
       >

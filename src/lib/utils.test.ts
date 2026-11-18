@@ -12,4 +12,13 @@ describe("cn", () => {
   it("merges two text roles like two sizes", () => {
     expect(cn("text-body-sm", "text-body-sm-loose")).toBe("text-body-sm-loose");
   });
+
+  it("keeps a semantic text role next to a text colour", () => {
+    expect(cn("text-page-title text-primary-ink")).toBe("text-page-title text-primary-ink");
+  });
+
+  it("merges a spacing token with a plain spacing class", () => {
+    expect(cn("p-card", "p-4")).toBe("p-4");
+    expect(cn("gap-4", "gap-section")).toBe("gap-section");
+  });
 });

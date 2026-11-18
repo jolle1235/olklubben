@@ -51,7 +51,7 @@ export default async function EventPage({ params }: PageProps<"/c/[clubId]/event
       <div className="mx-auto max-w-2xl">
         <EventBackLink clubId={club.id} eventId={event.id} />
       </div>
-      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <div className="mx-auto flex max-w-2xl flex-col gap-section">
         <EventInvitation
           clubId={club.id}
           event={event}

@@ -91,7 +91,7 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
     <>
       <h1 className="sr-only">Overblik</h1>
 
-      <div className="flex flex-col gap-8 md:gap-10">
+      <div className="flex flex-col gap-section-loose">
         {nextEvent ? (
           <>
             <NextEventHero clubId={club.id} event={nextEvent} now={now} quiet={pollFirst} />

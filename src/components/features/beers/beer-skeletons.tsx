@@ -16,8 +16,8 @@ function Busy({ label, children }: { label: string; children: React.ReactNode })
 
 function TitleSkeleton({ withLine = true }: { withLine?: boolean }) {
   return (
-    <div className="mb-6 md:mb-8">
-      <Skeleton className="h-10 w-3/5 max-w-sm md:h-12" />
+    <div className="mb-header">
+      <Skeleton className="h-8 w-3/5 max-w-sm md:h-12" />
       {withLine ? <Skeleton className="mt-3 h-5 w-32" /> : null}
     </div>
   );

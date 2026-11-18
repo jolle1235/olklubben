@@ -1,14 +1,14 @@
 # Klubbens side and members
 
 `/c/<clubId>/club` shows the club's name, description and member count, "Medlemmer" with roles
-("Kaptajnen (Jesper Thomsen) (dig) Admin"), a link to "Steder", the invitation code and link with
+(line 1 "Kaptajnen (dig) Admin", line 2 "(Jesper Thomsen)"; at most two lines, no join date, D-181), a link to "Steder", the invitation code and link with
 "Kopiér link", "Del" and (admins) "Generér ny kode", and "Farezone" (leave the club; admins can delete
 it). Admins have a "Handlinger for <name>" menu per member: make admin, remove admin, reset link,
 remove from the club.
 
 ## Sub-features
 
-- `club-members` the member list with roles and "Medlem siden".
+- `club-members` the member list with roles and the official name under a nickname.
 - `club-invite` code, link, copy, share, new code.
 - `club-member-actions` the admin menu per member.
 - `club-edit` "Rediger klubinfo" (name, description).
@@ -27,7 +27,7 @@ Preconditions:
 
 - **Members.** ``app.goto(`/c/${CLUBS.drengene.id}/club`)``. h1 "Drengene & Bajere";
   `getByRole("region", { name: "Medlemmer" }).getByRole("listitem")` has 3 items, the first contains
-  "Kaptajnen (Jesper Thomsen) (dig)".
+  "Kaptajnen (dig)" and "(Jesper Thomsen)".
 - **Invite link.** `getByLabel("Invitationslink")` has the value `<url>/join/BAJER234`.
 - **Member menu.** `getByRole("button", { name: "Handlinger for Mads" })` opens the admin menu.
 - **Proof.** `app.shot("club")`.

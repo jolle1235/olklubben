@@ -83,7 +83,7 @@ export default async function CalendarPage({
   const listView = (
     <>
       <CalendarViewToggle clubId={club.id} active="list" month={keptMonth} />
-      <div className="flex flex-col gap-10 md:gap-12">
+      <div className="flex flex-col gap-section md:gap-12">
         <CalendarList clubId={club.id} events={upcoming} pollDates={listPollDates} now={now} />
         <CalendarHistory
           clubId={club.id}

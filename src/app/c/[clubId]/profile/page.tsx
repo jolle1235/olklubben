@@ -73,7 +73,7 @@ export default async function ProfilePage({
     <>
       <PageHeader title="Profil" />
 
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-section">
         {/* A failed Google login with no card to show it in (D-179). */}
         {googleError && !googleCard ? <FormAlert>{googleError}</FormAlert> : null}
 

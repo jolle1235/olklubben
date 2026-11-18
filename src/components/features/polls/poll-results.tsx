@@ -78,7 +78,7 @@ export function PollResults({ view, now }: PollResultsProps) {
 
   return (
     <section aria-labelledby="poll-results-heading" className="grid grid-cols-1 gap-6">
-      <h2 id="poll-results-heading" className="text-title-sm font-bold text-primary-ink">
+      <h2 id="poll-results-heading" className="text-card-title font-bold text-primary-ink">
         {view.status === "OPEN" ? "Stemmerne indtil nu" : "Resultatet"}
       </h2>
 
