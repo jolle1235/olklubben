@@ -39,9 +39,9 @@ function hero(page: Page) {
   return page.getByRole("region", { name: "Næste ølsmagning" });
 }
 
-/** The top bar's slot (TopBarAction): empty on the overview (D-179). */
+/** A filled top bar slot (TopBarAction). The overview has no top bar at all on mobile (D-179, D-183). */
 function topBarAction(page: Page) {
-  return page.locator("#top-bar-action");
+  return page.locator("#top-bar-action:not(:empty)");
 }
 
 test.describe("Overblik", () => {
@@ -120,7 +120,7 @@ test.describe("Overblik", () => {
     await expect(hero(page).getByRole("link", { name: "Tilføj øl" })).toHaveCount(0);
     // No action in the top bar (D-179): "Opret event" is in the page.
     await expect(page.getByRole("main").getByRole("link", { name: "Opret event" })).toBeVisible();
-    if (isMobile(testInfo)) await expect(topBarAction(page)).toBeEmpty();
+    if (isMobile(testInfo)) await expect(topBarAction(page)).toHaveCount(0);
 
     const now = Date.now();
     const ongoingId = await insertEvent({
@@ -141,7 +141,7 @@ test.describe("Overblik", () => {
       "href",
       `/c/${clubId}/songs`,
     );
-    if (isMobile(testInfo)) await expect(topBarAction(page)).toBeEmpty();
+    if (isMobile(testInfo)) await expect(topBarAction(page)).toHaveCount(0);
     // Tomorrow's event moves to "Kommende arrangementer".
     await expect(
       page

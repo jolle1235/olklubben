@@ -6,6 +6,8 @@
  * NavHistoryTracker.
  */
 
+import { UUID_SOURCE } from "./ids";
+
 const NAV_HISTORY_KEY = "olklubben:nav-history";
 
 const MAX_ENTRIES = 20;
@@ -16,24 +18,28 @@ const FORM_PATH = /\/(new|edit|import)$/;
 const pathOf = (url: string) => url.split(/[?#]/, 1)[0] ?? url;
 
 /**
- * The app's main pages (the navigation's destinations): Overblik, Kalender,
- * Ølkatalog, Sangbog, Profil, Klubben, Steder, Feedback. Everything else
- * (an event, a place, a poll, a beer, a form) is a side trip from where you were.
+ * The app's main pages (the bottom navigation's destinations): Overblik,
+ * Kalender, Ølkatalog, Sangbog and Indstillinger (D-183). Everything else (an
+ * event, a place, a poll, a beer, a form, Klubben, Steder, Konto, Feedback) is
+ * a side trip from where you were. `/profile` without a club only redirects.
  */
-const MAIN_PAGE =
-  /^(\/c\/[^/]+(\/(calendar|beers|songs|profile|club|places))?|\/profile|\/feedback)$/;
+const MAIN_PAGE = /^(\/c\/[^/]+(\/(calendar|beers|songs|settings))?|\/profile)$/;
+const FEEDBACK_PAGE = /^\/feedback(\/|$)/;
+/** Feedback pages "Tilbage" may go to: the list and a report, not the form. */
+const FEEDBACK_TARGET = new RegExp(`^/feedback(/${UUID_SOURCE})?$`, "i");
 const isMainPage = (url: string) => MAIN_PAGE.test(pathOf(url));
 
 /**
- * A page in a club that is not one of its main pages: an event, a beer, a
- * place, a poll, a song, a form or a 404. On mobile its top bar has
- * "‹ Tilbage" instead of the club switcher (D-182).
+ * A page that is not a main page: in a club (an event, a beer, a place, a
+ * poll, a song, a form, a 404, Klubben, Steder, Konto) or Feedback. On mobile
+ * it has the top bar with "‹ Tilbage" (D-182); main pages have none (D-183).
  */
-export function isClubSubpage(pathname: string): boolean {
-  return /^\/c\/[^/]+\/./.test(pathname) && !isMainPage(pathname);
+export function isSubpage(pathname: string): boolean {
+  return (/^\/c\/[^/]+\/./.test(pathname) || FEEDBACK_PAGE.test(pathname)) && !isMainPage(pathname);
 }
 
 const PARENTS: [RegExp, string][] = [
+  [/^\/(club|places|profile)$/, "/settings"],
   [/^\/(events|polls)(\/|$)/, "/calendar"],
   [/^\/beers\//, "/beers"],
   [/^\/places\//, "/places"],
@@ -48,6 +54,9 @@ export function isSongPage(pathname: string): boolean {
 
 /** Where "Tilbage" goes without history: the list the subpage belongs to, else Overblik. */
 export function parentPage(pathname: string, clubPath: string): string {
+  if (FEEDBACK_PAGE.test(pathname)) {
+    return pathname === "/feedback" ? `${clubPath}/settings` : "/feedback";
+  }
   const rest = pathname.slice(clubPath.length);
   const parent = PARENTS.find(([pattern]) => pattern.test(rest))?.[1];
   return parent ? `${clubPath}${parent}` : clubPath;
@@ -75,7 +84,8 @@ export function recordVisit(stack: readonly string[], url: string): string[] {
 
 /**
  * Where "Tilbage" on `here` goes: the latest earlier page in this club
- * (`clubPath`, e.g. /c/<id>) that is not a form, else `fallback`.
+ * (`clubPath`, e.g. /c/<id>) that is not a form (from a feedback page also
+ * the feedback list or a report, D-183), else `fallback`.
  */
 export function backTarget(
   stack: readonly string[],
@@ -84,10 +94,12 @@ export function backTarget(
   fallback: string,
 ): string {
   const earlier = recordVisit(stack, here).slice(0, -1).reverse();
+  const inFeedback = FEEDBACK_PAGE.test(pathOf(here));
   for (const url of earlier) {
     const pathname = pathOf(url);
     const inClub = pathname === clubPath || pathname.startsWith(`${clubPath}/`);
-    if (inClub && !FORM_PATH.test(pathname)) return url;
+    if ((inClub && !FORM_PATH.test(pathname)) || (inFeedback && FEEDBACK_TARGET.test(pathname)))
+      return url;
   }
   return fallback;
 }

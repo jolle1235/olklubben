@@ -16,7 +16,7 @@ describe("getNavItems", () => {
       ["Kalender", "/c/club1/calendar"],
       ["Øl", "/c/club1/beers"],
       ["Sangbog", "/c/club1/songs"],
-      ["Profil", "/c/club1/profile"],
+      ["Indstillinger", "/c/club1/settings"],
     ]);
   });
 
@@ -28,7 +28,7 @@ describe("getNavItems", () => {
 describe("getSidebarNav", () => {
   const sidebar = getSidebarNav("club1");
 
-  it("lists the four items without Profil", () => {
+  it("lists the four items without Indstillinger", () => {
     expect(sidebar.list.map((item) => item.label)).toEqual([
       "Overblik",
       "Kalender",
@@ -37,8 +37,9 @@ describe("getSidebarNav", () => {
     ]);
   });
 
-  it("puts Profil behind the user row, with the same href and active logic", () => {
-    expect(sidebar.userRow).toEqual(byKey.profile);
+  it("puts Indstillinger behind the user row, with the same href and active logic", () => {
+    expect(sidebar.userRow).toEqual(byKey.settings);
+    expect(isNavItemActive("/c/club1/settings", sidebar.userRow)).toBe(true);
     expect(isNavItemActive("/c/club1/profile", sidebar.userRow)).toBe(true);
     expect(isNavItemActive("/c/club1/club", sidebar.userRow)).toBe(true);
     expect(isNavItemActive("/c/club1/places", sidebar.userRow)).toBe(true);
@@ -75,25 +76,25 @@ describe("isNavItemActive", () => {
     expect(activeKeys("/c/club1/eventsx")).toEqual([]);
   });
 
-  it("treats the club page as part of Profil", () => {
-    expect(activeKeys("/c/club1/profile")).toEqual(["profile"]);
-    expect(activeKeys("/c/club1/club")).toEqual(["profile"]);
-    expect(activeKeys("/c/club1/club/edit")).toEqual(["profile"]);
+  it("treats the club page as part of Indstillinger", () => {
+    expect(activeKeys("/c/club1/profile")).toEqual(["settings"]);
+    expect(activeKeys("/c/club1/club")).toEqual(["settings"]);
+    expect(activeKeys("/c/club1/club/edit")).toEqual(["settings"]);
   });
 
-  it("treats the places as part of Profil (D-108)", () => {
-    expect(activeKeys("/c/club1/places")).toEqual(["profile"]);
-    expect(activeKeys("/c/club1/places/new")).toEqual(["profile"]);
-    expect(activeKeys("/c/club1/places/p1/edit")).toEqual(["profile"]);
+  it("treats the places as part of Indstillinger (D-108)", () => {
+    expect(activeKeys("/c/club1/places")).toEqual(["settings"]);
+    expect(activeKeys("/c/club1/places/new")).toEqual(["settings"]);
+    expect(activeKeys("/c/club1/places/p1/edit")).toEqual(["settings"]);
     expect(activeKeys("/c/club1/placesx")).toEqual([]);
   });
 
-  it("treats the app-wide feedback pages as part of Profil (§9.9, D-147)", () => {
-    expect(activeKeys("/feedback")).toEqual(["profile"]);
-    expect(activeKeys("/feedback/new")).toEqual(["profile"]);
-    expect(activeKeys("/feedback/f1/edit")).toEqual(["profile"]);
+  it("treats the app-wide feedback pages as part of Indstillinger (§9.9, D-147)", () => {
+    expect(activeKeys("/feedback")).toEqual(["settings"]);
+    expect(activeKeys("/feedback/new")).toEqual(["settings"]);
+    expect(activeKeys("/feedback/f1/edit")).toEqual(["settings"]);
     expect(activeKeys("/feedbackx")).toEqual([]);
-    // Every club's Profil item, whichever club the shell shows.
+    // Every club's Indstillinger item, whichever club the shell shows.
     expect(isNavItemActive("/feedback/f1", getSidebarNav("club2").userRow)).toBe(true);
   });
 

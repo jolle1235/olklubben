@@ -41,7 +41,10 @@ const JOURNEYS: Journey[] = [
       await page.getByLabel("Password", { exact: true }).fill(SEED_PASSWORD);
       await page.getByRole("button", { name: "Log ind", exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`${DRENGENE}$`));
-      await expect(page.getByRole("heading", { level: 1, name: "Overblik" })).toBeAttached();
+      // Overblik's h1 is the club's name (D-183).
+      await expect(
+        page.getByRole("heading", { level: 1, name: CLUBS.drengene.name }),
+      ).toBeVisible();
       await app.shot("smoke-login");
       return page.url();
     },
@@ -193,12 +196,31 @@ const JOURNEYS: Journey[] = [
     },
   },
   {
-    name: "profile: navn, kælenavn og email",
+    name: "settings: Indstillinger med konto, klubben og mine klubber",
+    as: "jesper",
+    drive: async (app) => {
+      const { page } = app;
+      await app.goto(`${DRENGENE}/settings`);
+      await expect(page.getByRole("heading", { level: 1, name: "Indstillinger" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Konto" })).toContainText(USERS.jesper.email);
+      await expect(page.getByRole("link", { name: /Medlemmer og invitation/ })).toContainText(
+        "3 medlemmer",
+      );
+      await expect(
+        page
+          .getByRole("region", { name: "Mine klubber" })
+          .getByRole("link", { name: CLUBS.drengene.name }),
+      ).toHaveAttribute("aria-current", "page");
+      await app.shot("smoke-settings");
+    },
+  },
+  {
+    name: "profile: Konto med navn, kælenavn og email",
     as: "jesper",
     drive: async (app) => {
       const { page } = app;
       await app.goto(`${DRENGENE}/profile`);
-      await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Konto" })).toBeVisible();
       await expect(page.getByLabel("Navn", { exact: true })).toHaveValue(USERS.jesper.name);
       await expect(page.getByRole("textbox", { name: /^Kælenavn/ })).toHaveValue(
         USERS.jesper.nickname,

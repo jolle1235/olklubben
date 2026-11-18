@@ -103,6 +103,7 @@ export const WARM_PATHS = [
   `/c/${CLUBS.drengene.id}/places/${PLACES.hosMads.id}`,
   `/c/${CLUBS.drengene.id}/club`,
   `/c/${CLUBS.drengene.id}/profile`,
+  `/c/${CLUBS.drengene.id}/settings`,
   "/feedback",
   `/feedback/${FEEDBACK.calendarBug.id}`,
 ] as const;

@@ -16,7 +16,7 @@ beer). A club with one member sees "Inviter dine ølbrødre" first.
 
 - Log in: Kaptajnen and Anders land here.
 - "Overblik" in the main navigation (sidebar on desktop, bottom nav on mobile).
-- The club switcher ("<club>. Skift klub") → pick a club. On mobile it is in the top bar on main pages only; subpages show "‹ Tilbage" and the page name there (D-182).
+- The club switcher ("<club>. Skift klub") → pick a club: in the desktop sidebar; on mobile under "Mine klubber" in Indstillinger (D-183). Overblik's h1 is the club's name.
 
 ## Driving it with the verify driver
 
@@ -35,7 +35,7 @@ Preconditions:
 
 ## Gotchas
 
-- The h1 "Overblik" is visually hidden (the next event comes first, SPEC §3.2).
+- ~~The h1 "Overblik" is visually hidden~~ The h1 is the club's name, visible (D-183); the nav link "Overblik" keeps its name.
 - The decided poll "Ølsmagning #13" also has a card ("🎉 Afgjort") for 3 days after it was seeded.
 - The open poll's deadline is fixed when the instance seeds it (10 days ahead), so it stays open for
   the instance's lifetime.

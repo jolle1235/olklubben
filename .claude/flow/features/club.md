@@ -17,7 +17,7 @@ remove from the club.
 ## How to get to it (user POV)
 
 - The club switcher's club page; "Inviter" under the club's name (also on mobile, D-179).
-- Profil → "Klubbens side".
+- Indstillinger → "Medlemmer og invitation" (D-183); on desktop also the sidebar's club switcher → "Klubbens side".
 
 ## Driving it with the verify driver
 

@@ -9,7 +9,7 @@ import { getNavItems, isNavItemActive } from "./nav-items";
 export type BottomNavProps = { clubId: string; className?: string };
 
 /**
- * Mobile navigation (< md): fixed to the bottom, five items with icon + label,
+ * Mobile navigation (< md): fixed to the bottom, five items, icons only (the names for screen readers, D-183),
  * targets ≥ 44 px, padded for the iPhone home indicator (SPEC §8.1).
  * AppShell pads <main> so nothing hides behind it.
  */
@@ -35,7 +35,7 @@ export function BottomNav({ clubId, className }: BottomNavProps) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 pt-2 pb-1.5 text-label-md leading-none font-semibold pressable-dim",
+                  "flex min-h-14 flex-1 items-center justify-center px-1 pressable-dim",
                   active
                     ? "text-frame-foreground"
                     : "text-frame-muted-foreground hover:text-frame-foreground",
@@ -44,13 +44,14 @@ export function BottomNav({ clubId, className }: BottomNavProps) {
                 <span
                   aria-hidden
                   className={cn(
-                    "grid size-8 place-items-center rounded-full transition-colors [&_svg]:size-[1.2rem]",
+                    "grid size-10 place-items-center rounded-full transition-colors [&_svg]:size-6",
                     active && "porthole bg-highlight text-highlight-foreground",
                   )}
                 >
                   <Icon strokeWidth={2.25} />
                 </span>
-                <span className="mt-0.5">{item.label}</span>
+                {/* Icons only (D-183): the names are for screen readers. */}
+                <span className="sr-only">{item.label}</span>
               </Link>
             </li>
           );

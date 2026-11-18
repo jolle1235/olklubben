@@ -50,7 +50,8 @@ index, then the feature file for what you drive. Harness facts (commands, isolat
 | Kalender                  | [calendar.md](calendar.md) | `calendar:`   |
 | Steder                    | [places.md](places.md)     | `places:`     |
 | Klubbens side and members | [club.md](club.md)         | `club:`       |
-| Profil                    | [profile.md](profile.md)   | `profile:`    |
+| Indstillinger             | [settings.md](settings.md) | `settings:`   |
+| Konto (Profil)            | [profile.md](profile.md)   | `profile:`    |
 | Feedback                  | [feedback.md](feedback.md) | `feedback:`   |
 | Invitations and join      | [join.md](join.md)         | `join:`       |
 

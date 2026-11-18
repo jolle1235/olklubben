@@ -20,7 +20,7 @@ type ReauthProps = {
 };
 
 /**
- * "Tilføj password" on Profil for an account with only a Google login (SPEC
+ * "Tilføj password" on Konto for an account with only a Google login (SPEC
  * §9.8, D-152): a first password, twice, so the account can also log in with
  * email and password. Only shown while the Google login is less than 10
  * minutes old (the page decides); the Server Action checks again. If the page
@@ -88,7 +88,7 @@ export function SetPasswordForm({ clubId, email, available }: ReauthProps) {
  * Why "Tilføj password" needs a fresh Google login, with "Log ind med Google
  * igen" (when Google is configured). Google's chooser opens with the account's
  * email pre-selected (prompt=select_account, login_hint; never prompt=login,
- * which Google does not know, F-098), and the login comes back to Profil with
+ * which Google does not know, F-098), and the login comes back to Konto with
  * a new session, so the form shows. Choosing another account in the chooser
  * logs into that account instead (accepted, D-152).
  */

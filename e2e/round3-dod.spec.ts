@@ -5,7 +5,8 @@ import {
   mainNav,
   memberRows,
   newUser,
-  profileLink,
+  openAccount,
+  settingsLink,
   signUpWithClub,
 } from "./support/app";
 import { insertEvent, insertPlace } from "./support/db";
@@ -54,9 +55,8 @@ test.describe("Runde 3: Definition of Done", () => {
     const member = newUser(testInfo, "r3medlem");
     await joinClub(page, memberPage, member, clubId);
 
-    // The member picks a nickname on Profil (D-105).
-    await profileLink(memberPage).click();
-    await expect(memberPage.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+    // The member picks a nickname on Konto (D-105, D-183).
+    await openAccount(memberPage);
     await memberPage.getByLabel("Kælenavn").fill("Skipperen");
     await expect(memberPage.getByText("Sådan ser de andre dig:")).toContainText(
       `Skipperen (${member.name})`,
@@ -68,9 +68,10 @@ test.describe("Runde 3: Definition of Done", () => {
     await page.goto(`/c/${clubId}/club`);
     await expect(memberRow(page, "Skipperen")).toContainText(`Skipperen (${member.name})`);
 
-    // Profil → Steder → Nyt sted, with an address and "Det er mit sted" (§9.4).
+    // Indstillinger → Steder → Nyt sted, with an address and "Det er mit sted" (§9.4, D-183).
+    await settingsLink(memberPage).click();
     await memberPage
-      .getByRole("navigation", { name: "Klubber" })
+      .getByRole("main")
       .getByRole("link", { name: /^Steder/ })
       .click();
     await expect(memberPage.getByRole("heading", { level: 1, name: "Steder" })).toBeVisible();

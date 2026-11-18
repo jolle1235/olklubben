@@ -9,7 +9,8 @@ import {
   logOut,
   memberRows,
   newUser,
-  profileLink,
+  openAccount,
+  settingsLink,
   signUpWithClub,
 } from "./support/app";
 import {
@@ -52,8 +53,7 @@ test.describe("Profil: kælenavn, email og password", () => {
     const beerId = await insertBeer({ clubId, createdByEmail: user.email, name: "Skumtoppen" });
     await insertRating({ beerId, email: user.email, value: 9 });
 
-    await profileLink(page).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+    await openAccount(page);
     const nickname = page.getByLabel("Kælenavn");
     await nickname.fill("  Kaptajnen  ");
     // The live preview: how the member list will show you.
@@ -69,7 +69,7 @@ test.describe("Profil: kælenavn, email og password", () => {
     await expect(identity).toContainText(`(${user.name})`);
     if (!isMobile(testInfo)) {
       // The sidebar's user row (D-093) shows the nickname.
-      await expect(profileLink(page)).toContainText("Kaptajnen");
+      await expect(settingsLink(page)).toContainText("Kaptajnen");
     }
 
     // The member list shows both (the official name on the row's second line, D-181);
@@ -134,7 +134,7 @@ test.describe("Profil: kælenavn, email og password", () => {
 
     // This device stays logged in…
     await page.reload();
-    await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Konto" })).toBeVisible();
 
     // …the other one is logged out, and only the new password works.
     await otherDevice.reload();
@@ -152,8 +152,7 @@ test.describe("Profil: kælenavn, email og password", () => {
     const clubId = await signUpWithClub(page, user, clubName(testInfo, "Emailskift"));
     const newEmail = newUser(testInfo, "flyttet").email;
 
-    await profileLink(page).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+    await openAccount(page);
     const emailCard = card(page, "Email");
     await expect(emailCard).toContainText(`Du logger ind med ${user.email}.`);
     // Typed with capitals: stored lowercase.
@@ -171,7 +170,7 @@ test.describe("Profil: kælenavn, email og password", () => {
     await expect(emailCard.getByLabel("Ny email", { exact: true })).toHaveValue("");
     if (!isMobile(testInfo)) {
       // The sidebar's user row (D-093) shows the email.
-      await expect(profileLink(page)).toContainText(newEmail);
+      await expect(settingsLink(page)).toContainText(newEmail);
     }
 
     // The old email no longer logs in; the new one does.

@@ -9,7 +9,7 @@ import { changeEmailSchema } from "@/lib/validation/profile";
 import { changeEmailAction } from "@/server/actions/profile";
 
 /**
- * "Skift email" on Profil (SPEC §9.8, D-151), for accounts with a password
+ * "Skift email" on Konto (SPEC §9.8, D-151), for accounts with a password
  * login: the new email twice (a typo would lock the other devices out, and
  * there is no confirmation mail yet) and the current password. A wrong
  * password, an email in use and the current email come back on their field

@@ -6,7 +6,7 @@ import {
   expectHydrated,
   mainNav,
   newUser,
-  profileLink,
+  settingsLink,
   signUp,
   signUpWithClub,
 } from "./support/app";
@@ -49,22 +49,21 @@ async function signUpWithoutClub(page: Page, user: ReturnType<typeof newUser>): 
 }
 
 test.describe("Feedback", () => {
-  test("Profil → Feedback → ny idé, ret den mens den er Ny, og find den under Mine rapporter", async ({
+  test("Indstillinger → Feedback → ny idé, ret den mens den er Ny, og find den under Mine rapporter", async ({
     page,
   }, testInfo) => {
     const user = newUser(testInfo, "feedback");
     await signUpWithClub(page, user, clubName(testInfo, "Feedback"));
 
-    // Profil → "Feedback (fejl og ønsker)" (§8.1); Profil stays the active tab (D-147).
-    await profileLink(page).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+    // Indstillinger → "Feedback (fejl og ønsker)" (§8.1); Indstillinger stays the active tab (D-147, D-183).
+    await settingsLink(page).click();
     await page
-      .getByRole("navigation", { name: "Feedback" })
+      .getByRole("main")
       .getByRole("link", { name: /^Feedback \(fejl og ønsker\)/ })
       .click();
     await expect(page).toHaveURL(/\/feedback$/);
     await expect(page.getByRole("heading", { level: 1, name: "Feedback" })).toBeVisible();
-    await expect(profileLink(page)).toHaveAttribute("aria-current", "page");
+    await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(mainNav(page).locator('[aria-current="page"]')).toHaveCount(1);
 
     await page.getByRole("main").getByRole("link", { name: "Ny rapport" }).first().click();

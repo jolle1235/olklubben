@@ -175,9 +175,14 @@ export function editClubHref(clubId: string): string {
   return `${clubHref(clubId)}/edit`;
 }
 
-/** Profil (D-023: under the club, so the app shell stays). */
+/** Konto (D-023, D-183: under the club, so the app shell stays). */
 export function profileHref(clubId: string): string {
   return `/c/${clubId}/profile`;
+}
+
+/** Indstillinger: account, club, my clubs and the app (D-183). */
+export function settingsHref(clubId: string): string {
+  return `/c/${clubId}/settings`;
 }
 
 /**

@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 
-import { isClubSubpage } from "@/lib/nav-history";
+import { isSubpage } from "@/lib/nav-history";
 
 export const TOP_BAR_TITLE_SLOT_ID = "top-bar-title";
 
@@ -22,5 +22,5 @@ const getServerSlot = () => null;
 export function TopBarTitle({ children }: { children: string }) {
   const slot = useSyncExternalStore(subscribe, getSlot, getServerSlot);
   const pathname = usePathname();
-  return slot && isClubSubpage(pathname) ? createPortal(children, slot) : null;
+  return slot && isSubpage(pathname) ? createPortal(children, slot) : null;
 }

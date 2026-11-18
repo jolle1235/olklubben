@@ -27,6 +27,7 @@ import {
   pollHref,
   pollVoteHref,
   profileHref,
+  settingsHref,
   songsHref,
 } from "./routes";
 
@@ -83,6 +84,7 @@ describe("club routes (SPEC §8.2)", () => {
     expect(clubHref(CLUB)).toBe(`/c/${CLUB}/club`);
     expect(editClubHref(CLUB)).toBe(`/c/${CLUB}/club/edit`);
     expect(profileHref(CLUB)).toBe(`/c/${CLUB}/profile`);
+    expect(settingsHref(CLUB)).toBe(`/c/${CLUB}/settings`);
   });
 
   it("pre-fills the event and the name on 'Tilføj øl' (SPEC §9.2, §10.5)", () => {

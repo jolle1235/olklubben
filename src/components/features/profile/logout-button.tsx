@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils";
  * "Log ud" (SPEC §9.8). Ends the session and goes to /login. Google has no
  * session of ours to end, so the next "Fortsæt med Google" shows Google's
  * account chooser (prompt=select_account, D-180).
- * variant "outline": the button on Profil. "link": inline text, e.g. in the
+ * variant "outline": the button on Indstillinger (D-183). "link": inline text, e.g. in the
  * "Logget ind som …" footer on onboarding pages. "sidebar": a row under the
- * user in the desktop sidebar, so logging out needs no trip to Profil.
+ * user in the desktop sidebar, so logging out needs no trip to Indstillinger.
  *
  * `next`: a same-origin path to come back to after logging in again, e.g. the
  * invitation on /join/<code> (someone on the wrong account, §6.5). It becomes

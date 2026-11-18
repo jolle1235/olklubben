@@ -9,8 +9,8 @@ import { LogoutButton } from "./logout-button";
  * "Logget ind som <email>. Log ud · Feedback" under the card on pages outside
  * a club (onboarding, the club picker, invitations). Without it a user with no
  * club – or on the wrong account on a shared phone – could not log out,
- * because "Log ud" otherwise lives on the club's Profil tab. For the same
- * reason it links to Feedback (§9.9, D-147), whose other way in is Profil.
+ * because "Log ud" otherwise lives on the club's Indstillinger tab (D-183). For the same
+ * reason it links to Feedback (§9.9, D-147), whose other way in is Indstillinger.
  * The feedback pages' own shell (0 clubs) leaves that link out.
  *
  * `next` is passed on to "Log ud", so logging in again comes back to it (the
