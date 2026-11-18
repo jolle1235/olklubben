@@ -6,9 +6,9 @@ import { getUserClubs, requireUser } from "@/server/auth/session";
 
 /**
  * Frame for the app-wide feedback pages (SPEC §9.9, D-147). Feedback has no
- * club, but its way in is Profil, so a user with clubs keeps the AppShell of
+ * club, but its way in is Indstillinger (D-183), so a user with clubs keeps the AppShell of
  * the club they were last in (User.lastActiveClubId while still a member,
- * else their first club), with the Profil tab active (nav-items: alsoActiveOn
+ * else their first club), with the Indstillinger tab active (nav-items: alsoActiveOn
  * "/feedback"). There is deliberately no main navigation item. A user without
  * clubs gets FeedbackShell (CenteredShell's look, "Tilbage", "Logget ind
  * som …").

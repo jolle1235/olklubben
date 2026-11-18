@@ -9,10 +9,10 @@ import { changePasswordSchema } from "@/lib/validation/profile";
 import { changePasswordAction } from "@/server/actions/profile";
 
 /**
- * "Skift password" on Profil (SPEC §9.8, D-106), for accounts with a
+ * "Skift password" on Konto (SPEC §9.8, D-106), for accounts with a
  * password login. A wrong current password is shown on that field (and
  * focused, D-056). After the change this device stays logged in, every other
- * device is logged out and old reset links stop working; Profil says so in
+ * device is logged out and old reset links stop working; Konto says so in
  * a toast. Passwords are never echoed back, so a failed submit clears them.
  *
  * `email` fills a hidden username field, so password managers know which

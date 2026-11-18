@@ -1,13 +1,15 @@
 import {
   BeerIcon,
   CalendarDaysIcon,
-  CircleUserRoundIcon,
   HouseIcon,
   MusicIcon,
+  SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
 
-export type NavKey = "overview" | "calendar" | "beers" | "songs" | "profile";
+import { clubHref, placesHref, profileHref, settingsHref } from "@/lib/routes";
+
+export type NavKey = "overview" | "calendar" | "beers" | "songs" | "settings";
 
 /** Feedback (SPEC §9.9) is app-wide, so the same prefix for every club. */
 const FEEDBACK_PATH = "/feedback";
@@ -71,17 +73,16 @@ export function getNavItems(clubId: string): NavItem[] {
       sidebar: "list",
     },
     {
-      // The club page and the places live under Profil (SPEC §8.1: "Profil →
-      // Klubben"; no new main navigation item for Steder, D-108). So does the
-      // app-wide Feedback (§9.9: no main navigation item, D-147), which is
-      // outside the club's URL space.
-      key: "profile",
-      label: "Profil",
-      href: `${base}/profile`,
-      icon: CircleUserRoundIcon,
+      // Indstillinger (D-183): Konto, the club page, the places and the
+      // app-wide Feedback (§9.9, D-147, outside the club's URL space) are its
+      // subpages.
+      key: "settings",
+      label: "Indstillinger",
+      href: settingsHref(clubId),
+      icon: SettingsIcon,
       exact: false,
-      alsoActiveOn: [`${base}/club`, `${base}/places`, FEEDBACK_PATH],
-      // On desktop the user row at the bottom of the sidebar is the way to Profil.
+      alsoActiveOn: [profileHref(clubId), clubHref(clubId), placesHref(clubId), FEEDBACK_PATH],
+      // On desktop the user row at the bottom of the sidebar is the way to Indstillinger.
       sidebar: "user-row",
     },
   ];
@@ -90,7 +91,7 @@ export function getNavItems(clubId: string): NavItem[] {
 export type SidebarNav = {
   /** The items in the sidebar's list (Overblik, Kalender, Øl, Sangbog). */
   list: NavItem[];
-  /** The item behind the user row at the bottom of the sidebar (Profil). */
+  /** The item behind the user row at the bottom of the sidebar (Indstillinger). */
   userRow: NavItem;
 };
 

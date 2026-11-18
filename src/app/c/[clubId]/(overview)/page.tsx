@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import type { Metadata } from "next";
 
 import { NextEventHero } from "@/components/features/overview/next-event-hero";
@@ -29,9 +30,9 @@ const UPCOMING_LIMIT = 4;
  * (D-179): "Opret event" is in the page, "Tilføj øl" in the hero while an
  * event is on.
  *
- * The h1 "Overblik" is for screen readers only: the first thing you SEE is
- * the next event (§3.2), the club's name is already in the top bar/sidebar,
- * and the hero's title is the h2. One h1 in every state.
+ * The h1 is the club's name (D-183): main pages have no top bar on mobile, so
+ * this is where you see which club you are in. The hero's title is the h2.
+ * One h1 in every state.
  *
  * Polls that are due (deadline passed, or everyone has voted) are closed
  * lazily BEFORE the queries (closeDuePolls, D-131; never throws), so an event
@@ -89,7 +90,7 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
 
   return (
     <>
-      <h1 className="sr-only">Overblik</h1>
+      <PageHeader title={club.name} />
 
       <div className="flex flex-col gap-section-loose">
         {nextEvent ? (

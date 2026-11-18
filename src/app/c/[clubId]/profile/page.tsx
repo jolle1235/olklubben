@@ -2,34 +2,28 @@ import type { Metadata } from "next";
 
 import { FormAlert } from "@/components/features/auth/form-alert";
 import { GoogleSignInButton } from "@/components/features/auth/google-sign-in";
-import { AppearanceControl } from "@/components/features/profile/appearance-control";
 import { ChangeEmailForm } from "@/components/features/profile/change-email-form";
 import { ChangePasswordForm } from "@/components/features/profile/change-password-form";
-import { LogoutButton } from "@/components/features/profile/logout-button";
 import { ProfileForm } from "@/components/features/profile/profile-form";
 import { ProfileIdentity } from "@/components/features/profile/profile-identity";
-import { FeedbackLink, ProfileLinks } from "@/components/features/profile/profile-links";
 import { ProfileSection } from "@/components/features/profile/profile-section";
 import { GoogleReauth, SetPasswordForm } from "@/components/features/profile/set-password-form";
 import { PageHeader } from "@/components/ui/page-header";
-import { SectionDivider } from "@/components/ui/section-divider";
 import { isGoogleConfigured } from "@/env";
 import { EMAIL_FOLLOWS_GOOGLE, getOAuthErrorMessage } from "@/lib/auth-errors";
 import { firstParam } from "@/lib/auth-links";
 import { profileHref } from "@/lib/routes";
-import { getSession, getUserClubs, requireClubPage } from "@/server/auth/session";
+import { getSession, requireClubPage } from "@/server/auth/session";
 import { externalLoginCard } from "@/server/domain/users/external-login-card";
 import { isFreshLogin } from "@/server/domain/users/login-freshness";
 import { getAccountLogins } from "@/server/users/queries";
 
-export const metadata: Metadata = { title: "Profil" };
+export const metadata: Metadata = { title: "Konto" };
 
 /**
- * Profil (D-023, SPEC §8.1, §9.8, D-105, D-106, D-151, D-152): who you are
- * (with the official name when a nickname is set), name and nickname, the
- * email, the password, the way to the club page, its places and other clubs,
- * "Udseende" (per device, §13.2), "Feedback (fejl og ønsker)" (the app-wide
- * reports, §9.9, D-147), and log out.
+ * Konto (D-023, D-183, SPEC §8.1, §9.8, D-105, D-106, D-151, D-152), a
+ * subpage of Indstillinger: who you are (with the official name when a
+ * nickname is set), name and nickname, the email, the password and Google.
  *
  *   * Email: password logins get "Skift email"; accounts with only a Google
  *     login are told that their email follows it.
@@ -53,11 +47,7 @@ export default async function ProfilePage({
   const { clubId } = await params;
   const query = await searchParams;
   const { user, club } = await requireClubPage(clubId);
-  const [clubs, logins, session] = await Promise.all([
-    getUserClubs(user.id),
-    getAccountLogins(user.id),
-    getSession(),
-  ]);
+  const [logins, session] = await Promise.all([getAccountLogins(user.id), getSession()]);
   const hasLogin = logins.hasPassword || logins.hasGoogle;
   const freshLogin = session !== null && isFreshLogin(session.session.createdAt, new Date());
   // "Forbind Google" lands here with ?external=linked, or ?error=<code> when it failed.
@@ -71,7 +61,7 @@ export default async function ProfilePage({
 
   return (
     <>
-      <PageHeader title="Profil" />
+      <PageHeader title="Konto" />
 
       <div className="flex flex-col gap-section">
         {/* A failed Google login with no card to show it in (D-179). */}
@@ -164,25 +154,6 @@ export default async function ProfilePage({
             )}
           </ProfileSection>
         ) : null}
-
-        <ProfileSection
-          title="Udseende"
-          headingId="profile-appearance-heading"
-          contentClassName="grid gap-4"
-        >
-          <p className="text-lead text-muted-foreground">
-            System følger din telefon eller computer. Valget gælder kun på denne enhed.
-          </p>
-          <AppearanceControl />
-        </ProfileSection>
-
-        <ProfileLinks clubId={club.id} clubCount={clubs.length} />
-        <FeedbackLink />
-
-        <div className="flex flex-col gap-6">
-          <SectionDivider />
-          <LogoutButton className="sm:self-start" />
-        </div>
       </div>
     </>
   );

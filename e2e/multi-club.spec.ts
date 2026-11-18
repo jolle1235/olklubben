@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { isMobile } from "./support/round2";
 import { deleteMembership, lastActiveClubId } from "./support/db";
 import {
   clubName,
@@ -7,7 +8,7 @@ import {
   logIn,
   logOut,
   newUser,
-  profileLink,
+  settingsLink,
   signUp,
   signUpWithClub,
 } from "./support/app";
@@ -48,15 +49,28 @@ test.describe("Flere klubber og routing", () => {
     await logIn(page, user);
     await expectOverview(page, thirdId);
 
-    // Switch club with the ClubSwitcher (top bar on mobile, sidebar on desktop).
-    await page.getByRole("button", { name: /Skift klub/ }).click();
-    await expect(page.getByRole("menuitemradio", { name: third })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    await page.getByRole("menuitemradio", { name: first }).click();
-    await expectOverview(page, firstId);
-    await expect(page.getByRole("button", { name: /Skift klub/ })).toContainText(first);
+    if (isMobile(testInfo)) {
+      // Mobile: switch club under "Mine klubber" in Indstillinger (D-183).
+      await settingsLink(page).click();
+      const myClubs = page.getByRole("region", { name: "Mine klubber" });
+      await expect(myClubs.getByRole("link", { name: third })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await myClubs.getByRole("link", { name: first }).click();
+      await expectOverview(page, firstId);
+      await expect(page.getByRole("heading", { level: 1, name: first })).toBeVisible();
+    } else {
+      // Desktop: the ClubSwitcher in the sidebar.
+      await page.getByRole("button", { name: /Skift klub/ }).click();
+      await expect(page.getByRole("menuitemradio", { name: third })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      await page.getByRole("menuitemradio", { name: first }).click();
+      await expectOverview(page, firstId);
+      await expect(page.getByRole("button", { name: /Skift klub/ })).toContainText(first);
+    }
 
     // The switch is remembered (lastActiveClubId, §10.3).
     await logOut(page);
@@ -136,17 +150,18 @@ test.describe("Flere klubber og routing", () => {
     await expect.poll(() => lastActiveClubId(user.email)).toBe(secondId);
   });
 
-  test("en bruger med én klub kan åbne onboarding fra Profil og komme tilbage", async ({
+  test("en bruger med én klub kan åbne onboarding fra Indstillinger og komme tilbage", async ({
     page,
   }, testInfo) => {
     const user = newUser(testInfo, "enklub");
     const name = clubName(testInfo, "Eneste");
     const clubId = await signUpWithClub(page, user, name);
 
-    await profileLink(page).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Mine klubber/ })).toHaveCount(0);
-    await page.getByRole("link", { name: /Opret eller join ny klub/ }).click();
+    await settingsLink(page).click();
+    // "Mine klubber" lists the one club, active (D-183).
+    const myClubs = page.getByRole("region", { name: "Mine klubber" });
+    await expect(myClubs.getByRole("link", { name })).toHaveAttribute("aria-current", "page");
+    await myClubs.getByRole("link", { name: /Opret eller join ny klub/ }).click();
     await expect(page).toHaveURL(/\/onboarding$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Opret eller join en ny klub" }),

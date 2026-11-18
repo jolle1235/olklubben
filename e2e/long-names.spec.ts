@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
 import { createClub, newUser, signUpWithClub } from "./support/app";
-import { createEventViaForm, dayFromToday } from "./support/round2";
+import { createEventViaForm, dayFromToday, isMobile } from "./support/round2";
 
 /**
  * Long club names (up to 60 characters, §7.2, also as one long word) wrap
@@ -77,11 +77,23 @@ test.describe("Lange klubnavne", () => {
     await expectFullyShown(picker.getByText(LONG_NAME, { exact: true }));
     await expectNoSidewaysScroll(page);
 
-    // The club switcher (top bar on mobile, sidebar on desktop) wraps names
-    // instead of cutting them off, and fits on the screen.
     await picker.getByRole("link", { name: new RegExp(LONG_WORD) }).click();
     await expect(page).toHaveURL(new RegExp(`/c/${longWordId}$`));
     await expectNoSidewaysScroll(page);
+
+    if (isMobile(testInfo)) {
+      // Mobile: clubs are switched under "Mine klubber" in Indstillinger (D-183);
+      // the rows wrap long names inside their card.
+      await page.goto(`/c/${longWordId}/settings`);
+      const myClubs = page.getByRole("region", { name: "Mine klubber" });
+      await expectInside(myClubs.getByRole("link"), myClubs);
+      await expectFullyShown(myClubs.getByText(LONG_NAME, { exact: true }));
+      await expectNoSidewaysScroll(page);
+      return;
+    }
+
+    // Desktop: the sidebar's club switcher wraps names instead of cutting them
+    // off, and fits on the screen.
     const trigger = page.getByRole("button", { name: /Skift klub/ });
     await trigger.focus();
     await page.keyboard.press("Enter");

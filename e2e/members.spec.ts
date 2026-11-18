@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { isMobile } from "./support/round2";
 import {
   clubName,
   expectHydrated,
@@ -242,10 +243,16 @@ test.describe("Medlemsadministration", () => {
     await expect(page.getByText("Gemt ✓")).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: newName })).toBeVisible();
     await expect(page.getByText(/Vi smager øl\.\s*Hver fredag\./)).toBeVisible();
-    // The ClubSwitcher (one club: a link to the club page) shows the new name too.
-    await expect(
-      page.getByRole("link", { name: /^Klubbens side:/ }).filter({ visible: true }),
-    ).toContainText(newName);
+    if (isMobile(testInfo)) {
+      // Mobile: the club's group in Indstillinger has the new name (D-183).
+      await page.goto(`/c/${clubId}/settings`);
+      await expect(page.getByRole("region", { name: newName })).toBeVisible();
+    } else {
+      // The ClubSwitcher (one club: a link to the club page) shows the new name too.
+      await expect(
+        page.getByRole("link", { name: /^Klubbens side:/ }).filter({ visible: true }),
+      ).toContainText(newName);
+    }
 
     const memberPage = await openPage();
     const member = newUser(testInfo, "laeser");

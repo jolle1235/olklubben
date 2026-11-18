@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnchorIcon, ChevronDownIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 
+import { clubHref, overviewHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { ClubBadge } from "@/components/features/club-badge";
 import {
@@ -24,56 +25,46 @@ export type ClubSummary = { id: string; name: string };
 export type ClubSwitcherProps = {
   club: ClubSummary;
   clubs: ClubSummary[];
-  /** "sidebar": block with badge (desktop). "topbar": compact title (mobile). */
-  variant?: "sidebar" | "topbar";
-  className?: string;
 };
-
-const clubPath = (id: string) => `/c/${encodeURIComponent(id)}`;
 
 /**
  * The active club's name (SPEC §3.1, §8.1). With one club it is a link to the
  * club page; with more it opens a menu to switch club, like switching profile on
- * Instagram. Always on the app frame.
+ * Instagram. In the desktop sidebar; on mobile, clubs are switched in
+ * Indstillinger (D-183).
  */
-export function ClubSwitcher({ club, clubs, variant = "topbar", className }: ClubSwitcherProps) {
+export function ClubSwitcher({ club, clubs }: ClubSwitcherProps) {
   const router = useRouter();
   const hasMany = clubs.length > 1;
-  const isSidebar = variant === "sidebar";
 
   const triggerClass = cn(
     "group/club flex min-h-11 min-w-0 items-center rounded-xl pressable-row text-left text-frame-foreground hover:bg-frame-hover",
-    isSidebar ? "w-full gap-2.5 bg-frame-faint p-2.5 pr-2" : "max-w-full gap-3 px-2 py-1.5",
+    "w-full gap-2.5 bg-frame-faint p-2.5 pr-2",
     hasMany && "data-[state=open]:bg-frame-hover",
-    className,
   );
 
   const label = (
     <>
-      <ClubBadge name={club.name} size={isSidebar ? "md" : "sm"} />
+      <ClubBadge name={club.name} size="md" />
       <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "block font-display font-bold",
-            isSidebar
-              ? cn("line-clamp-2 break-words hyphens-auto", clubNameSize(club.name))
-              : "truncate text-title-sm-tight",
+            "line-clamp-2 block font-display font-bold break-words hyphens-auto",
+            clubNameSize(club.name),
           )}
         >
           {club.name}
         </span>
-        {isSidebar ? (
-          <span className="block text-label-lg text-frame-muted-foreground">
-            {hasMany ? "Skift klub" : "Klubbens side"}
-          </span>
-        ) : null}
+        <span className="block text-label-lg text-frame-muted-foreground">
+          {hasMany ? "Skift klub" : "Klubbens side"}
+        </span>
       </span>
     </>
   );
 
   if (!hasMany) {
     return (
-      <Link href={`${clubPath(club.id)}/club`} className={triggerClass}>
+      <Link href={clubHref(club.id)} className={triggerClass}>
         <span className="sr-only">Klubbens side: </span>
         {label}
         <ChevronRightIcon
@@ -100,7 +91,7 @@ export function ClubSwitcher({ club, clubs, variant = "topbar", className }: Clu
         <DropdownMenuRadioGroup
           value={club.id}
           onValueChange={(id) => {
-            if (id !== club.id) router.push(clubPath(id));
+            if (id !== club.id) router.push(overviewHref(id));
           }}
         >
           {clubs.map((item) => (
@@ -114,7 +105,7 @@ export function ClubSwitcher({ club, clubs, variant = "topbar", className }: Clu
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href={`${clubPath(club.id)}/club`}>
+          <Link href={clubHref(club.id)}>
             <AnchorIcon aria-hidden className="text-primary-ink" />
             Klubbens side
           </Link>

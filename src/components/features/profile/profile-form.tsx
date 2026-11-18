@@ -21,13 +21,13 @@ export type ProfileFormProps = {
 };
 
 /**
- * "Navn og kælenavn" on Profil (SPEC §9.8, D-105): the official name and the
+ * "Navn og kælenavn" on Konto (SPEC §9.8, D-105): the official name and the
  * global nickname, with a live preview of how the member list shows you
  * ("Kaptajnen (Jesper Thomsen)"). Everywhere else the nickname replaces the
  * name.
  *
  * Validated with the shared Zod schema in the browser and in the Server
- * Action, which comes back to Profil with "Gemt ✓". The page keys this form
+ * Action, which comes back to Konto with "Gemt ✓". The page keys this form
  * by the saved values, so it starts over from them after a save. The inputs
  * are controlled (for the preview), which also keeps what was typed after a
  * failed server submit.

@@ -64,7 +64,9 @@ export default async function FeedbackPage({ params }: PageProps<"/feedback/[fee
 
   return (
     <>
-      <BackLink href={feedbackListHref()}>Alle rapporter</BackLink>
+      <BackLink href={feedbackListHref()} className="max-md:hidden">
+        Alle rapporter
+      </BackLink>
       <PageHeader title={feedback.title} />
 
       <div className="grid max-w-2xl grid-cols-1 gap-6">

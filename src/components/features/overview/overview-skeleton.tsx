@@ -10,38 +10,41 @@ import { cn } from "@/lib/utils";
  */
 export function OverviewSkeleton() {
   return (
-    <div aria-busy="true" aria-live="polite" className="flex flex-col gap-section-loose">
+    <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Henter Overblik …</span>
-
-      <div className="rounded-2xl surface-feature p-4 sm:px-7 md:px-10 md:pt-8 md:pb-10">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-4 w-40 bg-feature-hover" />
-          <Skeleton className="h-8 w-24 rounded-full bg-feature-hover" />
-        </div>
-        {/* Mobile: date beside title, time and place, the button under both (NextEventHero). */}
-        <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 md:mt-7 md:items-center md:gap-x-10">
-          <div className="flex flex-col gap-2 md:row-span-2 md:gap-3">
-            <Skeleton className="h-12 w-14 bg-feature-hover md:h-24 md:w-28" />
-            <Skeleton className="h-3 w-20 bg-feature-hover md:h-4 md:w-24" />
+      {/* The club's name, the page's h1 (D-183). */}
+      <Skeleton className="mb-header h-8 w-56 max-w-full md:h-12" />
+      <div className="flex flex-col gap-section-loose">
+        <div className="rounded-2xl surface-feature p-4 sm:px-7 md:px-10 md:pt-8 md:pb-10">
+          <div className="flex items-center justify-between gap-4">
+            <Skeleton className="h-4 w-40 bg-feature-hover" />
+            <Skeleton className="h-8 w-24 rounded-full bg-feature-hover" />
           </div>
-          <div className="flex flex-col gap-2 md:gap-3">
-            <Skeleton className="h-6 w-4/5 max-w-sm bg-feature-hover md:h-10" />
-            <Skeleton className="h-5 w-36 bg-feature-hover md:w-40" />
-            <Skeleton className="h-5 w-28 bg-feature-hover md:w-32" />
+          {/* Mobile: date beside title, time and place, the button under both (NextEventHero). */}
+          <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 md:mt-7 md:items-center md:gap-x-10">
+            <div className="flex flex-col gap-2 md:row-span-2 md:gap-3">
+              <Skeleton className="h-12 w-14 bg-feature-hover md:h-24 md:w-28" />
+              <Skeleton className="h-3 w-20 bg-feature-hover md:h-4 md:w-24" />
+            </div>
+            <div className="flex flex-col gap-2 md:gap-3">
+              <Skeleton className="h-6 w-4/5 max-w-sm bg-feature-hover md:h-10" />
+              <Skeleton className="h-5 w-36 bg-feature-hover md:w-40" />
+              <Skeleton className="h-5 w-28 bg-feature-hover md:w-32" />
+            </div>
+            <Skeleton className="col-span-2 mt-4 h-11 w-full bg-feature-hover md:col-span-1 md:col-start-2 md:mt-6 md:h-13 md:w-40" />
           </div>
-          <Skeleton className="col-span-2 mt-4 h-11 w-full bg-feature-hover md:col-span-1 md:col-start-2 md:mt-6 md:h-13 md:w-40" />
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-info-border bg-card px-5 py-4 sm:px-6 sm:py-5">
-        <Skeleton className="h-4 w-56 max-w-full" />
-        <Skeleton className="h-6 w-48 max-w-full" />
-        <Skeleton className="h-4 w-64 max-w-full" />
-        <Skeleton className="h-11 w-full sm:w-32" />
-      </div>
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border-2 border-dashed border-info-border bg-card px-5 py-4 sm:px-6 sm:py-5">
+          <Skeleton className="h-4 w-56 max-w-full" />
+          <Skeleton className="h-6 w-48 max-w-full" />
+          <Skeleton className="h-4 w-64 max-w-full" />
+          <Skeleton className="h-11 w-full sm:w-32" />
+        </div>
 
-      <RowsSkeleton rows={3} className="bg-card" />
-      <RowsSkeleton rows={2} withMeta className="bg-muted-faint" />
+        <RowsSkeleton rows={3} className="bg-card" />
+        <RowsSkeleton rows={2} withMeta className="bg-muted-faint" />
+      </div>
     </div>
   );
 }

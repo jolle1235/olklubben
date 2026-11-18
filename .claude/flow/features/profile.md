@@ -1,9 +1,9 @@
-# Profil
+# Konto (Profil)
 
-`/c/<clubId>/profile` (and `/profile` without a club) shows "Din konto" (nickname, real name, email),
-"Navn og kælenavn" with "Gem profil" ("Sådan ser de andre dig: Kaptajnen (Jesper Thomsen)"), "Email"
-(new email twice plus the current password), "Skift password", links to the club page, places and
-Feedback, and "Log ud". A nickname is shown instead of the name everywhere except the member list and
+`/c/<clubId>/profile` (and `/profile` without a club) is Konto, a subpage of Indstillinger (D-183):
+"Din konto" (nickname, real name, email), "Navn og kælenavn" with "Gem profil" ("Sådan ser de andre dig:
+Kaptajnen (Jesper Thomsen)"), "Email" (new email twice plus the current password), "Skift password" and
+Google-login. Udseende, the club links, Feedback and "Log ud" are on Indstillinger (settings.md). A nickname is shown instead of the name everywhere except the member list and
 the profile.
 
 ## Sub-features
@@ -17,8 +17,7 @@ the profile.
 
 ## How to get to it (user POV)
 
-- Mobile: bottom nav "Profil". Desktop: the user row at the bottom of the sidebar ("Profil: <name>
-  <email>").
+- Indstillinger (bottom nav gear on mobile, the sidebar's user row on desktop) → the "Konto" row.
 
 ## Driving it with the verify driver
 
@@ -26,7 +25,7 @@ Preconditions:
 
 - `openApp(id, { as: "jesper" })`: name "Jesper Thomsen", nickname "Kaptajnen".
 
-- **Open.** ``app.goto(`/c/${CLUBS.drengene.id}/profile`)``. h1 "Profil";
+- **Open.** ``app.goto(`/c/${CLUBS.drengene.id}/profile`)``. h1 "Konto";
   `getByLabel("Navn", { exact: true })` has "Jesper Thomsen";
   `getByRole("textbox", { name: /^Kælenavn/ })` has "Kaptajnen"; `getByRole("region", { name: "Email" })`
   contains "jesper@example.com".

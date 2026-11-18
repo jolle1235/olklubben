@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
-import { clubName, newUser, profileLink, signUpWithClub } from "./support/app";
+import { clubName, newUser, settingsLink, signUpWithClub } from "./support/app";
 
 /** tokens.css sets color-scheme per theme, so it tells which theme is shown. */
 function shownTheme(page: Page) {
@@ -16,7 +16,7 @@ test("Udseende: Mørkt huskes, System følger enheden", async ({ page }, testInf
   await expect(html).not.toHaveAttribute("data-theme");
   await expect.poll(() => shownTheme(page)).toBe("light");
 
-  await profileLink(page).click();
+  await settingsLink(page).click();
   const appearance = page.getByRole("group", { name: "Udseende" });
   await expect(appearance.getByRole("button", { name: "System" })).toHaveAttribute(
     "aria-pressed",

@@ -22,7 +22,7 @@ export type SidebarProps = {
 /**
  * Desktop navigation (md+): sidebar with logo, club switcher, the list
  * (Overblik, Kalender, Øl, Sangbog) and, at the bottom, the user row, which is
- * the way to Profil (and the club page) on desktop, with "Log ud" under it.
+ * the way to Indstillinger (and Konto, the club page) on desktop, with "Log ud" under it.
  */
 export function Sidebar({ club, clubs, user, className }: SidebarProps) {
   const pathname = usePathname();
@@ -44,7 +44,7 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
       </div>
 
       <div className="mt-7 px-3">
-        <ClubSwitcher club={club} clubs={clubs} variant="sidebar" />
+        <ClubSwitcher club={club} clubs={clubs} />
       </div>
 
       <nav aria-label="Hovednavigation" className="mt-6 flex flex-1 flex-col">
@@ -82,8 +82,8 @@ export function Sidebar({ club, clubs, user, className }: SidebarProps) {
           })}
         </ul>
 
-        {/* Profil on desktop: the user row, active on the profile and club pages
-            like the bottom nav's Profil item. The porthole ring marks it active,
+        {/* Indstillinger on desktop: the user row, active on its subpages like
+            the bottom nav's Indstillinger item (D-183). The porthole ring marks it active,
             like the list's icons. */}
         <div className="mt-auto border-t border-frame-border p-3">
           <Link
