@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 const SIZES = {
   sm: { day: "text-headline-sm", month: "text-label-sm caps" },
   md: { day: "text-display-md", month: "text-label-sm caps" },
+  /** The heroes: compact on mobile, the full motif from md (D-181). */
   lg: {
-    day: "text-display-lg md:text-display-xl",
-    month: "text-label-lg caps-wide md:text-body-md",
+    day: "text-display-md md:text-display-xl",
+    month: "text-label-sm caps md:text-body-md md:caps-wide",
   },
 } as const;
 

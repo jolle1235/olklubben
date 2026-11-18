@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { AnchorIcon, ExternalLinkIcon, MapPinIcon, PlusIcon } from "lucide-react";
+import { ExternalLinkIcon, MapPinIcon, PlusIcon } from "lucide-react";
 
+import { TopBarTitle } from "@/components/ui/top-bar-title";
 import { Badge } from "@/components/ui/badge";
 import { BigDate } from "@/components/ui/big-date";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export type EventInvitationProps = {
 
 /**
  * The top of the event page, "som en invitation, ikke en formular" (SPEC
- * §9.2): anchor, status, title (the page's h1), theme, the big date, time,
+ * §9.2): status, title (the page's h1), theme, the big date, time,
  * the place (a link to it, "Arkiveret" when archived, its address), "Åbn i
  * kort" – only with an address (D-101), else a small "Tilføj adresse" to the
  * place's edit page – and the hosts and who created it, plus "Valgt ved
@@ -62,72 +63,71 @@ export function EventInvitation({
   const later = laterEnd(event);
 
   return (
-    <article className="rounded-3xl border border-border bg-card px-5 pt-8 pb-6 text-center shadow-raised sm:px-10 sm:pt-10">
-      <div
-        aria-hidden
-        className="mx-auto mb-5 grid size-12 place-items-center porthole rounded-full bg-feature text-highlight [&_svg]:size-6"
-      >
-        <AnchorIcon />
-      </div>
-
+    <article className="rounded-3xl border border-border bg-card px-4 pt-5 pb-4 text-center shadow-raised sm:px-10 sm:pt-10 sm:pb-6">
       <Badge variant={isHeroHighlighted(state) ? "highlight" : "info"} className="mb-3">
         {heroStateLabel(state)}
       </Badge>
-      <h1 className="text-display-sm font-bold break-words hyphens-auto text-primary-ink md:text-display-md">
+      <TopBarTitle>{event.title}</TopBarTitle>
+      <h1 className="text-page-title font-bold break-words hyphens-auto text-primary-ink md:text-display-md">
         {event.title}
       </h1>
       {event.theme ? (
-        <p className="mx-auto mt-4 w-fit max-w-full rounded-2xl border border-highlight-border bg-highlight-subtle px-4 py-1.5 text-lead break-words hyphens-auto text-foreground">
+        <p className="mx-auto mt-3 w-fit max-w-full rounded-2xl border border-highlight-border bg-highlight-subtle px-4 py-1.5 text-intro break-words hyphens-auto text-foreground md:mt-4">
           <span className="font-semibold">Tema:</span> {event.theme}
         </p>
       ) : null}
 
-      <SectionDivider className="my-7" />
+      <SectionDivider className="my-4 md:my-7" />
 
-      {/* Decorative: the sentence below says the same for screen readers. */}
-      <div aria-hidden className="text-primary-ink">
-        <BigDate date={event.startsAt} size="lg" className="items-center" />
-      </div>
-      <p className="mt-5 text-title-sm font-semibold text-foreground first-letter:uppercase">
-        <time dateTime={toDateKey(event.startsAt)}>{formatLongDate(event.startsAt, now)}</time>
-      </p>
-      {event.hasStartTime ? (
-        <p className="mt-1 text-title-sm text-foreground tabular-nums">
-          <time dateTime={event.startsAt.toISOString()}>{formatTime(event.startsAt)}</time>
-          {event.endsAt && !later ? (
-            <>
-              <span aria-hidden>–</span>
-              <span className="sr-only"> til </span>
-              <time dateTime={event.endsAt.toISOString()}>{formatTime(event.endsAt)}</time>
-            </>
+      {/* Mobile: the big date beside the sentences; from md stacked and centred. */}
+      <div className="flex items-center justify-center gap-4 text-left md:block md:text-center">
+        {/* Decorative: the sentences say the same for screen readers. */}
+        <div aria-hidden className="shrink-0 text-primary-ink">
+          <BigDate date={event.startsAt} size="lg" className="md:items-center" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-detail font-semibold text-foreground first-letter:uppercase md:mt-5">
+            <time dateTime={toDateKey(event.startsAt)}>{formatLongDate(event.startsAt, now)}</time>
+          </p>
+          {event.hasStartTime ? (
+            <p className="mt-1 text-detail text-foreground tabular-nums">
+              <time dateTime={event.startsAt.toISOString()}>{formatTime(event.startsAt)}</time>
+              {event.endsAt && !later ? (
+                <>
+                  <span aria-hidden>–</span>
+                  <span className="sr-only"> til </span>
+                  <time dateTime={event.endsAt.toISOString()}>{formatTime(event.endsAt)}</time>
+                </>
+              ) : null}
+            </p>
+          ) : (
+            <p className="mt-1 text-detail text-muted-foreground">{TIME_UNDECIDED_LABEL}</p>
+          )}
+          {later ? (
+            // Several days (D-176): "Til og med søndag 25. oktober kl. 14:00".
+            <p className="mt-1 text-intro text-muted-foreground first-letter:uppercase">
+              {event.hasStartTime ? "til " : "til og med "}
+              <time dateTime={later.toISOString()}>
+                {formatLongDate(later, now)}
+                {event.hasStartTime ? ` kl. ${formatTime(later)}` : ""}
+              </time>
+            </p>
           ) : null}
-        </p>
-      ) : (
-        <p className="mt-1 text-title-sm text-muted-foreground">{TIME_UNDECIDED_LABEL}</p>
-      )}
-      {later ? (
-        // Several days (D-176): "Til og med søndag 25. oktober kl. 14:00".
-        <p className="mt-1 text-lead text-muted-foreground first-letter:uppercase">
-          {event.hasStartTime ? "til " : "til og med "}
-          <time dateTime={later.toISOString()}>
-            {formatLongDate(later, now)}
-            {event.hasStartTime ? ` kl. ${formatTime(later)}` : ""}
-          </time>
-        </p>
-      ) : null}
+        </div>
+      </div>
 
-      <SectionDivider className="my-7" />
+      <SectionDivider className="my-4 md:my-7" />
 
       {place ? (
         <EventPlaceBlock clubId={clubId} place={place} />
       ) : (
-        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-title-sm font-semibold text-muted-foreground">
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-detail font-semibold text-muted-foreground">
           <MapPinIcon aria-hidden className="size-5 shrink-0" />
           {PLACE_UNDECIDED_LABEL}
         </p>
       )}
 
-      <div className="mt-7 grid grid-cols-1 gap-2 border-t border-dashed border-border pt-4">
+      <div className="mt-4 grid grid-cols-1 gap-2 border-t border-dashed border-border pt-4 md:mt-7">
         <EventHosts hosts={hosts} />
         <p className="text-body-sm break-words text-muted-foreground">
           Oprettet af <span className="font-semibold text-foreground">{creatorName}</span>
@@ -149,7 +149,7 @@ function EventPlaceBlock({
   const mapsUrl = place.address ? mapsSearchUrl(place.address) : null;
   return (
     <>
-      <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-title-sm font-semibold text-foreground">
+      <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-detail font-semibold text-foreground">
         <MapPinIcon aria-hidden className="size-5 shrink-0 text-primary-ink" />
         <span className="sr-only">Sted: </span>
         <Link
@@ -161,12 +161,12 @@ function EventPlaceBlock({
         {place.archived ? <Badge variant="outline">Arkiveret</Badge> : null}
       </p>
       {place.address ? (
-        <p className="mx-auto max-w-[40ch] text-lead break-words hyphens-auto text-muted-foreground">
+        <p className="mx-auto max-w-[40ch] text-intro break-words hyphens-auto text-muted-foreground">
           {place.address}
         </p>
       ) : null}
       {mapsUrl ? (
-        <Button asChild variant="outline" className="mt-4">
+        <Button asChild variant="outline" className="mt-3 md:mt-4">
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
             Åbn i kort
             <ExternalLinkIcon aria-hidden />

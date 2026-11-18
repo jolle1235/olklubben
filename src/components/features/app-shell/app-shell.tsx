@@ -43,7 +43,7 @@ export function AppShell({ club, clubs, user, children }: AppShellProps) {
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 px-4 pt-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] outline-none sm:px-6 md:px-10 md:pt-10 md:pb-16"
+          className="flex-1 px-4 pt-page pb-[calc(6.5rem+env(safe-area-inset-bottom))] outline-none sm:px-6 md:px-10 md:pb-16"
         >
           <div className="mx-auto w-full max-w-4xl">{children}</div>
         </main>

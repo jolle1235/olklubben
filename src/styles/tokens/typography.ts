@@ -50,8 +50,10 @@ export const componentTextStyles = {
   "invite-code": { size: "clamp(1.9rem, 9.5vw, 3rem)", leading: 1, tracking: 0.06 },
 } as const satisfies Record<string, TextStyle>;
 
+type Utility = Omit<TextStyle, "tight" | "loose">;
+
 /** Alle `text-*`-utilities, inkl. -tight/-loose. Både tokens.css og `cn` bygger på dem. */
-export function textUtilities(): Record<string, Omit<TextStyle, "tight" | "loose">> {
+export function textUtilities(): Record<string, Utility> {
   const styles: Record<string, TextStyle> = { ...textStyles, ...componentTextStyles };
   return Object.fromEntries(
     Object.entries(styles).flatMap(([name, { size, leading, tracking, tight, loose }]) => [
@@ -62,7 +64,42 @@ export function textUtilities(): Record<string, Omit<TextStyle, "tight" | "loose
   );
 }
 
-export const TEXT_ROLES = Object.keys(textUtilities());
+/**
+ * Semantiske roller: én utility på mobil og en anden fra md (SPEC §13.3). De er
+ * aliaser for utilities ovenfor, så hvor tæt appen er på mobil, rettes her.
+ */
+const semanticTextStyles = {
+  "page-title": { base: "title-md", md: "headline-lg" },
+  "section-title": { base: "title-sm", md: "title-md" },
+  /** Overbliks, Kalenderens og tomme tilstandes overskrifter: større på desktop. */
+  "feature-title": { base: "title-sm", md: "title-lg" },
+  "card-title": { base: "body-md", md: "title-sm" },
+  "list-title-tight": { base: "body-md-tight", md: "body-lg-tight" },
+  /** Eventets dato, tid og sted. */
+  detail: { base: "body-md", md: "title-sm" },
+  /** Fremhævet brødtekst: hero'ens tid, sted og tema. */
+  emphasis: { base: "body-md", md: "body-lg" },
+  /** Indledninger og profilens navn og email. */
+  intro: { base: "body-md", md: "lead" },
+} as const satisfies Record<string, { base: string; md: string }>;
+
+/** De semantiske roller med begge utilities slået op. Kaster ved et ukendt navn. */
+export function semanticTextUtilities(): Record<string, { base: Utility; md: Utility }> {
+  const utilities = textUtilities();
+  const lookup = (name: string) => {
+    const utility = utilities[name];
+    if (!utility) throw new Error(`Ukendt tekst-rolle i semanticTextStyles: ${name}`);
+    return utility;
+  };
+  return Object.fromEntries(
+    Object.entries(semanticTextStyles).map(([name, { base, md }]) => [
+      name,
+      { base: lookup(base), md: lookup(md) },
+    ]),
+  );
+}
+
+export const TEXT_ROLES = [...Object.keys(textUtilities()), ...Object.keys(semanticTextStyles)];
 
 /** Utilities'ne `caps` og `caps-wide`: uppercase med ekstra tracking i em. */
 export const capsTracking = { caps: 0.14, "caps-wide": 0.2 } as const;

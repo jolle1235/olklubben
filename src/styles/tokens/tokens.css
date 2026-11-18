@@ -1,6 +1,6 @@
 /*
- * GENERERET af `npm run tokens` ud fra src/styles/tokens/palette.ts, themes.ts
- * og typography.ts. Redigér ikke her (SPEC §13.2, §13.3).
+ * GENERERET af `npm run tokens` ud fra src/styles/tokens/palette.ts, themes.ts,
+ * typography.ts og spacing.ts. Redigér ikke her (SPEC §13.2, §13.3).
  */
 
 /*
@@ -210,6 +210,38 @@
   --text-invite-code: clamp(1.9rem, 9.5vw, 3rem);
   --text-invite-code--line-height: 1;
   --text-invite-code--letter-spacing: 0.06em;
+
+  /* Semantiske roller og afstande (skifter ved md) */
+  --text-page-title: var(--type-page-title);
+  --text-page-title--line-height: var(--type-page-title--line-height);
+  --text-page-title--letter-spacing: var(--type-page-title--letter-spacing);
+  --text-section-title: var(--type-section-title);
+  --text-section-title--line-height: var(--type-section-title--line-height);
+  --text-section-title--letter-spacing: var(--type-section-title--letter-spacing);
+  --text-feature-title: var(--type-feature-title);
+  --text-feature-title--line-height: var(--type-feature-title--line-height);
+  --text-feature-title--letter-spacing: var(--type-feature-title--letter-spacing);
+  --text-card-title: var(--type-card-title);
+  --text-card-title--line-height: var(--type-card-title--line-height);
+  --text-card-title--letter-spacing: var(--type-card-title--letter-spacing);
+  --text-list-title-tight: var(--type-list-title-tight);
+  --text-list-title-tight--line-height: var(--type-list-title-tight--line-height);
+  --text-list-title-tight--letter-spacing: var(--type-list-title-tight--letter-spacing);
+  --text-detail: var(--type-detail);
+  --text-detail--line-height: var(--type-detail--line-height);
+  --text-detail--letter-spacing: var(--type-detail--letter-spacing);
+  --text-emphasis: var(--type-emphasis);
+  --text-emphasis--line-height: var(--type-emphasis--line-height);
+  --text-emphasis--letter-spacing: var(--type-emphasis--letter-spacing);
+  --text-intro: var(--type-intro);
+  --text-intro--line-height: var(--type-intro--line-height);
+  --text-intro--letter-spacing: var(--type-intro--letter-spacing);
+  --spacing-page: var(--space-page);
+  --spacing-header: var(--space-header);
+  --spacing-section: var(--space-section);
+  --spacing-section-loose: var(--space-section-loose);
+  --spacing-card: var(--space-card);
+  --spacing-stack: var(--space-stack);
 }
 
 @utility caps {
@@ -432,6 +464,73 @@
   --elevation-hero: 0 22px 44px -26px color-mix(in oklab, var(--shadow-color) 95%, transparent);
   --elevation-bar: 0 -12px 30px -18px color-mix(in oklab, var(--shadow-color) 70%, transparent);
   --elevation-press: inset 0 -2px 0 color-mix(in oklab, var(--black) 20%, transparent);
+
+  /* Semantiske roller og afstande på mobil */
+  --type-page-title: 1.5rem;
+  --type-page-title--line-height: 1.25;
+  --type-page-title--letter-spacing: -0.015em;
+  --type-section-title: 1.25rem;
+  --type-section-title--line-height: 1.375;
+  --type-section-title--letter-spacing: -0.01em;
+  --type-feature-title: 1.25rem;
+  --type-feature-title--line-height: 1.375;
+  --type-feature-title--letter-spacing: -0.01em;
+  --type-card-title: 1rem;
+  --type-card-title--line-height: 1.5;
+  --type-card-title--letter-spacing: 0em;
+  --type-list-title-tight: 1rem;
+  --type-list-title-tight--line-height: 1.3;
+  --type-list-title-tight--letter-spacing: 0em;
+  --type-detail: 1rem;
+  --type-detail--line-height: 1.5;
+  --type-detail--letter-spacing: 0em;
+  --type-emphasis: 1rem;
+  --type-emphasis--line-height: 1.5;
+  --type-emphasis--letter-spacing: 0em;
+  --type-intro: 1rem;
+  --type-intro--line-height: 1.5;
+  --type-intro--letter-spacing: 0em;
+  --space-page: 1rem;
+  --space-header: 1rem;
+  --space-section: 1.5rem;
+  --space-section-loose: 1.5rem;
+  --space-card: 1rem;
+  --space-stack: 0.75rem;
+}
+
+@media (width >= 48rem) {
+  :root {
+    --type-page-title: 2.5rem;
+    --type-page-title--line-height: 1.1;
+    --type-page-title--letter-spacing: -0.025em;
+    --type-section-title: 1.5rem;
+    --type-section-title--line-height: 1.25;
+    --type-section-title--letter-spacing: -0.015em;
+    --type-feature-title: 1.75rem;
+    --type-feature-title--line-height: 1.25;
+    --type-feature-title--letter-spacing: -0.02em;
+    --type-card-title: 1.25rem;
+    --type-card-title--line-height: 1.375;
+    --type-card-title--letter-spacing: -0.01em;
+    --type-list-title-tight: 1.125rem;
+    --type-list-title-tight--line-height: 1.3;
+    --type-list-title-tight--letter-spacing: 0em;
+    --type-detail: 1.25rem;
+    --type-detail--line-height: 1.375;
+    --type-detail--letter-spacing: -0.01em;
+    --type-emphasis: 1.125rem;
+    --type-emphasis--line-height: 1.5;
+    --type-emphasis--letter-spacing: 0em;
+    --type-intro: 1.05rem;
+    --type-intro--line-height: 1.5;
+    --type-intro--letter-spacing: 0em;
+    --space-page: 2.5rem;
+    --space-header: 2rem;
+    --space-section: 2rem;
+    --space-section-loose: 2.5rem;
+    --space-card: 1.25rem;
+    --space-stack: 1.25rem;
+  }
 }
 
 /* Mørkt tema */

@@ -72,11 +72,12 @@ test.describe("Profil: kælenavn, email og password", () => {
       await expect(profileLink(page)).toContainText("Kaptajnen");
     }
 
-    // The member list shows both; the event, the beer and its ratings show the nickname.
+    // The member list shows both (the official name on the row's second line, D-181);
+    // the event, the beer and its ratings show the nickname.
     await page.goto(`/c/${clubId}/club`);
-    await expect(memberRows(page).filter({ hasText: "(dig)" })).toContainText(
-      `Kaptajnen (${user.name})`,
-    );
+    const myRow = memberRows(page).filter({ hasText: "(dig)" });
+    await expect(myRow).toContainText("Kaptajnen (dig)");
+    await expect(myRow).toContainText(`(${user.name})`);
     await page.goto(`/c/${clubId}/events/${eventId}`);
     await expect(page.getByText(/Oprettet af\s*Kaptajnen/)).toBeVisible();
     await page.goto(`/c/${clubId}/beers/${beerId}`);

@@ -84,7 +84,7 @@ export function DateCard({
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span
             className={cn(
-              "min-w-0 font-heading text-title-sm font-semibold break-words hyphens-auto",
+              "min-w-0 font-heading text-card-title font-semibold break-words hyphens-auto",
               look.title,
             )}
           >

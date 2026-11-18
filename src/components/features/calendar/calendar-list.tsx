@@ -37,7 +37,7 @@ export function CalendarList({ clubId, events, pollDates = [], now }: CalendarLi
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-section">
       {groupEventsByMonth(calendarItems(events, pollDates)).map(({ monthKey, events: items }) => (
         <section key={monthKey} aria-labelledby={`calendar-list-${monthKey}`}>
           <h2

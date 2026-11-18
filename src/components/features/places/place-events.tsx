@@ -18,7 +18,7 @@ export type PlaceEventsProps = {
 export function PlaceEvents({ clubId, events, now }: PlaceEventsProps) {
   return (
     <section aria-labelledby="place-events-heading" className="grid grid-cols-1 gap-3">
-      <h2 id="place-events-heading" className="text-title-md text-primary-ink">
+      <h2 id="place-events-heading" className="text-section-title text-primary-ink">
         Ølsmagninger her
         {events.length > 0 ? (
           <span className="ml-2 font-sans text-body-lg font-normal text-muted-foreground">

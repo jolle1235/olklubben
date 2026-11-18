@@ -34,7 +34,7 @@ export function UpcomingEvents({
     <section aria-labelledby="upcoming-events-heading">
       <h2
         id="upcoming-events-heading"
-        className="mb-3 text-title-md font-bold text-primary-ink md:text-title-lg"
+        className="mb-3 text-feature-title font-bold text-primary-ink"
       >
         Kommende arrangementer
       </h2>

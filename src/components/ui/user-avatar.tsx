@@ -14,7 +14,8 @@ const SIZES = {
   sm: "size-8 text-label-sm",
   md: "size-10 text-label-lg",
   lg: "size-16 text-title-sm",
-  xl: "size-24 text-headline-sm",
+  /** Profil: `lg` on mobile, 96 px from md (D-181). */
+  profile: "size-16 text-title-sm md:size-24 md:text-headline-sm",
 } as const;
 
 export type UserAvatarSize = keyof typeof SIZES;

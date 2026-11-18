@@ -13,7 +13,7 @@ export function PageSkeleton({ label = "Henter …" }: { label?: string }) {
   return (
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">{label}</span>
-      <Skeleton className="mb-6 h-10 w-3/4 max-w-md md:mb-8 md:h-12" />
+      <Skeleton className="mb-header h-8 w-3/4 max-w-md md:h-12" />
       <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-border bg-card-faint px-6 py-10 md:py-12">
         <Skeleton className="mb-6 size-16 rounded-full" />
         <Skeleton className="h-8 w-64 max-w-full" />

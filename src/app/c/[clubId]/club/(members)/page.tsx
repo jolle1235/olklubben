@@ -92,7 +92,7 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
       />
 
       <section id="medlemmer" aria-labelledby="members-heading" className="scroll-mt-24">
-        <h2 id="members-heading" className="mb-4 text-title-md text-primary-ink">
+        <h2 id="members-heading" className="mb-4 text-section-title text-primary-ink">
           Medlemmer
         </h2>
         <MemberList
@@ -103,16 +103,16 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
         />
       </section>
 
-      <SectionDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-section md:my-10" />
 
       <section id="steder" aria-labelledby="places-heading" className="scroll-mt-24">
-        <h2 id="places-heading" className="mb-4 text-title-md text-primary-ink">
+        <h2 id="places-heading" className="mb-4 text-section-title text-primary-ink">
           Steder
         </h2>
         <ClubPlacesRow clubId={club.id} placeCount={placeCount} />
       </section>
 
-      <SectionDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-section md:my-10" />
 
       <InviteSection
         clubId={club.id}
@@ -125,10 +125,10 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
         canRegenerate={canRegenerateInvite(membership)}
       />
 
-      <SectionDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-section md:my-10" />
 
       <section aria-labelledby="danger-heading">
-        <h2 id="danger-heading" className="mb-4 text-title-md text-primary-ink">
+        <h2 id="danger-heading" className="mb-4 text-section-title text-primary-ink">
           Farezone
         </h2>
         <div className="divide-y divide-border rounded-2xl border border-border bg-card px-4 *:py-5 sm:px-5">

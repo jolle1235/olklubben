@@ -24,7 +24,7 @@ export function EventSection({ id, title, action, children, className }: EventSe
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <h2
           id={id}
-          className="col-start-2 text-center text-title-md break-words hyphens-auto text-primary-ink md:text-title-lg"
+          className="col-start-2 text-center text-feature-title break-words hyphens-auto text-primary-ink"
         >
           {title}
         </h2>

@@ -183,7 +183,9 @@ const JOURNEYS: Journey[] = [
       ).toBeVisible();
       const members = page.getByRole("region", { name: "Medlemmer" }).getByRole("listitem");
       await expect(members).toHaveCount(3);
-      await expect(members.first()).toContainText("Kaptajnen (Jesper Thomsen) (dig)");
+      // Line 1 the nickname, "(dig)" and the badge; line 2 the official name (D-181).
+      await expect(members.first()).toContainText("Kaptajnen (dig)");
+      await expect(members.first()).toContainText("(Jesper Thomsen)");
       await expect(page.getByLabel("Invitationslink")).toHaveValue(
         new RegExp(`/join/${CLUBS.drengene.inviteCode}$`),
       );

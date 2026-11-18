@@ -1,5 +1,6 @@
 import { ClockIcon, EyeIcon, VoteIcon } from "lucide-react";
 
+import { TopBarTitle } from "@/components/ui/top-bar-title";
 import { Badge } from "@/components/ui/badge";
 import { formatWeekdayDateTime } from "@/lib/format/date";
 import { getDisplayName } from "@/lib/format/display-name";
@@ -47,7 +48,8 @@ export function PollHeader({ view, now }: PollHeaderProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-3">
-        <h1 className="text-headline-md font-bold break-words hyphens-auto text-primary-ink md:text-headline-lg">
+        <TopBarTitle>{view.title}</TopBarTitle>
+        <h1 className="text-page-title font-bold break-words hyphens-auto text-primary-ink">
           {view.title}
         </h1>
         {view.theme ? (

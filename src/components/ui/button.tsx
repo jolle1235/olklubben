@@ -28,6 +28,8 @@ const buttonVariants = cva(
         xs: "h-8 gap-1 rounded-md px-2.5 text-label-lg pointer-coarse:h-11 pointer-coarse:px-3.5",
         sm: "h-9 gap-1.5 px-3.5 text-label-lg pointer-coarse:h-11 pointer-coarse:px-4",
         lg: "h-13 px-7 text-body-lg",
+        /** The hero card: `default` on mobile, `lg` from md (D-181). */
+        hero: "h-11 px-5 text-body-md md:h-13 md:px-7 md:text-body-lg",
         icon: "size-11",
         "icon-xs": "size-8 rounded-md pointer-coarse:size-11",
         "icon-sm": "size-9 pointer-coarse:size-11",

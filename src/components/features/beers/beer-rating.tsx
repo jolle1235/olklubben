@@ -137,7 +137,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
   return (
     <section aria-labelledby={headingId} className={cn("grid gap-3", className)}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id={headingId} className="font-heading text-title-sm text-primary-ink">
+        <h2 id={headingId} className="font-heading text-card-title text-primary-ink">
           Din rating
         </h2>
         <p aria-live="polite" className="text-body-sm font-semibold text-primary-ink">
@@ -152,7 +152,7 @@ export function BeerRating({ clubId, beerId, myRating, className }: BeerRatingPr
         aria-describedby={hintId}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className="flex w-fit touch-pan-y gap-(--star-gap) rounded-xl p-1.5 pb-3 select-none [--star-gap:0.375rem] [--star-reach:calc(var(--star-gap)/2)] [--star-size:3.25rem] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring sm:[--star-size:3.5rem]"
+        className="flex w-fit touch-pan-y gap-(--star-gap) rounded-xl p-1.5 pb-3 select-none [--star-gap:0.375rem] [--star-reach:calc(var(--star-gap)/2)] [--star-size:2.75rem] has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring md:[--star-size:3.5rem]"
       >
         {Array.from({ length: MAX_STARS }, (_, index) => (
           <RatingStar

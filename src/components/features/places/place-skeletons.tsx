@@ -23,9 +23,9 @@ function TitleSkeleton({
   action?: "always" | "desktop";
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-8">
+    <div className="mb-header flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
       <div className="min-w-0 flex-1 basis-64">
-        <Skeleton className="h-10 w-2/5 max-w-xs md:h-12" />
+        <Skeleton className="h-8 w-2/5 max-w-xs md:h-12" />
         {withLine ? <Skeleton className="mt-3 h-5 w-full max-w-md" /> : null}
       </div>
       {action ? (
@@ -71,8 +71,8 @@ export function PlaceDetailSkeleton() {
         <Skeleton className="h-5 w-28" />
       </div>
       <TitleSkeleton withLine={false} action="always" />
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
-        <div className="grid content-start gap-8">
+      <div className="grid grid-cols-1 gap-section lg:grid-cols-2 lg:gap-10">
+        <div className="grid content-start gap-section">
           <div className="grid gap-3">
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-11 w-36" />

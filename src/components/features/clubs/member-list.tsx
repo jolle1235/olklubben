@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { formatDate, toDateKey } from "@/lib/format/date";
 import { getDisplayName, officialNameSuffix } from "@/lib/format/display-name";
 import { cn } from "@/lib/utils";
 import { memberMenu, type Roster } from "@/server/domain/clubs/membership-rules";
@@ -15,7 +14,6 @@ export type MemberListItem = {
   nickname: string | null;
   image: string | null;
   role: ClubRole;
-  joinedAt: Date;
 };
 
 export type MemberListProps = {
@@ -27,9 +25,9 @@ export type MemberListProps = {
 };
 
 /**
- * The club's members (SPEC §9.8, Q11, D-102, D-105): avatar, the display name
- * with the official name after it when a nickname is shown ("Kaptajnen
- * (Jesper Thomsen)"), "(dig)", an Admin badge and "Medlem siden …".
+ * The club's members (SPEC §9.8, Q11, D-102, D-105): avatar, the display name,
+ * "(dig)" and an Admin badge on the first line, and the official name on a
+ * second line when a nickname is shown. Two lines at most (D-181).
  *
  * Admins come first (sortMembers); a heavier line sets them apart from the
  * rest of the members (D-163).
@@ -52,7 +50,7 @@ export function MemberList({ clubId, clubName, members, currentUserId }: MemberL
           <li
             key={member.userId}
             className={cn(
-              "flex min-h-18 items-center gap-3 py-3 sm:gap-4",
+              "flex min-h-14 items-center gap-3 py-2.5 sm:gap-4",
               lastAdmin && "border-b-2 border-primary-border",
             )}
           >
@@ -62,22 +60,16 @@ export function MemberList({ clubId, clubName, members, currentUserId }: MemberL
                 <span className="min-w-0 font-semibold break-words hyphens-auto text-foreground">
                   {displayName}
                 </span>{" "}
-                {officialName ? (
-                  <>
-                    <span className="min-w-0 break-words hyphens-auto text-muted-foreground">
-                      ({officialName})
-                    </span>{" "}
-                  </>
-                ) : null}
                 {isMe ? <span className="text-muted-foreground">(dig)</span> : null}
                 {member.role === "ADMIN" ? (
                   <Badge variant="secondary">{CLUB_ROLE_LABEL.ADMIN}</Badge>
                 ) : null}
               </p>
-              <p className="text-body-sm text-muted-foreground">
-                Medlem siden{" "}
-                <time dateTime={toDateKey(member.joinedAt)}>{formatDate(member.joinedAt)}</time>
-              </p>
+              {officialName ? (
+                <p className="text-body-sm break-words hyphens-auto text-muted-foreground">
+                  ({officialName})
+                </p>
+              ) : null}
             </div>
             {menu ? (
               <MemberActionsMenu

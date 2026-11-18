@@ -66,7 +66,9 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
 
   return (
     <>
-      <BackLink href={placesHref(club.id)}>Alle steder</BackLink>
+      <BackLink href={placesHref(club.id)} className="max-md:hidden">
+        Alle steder
+      </BackLink>
       <PageHeader
         title={place.name}
         action={
@@ -81,8 +83,8 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
         }
       />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
-        <div className="grid grid-cols-1 content-start gap-8">
+      <div className="grid grid-cols-1 gap-section lg:grid-cols-2 lg:gap-10">
+        <div className="grid grid-cols-1 content-start gap-section">
           {archived ? (
             <ArchivedPlaceBanner
               clubId={club.id}
@@ -101,7 +103,7 @@ export default async function PlacePage({ params }: PageProps<"/c/[clubId]/place
           />
         </div>
 
-        <div className="grid grid-cols-1 content-start gap-8">
+        <div className="grid grid-cols-1 content-start gap-section">
           <PlaceEvents clubId={club.id} events={events} now={now} />
 
           <section aria-label="Administrer stedet" className="grid grid-cols-1 gap-3">

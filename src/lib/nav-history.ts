@@ -25,6 +25,35 @@ const MAIN_PAGE =
 const isMainPage = (url: string) => MAIN_PAGE.test(pathOf(url));
 
 /**
+ * A page in a club that is not one of its main pages: an event, a beer, a
+ * place, a poll, a song, a form or a 404. On mobile its top bar has
+ * "‹ Tilbage" instead of the club switcher (D-182).
+ */
+export function isClubSubpage(pathname: string): boolean {
+  return /^\/c\/[^/]+\/./.test(pathname) && !isMainPage(pathname);
+}
+
+const PARENTS: [RegExp, string][] = [
+  [/^\/(events|polls)(\/|$)/, "/calendar"],
+  [/^\/beers\//, "/beers"],
+  [/^\/places\//, "/places"],
+  [/^\/songs\//, "/songs"],
+  [/^\/club\//, "/club"],
+];
+
+/** A song (not the songbook's forms): its "Tilbage" goes to the songbook with its search. */
+export function isSongPage(pathname: string): boolean {
+  return /^\/c\/[^/]+\/songs\/(?!new$|import$)[^/]+$/.test(pathname);
+}
+
+/** Where "Tilbage" goes without history: the list the subpage belongs to, else Overblik. */
+export function parentPage(pathname: string, clubPath: string): string {
+  const rest = pathname.slice(clubPath.length);
+  const parent = PARENTS.find(([pattern]) => pattern.test(rest))?.[1];
+  return parent ? `${clubPath}${parent}` : clubPath;
+}
+
+/**
  * The stack after visiting `url` (path + query). Pages are compared by path:
  * the current page again (e.g. its ?toast= removed, another month) replaces
  * it. Back on an earlier page without a main page in between, the pages since

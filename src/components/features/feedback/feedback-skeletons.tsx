@@ -16,9 +16,9 @@ function Busy({ label, children }: { label: string; children: React.ReactNode })
 
 function TitleSkeleton({ action = false }: { action?: boolean }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-8">
+    <div className="mb-header flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
       <div className="min-w-0 flex-1 basis-64">
-        <Skeleton className="h-10 w-2/5 max-w-xs md:h-12" />
+        <Skeleton className="h-8 w-2/5 max-w-xs md:h-12" />
         <Skeleton className="mt-3 h-5 w-full max-w-md" />
       </div>
       {action ? <Skeleton className="h-11 w-40" /> : null}
@@ -42,7 +42,7 @@ export function FeedbackListSkeleton() {
   return (
     <Busy label="Henter rapporterne …">
       <TitleSkeleton action />
-      <div className="mb-6 grid grid-cols-1 gap-3 md:mb-8">
+      <div className="mb-header grid grid-cols-1 gap-3">
         <ChipRow chips={3} />
         <ChipRow chips={3} />
         <ChipRow chips={2} />
@@ -73,7 +73,7 @@ export function FeedbackDetailSkeleton() {
       <div className="mb-1 flex min-h-11 items-center">
         <Skeleton className="h-5 w-32" />
       </div>
-      <Skeleton className="mb-6 h-10 w-3/4 max-w-lg md:mb-8 md:h-12" />
+      <Skeleton className="mb-header h-8 w-3/4 max-w-lg md:h-12" />
       <div className="grid max-w-2xl grid-cols-1 gap-6">
         <div className="grid gap-2">
           <Skeleton className="h-6 w-40" />

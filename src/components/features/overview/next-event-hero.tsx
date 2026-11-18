@@ -43,7 +43,7 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
     <section
       aria-labelledby="next-event-label"
       className={cn(
-        "relative isolate overflow-hidden rounded-2xl surface-feature px-5 pt-5 pb-6 shadow-hero sm:px-7 md:px-10 md:pt-8 md:pb-10",
+        "relative isolate overflow-hidden rounded-2xl surface-feature p-4 shadow-hero sm:px-7 md:px-10 md:pt-8 md:pb-10",
         highlighted && "ring-[3px] ring-highlight ring-offset-2 ring-offset-background",
       )}
     >
@@ -63,21 +63,26 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
         <HeroBadge state={state} />
       </div>
 
-      <div className="mt-5 grid gap-5 md:mt-7 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:gap-0">
-        <BigDate date={event.startsAt} size="lg" className="text-feature-foreground md:pr-10" />
+      <div className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 md:mt-7 md:items-center md:gap-0">
+        <BigDate
+          date={event.startsAt}
+          size="lg"
+          className="text-feature-foreground max-md:row-span-2 md:pr-10"
+        />
 
-        <div className="min-w-0 md:border-l md:border-feature-border md:pl-10">
-          <h2 className="text-headline-md font-bold break-words hyphens-auto text-feature-foreground md:text-headline-lg">
+        {/* Mobile: its children join the grid, so theme and buttons use the full width. */}
+        <div className="min-w-0 max-md:contents md:border-l md:border-feature-border md:pl-10">
+          <h2 className="min-w-0 text-section-title font-bold break-words hyphens-auto text-feature-foreground md:text-headline-lg">
             {event.title}
           </h2>
 
-          <ul className="mt-3 flex flex-col gap-1.5 text-body-lg text-feature-foreground">
+          <ul className="mt-1.5 flex min-w-0 flex-col gap-1 text-emphasis text-feature-foreground max-md:col-start-2 md:mt-3 md:gap-1.5">
             <li className="flex items-center gap-2.5">
               <ClockIcon aria-hidden className="size-5 shrink-0 text-highlight" />
               {eventWeekdayAndTime(event)}
             </li>
             <li className="flex items-start gap-2.5">
-              <MapPinIcon aria-hidden className="mt-1 size-5 shrink-0 text-highlight" />
+              <MapPinIcon aria-hidden className="mt-0.5 size-5 shrink-0 text-highlight md:mt-1" />
               <span className="min-w-0 break-words">
                 <span className="sr-only">Sted: </span>
                 {placeNameOrUndecided(event.place)}
@@ -85,21 +90,23 @@ export function NextEventHero({ clubId, event, now, quiet = false }: NextEventHe
             </li>
           </ul>
 
-          {event.theme ? (
-            <p className="mt-4 text-body-lg break-words text-feature-muted-foreground">
-              Tema:{" "}
-              <span className="font-heading text-title-sm font-semibold text-feature-highlight">
-                {event.theme}
-              </span>
-            </p>
-          ) : null}
+          <div className="max-md:col-span-2">
+            {event.theme ? (
+              <p className="mt-3 text-emphasis break-words text-feature-muted-foreground md:mt-4">
+                Tema:{" "}
+                <span className="font-heading text-card-title font-semibold text-feature-highlight">
+                  {event.theme}
+                </span>
+              </p>
+            ) : null}
 
-          <HeroActions
-            clubId={clubId}
-            event={event}
-            ongoing={state.kind === "ongoing"}
-            quiet={quiet}
-          />
+            <HeroActions
+              clubId={clubId}
+              event={event}
+              ongoing={state.kind === "ongoing"}
+              quiet={quiet}
+            />
+          </div>
         </div>
       </div>
     </section>

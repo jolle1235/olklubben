@@ -5,7 +5,7 @@ time, place with "Åbn i kort" (or "Tilføj adresse"), hosts, "Planen", and "Øl
 with "+ Tilføj øl". The beers are sorted by the club's rating (best first, unrated last), and a ↻
 button ("Hent nye ratings") at the right of that heading fetches new ratings without a reload. A beer
 card opens the beer page "from the event" (`?from=event`, see beers.md). The creator, the hosts and
-admins can edit and delete it. "← Tilbage" above the invitation goes to the club page the user came from
+admins can edit and delete it. "← Tilbage" (in the top bar on mobil, above the invitation from md, D-182) goes to the club page the user came from
 (Overblik, Kalender, a place, a beer; forms skipped), or Kalender when the event was opened directly or
 after a reload (D-179). New events come from "Opret event" (`/c/<clubId>/events/new`).
 

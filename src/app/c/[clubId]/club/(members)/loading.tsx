@@ -11,8 +11,8 @@ export default function ClubPageLoading() {
   return (
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Henter klubben …</span>
-      <Skeleton className="h-10 w-2/3 max-w-sm md:h-12" />
-      <Skeleton className="mt-3 mb-6 h-5 w-56 max-w-full md:mb-8" />
+      <Skeleton className="h-8 w-2/3 max-w-sm md:h-12" />
+      <Skeleton className="mt-3 mb-header h-5 w-56 max-w-full" />
 
       <Skeleton className="mb-4 h-7 w-36" />
       <div className="divide-y divide-border rounded-2xl border border-border bg-card px-4 sm:px-5">
@@ -27,14 +27,14 @@ export default function ClubPageLoading() {
         ))}
       </div>
 
-      <SectionDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-section md:my-10" />
       <Skeleton className="mb-4 h-7 w-24" />
       <Skeleton className="h-16 w-full rounded-2xl" />
 
-      <SectionDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-section md:my-10" />
       <Skeleton className="h-96 w-full rounded-xl" />
 
-      <SectionDivider className="my-8 md:my-10" />
+      <SectionDivider className="my-section md:my-10" />
       <Skeleton className="mb-4 h-7 w-32" />
       <Skeleton className="h-28 w-full rounded-2xl" />
     </div>

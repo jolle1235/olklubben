@@ -17,7 +17,7 @@ import {
   signUpWithClub,
 } from "./support/app";
 import { insertPoll } from "./support/polls";
-import { joinClub } from "./support/round2";
+import { isMobile, joinClub } from "./support/round2";
 
 /** Club isolation (SPEC §4.4, D-012, E16, E22): other clubs and bad ids are 404, never 403/500. */
 
@@ -142,7 +142,12 @@ test.describe("Club isolation", () => {
       await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
       // Inside the AppShell: the club's navigation and name are still there.
       await expect(mainNav(page).getByRole("link", { name: "Overblik" })).toBeVisible();
-      await expect(page.getByRole("button", { name: /Skift klub/ })).toContainText(name);
+      if (isMobile(testInfo)) {
+        // A 404 in the club is a subpage: "Tilbage" in the top bar (D-182).
+        await expect(page.getByRole("link", { name: "Tilbage", exact: true })).toBeVisible();
+      } else {
+        await expect(page.getByRole("button", { name: /Skift klub/ })).toContainText(name);
+      }
       await expect(page.getByText(/Hemmelig/)).toHaveCount(0);
     }
     // An unknown URL does not make the club the active one.

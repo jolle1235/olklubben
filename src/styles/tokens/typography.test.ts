@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { componentTextStyles, textStyles, textUtilities, type TextStyle } from "./typography";
+import {
+  componentTextStyles,
+  semanticTextUtilities,
+  textStyles,
+  textUtilities,
+  type TextStyle,
+} from "./typography";
 
 const rem = (style: TextStyle) => {
   const match = /^(\d+(?:\.\d+)?)rem$/.exec(style.size);
@@ -38,5 +44,11 @@ describe("typeskalaen", () => {
     expect(utilities["body-sm-tight"]).toEqual({ size: "0.95rem", leading: 1.3, tracking: 0 });
     expect(utilities["body-lg-loose"]).toEqual({ size: "1.125rem", leading: 1.625, tracking: 0 });
     expect(utilities["display-xl-tight"]).toBeUndefined();
+  });
+
+  it("giver de semantiske roller en mindre størrelse på mobil end fra md", () => {
+    for (const [name, { base, md }] of Object.entries(semanticTextUtilities())) {
+      expect(rem(base), name).toBeLessThan(rem(md));
+    }
   });
 });

@@ -26,10 +26,7 @@ export function PastEvents({ clubId, events, now }: PastEventsProps) {
 
   return (
     <section aria-labelledby="past-events-heading">
-      <h2
-        id="past-events-heading"
-        className="mb-3 text-title-md font-bold text-primary-ink md:text-title-lg"
-      >
+      <h2 id="past-events-heading" className="mb-3 text-feature-title font-bold text-primary-ink">
         Tidligere ølsmagninger
       </h2>
       <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-muted-faint">
