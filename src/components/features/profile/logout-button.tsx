@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2Icon, LogOutIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ROW_FRAME, RowContent, RowIcon } from "@/components/features/link-row";
 import { clearDeviceCaches } from "@/components/features/pwa/device-cache";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
@@ -16,9 +17,10 @@ import { cn } from "@/lib/utils";
  * (D-185) and goes to /login. Google has no
  * session of ours to end, so the next "Fortsæt med Google" shows Google's
  * account chooser (prompt=select_account, D-180).
- * variant "outline": the button on Indstillinger (D-183). "link": inline text, e.g. in the
+ * variant "link": inline text, e.g. in the
  * "Logget ind som …" footer on onboarding pages. "sidebar": a row under the
  * user in the desktop sidebar, so logging out needs no trip to Indstillinger.
+ * "row": a row in Indstillinger's App group, styled like its link rows (D-184).
  *
  * `next`: a same-origin path to come back to after logging in again, e.g. the
  * invitation on /join/<code> (someone on the wrong account, §6.5). It becomes
@@ -26,11 +28,11 @@ import { cn } from "@/lib/utils";
  */
 export function LogoutButton({
   className,
-  variant = "outline",
+  variant,
   next,
 }: {
   className?: string;
-  variant?: "outline" | "link" | "sidebar";
+  variant: "link" | "sidebar" | "row";
   next?: string | null;
 }) {
   const router = useRouter();
@@ -59,6 +61,29 @@ export function LogoutButton({
     "aria-busy": pending || undefined,
   };
 
+  if (variant === "row") {
+    return (
+      <button
+        {...buttonProps}
+        className={cn(ROW_FRAME, "w-full cursor-pointer text-left disabled:cursor-wait", className)}
+      >
+        <RowContent
+          leading={
+            <RowIcon>
+              {pending ? (
+                <Loader2Icon className="animate-spin" strokeWidth={2.25} />
+              ) : (
+                <LogOutIcon strokeWidth={2.25} />
+              )}
+            </RowIcon>
+          }
+          title={label}
+          trailing={null}
+        />
+      </button>
+    );
+  }
+
   if (variant === "sidebar") {
     return (
       <button
@@ -81,16 +106,8 @@ export function LogoutButton({
   }
 
   return (
-    <Button
-      {...buttonProps}
-      variant={variant}
-      className={cn(variant === "link" ? "min-h-11" : "w-full sm:w-auto", className)}
-    >
-      {pending ? (
-        <Loader2Icon aria-hidden className="animate-spin" />
-      ) : variant === "outline" ? (
-        <LogOutIcon aria-hidden />
-      ) : null}
+    <Button {...buttonProps} variant={variant} className={cn("min-h-11", className)}>
+      {pending ? <Loader2Icon aria-hidden className="animate-spin" /> : null}
       {label}
     </Button>
   );

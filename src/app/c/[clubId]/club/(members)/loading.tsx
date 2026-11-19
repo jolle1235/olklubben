@@ -28,10 +28,6 @@ export default function ClubPageLoading() {
       </div>
 
       <SectionDivider className="my-section md:my-10" />
-      <Skeleton className="mb-4 h-7 w-24" />
-      <Skeleton className="h-16 w-full rounded-2xl" />
-
-      <SectionDivider className="my-section md:my-10" />
       <Skeleton className="h-96 w-full rounded-xl" />
 
       <SectionDivider className="my-section md:my-10" />

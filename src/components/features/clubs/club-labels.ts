@@ -23,7 +23,7 @@ export function genitive(name: string): string {
   return `${trimmed}'s`;
 }
 
-/** "Ingen steder endnu", "1 sted", "5 steder" (the club page's "Steder" row). */
+/** "Ingen steder endnu", "1 sted", "5 steder" (Indstillinger's "Steder" row, D-184). */
 export function placeCountLabel(places: number): string {
   return places === 0 ? "Ingen steder endnu" : count(places, "sted", "steder");
 }

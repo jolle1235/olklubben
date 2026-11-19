@@ -13,7 +13,7 @@ import { overviewHref } from "@/lib/routes";
 export const SETTINGS_LIST =
   "divide-y divide-border overflow-hidden rounded-xl border border-border bg-card";
 /** The list clips its children (overflow-hidden, for the rounded hover), so the focus ring is drawn inside the row. */
-const ROW = "pressable-row focus-visible:-outline-offset-3 md:px-5";
+export const SETTINGS_ROW = "pressable-row focus-visible:-outline-offset-3 md:px-5";
 
 export function SettingsGroup({
   id,
@@ -41,7 +41,7 @@ export function SettingsGroup({
 export function SettingsLink(props: LinkRowProps) {
   return (
     <li>
-      <LinkRow {...props} className={ROW} />
+      <LinkRow {...props} className={SETTINGS_ROW} />
     </li>
   );
 }

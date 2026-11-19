@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+/** The E2E server (playwright.config.ts sets E2E_SERVER=1). */
+const isE2E = process.env.E2E_SERVER === "1";
+
 const nextConfig: NextConfig = {
   // The E2E server (playwright.config.ts) sets NEXT_DIST_DIR=.next-e2e so it can
   // run next to a normal `npm run dev` without fighting over .next/dev/lock.
@@ -17,12 +20,15 @@ const nextConfig: NextConfig = {
   // The E2E server (playwright.config.ts sets E2E_SERVER=1) has none at all:
   // at 375 px it covers the TopBarAction button ("+", "Inviter"), so a mobile
   // test that taps it would hit the indicator instead (TG-009).
-  devIndicators: process.env.E2E_SERVER === "1" ? false : { position: "top-right" },
+  devIndicators: isE2E ? false : { position: "top-right" },
 
   // Upgrade reminders during `next dev`/`next build` and the default policy for
   // `next upgrade --agent`: only recommend upgrades that fix a security advisory.
+  // Off for the E2E server (F-099): its "1 Insight" badge sits over the mobile
+  // bottom nav and takes taps, and its first-start nudge stops Playwright's
+  // webServer from starting.
   experimental: {
-    agentUpgrade: "security",
+    agentUpgrade: isE2E ? false : "security",
     // The songbook's PDF import sends one PDF (≤ 4 MB) per Server Action call
     // (SPEC §9.6, D-156). Vercel caps request bodies at 4.5 MB anyway.
     serverActions: { bodySizeLimit: "4.5mb" },

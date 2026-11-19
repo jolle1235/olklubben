@@ -1,7 +1,7 @@
 # Klubbens side and members
 
 `/c/<clubId>/club` shows the club's name, description and member count, "Medlemmer" with roles
-(line 1 "Kaptajnen (dig) Admin", line 2 "(Jesper Thomsen)"; at most two lines, no join date, D-181), a link to "Steder", the invitation code and link with
+(line 1 "Kaptajnen (dig) Admin", line 2 "(Jesper Thomsen)"; at most two lines, no join date, D-181), the invitation code and link with
 "Kopiér link", "Del" and (admins) "Generér ny kode", and "Farezone" (leave the club; admins can delete
 it). Admins have a "Handlinger for <name>" menu per member: make admin, remove admin, reset link,
 remove from the club.

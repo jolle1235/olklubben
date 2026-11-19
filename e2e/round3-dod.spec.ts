@@ -84,10 +84,13 @@ test.describe("Runde 3: Definition of Done", () => {
     await expect(memberPage.getByText("Stedet er oprettet 📍")).toBeVisible();
     await expect(ownersRegion(memberPage).getByRole("listitem")).toContainText("Skipperen");
 
-    // The admin finds it from the club page and creates an event there: the
-    // place is pre-selected and its owner is suggested as host (D-098, D-099).
-    await page.reload();
-    await page.getByRole("region", { name: "Steder" }).getByRole("link").click();
+    // The admin finds it under Indstillinger → Steder and creates an event there:
+    // the place is pre-selected and its owner is suggested as host (D-098, D-099, D-184).
+    await settingsLink(page).click();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /^Steder/ })
+      .click();
     const card = page.getByRole("main").getByRole("link", { name: /Skipperens kælder/ });
     await expect(card).toContainText("Ejer: Skipperen");
     await card.click();

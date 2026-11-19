@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PencilIcon, UserPlusIcon } from "lucide-react";
 
-import { ClubPlacesRow } from "@/components/features/clubs/club-places-row";
 import { DeleteClubDialog } from "@/components/features/clubs/delete-club-dialog";
 import { InviteSection } from "@/components/features/clubs/invite-section";
 import { LeaveClubSection } from "@/components/features/clubs/leave-club-section";
@@ -14,12 +13,7 @@ import { inviteUrl } from "@/lib/app-url";
 import { formatDate } from "@/lib/format/date";
 import { editClubHref } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
-import {
-  countActivePlaces,
-  getActiveInviteCode,
-  getClubContentCounts,
-  getClubMembers,
-} from "@/server/clubs/queries";
+import { getActiveInviteCode, getClubContentCounts, getClubMembers } from "@/server/clubs/queries";
 import { formatInviteCode } from "@/server/domain/clubs/invite-code";
 import { memberCountLabel, sortMembers } from "@/server/domain/clubs/members";
 import { leaveBlock } from "@/server/domain/clubs/membership-rules";
@@ -34,7 +28,8 @@ export const metadata: Metadata = { title: "Klubben" };
 /**
  * Klubbens side (SPEC §9.8, §7.4, §7.5, Q11, D-163), in sections split by a
  * thin line: the members (admins first; admins get a '⋯' menu per member,
- * D-102), the club's places, the invitation card for everyone, and the Farezone: "Forlad klubben" for everyone (or why not) and
+ * D-102), the invitation card for everyone (the places are a row of their own
+ * in Indstillinger, D-184), and the Farezone: "Forlad klubben" for everyone (or why not) and
  * "Slet klubben" for admins (D-103). Admins edit the name and description on
  * /club/edit (D-110).
  *
@@ -47,10 +42,9 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
   const { user, membership, club } = await requireClubPage(clubId);
   const mayDelete = canDeleteClub(membership);
 
-  const [members, inviteCode, placeCount, counts] = await Promise.all([
+  const [members, inviteCode, counts] = await Promise.all([
     getClubMembers(club.id),
     getActiveInviteCode(club.id),
-    countActivePlaces(club.id),
     mayDelete ? getClubContentCounts(club.id) : null,
   ]);
   const roster = new Map(members.map((member) => [member.userId, member.role]));
@@ -101,15 +95,6 @@ export default async function ClubPage({ params }: PageProps<"/c/[clubId]/club">
           members={sortMembers(members)}
           currentUserId={user.id}
         />
-      </section>
-
-      <SectionDivider className="my-section md:my-10" />
-
-      <section id="steder" aria-labelledby="places-heading" className="scroll-mt-24">
-        <h2 id="places-heading" className="mb-4 text-section-title text-primary-ink">
-          Steder
-        </h2>
-        <ClubPlacesRow clubId={club.id} placeCount={placeCount} />
       </section>
 
       <SectionDivider className="my-section md:my-10" />
