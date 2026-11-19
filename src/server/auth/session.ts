@@ -131,21 +131,21 @@ export const requireMembership = cache(
     const user = await requireUser();
     if (!isValidId(clubId)) notFound();
 
-    const membership = await db.membership.findUnique({
-      where: { userId_clubId: { userId: user.id, clubId } },
-      select: {
-        id: true,
-        userId: true,
-        clubId: true,
-        role: true,
-        joinedAt: true,
-        club: { select: { id: true, name: true, description: true, createdAt: true } },
-      },
-    });
-    if (!membership) notFound();
+    // Side by side, not nested: one database round trip instead of two (D-187).
+    // The club is only returned when the membership exists.
+    const [membership, club] = await Promise.all([
+      db.membership.findUnique({
+        where: { userId_clubId: { userId: user.id, clubId } },
+        select: { id: true, userId: true, clubId: true, role: true, joinedAt: true },
+      }),
+      db.club.findUnique({
+        where: { id: clubId },
+        select: { id: true, name: true, description: true, createdAt: true },
+      }),
+    ]);
+    if (!membership || !club) notFound();
 
-    const { club, ...membershipInfo } = membership;
-    return { user, membership: membershipInfo, club };
+    return { user, membership, club };
   },
 );
 

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { fontVariables } from "@/components/brand/fonts";
 import { FlashToast } from "@/components/features/flash-toast";
+import { ServiceWorker } from "@/components/features/pwa/service-worker";
 import { SongbookPrefsScript } from "@/components/features/songs/songbook-prefs-script";
 import { ThemePrefsScript } from "@/components/features/theme/theme-prefs-script";
 import { ThemedToaster } from "@/components/features/theme/themed-toaster";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         <ThemedToaster />
+        <ServiceWorker />
         <Suspense fallback={null}>
           <FlashToast />
         </Suspense>

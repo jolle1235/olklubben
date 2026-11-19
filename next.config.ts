@@ -26,6 +26,24 @@ const nextConfig: NextConfig = {
     // The songbook's PDF import sends one PDF (≤ 4 MB) per Server Action call
     // (SPEC §9.6, D-156). Vercel caps request bodies at 4.5 MB anyway.
     serverActions: { bodySizeLimit: "4.5mb" },
+    // A page visited in the last 30 s shows again on a tab switch without asking
+    // the server (D-186). Server Actions revalidate and clear this cache, so your
+    // own changes still show at once; other members' changes can be 30 s old.
+    staleTimes: { dynamic: 30 },
+  },
+
+  // The service worker (public/sw.js, D-185) is never cached by the browser
+  // itself, so a new version reaches every device on its next visit.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
+    ];
   },
 
   // Tailwind CSS v4 runs as a Turbopack loader (create-next-app 16.4 default),

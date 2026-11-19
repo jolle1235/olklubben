@@ -39,6 +39,33 @@ Vitest integration against Postgres (`tests/integration/**/*.itest.ts`, `olklubb
 - **Recipe:** the E2E config already uses `timezoneId: "Europe/Copenhagen"`; set the time with
   `page.clock.setFixedTime(...)`. `e2e/overview-calendar.spec.ts` has the DST case (E20).
 
+### 12. Performance numbers and the service worker (production build)
+
+- **Use when:** load time, database round trips, `staleTimes`, or anything in `public/sw.js`. The
+  service worker only registers in production builds, so `next dev` (instances, smoke, E2E) never
+  runs it, and dev timings say nothing.
+- **Recipe:** a check script that, for an instance id:
+  - runs `next build` in the instance copy with `NEXT_DIST_DIR=.next-prod`, so the dev server's
+    `.next` is left alone, and the instance env from `processEnv(state.pid)` with
+    `NODE_ENV=production`;
+  - starts `next start` on a free port;
+  - puts a TCP proxy in front of Postgres that delays every chunk from the database by D ms, and an
+    HTTP proxy in front of the app that can hold HTML and RSC responses for 3 s. `BETTER_AUTH_URL`
+    points at the HTTP proxy;
+  - logs in through `/api/auth/sign-in/email` with `origin`.
+
+  Sequential SQL round trips ≈ (median at D = 100 − median at D = 0) / 100: warm the pool at each
+  D and read the whole body. Count document loads with `page.on("load")`, not `framenavigated`
+  (Next's `replaceState` fires that too). To test a deploy, rebuild with a visible change (e.g.
+  `data-build="b"` on the bottom nav) and clear Chromium's HTTP cache through CDP
+  `Network.clearBrowserCache`, or the old chunks come from there instead of the worker.
+
+- **Proven:** 2026-11-19, `.flow/fast-first-load/check.mts` (local, gitignored; copy it):
+  - BEFORE: 13.1 round trips and a 6,490 ms reopen against a 3 s server.
+  - AFTER: about 7 round trips and 129 ms.
+  - Three deliberate breaks each turned the expected checks red.
+  - One build takes about 45 s, so a full run is about 4 min.
+
 ## Log
 
 One line per task that chose a verifier (`find-verifier`) or ran `before-after`.
@@ -49,6 +76,7 @@ date       | task slug | kind | technique | caught something | note
 2026-11-14 | google-only-auth | feature | 1. UI drive (--google, captured redirect) + 8. data-state (scratch-DB migration itest) | yes | BEFORE showed "Log ind med Google igen" sending prompt=login to Google (F-098), found by plan-critique
 2026-11-18 | compact-ui-density | feature (visuel) | 1. UI drive: computed styles og målte højder ved 375 + 1280 | yes | BEFORE 11 FAIL; brud på card-tokenet gav 2 FAIL; niveau-review fandt desktop-padding på hero-knapperne under smagningen, som checket ikke dækker (ikke seedet)
 2026-11-18 | settings-hub | feature | 1. UI drive (375 + 1280) + unit (nav-history) | yes | BEFORE 8 FAIL; to brud (Indstillinger ude af hovedsiderne, /feedback-grenen) gav hver én rød linje
+2026-11-19 | fast-first-load | feature (ydelse) | 12. produktionsbuild bag forsinket DB + langsom server | yes | BEFORE 3 FAIL (13,1 rundture, 6.490 ms genåbning, RSC ved faneskift); plan-critique fandt, at layout og side renderer parallelt, og at et 10 s-vindue ville gøre to checks røde
 ```
 
 ## Lessons
@@ -89,4 +117,12 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-18 | compact-ui-density | et layout-check, der måler fast seed-tilstand, dækker ikke varianter som "i gang nu"; en className-override (`px-4`) mod en responsiv størrelse (`md:px-7`) slap igennem → når en primitiv får en responsiv størrelse, grep kaldere med en override af samme egenskab og tilføj `md:`-versionen
 2026-11-18 | compact-ui-density | at skjule et in-page link på mobil (`max-md:hidden`) brød en E2E, der klikkede det på mobil (`round2-dod` "Belgisk aften"), som ingen grep efter "Tilbage"/"Alle steder" fandt → når et link skjules på en breakpoint, grep e2e/ efter dets tekst (også event-/øl-navne brugt som linktekst) og kør hele suiten
 2026-11-18 | settings-hub | en ny side i `WARM_PATHS` (fixtures.ts) får `verify:up --ref <base>` til at fejle med 404 under opvarmningen, fordi harnessen kører fra arbejdstræet → fjern linjen midlertidigt, mens BEFORE startes, og sæt den tilbage (eller lad harnessen springe 404 over for --ref)
+2026-11-19 | fast-first-load | antog at Better Auths cookieCache ville spare en DB-rundtur ved åbning; Server Components kan ikke sætte cookies, så den signerede cookie fornyes næsten aldrig → mål før du lover en serveroptimering, og tjek om mekanismen kræver en Set-Cookie fra RSC
+2026-11-19 | fast-first-load | antog at layoutet ligger på den kritiske vej; layout og side renderer parallelt i App Router → skær rundture på sidens egen kæde
+2026-11-19 | fast-first-load | Better Auth (uden `advanced.database.joins`) og Prisma (uden `relationJoins`) bruger ét SQL-kald pr. relationsniveau, så et "kald" er flere rundture → mål i SQL-rundture med en forsinkende TCP-proxy (recipe 12), ikke ved at tælle funktionskald
+2026-11-19 | fast-first-load | instansen forsvandt mellem to kørsler (en anden session kørte `verify:down -- --all`) → tjek `verify:list` før en lang kørsel, og start igen med samme id
+2026-11-19 | fast-first-load | check-scriptet ændrer seed-data (stemmer, fjerner Anders), så en anden kørsel på samme instans fejlede → down + up før hver kørsel; brud-kørsler på egne instanser parallelt (patch instansens kopi, før checket bygger)
+2026-11-19 | fast-first-load | `framenavigated` talte Next' replaceState som en navigation, og check 2 blev rød uden reload → tæl `page.on("load")`
+2026-11-19 | fast-first-load | `staleTimes` 30 s gjorde feedback-filtertesten rød: den skrev direkte i DB og klikkede tilbage til en set side (F-100) → E2E, der skriver bag om appen, skal genindlæse før de navigerer tilbage
+2026-11-19 | fast-first-load | `fallow audit` kaldte `public/sw.js` en ubrugt fil (browseren loader den) → `// fallow-ignore-file unused-file -- <grund>` øverst, ingen ændring i `.fallowrc.json`
 ```

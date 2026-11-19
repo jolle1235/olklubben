@@ -196,28 +196,17 @@ export const getEvent = cache(
   },
 );
 
-/** The hero event (§9.1): the earliest event that is upcoming or still ongoing, or null. */
-export async function getNextEvent(clubId: string, now: Date): Promise<EventSummary | null> {
-  const row = await db.event.findFirst({
-    where: upcomingOrOngoingWhere(clubId, now),
-    select: summarySelect,
-    orderBy: chronological,
-  });
-  return row ? toSummary(row) : null;
-}
-
 /**
  * Upcoming and ongoing events, oldest first ("Kommende arrangementer", the
- * calendar list). `excludeId` leaves out e.g. the hero event; `limit` caps it.
+ * calendar list). `limit` caps it; on Overblik the first one is the hero.
  */
 export async function listUpcomingEvents(
   clubId: string,
   now: Date,
-  options: { limit?: number; excludeId?: string } = {},
+  options: { limit?: number } = {},
 ): Promise<EventSummary[]> {
-  const where = upcomingOrOngoingWhere(clubId, now);
   const rows = await db.event.findMany({
-    where: options.excludeId ? { AND: [where, { id: { not: options.excludeId } }] } : where,
+    where: upcomingOrOngoingWhere(clubId, now),
     select: summarySelect,
     orderBy: chronological,
     take: options.limit,
