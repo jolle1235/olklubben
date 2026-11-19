@@ -470,7 +470,7 @@ Klubvælgeren vises kun som dropdown, når brugeren har mere end én klub. Med �
 
 **Steder** har intet hovedpunkt. De nås via Indstillinger → "Steder" (D-183) og stednavnet på et event. ~~klubbens side (sektionen "Steder" med "N steder")~~ (D-184) Fra et steds side fører "Opret event her" til eventformularen med stedet valgt. Et steds side linker tilbage til "Alle steder", og stedernes sider markerer Indstillinger aktiv (D-108, D-183).
 
-**Feedback** (§9.9) har heller intet hovedpunkt. Den nås via Indstillinger → "Feedback (fejl og ønsker)" (en række i App-gruppen, D-183), via "Feedback" i footeren "Logget ind som …" på sider uden for en klub og via "Rapportér denne fejl" på fejlsiderne. `/feedback` ligger uden for `/c/[clubId]`, men vises i AppShell for brugerens senest aktive klub (ellers den første), med Profil markeret aktiv. En bruger uden klubber får en enkel ramme med logo, "Tilbage" og "Logget ind som …" (D-147).
+**Feedback** (§9.9) har heller intet hovedpunkt. Den nås via Indstillinger → "Feedback (fejl og ønsker)" (en række i App-gruppen, D-183), via "Feedback" i footeren "Logget ind som …" på sider uden for en klub og via "Rapportér denne fejl" på fejlsiderne. `/feedback` ligger uden for `/c/[clubId]`, men vises i AppShell for brugerens senest aktive klub (ellers den første), med Indstillinger markeret aktiv (D-183; ~~Profil~~). En bruger uden klubber får en enkel ramme med logo, "Tilbage" og "Logget ind som …" (D-147).
 
 ## 8.2 Routes
 
@@ -2513,7 +2513,7 @@ Skabelon. Kopiér for hver ny post. Nyeste øverst.
 - **Område:** Test / E2E
 - **Symptom:** Fem mobil-tests (`club-isolation` E16, `members` E16, kalenderens månedsvisning, `round2-dod` (a), `round3-dod` (b)) timede ud: klik på "Overblik"/"Kalender" i bundnavigationen blev opfanget af `<nextjs-portal>`. Playwrights egen serverstart stoppede også på upgrade-nudgen.
 - **Årsag:** `experimental.agentUpgrade: "security"` viser en upgrade-påmindelse ("1 Insight") nederst til venstre under `next dev`, også når `devIndicators` er slået fra for E2E-serveren (TG-009). Den ligger oven på bundnavigationen ved 375 px. Gælder også `master`.
-- **Rettelse:** ~~Ingen i koden i denne opgave (D-181 rører ikke config).~~ Rettet i D-184: `agentUpgrade: process.env.E2E_SERVER === "1" ? false : "security"` i `next.config.ts`. Bevist ved at køre de fem tests med `agentUpgrade: false` for `E2E_SERVER=1` lokalt: 5/5 grønne. Foreslået som opfølgning.
+- **Rettelse:** ~~Ingen i koden i denne opgave (D-181 rører ikke config).~~ Rettet i D-184: `agentUpgrade: process.env.E2E_SERVER === "1" ? false : "security"` i `next.config.ts`. Bevist ved at køre de fem tests med `agentUpgrade: false` for `E2E_SERVER=1` lokalt: 5/5 grønne.
 - **Læring / forebyggelse:** Slå `agentUpgrade` fra, når `E2E_SERVER=1` (som `devIndicators`), eller start E2E-serveren i hånden med den slået fra.
 
 ### F-098 · 2026-11-14 · "Log ind med Google igen" sendte `prompt=login` til Google
