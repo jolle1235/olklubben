@@ -10,7 +10,7 @@ const OPTIONS = [
   { value: "dark", label: "Mørkt" },
 ] as const satisfies readonly { value: ThemePref; label: string }[];
 
-/** Udseende on Profil (SPEC §9.8). */
+/** Udseende on Indstillinger (SPEC §9.8, D-183). */
 export function AppearanceControl() {
   const pref = useThemePref();
 

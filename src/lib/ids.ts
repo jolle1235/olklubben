@@ -7,7 +7,9 @@
  * Client-safe: no server-only imports.
  */
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A UUID without anchors, for composing paths (nav-history). */
+export const UUID_SOURCE = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const UUID_PATTERN = new RegExp(`^${UUID_SOURCE}$`, "i");
 
 export function isValidId(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);

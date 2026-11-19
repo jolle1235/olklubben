@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { backTarget, isClubSubpage, isSongPage, parentPage, recordVisit } from "./nav-history";
+import { backTarget, isSubpage, isSongPage, parentPage, recordVisit } from "./nav-history";
 
 const club = "/c/c1";
 const event = `${club}/events/e1`;
@@ -125,8 +125,8 @@ describe("backTarget", () => {
   });
 });
 
-describe("isClubSubpage", () => {
-  it("is true for detail pages, forms and unknown paths in a club, not for its main pages", () => {
+describe("isSubpage", () => {
+  it("is true for detail pages, forms, 404s, the settings' subpages and feedback", () => {
     for (const path of [
       event,
       `${club}/beers/b1`,
@@ -135,27 +135,35 @@ describe("isClubSubpage", () => {
       `${club}/songs/s1`,
       `${club}/club/edit`,
       `${club}/nope`,
+      `${club}/club`,
+      `${club}/places`,
+      `${club}/profile`,
+      "/feedback",
+      "/feedback/f1",
+      "/feedback/new",
     ]) {
-      expect(isClubSubpage(path), path).toBe(true);
+      expect(isSubpage(path), path).toBe(true);
     }
+  });
+
+  it("is false for the main pages", () => {
     for (const path of [
       club,
       `${club}/calendar`,
       `${club}/beers`,
       `${club}/songs`,
-      `${club}/profile`,
-      `${club}/club`,
-      `${club}/places`,
-      "/feedback/new",
+      `${club}/settings`,
       "/profile",
+      "/clubs",
+      "/feedbackx",
     ]) {
-      expect(isClubSubpage(path), path).toBe(false);
+      expect(isSubpage(path), path).toBe(false);
     }
   });
 });
 
 describe("parentPage", () => {
-  it("is the area's list: events and polls the calendar, beers, places and songs their lists, club forms the club", () => {
+  it("is the area's list, and Indstillinger for its subpages", () => {
     expect(parentPage(event, club)).toBe(`${club}/calendar`);
     expect(parentPage(`${club}/events/new`, club)).toBe(`${club}/calendar`);
     expect(parentPage(`${club}/polls/p1`, club)).toBe(`${club}/calendar`);
@@ -164,6 +172,15 @@ describe("parentPage", () => {
     expect(parentPage(`${club}/songs/import`, club)).toBe(`${club}/songs`);
     expect(parentPage(`${club}/club/edit`, club)).toBe(`${club}/club`);
     expect(parentPage(`${club}/nope`, club)).toBe(club);
+    for (const path of [`${club}/club`, `${club}/places`, `${club}/profile`]) {
+      expect(parentPage(path, club), path).toBe(`${club}/settings`);
+    }
+  });
+
+  it("sends feedback to Indstillinger and a report or the form to the list", () => {
+    expect(parentPage("/feedback", club)).toBe(`${club}/settings`);
+    expect(parentPage("/feedback/f1", club)).toBe("/feedback");
+    expect(parentPage("/feedback/new", club)).toBe("/feedback");
   });
 });
 
@@ -179,5 +196,33 @@ describe("isSongPage", () => {
     ]) {
       expect(isSongPage(path), path).toBe(false);
     }
+  });
+});
+
+describe("backTarget with feedback", () => {
+  const report = "/feedback/5eed0000-0000-7000-8000-0000000002f1";
+  it("goes back to the feedback list or a report, outside the club's paths", () => {
+    expect(backTarget(["/feedback", report], report, club, fallback)).toBe("/feedback");
+    expect(backTarget([`${club}/settings`, "/feedback"], "/feedback", club, fallback)).toBe(
+      `${club}/settings`,
+    );
+  });
+
+  it("never goes to a feedback form or a look-alike path", () => {
+    for (const earlier of ["/feedback/new", `${report}/edit`, "/feedbackx"]) {
+      expect(backTarget([earlier], report, club, fallback), earlier).toBe(fallback);
+    }
+  });
+});
+
+describe("recordVisit without club and places as main pages", () => {
+  it("rewinds Indstillinger → Klubben → Steder → Klubben", () => {
+    const stack = [`${club}/settings`, `${club}/club`, `${club}/places`];
+    expect(recordVisit(stack, `${club}/club`)).toEqual([`${club}/settings`, `${club}/club`]);
+  });
+
+  it("rewinds Kalender → event → Steder → event", () => {
+    const stack = [`${club}/calendar`, event, `${club}/places`];
+    expect(recordVisit(stack, event)).toEqual([`${club}/calendar`, event]);
   });
 });

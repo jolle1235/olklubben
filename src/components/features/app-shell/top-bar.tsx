@@ -1,30 +1,41 @@
-import { cn } from "@/lib/utils";
-import type { ClubSummary } from "./club-switcher";
+"use client";
+
+import { usePathname } from "next/navigation";
+
+import { StatusBarBackdrop } from "@/components/features/status-bar-backdrop";
+import { TOP_BAR_TITLE_SLOT_ID } from "@/components/ui/top-bar-title";
+import { isSubpage } from "@/lib/nav-history";
+
 import { TOP_BAR_ACTION_SLOT_ID } from "./top-bar-action";
 import { TopBarLeading } from "./top-bar-leading";
-import { TOP_BAR_TITLE_SLOT_ID } from "@/components/ui/top-bar-title";
 
 export type TopBarProps = {
-  club: ClubSummary;
-  clubs: ClubSummary[];
-  className?: string;
+  clubId: string;
 };
 
 /**
- * Mobile top bar (< md): the club switcher on a main page, "‹ Tilbage" and the
- * page's name (TopBarTitle) on a subpage (D-182), and a slot for a page tool
- * (TopBarAction). Both slots are always mounted, so a portal finds them.
+ * Mobile top bar (< md), only on subpages (D-183): "‹ Tilbage", the page's
+ * name (TopBarTitle) and a slot for a page tool (TopBarAction); both slots are
+ * always mounted there, so a portal finds them. Main pages have no bar: only
+ * the frame colour under an installed app's status bar and the same height in
+ * the flow (0 px in a browser).
  */
-export function TopBar({ club, clubs, className }: TopBarProps) {
+export function TopBar({ clubId }: TopBarProps) {
+  const pathname = usePathname();
+
+  if (!isSubpage(pathname)) {
+    return (
+      <div className="md:hidden">
+        <StatusBarBackdrop />
+        <div aria-hidden className="h-[env(safe-area-inset-top)]" />
+      </div>
+    );
+  }
+
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-30 surface-frame pt-[env(safe-area-inset-top)] md:hidden",
-        className,
-      )}
-    >
+    <header className="sticky top-0 z-30 surface-frame pt-[env(safe-area-inset-top)] md:hidden">
       <div className="flex h-16 items-center gap-2 pr-3 pl-2">
-        <TopBarLeading club={club} clubs={clubs} />
+        <TopBarLeading clubId={clubId} />
         <div
           id={TOP_BAR_TITLE_SLOT_ID}
           aria-hidden

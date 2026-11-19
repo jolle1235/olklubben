@@ -8,7 +8,7 @@ export type ProfileSectionProps = {
   children: React.ReactNode;
 };
 
-/** One card on Profil (SPEC §9.8): an h2 heading over its content. */
+/** One card on Konto (SPEC §9.8): an h2 heading over its content. */
 export function ProfileSection({
   title,
   headingId,

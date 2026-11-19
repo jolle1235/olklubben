@@ -70,19 +70,27 @@ export function mainNav(page: Page) {
 }
 
 /**
- * The way to Profil: the "Profil" item in the bottom nav on mobile, the user
- * row at the bottom of the sidebar on desktop ("Profil: <name> <email>"). The
- * sidebar's list has no Profil item.
+ * The way to Indstillinger (D-183): the gear in the bottom nav on mobile
+ * (icon only, named "Indstillinger"), the user row at the bottom of the sidebar
+ * on desktop ("Indstillinger: <name> <email>").
  */
-export function profileLink(page: Page): Locator {
-  return mainNav(page).getByRole("link", { name: /^Profil(?::|$)/ });
+export function settingsLink(page: Page): Locator {
+  return mainNav(page).getByRole("link", { name: /^Indstillinger(?::|$)/ });
 }
 
-/** Profil → Log ud (SPEC §9.8), and waits for /login. */
+/** Indstillinger → Konto (the account's forms, `/c/<id>/profile`). */
+export async function openAccount(page: Page) {
+  await settingsLink(page).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Indstillinger" })).toBeVisible();
+  await page.getByRole("region", { name: "Konto" }).getByRole("link").click();
+  await expect(page.getByRole("heading", { level: 1, name: "Konto" })).toBeVisible();
+}
+
+/** Indstillinger → Log ud (SPEC §9.8), and waits for /login. */
 export async function logOut(page: Page) {
-  await profileLink(page).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
-  // The Profil page's button (the desktop sidebar has one too).
+  await settingsLink(page).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Indstillinger" })).toBeVisible();
+  // The page's button (the desktop sidebar has one too).
   await page.getByRole("main").getByRole("button", { name: "Log ud" }).click();
   await expect(page).toHaveURL(/\/login$/);
 }
@@ -101,7 +109,8 @@ function clubIdFromUrl(page: Page): string {
  */
 export async function expectOverview(page: Page, clubId?: string): Promise<string> {
   await expect(page).toHaveURL(clubId ? new RegExp(`/c/${clubId}$`) : new RegExp(`/c/${UUID}$`));
-  await expect(page.getByRole("heading", { level: 1, name: "Overblik" })).toBeVisible();
+  // Its h1 is the club's name (D-183).
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   return clubIdFromUrl(page);
 }
 

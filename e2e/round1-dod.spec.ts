@@ -8,8 +8,8 @@ import {
   logOut,
   memberRows,
   newUser,
-  profileLink,
   readInvitePath,
+  settingsLink,
   signUp,
   signUpWithClub,
 } from "./support/app";
@@ -42,11 +42,11 @@ test.describe("Runde 1: Definition of Done", () => {
       page.getByRole("heading", { name: "Ingen kommende ølsmagninger endnu 🍺" }),
     ).toBeVisible();
 
-    // Profil → Klubben: the creator is Admin.
-    await profileLink(page).click();
+    // Indstillinger → Klubben: the creator is Admin (D-183).
+    await settingsLink(page).click();
     await page
-      .getByRole("navigation", { name: "Klubber" })
-      .getByRole("link", { name: /^Klubben/ })
+      .getByRole("main")
+      .getByRole("link", { name: /Medlemmer og invitation/ })
       .click();
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
     const me = memberRows(page).filter({ hasText: "(dig)" });

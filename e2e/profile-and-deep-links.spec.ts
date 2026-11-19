@@ -1,5 +1,12 @@
 import { expect, test } from "./fixtures";
-import { clubName, fillLogInForm, newUser, profileLink, signUpWithClub } from "./support/app";
+import {
+  clubName,
+  fillLogInForm,
+  newUser,
+  openAccount,
+  settingsLink,
+  signUpWithClub,
+} from "./support/app";
 import { deleteSessions } from "./support/db";
 import { isMobile } from "./support/round2";
 
@@ -20,9 +27,9 @@ test.describe("Dybe links og profil", () => {
 
     await fillLogInForm(freshPage, user);
     await expect(freshPage).toHaveURL(new RegExp(`${target}$`));
-    await expect(freshPage.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+    await expect(freshPage.getByRole("heading", { level: 1, name: "Konto" })).toBeVisible();
 
-    // /profile (D-023) goes to the Profil tab of the active club.
+    // /profile (D-023) goes to Konto in the active club.
     await freshPage.goto("/profile");
     await expect(freshPage).toHaveURL(new RegExp(`${target}$`));
   });
@@ -79,7 +86,7 @@ test.describe("Dybe links og profil", () => {
     await expect(freshPage).toHaveURL(new RegExp(`/c/${clubId}$`));
   });
 
-  test("Profil er markeret i navigationen på profilen og klubbens side", async ({
+  test("Indstillinger er markeret i navigationen på Indstillinger, Konto og klubbens side", async ({
     page,
   }, testInfo) => {
     const user = newUser(testInfo, "profilnav");
@@ -87,30 +94,33 @@ test.describe("Dybe links og profil", () => {
     const nav = page.getByRole("navigation", { name: "Hovednavigation" });
 
     if (isMobile(testInfo)) {
-      // The bottom nav keeps all five items (SPEC §8.1).
+      // The bottom nav keeps all five items, icons only (SPEC §8.1, D-183).
       await expect(nav.getByRole("link")).toHaveText([
         "Overblik",
         "Kalender",
         "Øl",
         "Sangbog",
-        "Profil",
+        "Indstillinger",
       ]);
     } else {
-      // Desktop: four items in the list, and the user row is the way to Profil.
+      // Desktop: four items in the list, and the user row is the way to Indstillinger.
       await expect(nav.getByRole("listitem")).toHaveText(["Overblik", "Kalender", "Øl", "Sangbog"]);
-      await expect(nav.getByRole("link", { name: "Profil", exact: true })).toHaveCount(0);
-      await expect(profileLink(page)).toContainText(user.name);
-      await expect(profileLink(page)).toContainText(user.email);
+      await expect(nav.getByRole("link", { name: "Indstillinger", exact: true })).toHaveCount(0);
+      await expect(settingsLink(page)).toContainText(user.name);
+      await expect(settingsLink(page)).toContainText(user.email);
     }
-    await expect(profileLink(page)).not.toHaveAttribute("aria-current");
+    await expect(settingsLink(page)).not.toHaveAttribute("aria-current");
 
-    await profileLink(page).click();
-    await expect(page).toHaveURL(new RegExp(`/c/${clubId}/profile$`));
-    await expect(profileLink(page)).toHaveAttribute("aria-current", "page");
+    await settingsLink(page).click();
+    await expect(page).toHaveURL(new RegExp(`/c/${clubId}/settings$`));
+    await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
 
+    await page.goto(`/c/${clubId}/profile`);
+    await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
+
     await page.goto(`/c/${clubId}/club`);
-    await expect(profileLink(page)).toHaveAttribute("aria-current", "page");
+    await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
   });
 
@@ -120,7 +130,7 @@ test.describe("Dybe links og profil", () => {
     const user = newUser(testInfo, "navneskift");
     const clubId = await signUpWithClub(page, user, clubName(testInfo, "Navne"));
 
-    await profileLink(page).click();
+    await openAccount(page);
     await expect(page).toHaveURL(new RegExp(`/c/${clubId}/profile$`));
 
     const nameField = page.getByLabel("Navn", { exact: true });

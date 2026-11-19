@@ -12,8 +12,9 @@ export type AppShellProps = {
 };
 
 /**
- * Frame for every club page (/c/[clubId]/…). Mobile: top bar with the club
- * name + fixed bottom navigation. Desktop (md+): sidebar on the left.
+ * Frame for every club page (/c/[clubId]/…). Mobile: a top bar with "Tilbage"
+ * on subpages only (D-182, D-183) + fixed bottom navigation. Desktop (md+):
+ * sidebar on the left.
  * Server Component; the interactive parts are client components.
  * NavHistoryTracker records the tab's pages for "Tilbage" (D-179).
  * data-app-shell is styled in globals.css.
@@ -39,11 +40,11 @@ export function AppShell({ club, clubs, user, children }: AppShellProps) {
       <Sidebar club={club} clubs={clubs} user={user} />
 
       <div className="flex min-h-dvh min-w-0 flex-col">
-        <TopBar club={club} clubs={clubs} />
+        <TopBar clubId={club.id} />
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 px-4 pt-page pb-[calc(6.5rem+env(safe-area-inset-bottom))] outline-none sm:px-6 md:px-10 md:pb-16"
+          className="flex-1 px-4 pt-page pb-[calc(5.5rem+env(safe-area-inset-bottom))] outline-none sm:px-6 md:px-10 md:pb-16"
         >
           <div className="mx-auto w-full max-w-4xl">{children}</div>
         </main>

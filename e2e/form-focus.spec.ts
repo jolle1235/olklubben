@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { clubName, createClub, newUser, profileLink, signUp } from "./support/app";
+import { clubName, createClub, newUser, openAccount, signUp } from "./support/app";
 
 /**
  * Keyboard use (SPEC §15.2): a validation error moves focus to the invalid
@@ -35,8 +35,7 @@ test.describe("Fokus ved fejl i formularer", () => {
 
     // Profil: an empty name, checked in the browser.
     await createClub(page, clubName(testInfo, "Fokus"));
-    await profileLink(page).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Profil" })).toBeVisible();
+    await openAccount(page);
     const profileName = page.getByLabel("Navn", { exact: true });
     await profileName.fill("");
     await page.getByRole("button", { name: "Gem profil" }).press("Enter");

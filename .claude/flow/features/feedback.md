@@ -15,7 +15,7 @@ status and an answer.
 
 ## How to get to it (user POV)
 
-- Profil → "Feedback (fejl og ønsker)".
+- Indstillinger → "Feedback (fejl og ønsker)" (D-183).
 - "Feedback" under "Logget ind som …" on onboarding, the club picker and invitations.
 - "Rapportér denne fejl" on error pages.
 
