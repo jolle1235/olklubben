@@ -16,7 +16,6 @@ neither.
 
 ## How to get to it (user POV)
 
-- Klubbens side → "Steder" ("5 steder Hvor I mødes, og hvem der ejer dem").
 - Indstillinger → "Steder" (D-183).
 - An event page → its place.
 

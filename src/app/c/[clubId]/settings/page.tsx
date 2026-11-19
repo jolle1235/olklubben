@@ -9,7 +9,9 @@ import {
   SettingsGroup,
   SettingsItem,
   SettingsLink,
+  SETTINGS_ROW,
 } from "@/components/features/profile/settings-lists";
+import { placeCountLabel } from "@/components/features/clubs/club-labels";
 import { PageHeader } from "@/components/ui/page-header";
 import { getDisplayName } from "@/lib/format/display-name";
 import { clubHref, feedbackListHref, placesHref, profileHref } from "@/lib/routes";
@@ -58,7 +60,7 @@ export default async function SettingsPage({ params }: PageProps<"/c/[clubId]/se
             href={placesHref(club.id)}
             icon={MapPinIcon}
             title="Steder"
-            subtitle={placeCount === 1 ? "1 sted" : `${placeCount} steder`}
+            subtitle={placeCountLabel(placeCount)}
           />
         </SettingsGroup>
 
@@ -76,9 +78,10 @@ export default async function SettingsPage({ params }: PageProps<"/c/[clubId]/se
             title="Feedback (fejl og ønsker)"
             subtitle="Rapportér en fejl eller foreslå en idé"
           />
+          <li>
+            <LogoutButton variant="row" className={SETTINGS_ROW} />
+          </li>
         </SettingsGroup>
-
-        <LogoutButton className="sm:self-start" />
       </div>
     </>
   );

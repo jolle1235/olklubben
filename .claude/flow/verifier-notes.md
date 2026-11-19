@@ -49,6 +49,7 @@ date       | task slug | kind | technique | caught something | note
 2026-11-14 | google-only-auth | feature | 1. UI drive (--google, captured redirect) + 8. data-state (scratch-DB migration itest) | yes | BEFORE showed "Log ind med Google igen" sending prompt=login to Google (F-098), found by plan-critique
 2026-11-18 | compact-ui-density | feature (visuel) | 1. UI drive: computed styles og målte højder ved 375 + 1280 | yes | BEFORE 11 FAIL; brud på card-tokenet gav 2 FAIL; niveau-review fandt desktop-padding på hero-knapperne under smagningen, som checket ikke dækker (ikke seedet)
 2026-11-18 | settings-hub | feature | 1. UI drive (375 + 1280) + unit (nav-history) | yes | BEFORE 8 FAIL; to brud (Indstillinger ude af hovedsiderne, /feedback-grenen) gav hver én rød linje
+2026-11-19 | d183-followups | chore | 1. UI drive + E2E med/uden config | yes | F-099 BEFORE: Playwright-serveren starter ikke; places.spec kunne ikke genskabes under kontrollerede forhold (2 × 236/236)
 ```
 
 ## Lessons
@@ -89,4 +90,6 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-18 | compact-ui-density | et layout-check, der måler fast seed-tilstand, dækker ikke varianter som "i gang nu"; en className-override (`px-4`) mod en responsiv størrelse (`md:px-7`) slap igennem → når en primitiv får en responsiv størrelse, grep kaldere med en override af samme egenskab og tilføj `md:`-versionen
 2026-11-18 | compact-ui-density | at skjule et in-page link på mobil (`max-md:hidden`) brød en E2E, der klikkede det på mobil (`round2-dod` "Belgisk aften"), som ingen grep efter "Tilbage"/"Alle steder" fandt → når et link skjules på en breakpoint, grep e2e/ efter dets tekst (også event-/øl-navne brugt som linktekst) og kør hele suiten
 2026-11-18 | settings-hub | en ny side i `WARM_PATHS` (fixtures.ts) får `verify:up --ref <base>` til at fejle med 404 under opvarmningen, fordi harnessen kører fra arbejdstræet → fjern linjen midlertidigt, mens BEFORE startes, og sæt den tilbage (eller lad harnessen springe 404 over for --ref)
+2026-11-19 | settings-hub | en stablet PR (#15, base = #14's gren) blev merget efter #14 var på master; GitHub retargetede ikke basen, så ændringen landede kun på flow-grenen og Vercel lavede et preview, ikke produktion (rettet med #16) → når basen er merget: `gh pr edit <n> --base master` før merge, og tjek altid `baseRefName` i verdict og ved "merge"
+2026-11-19 | d183-followups | "ustabile" E2E-fejl (places.spec) opstod kun, når en manuelt startet E2E-server og verify-instanser kørte samtidig → lad Playwright starte serveren (virker efter F-099), stop verify-instanser før fuld E2E, og genskab en fejl under de forhold, før den "rettes"
 ```
