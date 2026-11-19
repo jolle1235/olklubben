@@ -30,7 +30,7 @@ export default function SettingsLoading() {
         <GroupSkeleton rows={1} />
         <GroupSkeleton rows={2} />
         <GroupSkeleton rows={2} />
-        <GroupSkeleton rows={2} />
+        <GroupSkeleton rows={3} />
       </div>
     </div>
   );
