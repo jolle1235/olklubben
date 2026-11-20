@@ -347,6 +347,9 @@ test.describe("Feedback", () => {
 
     // Lukkede: only the bug once it is done (set directly; moderation is tested above).
     await setFeedbackStatus(bugId, "DONE");
+    // Written behind the app's back, so no Server Action cleared the client cache: a
+    // page seen in the last 30 s would show from it (staleTimes, D-186). Start over.
+    await page.reload();
     await filterGroup(page, "Type").getByRole("link", { name: "Alle" }).click();
     await expect(page).toHaveURL(/\/feedback\?mine=1&sort=newest$/);
     await expect(feedbackCard(page, ideaTitle)).toBeVisible();

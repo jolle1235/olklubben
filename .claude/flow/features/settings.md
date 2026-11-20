@@ -12,7 +12,8 @@ top bar, back to Indstillinger without history.
 
 - `settings-switch` switch club by tapping another club under "Mine klubber".
 - `settings-appearance` Udseende (System | Lyst | Mørkt), per device (theme.spec.ts).
-- `settings-logout` "Log ud" (on desktop also under the sidebar's user row).
+- `settings-logout` "Log ud" (on desktop also under the sidebar's user row). Also deletes the device's
+  Cache Storage (the service worker's cached Overblik, D-185).
 
 ## How to get to it (user POV)
 

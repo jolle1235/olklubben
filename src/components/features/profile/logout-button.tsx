@@ -6,13 +6,15 @@ import { Loader2Icon, LogOutIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { ROW_FRAME, RowContent, RowIcon } from "@/components/features/link-row";
+import { clearDeviceCaches } from "@/components/features/pwa/device-cache";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { withNext } from "@/lib/auth-links";
 import { cn } from "@/lib/utils";
 
 /**
- * "Log ud" (SPEC §9.8). Ends the session and goes to /login. Google has no
+ * "Log ud" (SPEC §9.8). Ends the session, clears the device's cached pages
+ * (D-185) and goes to /login. Google has no
  * session of ours to end, so the next "Fortsæt med Google" shows Google's
  * account chooser (prompt=select_account, D-180).
  * variant "link": inline text, e.g. in the
@@ -45,6 +47,7 @@ export function LogoutButton({
         toast.error("Kunne ikke logge dig ud. Prøv igen.");
         return;
       }
+      await clearDeviceCaches();
       router.replace(withNext("/login", next));
       router.refresh();
     });

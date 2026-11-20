@@ -235,7 +235,11 @@ export async function closePollIfDueSafely(
   }
 }
 
-export type CloseDueResult = { closed: number; awaiting: number; failed: number };
+/**
+ * `due`: polls the unlocked read found due. It can be more than closed + awaiting
+ * when another request closed one first; Overblik reads again then (D-187).
+ */
+export type CloseDueResult = { due: number; closed: number; awaiting: number; failed: number };
 
 /**
  * The lazy close of Overblik and Kalender, and the cron per club: ONE
@@ -245,7 +249,7 @@ export type CloseDueResult = { closed: number; awaiting: number; failed: number 
  * NEVER throws: each failure is logged and counted.
  */
 export async function closeDuePolls(clubId: string, now: Date): Promise<CloseDueResult> {
-  const result: CloseDueResult = { closed: 0, awaiting: 0, failed: 0 };
+  const result: CloseDueResult = { due: 0, closed: 0, awaiting: 0, failed: 0 };
   let candidates: string[];
   try {
     const [polls, members] = await Promise.all([
@@ -288,6 +292,7 @@ export async function closeDuePolls(clubId: string, now: Date): Promise<CloseDue
     return result;
   }
 
+  result.due = candidates.length;
   for (const pollId of candidates) {
     try {
       const outcome = await closePollIfDue(clubId, pollId, now);
@@ -301,7 +306,10 @@ export async function closeDuePolls(clubId: string, now: Date): Promise<CloseDue
   return result;
 }
 
-export type CloseAllDueResult = CloseDueResult & { clubs: number; touchedClubIds: string[] };
+export type CloseAllDueResult = CloseDueResult & {
+  clubs: number;
+  touchedClubIds: string[];
+};
 
 /** Clubs per cron run (Vercel's maxDuration is 60 s; the next night takes the rest). */
 const DEFAULT_CRON_CLUB_LIMIT = 200;
@@ -325,6 +333,7 @@ export async function closeAllDuePolls(
   });
   const total: CloseAllDueResult = {
     clubs: groups.length,
+    due: 0,
     closed: 0,
     awaiting: 0,
     failed: 0,
@@ -332,6 +341,7 @@ export async function closeAllDuePolls(
   };
   for (const { clubId } of groups) {
     const result = await closeDuePolls(clubId, now);
+    total.due += result.due;
     total.closed += result.closed;
     total.awaiting += result.awaiting;
     total.failed += result.failed;

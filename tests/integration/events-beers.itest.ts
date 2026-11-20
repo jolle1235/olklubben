@@ -17,7 +17,6 @@ import { createEvent, deleteEvent, updateEvent } from "@/server/events/mutations
 import {
   getEvent,
   getEventBeers,
-  getNextEvent,
   listEventOptions,
   listEventsInRange,
   listUpcomingEvents,
@@ -176,16 +175,12 @@ describe("events: upcoming, ongoing and ranges (SPEC §9.1, §9.3)", () => {
     });
   });
 
-  it("getNextEvent is the earliest event that has not ended (start + 6 h without end)", async () => {
-    expect((await getNextEvent(scopeClub, NOW))?.title).toBe("I gang med slut");
-  });
-
-  it("listUpcomingEvents lists upcoming and ongoing events, oldest first", async () => {
+  it("listUpcomingEvents lists upcoming and ongoing events (start + 6 h without end), oldest first", async () => {
     const titles = (await listUpcomingEvents(scopeClub, NOW)).map((e) => e.title);
     expect(titles).toEqual(["I gang med slut", "I gang uden slut", "Om tre dage", "Om fire uger"]);
 
-    const next = await getNextEvent(scopeClub, NOW);
-    const rest = await listUpcomingEvents(scopeClub, NOW, { excludeId: next?.id, limit: 2 });
+    // Overblik: the first is the hero, the rest the list under it.
+    const [, ...rest] = await listUpcomingEvents(scopeClub, NOW, { limit: 3 });
     expect(rest.map((e) => e.title)).toEqual(["I gang uden slut", "Om tre dage"]);
   });
 

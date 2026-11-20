@@ -46,6 +46,8 @@ Preconditions:
 
 ## Gotchas
 
+- Any request to `/login` or `/signup` clears the service worker's page cache (production builds, D-185).
+
 - "Log ind" also matches "Log ind med Google igen" on Profil; always `exact: true`. Without
   `--google` the instance has no Google, so "Fortsæt med Google" and the "eller" divider are absent.
 - With `--google` (fake credentials): "Fortsæt med Google" sits above the "eller" divider and the

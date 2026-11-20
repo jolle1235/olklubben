@@ -9,7 +9,7 @@ import { PollCard } from "@/components/features/polls/poll-card";
 import { newEventHref as newEventPath, newPollHref as newPollPath } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
 import { OVERVIEW_HISTORY_LIMIT } from "@/server/domain/events/history";
-import { getNextEvent, listPastEvents, listUpcomingEvents } from "@/server/events/queries";
+import { listPastEvents, listUpcomingEvents } from "@/server/events/queries";
 import { canManagePoll } from "@/server/domain/polls/permissions";
 import { closeDuePolls } from "@/server/polls/close";
 import { listOverviewPolls } from "@/server/polls/queries";
@@ -35,9 +35,11 @@ const UPCOMING_LIMIT = 4;
  * One h1 in every state.
  *
  * Polls that are due (deadline passed, or everyone has voted) are closed
- * lazily BEFORE the queries (closeDuePolls, D-131; never throws), so an event
- * a poll just created is in the hero on this very render. This page sits
- * under its own loading.tsx, so a Link prefetch never runs that write.
+ * lazily (closeDuePolls, D-131; never throws) side by side with the reads; when
+ * a poll was due, polls and upcoming events are read again after the close, so
+ * an event it (or a concurrent close) just created is in the hero on this very
+ * render (D-187). This page
+ * sits under its own loading.tsx, so a Link prefetch never runs that write.
  *
  * Lives in the (overview) route group so its loading.tsx wraps only this page
  * (TG-008, see c/[clubId]/layout.tsx). The URL is still /c/[clubId].
@@ -47,17 +49,22 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
   const { user, membership, club } = await requireClubPage(clubId);
   // One "now" per request, so the hero and the list agree (and match the queries).
   const now = new Date();
-  // Lazy close first (D-131): a just-created event must show in the hero below.
-  await closeDuePolls(club.id, now);
-
-  const [nextEvent, pastEvents, polls] = await Promise.all([
-    getNextEvent(club.id, now),
+  const readPollsAndUpcoming = () =>
+    Promise.all([
+      listUpcomingEvents(club.id, now, { limit: UPCOMING_LIMIT + 1 }),
+      listOverviewPolls(club.id, user.id, now),
+    ]);
+  const closeThenPollsAndUpcoming = async () => {
+    const [closed, read] = await Promise.all([closeDuePolls(club.id, now), readPollsAndUpcoming()]);
+    // A poll was due: this request or a concurrent one changed it, so read what it is now.
+    return closed.due > 0 ? readPollsAndUpcoming() : read;
+  };
+  const [pastEvents, [upcomingWithHero, polls]] = await Promise.all([
     listPastEvents(club.id, now, { limit: OVERVIEW_HISTORY_LIMIT }),
-    listOverviewPolls(club.id, user.id, now),
+    closeThenPollsAndUpcoming(),
   ]);
-  const upcoming = nextEvent
-    ? await listUpcomingEvents(club.id, now, { excludeId: nextEvent.id, limit: UPCOMING_LIMIT })
-    : [];
+  // The earliest is the hero; the rest is "Kommende arrangementer".
+  const [nextEvent = null, ...upcoming] = upcomingWithHero;
 
   const newEventHref = newEventPath(club.id);
   const newPollHref = newPollPath(club.id);

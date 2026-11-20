@@ -19,10 +19,12 @@ vi.mock("./auth", () => ({ auth: { api: { getSession: getSessionMock } } }));
 
 const membershipFindUnique = vi.fn();
 const membershipFindMany = vi.fn();
+const clubFindUnique = vi.fn();
 const userUpdate = vi.fn();
 vi.mock("@/server/db", () => ({
   db: {
     membership: { findUnique: membershipFindUnique, findMany: membershipFindMany },
+    club: { findUnique: clubFindUnique },
     user: { update: userUpdate },
   },
 }));
@@ -131,8 +133,8 @@ describe("requireMembership", () => {
       clubId: CLUB_ID,
       role: "ADMIN",
       joinedAt: now,
-      club,
     });
+    clubFindUnique.mockResolvedValue(club);
 
     const result = await requireMembership(CLUB_ID);
     expect(result.club).toEqual(club);
@@ -208,8 +210,8 @@ describe("requireClubPage", () => {
       clubId: CLUB_ID,
       role: "MEMBER",
       joinedAt: now,
-      club,
     });
+    clubFindUnique.mockResolvedValue(club);
 
     const result = await requireClubPage(CLUB_ID);
     expect(result.club).toEqual(club);

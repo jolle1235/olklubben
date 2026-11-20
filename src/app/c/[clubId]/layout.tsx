@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/features/app-shell";
 import { SessionRefresh } from "@/components/features/auth/session-refresh";
+import { CachedPageRefresh } from "@/components/features/pwa/cached-page-refresh";
 import { getDisplayName } from "@/lib/format/display-name";
 import { getUserClubs, requireMembership } from "@/server/auth/session";
 
@@ -14,7 +15,9 @@ import { getUserClubs, requireMembership } from "@/server/auth/session";
  * the active club whenever a link to another club scrolls into view. No
  * database writes in layouts.
  *
- * <SessionRefresh /> slides the session forward once a day (D-030). The
+ * <SessionRefresh /> slides the session forward once a day (D-030).
+ * <CachedPageRefresh /> swaps fresh data into an Overblik the service worker
+ * served from the device's cache (D-185). The
  * `?toast=` flash messages are shown by <FlashToast /> in the root layout
  * (D-104). The sidebar shows the user's display name (nickname ?? name, D-105).
  *
@@ -48,6 +51,7 @@ export default async function ClubLayout({ children, params }: LayoutProps<"/c/[
       user={{ name: getDisplayName(user), email: user.email, image: user.image }}
     >
       <SessionRefresh />
+      <CachedPageRefresh clubId={club.id} />
       {children}
     </AppShell>
   );
