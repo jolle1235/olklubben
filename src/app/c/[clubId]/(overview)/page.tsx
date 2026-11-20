@@ -36,8 +36,9 @@ const UPCOMING_LIMIT = 4;
  *
  * Polls that are due (deadline passed, or everyone has voted) are closed
  * lazily (closeDuePolls, D-131; never throws) side by side with the reads; when
- * the close changed a poll, polls and upcoming events are read again, so an
- * event it just created is in the hero on this very render (D-187). This page
+ * a poll was due, polls and upcoming events are read again after the close, so
+ * an event it (or a concurrent close) just created is in the hero on this very
+ * render (D-187). This page
  * sits under its own loading.tsx, so a Link prefetch never runs that write.
  *
  * Lives in the (overview) route group so its loading.tsx wraps only this page
@@ -55,7 +56,8 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
     ]);
   const closeThenPollsAndUpcoming = async () => {
     const [closed, read] = await Promise.all([closeDuePolls(club.id, now), readPollsAndUpcoming()]);
-    return closed.closed + closed.awaiting > 0 ? readPollsAndUpcoming() : read;
+    // A poll was due: this request or a concurrent one changed it, so read what it is now.
+    return closed.due > 0 ? readPollsAndUpcoming() : read;
   };
   const [pastEvents, [upcomingWithHero, polls]] = await Promise.all([
     listPastEvents(club.id, now, { limit: OVERVIEW_HISTORY_LIMIT }),

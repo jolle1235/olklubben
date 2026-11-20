@@ -1437,7 +1437,7 @@ describe("closeDuePolls og cron (§9.7.5, D-131)", () => {
     );
 
     const result = await closeDuePolls(club.clubId, new Date());
-    expect(result).toEqual({ closed: 1, awaiting: 1, failed: 0 });
+    expect(result).toEqual({ due: 2, closed: 1, awaiting: 1, failed: 0 });
     expect((await pollState(expired.pollId)).status).toBe("AWAITING_DECISION");
     expect(await pollState(allVoted.pollId)).toMatchObject({
       status: "CLOSED",
@@ -1460,6 +1460,7 @@ describe("closeDuePolls og cron (§9.7.5, D-131)", () => {
       );
     }
     expect(await closeDuePolls(club.clubId, new Date())).toEqual({
+      due: 0,
       closed: 0,
       awaiting: 0,
       failed: 0,

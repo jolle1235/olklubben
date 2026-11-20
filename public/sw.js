@@ -13,8 +13,9 @@
  *   /_next/static/   cache-first (hashed, immutable): a cached page from an older deploy still
  *                    finds its own JavaScript.
  *
- * Any request to a page you land on after logging out, logging in, or leaving a club clears the
- * page cache, so the next open never shows another user's or a left club's page.
+ * A visit to a page you land on after logging out, logging in, or leaving a club (not a Link
+ * prefetch of it) clears the page cache, so the next open never shows another user's or a left
+ * club's page.
  *
  * Kill switch (D-185): replace this file with one that deletes every cache and calls
  * self.registration.unregister() in "activate".
@@ -39,8 +40,8 @@ const CLEARING_PATHS = new Set([
 let generation = 0;
 
 /**
- * How each Overblik navigation was answered, until the page asks (see "message"):
- * "network", or a promise that resolves to "fresh" when the background revalidation is done.
+ * Whether the page of each Overblik navigation should refresh, until it asks (see "message"):
+ * false when it came from the network, else the background revalidation's promise.
  */
 const answers = new Map();
 
@@ -64,8 +65,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Every mode: after router.refresh() an expired session redirects with an RSC fetch to /login.
-  if (CLEARING_PATHS.has(url.pathname)) {
+  // Every mode (after router.refresh() an expired session redirects with an RSC fetch to /login),
+  // but never a Link prefetch: a link to /onboarding on screen is not a visit.
+  if (CLEARING_PATHS.has(url.pathname) && !request.headers.has("next-router-prefetch")) {
     event.waitUntil(clearPages());
     return;
   }
@@ -86,11 +88,12 @@ self.addEventListener("fetch", (event) => {
 
 /**
  * From CachedPageRefresh:
- *   { type: "last-club", path }     the club page being shown, for "/" next time;
+ *   { type: "last-club", path }     the club page being shown, for "/" next time; its Overblik is
+ *                                   fetched in the background when not cached yet (after a login
+ *                                   or a club switch, which arrive without a document load);
  *   { type: "revalidated?", url }   the URL the document loaded (path + query); answered on the
- *                                   given port with "network" (not served from the cache),
- *                                   "fresh" once the background fetch is stored, or "unknown"
- *                                   (e.g. the worker restarted): the page refreshes on both.
+ *                                   given port with true when the page should router.refresh()
+ *                                   (true when nothing is known, e.g. after a worker restart).
  */
 self.addEventListener("message", (event) => {
   const { type, path, url } = event.data ?? {};
@@ -99,7 +102,7 @@ self.addEventListener("message", (event) => {
     event.waitUntil(rememberLastClub(path));
   } else if (type === "revalidated?" && port && typeof url === "string") {
     const loaded = new URL(url, self.location.origin);
-    const answer = isCachedPage(loaded) ? (answers.get(loaded.pathname) ?? "unknown") : "network";
+    const answer = isCachedPage(loaded) ? (answers.get(loaded.pathname) ?? true) : false;
     answers.delete(loaded.pathname);
     event.waitUntil(Promise.resolve(answer).then((value) => port.postMessage(value)));
   }
@@ -121,35 +124,41 @@ async function overview(event, path) {
   const cached = await pages.match(path, { ignoreVary: true });
   if (cached) {
     const revalidation = revalidate(event.request, path);
-    answers.set(
-      path,
-      revalidation.then(() => "fresh"),
-    );
+    answers.set(path, revalidation);
     event.waitUntil(revalidation);
     return cached;
   }
 
-  answers.set(path, "network");
+  answers.set(path, false);
   const startedAt = generation;
   const response = await fetch(event.request);
   if (isStorable(response)) event.waitUntil(storePage(path, response.clone(), startedAt));
   return response;
 }
 
+/**
+ * Resolves to true when the page should refresh: the fresh page is stored, or the cached one was
+ * dropped. False when the server failed or could not be reached: the cached page stays, and a
+ * refresh would only fail into a document load from this cache again, a reload loop (F-101).
+ */
 async function revalidate(request, path) {
   const startedAt = generation;
   let response;
   try {
     response = await fetch(request);
   } catch {
-    return; // Offline: keep the cached page.
+    return false;
   }
   if (isStorable(response)) {
     await storePage(path, response, startedAt);
-  } else if (response.type === "opaqueredirect" || response.status === 404) {
+    return true;
+  }
+  if (response.type === "opaqueredirect" || response.status === 404) {
     // Logged out or no longer a member: the page must not be shown again.
     await forgetPage(path);
+    return true;
   }
+  return false;
 }
 
 /** The one page served from the cache: Overblik, without a query. */
@@ -181,8 +190,23 @@ async function forgetPage(path) {
 
 async function rememberLastClub(path) {
   if (typeof path !== "string" || !OVERVIEW_PATH.test(path)) return;
+  // A document load of this page is in flight and stores it itself (checked before any await).
+  const loading = answers.has(path);
+  const startedAt = generation;
   const pages = await caches.open(PAGES);
   await pages.put(LAST_CLUB, new Response(path));
+  if (!loading) await cacheIfMissing(pages, path, startedAt);
+}
+
+/** Fetches a page the cache lacks: after a login or a club switch, which load no document. */
+async function cacheIfMissing(pages, path, startedAt) {
+  if (await pages.match(path, { ignoreVary: true })) return;
+  try {
+    const response = await fetch(path, { headers: { accept: "text/html" } });
+    if (isStorable(response)) await storePage(path, response, startedAt);
+  } catch {
+    // Offline: the next open fetches it.
+  }
 }
 
 async function clearPages() {

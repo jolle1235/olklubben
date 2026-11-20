@@ -128,4 +128,7 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-19 | fast-first-load | `framenavigated` talte Next' replaceState som en navigation, og check 2 blev rød uden reload → tæl `page.on("load")`
 2026-11-19 | fast-first-load | `staleTimes` 30 s gjorde feedback-filtertesten rød: den skrev direkte i DB og klikkede tilbage til en set side (F-100) → E2E, der skriver bag om appen, skal genindlæse før de navigerer tilbage
 2026-11-19 | fast-first-load | `fallow audit` kaldte `public/sw.js` en ubrugt fil (browseren loader den) → filen står som `entry` i `.fallowrc.json` (commit-skillens regel for filer, et framework loader), ikke en inline-suppression
+2026-11-19 | fast-first-load | beviset testede kun en langsom server; merge-verdict fandt en reload-løkke ved 5xx/ingen forbindelse (F-101) → test en service worker også med en server, der fejler, og en, der ikke kan nås (check 10)
+2026-11-19 | fast-first-load | en cache, som kun en dokument-load fylder, missede login og klubskift i appen (klient-navigation) → test første genåbning efter login gennem formularen, ikke kun efter `page.goto`
+2026-11-19 | fast-first-load | tømning på stier (`/onboarding`) ramte Link-prefetches fra Indstillinger → filtrér `next-router-prefetch`, og kør et check, der besøger sider med prefetchede links
 ```
