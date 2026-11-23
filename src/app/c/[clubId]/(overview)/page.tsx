@@ -30,8 +30,8 @@ const UPCOMING_LIMIT = 4;
  * (D-179): "Opret event" is in the page, "Tilføj øl" in the hero while an
  * event is on.
  *
- * The h1 is the club's name (D-183): main pages have no top bar on mobile, so
- * this is where you see which club you are in. The hero's title is the h2.
+ * The h1 is the club's name (D-183); on mobile the top bar shows it and the
+ * h1 is for screen readers (D-189). The hero's title is the h2.
  * One h1 in every state.
  *
  * Polls that are due (deadline passed, or everyone has voted) are closed
@@ -97,7 +97,7 @@ export default async function OverviewPage({ params }: PageProps<"/c/[clubId]">)
 
   return (
     <>
-      <PageHeader title={club.name} />
+      <PageHeader title={club.name} titleInTopBar />
 
       <div className="flex flex-col gap-section-loose">
         {nextEvent ? (

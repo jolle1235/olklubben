@@ -29,15 +29,6 @@ const FEEDBACK_PAGE = /^\/feedback(\/|$)/;
 const FEEDBACK_TARGET = new RegExp(`^/feedback(/${UUID_SOURCE})?$`, "i");
 const isMainPage = (url: string) => MAIN_PAGE.test(pathOf(url));
 
-/**
- * A page that is not a main page: in a club (an event, a beer, a place, a
- * poll, a song, a form, a 404, Klubben, Steder, Konto) or Feedback. On mobile
- * it has the top bar with "‹ Tilbage" (D-182); main pages have none (D-183).
- */
-export function isSubpage(pathname: string): boolean {
-  return (/^\/c\/[^/]+\/./.test(pathname) || FEEDBACK_PAGE.test(pathname)) && !isMainPage(pathname);
-}
-
 const PARENTS: [RegExp, string][] = [
   [/^\/(club|places|profile)$/, "/settings"],
   [/^\/(events|polls)(\/|$)/, "/calendar"],

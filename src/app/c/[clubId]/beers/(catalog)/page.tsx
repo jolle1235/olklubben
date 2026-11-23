@@ -12,6 +12,7 @@ import {
 } from "@/components/features/beers/catalog-view";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { MAIN_PAGE_TITLES } from "@/components/features/app-shell/nav-items";
 import { PageHeader } from "@/components/ui/page-header";
 import { beerHref, beerImageHref, beersHref, newBeerHref } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
@@ -60,7 +61,8 @@ export default async function BeersPage({ params, searchParams }: PageProps<"/c/
   return (
     <>
       <PageHeader
-        title="Ølkatalog"
+        title={MAIN_PAGE_TITLES.beers}
+        titleInTopBar
         action={
           isEmpty ? undefined : (
             <Button asChild className="max-md:w-full">

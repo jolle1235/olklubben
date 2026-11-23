@@ -11,6 +11,17 @@ import { clubHref, placesHref, profileHref, settingsHref } from "@/lib/routes";
 
 export type NavKey = "overview" | "calendar" | "beers" | "songs" | "settings";
 
+/**
+ * The main pages' names: their h1 and the mobile top bar's text (D-189).
+ * Overblik's is the club's name.
+ */
+export const MAIN_PAGE_TITLES = {
+  calendar: "Kalender",
+  beers: "Ølkatalog",
+  songs: "Sangbog",
+  settings: "Indstillinger",
+} as const satisfies Record<Exclude<NavKey, "overview">, string>;
+
 /** Feedback (SPEC §9.9) is app-wide, so the same prefix for every club. */
 const FEEDBACK_PATH = "/feedback";
 
@@ -119,4 +130,16 @@ export function isNavItemActive(
   const path = stripTrailingSlash(pathname);
   if (item.exact ? path === item.href : matchesPrefix(path, item.href)) return true;
   return item.alsoActiveOn.some((prefix) => matchesPrefix(path, prefix));
+}
+
+/**
+ * The name of the main page at `pathname` (the bottom nav's destinations), for
+ * the mobile top bar (D-189): the club's name on Overblik. Null on any other
+ * page.
+ */
+export function mainPageTitle(pathname: string, clubId: string, clubName: string): string | null {
+  const path = stripTrailingSlash(pathname);
+  const item = getNavItems(clubId).find((candidate) => candidate.href === path);
+  if (!item) return null;
+  return item.key === "overview" ? clubName : MAIN_PAGE_TITLES[item.key];
 }

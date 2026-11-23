@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getNavItems, getSidebarNav, isNavItemActive } from "./nav-items";
+import { getNavItems, getSidebarNav, isNavItemActive, mainPageTitle } from "./nav-items";
 
 const items = getNavItems("club1");
 const byKey = Object.fromEntries(items.map((item) => [item.key, item]));
@@ -100,5 +100,29 @@ describe("isNavItemActive", () => {
 
   it("never matches another club", () => {
     expect(activeKeys("/c/club2/beers")).toEqual([]);
+  });
+});
+
+describe("mainPageTitle (D-189)", () => {
+  it("names each main page as its h1 does, the club's name on Overblik", () => {
+    expect(items.map((item) => mainPageTitle(item.href, "club1", "Drengene"))).toEqual([
+      "Drengene",
+      "Kalender",
+      "Ølkatalog",
+      "Sangbog",
+      "Indstillinger",
+    ]);
+    expect(mainPageTitle("/c/club1/calendar/", "club1", "Drengene")).toBe("Kalender");
+  });
+
+  it("is null on subpages", () => {
+    for (const path of [
+      "/c/club1/events/e1",
+      "/c/club1/profile",
+      "/c/club1/beers/new",
+      "/feedback",
+    ]) {
+      expect(mainPageTitle(path, "club1", "Drengene")).toBeNull();
+    }
   });
 });
