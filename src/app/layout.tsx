@@ -15,9 +15,9 @@ export const metadata: Metadata = {
   title: { template: "%s · Ølklubben", default: "Ølklubben" },
   description: "Klubbens digitale samlingspunkt: næste ølsmagning, øl, sange og afstemninger.",
   applicationName: "Ølklubben",
-  // Installed on an iPhone, the page runs under the status bar's light text, so
-  // every shell paints the frame colour there (SPEC §13.6).
-  appleWebApp: { title: "Ølklubben", capable: true, statusBarStyle: "black-translucent" },
+  // "default", not "black-translucent": iOS 26 lays its scroll-edge blur over a
+  // translucent status bar in the installed app, over the top bar too (SPEC §13.6, D-188).
+  appleWebApp: { title: "Ølklubben", capable: true, statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };
 

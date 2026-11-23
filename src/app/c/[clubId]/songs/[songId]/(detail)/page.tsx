@@ -3,7 +3,6 @@ import Link from "next/link";
 import { PencilIcon } from "lucide-react";
 
 import { TopBarAction } from "@/components/features/app-shell";
-import { TopBarTitle } from "@/components/ui/top-bar-title";
 import { BackToSongbook } from "@/components/features/songs/back-to-songbook";
 import { DeleteSongButton } from "@/components/features/songs/delete-song-button";
 import { SongFontStepper } from "@/components/features/songs/song-font-stepper";
@@ -56,8 +55,7 @@ export default async function SongPage({ params }: PageProps<"/c/[clubId]/songs/
         <SongFontStepper variant="topbar" />
       </TopBarAction>
 
-      {/* Mobile: "Tilbage" and the title sit in the top bar (D-182). */}
-      <TopBarTitle>{song.title}</TopBarTitle>
+      {/* Mobile: "Tilbage" sits in the top bar (D-182); the title only in the h1 (D-188). */}
       <div className="mb-3 max-md:hidden">
         <BackToSongbook clubId={club.id} />
       </div>
