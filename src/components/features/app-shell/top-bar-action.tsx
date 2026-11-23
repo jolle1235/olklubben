@@ -10,7 +10,7 @@ const getSlot = () => document.getElementById(TOP_BAR_ACTION_SLOT_ID);
 const getServerSlot = () => null;
 
 /**
- * Puts a page tool in the mobile top bar, to the right of the club name
+ * Puts a page tool at the right of the mobile top bar, on subpages
  * (SPEC §8.1), e.g. the song reader's text size. Not for "+"/add actions:
  * those sit in the page, under the title (PageHeader action, D-179). Render
  * it anywhere in a page inside AppShell; the top bar is hidden from md up.

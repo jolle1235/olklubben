@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 
 import { StatusBarBackdrop } from "@/components/features/status-bar-backdrop";
-import { TOP_BAR_TITLE_SLOT_ID } from "@/components/ui/top-bar-title";
 import { isSubpage } from "@/lib/nav-history";
 
 import { TOP_BAR_ACTION_SLOT_ID } from "./top-bar-action";
@@ -14,11 +13,12 @@ export type TopBarProps = {
 };
 
 /**
- * Mobile top bar (< md), only on subpages (D-183): "‹ Tilbage", the page's
- * name (TopBarTitle) and a slot for a page tool (TopBarAction); both slots are
- * always mounted there, so a portal finds them. Main pages have no bar: only
- * the frame colour under an installed app's status bar and the same height in
- * the flow (0 px in a browser).
+ * Mobile top bar (< md), only on subpages (D-183): "‹ Tilbage" and a slot for
+ * a page tool (TopBarAction), always mounted there so a portal finds it. The
+ * page's name is only its own h1 (D-188). Main pages have no bar: only
+ * the frame colour under the status bar and the same height in the flow. Both
+ * are 0 px since the status bar is "default" (D-188); kept so a switch back to
+ * "black-translucent" needs no layout work.
  */
 export function TopBar({ clubId }: TopBarProps) {
   const pathname = usePathname();
@@ -37,13 +37,8 @@ export function TopBar({ clubId }: TopBarProps) {
       <div className="flex h-16 items-center gap-2 pr-3 pl-2">
         <TopBarLeading clubId={clubId} />
         <div
-          id={TOP_BAR_TITLE_SLOT_ID}
-          aria-hidden
-          className="min-w-0 flex-1 truncate text-body-md font-semibold text-frame-foreground"
-        />
-        <div
           id={TOP_BAR_ACTION_SLOT_ID}
-          className="flex shrink-0 items-center gap-2 empty:hidden"
+          className="ml-auto flex shrink-0 items-center gap-2 empty:hidden"
         />
       </div>
     </header>

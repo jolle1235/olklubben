@@ -132,4 +132,6 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-19 | fast-first-load | en cache, som kun en dokument-load fylder, missede login og klubskift i appen (klient-navigation) → test første genåbning efter login gennem formularen, ikke kun efter `page.goto`
 2026-11-19 | fast-first-load | tømning på stier (`/onboarding`) ramte Link-prefetches fra Indstillinger → filtrér `next-router-prefetch`, og kør et check, der besøger sider med prefetchede links
 2026-11-19 | fast-first-load | en måling gennem en lokal forsinkende HTTP-proxy gav 9,4 s i stedet for 6,4 s: den forrige fanes forsinkede requests fyldte Chromes 6 HTTP/1.1-forbindelser → luk den forrige fane, eller vent, til dens requests er færdige, før næste tidtagning
+2026-11-23 | no-topbar-title | skrev D-185 i kodekommentarer uden at slå op; nummeret var allerede taget (service worker), fundet af thermonuclear → find næste frie D-/F-nummer i SPEC §19.3/§19.4, før det skrives nogen steder
+2026-11-23 | no-topbar-title | et slør i toppen af den installerede iPhone-app kunne ikke ses i Chromium; årsagen (iOS 26-slør over `black-translucent`) kom fra udviklerrapporter → spørg hvor (installeret/Safari/Android) og hvornår, før en statusbar-fejl jagtes i Playwright; beviset kan kun dække meta-tagget
 ```

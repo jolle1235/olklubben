@@ -1,4 +1,3 @@
-import { TopBarTitle } from "@/components/ui/top-bar-title";
 import { cn } from "@/lib/utils";
 
 export type PageHeaderProps = {
@@ -22,7 +21,6 @@ export function PageHeader({ title, description, action, className }: PageHeader
         className,
       )}
     >
-      <TopBarTitle>{title}</TopBarTitle>
       <div className="min-w-0 flex-1 basis-64">
         <h1 className="text-page-title font-bold break-words hyphens-auto text-primary-ink">
           {title}

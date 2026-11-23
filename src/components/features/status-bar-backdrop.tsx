@@ -1,6 +1,7 @@
 /**
  * The frame colour under an installed iPhone's status bar, for shells whose
- * frame band scrolls away: its text is always light (SPEC §13.6).
+ * frame band scrolls away, when the status bar is "black-translucent" (light
+ * text over the page). Dormant (0 px) under "default" (SPEC §13.6, D-188).
  */
 export function StatusBarBackdrop() {
   return (
