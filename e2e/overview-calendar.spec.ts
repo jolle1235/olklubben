@@ -39,7 +39,7 @@ function hero(page: Page) {
   return page.getByRole("region", { name: "Næste ølsmagning" });
 }
 
-/** A filled top bar slot (TopBarAction). The overview has no top bar at all on mobile (D-179, D-183). */
+/** A filled top bar slot (TopBarAction). Main pages' top bar has only the page's name, no slot (D-179, D-189). */
 function topBarAction(page: Page) {
   return page.locator("#top-bar-action:not(:empty)");
 }

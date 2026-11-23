@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { backTarget, isSubpage, isSongPage, parentPage, recordVisit } from "./nav-history";
+import { backTarget, isSongPage, parentPage, recordVisit } from "./nav-history";
 
 const club = "/c/c1";
 const event = `${club}/events/e1`;
@@ -122,43 +122,6 @@ describe("backTarget", () => {
     expect(backTarget(["/c/other/calendar"], event, club, fallback)).toBe(fallback);
     expect(backTarget(["/c/c10/calendar"], event, club, fallback)).toBe(fallback);
     expect(backTarget(["/feedback"], event, club, fallback)).toBe(fallback);
-  });
-});
-
-describe("isSubpage", () => {
-  it("is true for detail pages, forms, 404s, the settings' subpages and feedback", () => {
-    for (const path of [
-      event,
-      `${club}/beers/b1`,
-      `${club}/places/p1/edit`,
-      `${club}/polls/new`,
-      `${club}/songs/s1`,
-      `${club}/club/edit`,
-      `${club}/nope`,
-      `${club}/club`,
-      `${club}/places`,
-      `${club}/profile`,
-      "/feedback",
-      "/feedback/f1",
-      "/feedback/new",
-    ]) {
-      expect(isSubpage(path), path).toBe(true);
-    }
-  });
-
-  it("is false for the main pages", () => {
-    for (const path of [
-      club,
-      `${club}/calendar`,
-      `${club}/beers`,
-      `${club}/songs`,
-      `${club}/settings`,
-      "/profile",
-      "/clubs",
-      "/feedbackx",
-    ]) {
-      expect(isSubpage(path), path).toBe(false);
-    }
   });
 });
 

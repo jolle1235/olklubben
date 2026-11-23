@@ -19,8 +19,9 @@ export function SongListSkeleton() {
   return (
     <Busy label="Henter sangbogen …">
       <div className="mb-header">
-        <Skeleton className="h-8 w-48 md:h-12" />
-        <Skeleton className="mt-3 h-5 w-40" />
+        {/* On mobile the name is in the top bar (D-189). */}
+        <Skeleton className="h-8 w-48 max-md:hidden md:h-12" />
+        <Skeleton className="h-5 w-40 md:mt-3" />
       </div>
       <div className="grid grid-cols-1 gap-4 md:max-w-2xl">
         <div className="flex gap-2">

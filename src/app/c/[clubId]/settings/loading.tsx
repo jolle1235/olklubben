@@ -25,7 +25,7 @@ export default function SettingsLoading() {
   return (
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Henter …</span>
-      <Skeleton className="mb-header h-8 w-48 md:h-12" />
+      <Skeleton className="mb-header h-8 w-48 max-md:hidden md:h-12" />
       <div className="flex flex-col gap-section">
         <GroupSkeleton rows={1} />
         <GroupSkeleton rows={2} />

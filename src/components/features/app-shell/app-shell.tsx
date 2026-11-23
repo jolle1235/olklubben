@@ -40,7 +40,7 @@ export function AppShell({ club, clubs, user, children }: AppShellProps) {
       <Sidebar club={club} clubs={clubs} user={user} />
 
       <div className="flex min-h-dvh min-w-0 flex-col">
-        <TopBar clubId={club.id} />
+        <TopBar clubId={club.id} clubName={club.name} />
         <main
           id="main-content"
           tabIndex={-1}

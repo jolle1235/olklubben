@@ -134,4 +134,7 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-19 | fast-first-load | en måling gennem en lokal forsinkende HTTP-proxy gav 9,4 s i stedet for 6,4 s: den forrige fanes forsinkede requests fyldte Chromes 6 HTTP/1.1-forbindelser → luk den forrige fane, eller vent, til dens requests er færdige, før næste tidtagning
 2026-11-23 | no-topbar-title | skrev D-185 i kodekommentarer uden at slå op; nummeret var allerede taget (service worker), fundet af thermonuclear → find næste frie D-/F-nummer i SPEC §19.3/§19.4, før det skrives nogen steder
 2026-11-23 | no-topbar-title | et slør i toppen af den installerede iPhone-app kunne ikke ses i Chromium; årsagen (iOS 26-slør over `black-translucent`) kom fra udviklerrapporter → spørg hvor (installeret/Safari/Android) og hvornår, før en statusbar-fejl jagtes i Playwright; beviset kan kun dække meta-tagget
+2026-11-23 | main-page-topbar | `git checkout <fil>` for at fortryde et bevidst brud ville have slettet de ikke-committede ændringer (auto mode stoppede det) → kopiér filen til scratchpad før bruddet og kopiér tilbage
+2026-11-23 | main-page-topbar | et 59-tegns klubnavn med æøå ramte `clubs_name_length_check`: verify-databasen tæller bytes som tegn → hold testnavne med æøå under 60 bytes
+2026-11-23 | no-topbar-title | PR #19 skiftede statusbaren efter udviklerrapporter; på iPhone hjalp kun en fast top bar (F-103) → kald ikke en platformsrettelse løst, før Jesper har tjekket den på telefonen
 ```

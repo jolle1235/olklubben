@@ -21,7 +21,7 @@ export function CalendarSkeleton({ view }: CalendarSkeletonProps) {
   return (
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Henter kalenderen …</span>
-      <Skeleton className="mb-header h-8 w-48 md:h-12" />
+      <Skeleton className="mb-header h-8 w-48 max-md:hidden md:h-12" />
       <Skeleton className="mb-5 h-13 w-56 rounded-xl md:mb-6" />
 
       {view !== "month" ? <ListSkeleton className={cn(view === null && "md:hidden")} /> : null}

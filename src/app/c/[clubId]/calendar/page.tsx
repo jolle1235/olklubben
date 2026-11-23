@@ -9,6 +9,7 @@ import { resolveCalendarParams } from "@/components/features/calendar/calendar-p
 import { CalendarTodayLink } from "@/components/features/calendar/month-nav";
 import { CalendarViewToggle } from "@/components/features/calendar/view-toggle";
 import { Button } from "@/components/ui/button";
+import { MAIN_PAGE_TITLES } from "@/components/features/app-shell/nav-items";
 import { PageHeader } from "@/components/ui/page-header";
 import { newEventHref as newEventPath, newPollHref as newPollPath } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
@@ -116,7 +117,8 @@ export default async function CalendarPage({
   return (
     <>
       <PageHeader
-        title="Kalender"
+        title={MAIN_PAGE_TITLES.calendar}
+        titleInTopBar
         action={
           <>
             <Button asChild variant="outline" className="max-md:w-full">

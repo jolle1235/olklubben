@@ -12,8 +12,8 @@ export function OverviewSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Henter Overblik …</span>
-      {/* The club's name, the page's h1 (D-183). */}
-      <Skeleton className="mb-header h-8 w-56 max-w-full md:h-12" />
+      {/* The club's name, the page's h1 (D-183); on mobile it is in the top bar (D-189). */}
+      <Skeleton className="mb-header h-8 w-56 max-w-full max-md:hidden md:h-12" />
       <div className="flex flex-col gap-section-loose">
         <div className="rounded-2xl surface-feature p-4 sm:px-7 md:px-10 md:pt-8 md:pb-10">
           <div className="flex items-center justify-between gap-4">

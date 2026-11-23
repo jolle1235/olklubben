@@ -27,7 +27,11 @@ function TitleSkeleton({ withLine = true }: { withLine?: boolean }) {
 export function BeerCatalogSkeleton() {
   return (
     <Busy label="Henter ølkataloget …">
-      <TitleSkeleton />
+      {/* On mobile the name is in the top bar (D-189). */}
+      <div className="mb-header">
+        <Skeleton className="h-8 w-3/5 max-w-sm max-md:hidden md:h-12" />
+        <Skeleton className="h-5 w-32 md:mt-3" />
+      </div>
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_12rem_14rem] md:items-end">
         <Skeleton className="h-11" />
         <div className="grid grid-cols-2 gap-3 md:contents">

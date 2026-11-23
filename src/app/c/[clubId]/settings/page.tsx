@@ -12,6 +12,7 @@ import {
   SETTINGS_ROW,
 } from "@/components/features/profile/settings-lists";
 import { placeCountLabel } from "@/components/features/clubs/club-labels";
+import { MAIN_PAGE_TITLES } from "@/components/features/app-shell/nav-items";
 import { PageHeader } from "@/components/ui/page-header";
 import { getDisplayName } from "@/lib/format/display-name";
 import { clubHref, feedbackListHref, placesHref, profileHref } from "@/lib/routes";
@@ -37,7 +38,7 @@ export default async function SettingsPage({ params }: PageProps<"/c/[clubId]/se
 
   return (
     <>
-      <PageHeader title="Indstillinger" />
+      <PageHeader title={MAIN_PAGE_TITLES.settings} titleInTopBar />
 
       <div className="flex flex-col gap-section">
         <SettingsGroup id="settings-account" title="Konto">

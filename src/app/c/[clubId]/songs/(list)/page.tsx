@@ -4,6 +4,7 @@ import { FileUpIcon, PlusIcon } from "lucide-react";
 
 import { SongbookBrowser } from "@/components/features/songs/songbook-browser";
 import { Button } from "@/components/ui/button";
+import { MAIN_PAGE_TITLES } from "@/components/features/app-shell/nav-items";
 import { PageHeader } from "@/components/ui/page-header";
 import { importSongsHref, newSongHref } from "@/lib/routes";
 import { requireClubPage } from "@/server/auth/session";
@@ -35,7 +36,8 @@ export default async function SongsPage({ params }: PageProps<"/c/[clubId]/songs
   return (
     <>
       <PageHeader
-        title="Sangbog"
+        title={MAIN_PAGE_TITLES.songs}
+        titleInTopBar
         description={songCountLabel(entries.length)}
         action={
           canManage && entries.length > 0 ? (
