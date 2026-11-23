@@ -40,7 +40,7 @@ Preconditions:
   prove it with recipe 12 in verifier-notes. Revisiting within 30 s comes from the client cache
   (D-186): after writing to the database behind the app's back, reload before navigating back.
 
-- ~~The h1 "Overblik" is visually hidden~~ The h1 is the club's name, visible (D-183); the nav link "Overblik" keeps its name.
+- ~~The h1 "Overblik" is visually hidden~~ The h1 is the club's name (D-183): visible from md; below md the top bar shows the name and the h1 is screen-reader-only (D-189); the nav link "Overblik" keeps its name.
 - The decided poll "Ølsmagning #13" also has a card ("🎉 Afgjort") for 3 days after it was seeded.
 - The open poll's deadline is fixed when the instance seeds it (10 days ahead), so it stays open for
   the instance's lifetime.
