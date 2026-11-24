@@ -137,4 +137,7 @@ date       | task | what went wrong or was misunderstood → what to do instead
 2026-11-23 | main-page-topbar | `git checkout <fil>` for at fortryde et bevidst brud ville have slettet de ikke-committede ændringer (auto mode stoppede det) → kopiér filen til scratchpad før bruddet og kopiér tilbage
 2026-11-23 | main-page-topbar | et 59-tegns klubnavn med æøå ramte `clubs_name_length_check`: verify-databasen tæller bytes som tegn → hold testnavne med æøå under 60 bytes
 2026-11-23 | no-topbar-title | PR #19 skiftede statusbaren efter udviklerrapporter; på iPhone hjalp kun en fast top bar (F-103) → kald ikke en platformsrettelse løst, før Jesper har tjekket den på telefonen
+2026-11-24 | squircle-corners | `verify:up` med samme id efter en ændring i `globals.css` serverede stadig den gamle CSS (HMR fangede den ikke) → efter CSS-ændringer: `verify:down` + `up`, og tjek de serverede regler (document.styleSheets) før en måling
+2026-11-24 | squircle-corners | en lag-løs `*`-regel slog Tailwinds utilities (de ligger i `@layer utilities`), og et `[class*=…]`-hack ramte ikke `before:`-varianter → globale standarder i `@layer base`, undtagelser på selve utility'en (`@utility rounded-full { … }` udvider den indbyggede)
+2026-11-24 | squircle-corners | `next build` stoppede én gang med Next' sikkerhedspåmindelse (exit 1) → kør kommandoen igen; den fortsætter anden gang
 ```
