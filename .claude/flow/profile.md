@@ -57,7 +57,8 @@ database and port, so BEFORE, AFTER and the `merge-verdict` reviewers can run si
   - A `--ref` instance runs that commit's own migrations and seed. If the seed changed since, the
     constants in `fixtures.ts` may not match it; check the old `prisma/seed.ts`.
   - A working-tree instance runs what was synced at the last `up`. Edit, then `up` the same id again
-    before driving; it doesn't watch the repo.
+    before driving; it doesn't watch the repo. After a `globals.css` change it once kept serving the
+    old CSS: `down` + `up`, and check the served rules before measuring.
   - `next dev` compiles a route on its first hit; `up` warms the mapped pages, other routes take 1–3 s
     the first time. Give first visits a generous timeout.
   - Every mutation persists for the instance's life. One instance per task and side; start fresh

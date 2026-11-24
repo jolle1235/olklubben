@@ -31,7 +31,8 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius-scale: 1;
+  --radius: calc(0.75rem * var(--radius-scale));
 
   /* Trykfeedback (se pressable nedenfor) */
   --press-scale: 0.97;
@@ -39,9 +40,29 @@
   --press-highlight: var(--muted);
 }
 
+/*
+ * Hjørner (SPEC §13.4, D-190): squircles som Apples "continuous corners"
+ * (Figmas 60 % corner smoothing), kun hvor browseren kan corner-shape; ellers
+ * er hjørnerne som før. En squircle ser mindre rund ud ved samme radius, så
+ * radius-skalaen ganges med 1,6. Lag-løs som :root ovenfor; formen sættes i
+ * @layer base nedenfor, og rounded-full/porthole holder cirkler runde.
+ */
+@supports (corner-shape: superellipse(2)) {
+  :root {
+    --radius-scale: 1.6;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
+  }
+  @supports (corner-shape: superellipse(2)) {
+    *,
+    ::before,
+    ::after {
+      corner-shape: superellipse(2);
+    }
   }
   html {
     @apply font-sans;
@@ -170,12 +191,17 @@
   }
 }
 
+/* Cirkler og pills forbliver runde, også som before:/after: (D-190). */
+@utility rounded-full {
+  corner-shape: round;
+}
+
 /*
  * Rund "porthole"-ramme (SPEC §13.1): messingring med en smal spalte. Tegnes uden for elementet.
  * --porthole-ring kan dæmpe ringen (fx sidebarens brugerrække, når den ikke er aktiv).
  */
 @utility porthole {
-  border-radius: calc(infinity* 1px);
+  @apply rounded-full;
   box-shadow:
     0 0 0 2px var(--porthole-gap),
     0 0 0 4px var(--porthole-ring),
